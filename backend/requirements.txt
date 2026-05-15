@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+supabase
+pydantic
+pydantic-settings
+python-dotenv
