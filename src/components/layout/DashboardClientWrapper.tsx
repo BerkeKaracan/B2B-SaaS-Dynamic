@@ -1,6 +1,8 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import { useLayoutStore } from "@/store/useLayoutStore";
+import { useCanvasStore } from "@/store/useCanvasStore";
+import { useAutoSave } from "@/hooks/useAutoSave";
 import Navbar from "./Navbar";
 import ProjectSidebar from "./ProjectSidebar";
 import ItemSidebar from "./ItemSidebar";
@@ -14,6 +16,14 @@ export default function DashboardClientWrapper({
   tenantId: string;
 }) {
   const { isSecondarySidebarOpen } = useLayoutStore();
+  const { loadProject, isLoading } = useCanvasStore();
+  const testUUID = "550e8400-e29b-41d4-a716-446655440000";
+
+  useEffect(() => {
+    loadProject(testUUID);
+  }, [loadProject]);
+
+  useAutoSave(testUUID);
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-white text-zinc-900 font-sans antialiased selection:bg-zinc-200">
@@ -25,7 +35,16 @@ export default function DashboardClientWrapper({
           <ItemSidebar />
         </div>
 
-        <main className="flex-1 overflow-y-auto bg-zinc-50/30">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-zinc-50/30 relative">
+          {isLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-[1px] z-40">
+              <span className="text-xs font-semibold tracking-wider text-zinc-400 animate-pulse uppercase">
+                Loading Engine Framework...
+              </span>
+            </div>
+          ) : null}
+          {children}
+        </main>
 
         <div
           className={`transition-all duration-300 ease-in-out border-zinc-200/60 bg-white overflow-hidden shrink-0 ${

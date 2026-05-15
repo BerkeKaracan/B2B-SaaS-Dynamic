@@ -1,14 +1,17 @@
 "use client";
 import React from "react";
 import { useLayoutStore } from "@/store/useLayoutStore";
+import { useCanvasStore } from "@/store/useCanvasStore";
 
 export default function Navbar({ tenantId }: { tenantId: string }) {
   const { toggleSecondarySidebar } = useLayoutStore();
 
+  const { isSaving, showSaved } = useCanvasStore();
+
   return (
-    <nav className="h-14 w-full border-b border-slate-200 bg-white flex items-center justify-between px-4 shrink-0 z-50">
+    <nav className="h-14 w-full border-b border-zinc-200/60 bg-white flex items-center justify-between px-4 shrink-0 z-50">
       <div className="flex items-center gap-4">
-        <button className="p-2 hover:bg-slate-100 rounded text-slate-600 transition-colors">
+        <button className="p-2 hover:bg-zinc-100 rounded text-zinc-600 transition-colors">
           <svg
             width="20"
             height="20"
@@ -24,16 +27,30 @@ export default function Navbar({ tenantId }: { tenantId: string }) {
         </button>
 
         <div className="flex items-center gap-2">
-          <span className="font-bold text-slate-800 text-sm tracking-tight uppercase">
+          <span className="font-bold text-zinc-800 text-sm tracking-tight uppercase">
             Engine
           </span>
+        </div>
+
+        <div className="ml-4 flex items-center gap-2 text-[10px] font-medium text-zinc-400">
+          {isSaving ? (
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+              Saving...
+            </span>
+          ) : showSaved ? (
+            <span className="flex items-center gap-1.5 transition-opacity duration-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+              Saved
+            </span>
+          ) : null}
         </div>
       </div>
 
       <div className="flex items-center gap-3">
         <button
           onClick={toggleSecondarySidebar}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 rounded transition-colors"
         >
           <svg
             width="14"
@@ -50,7 +67,7 @@ export default function Navbar({ tenantId }: { tenantId: string }) {
           PROJECT INFO
         </button>
 
-        <button className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold hover:bg-slate-700">
+        <button className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold hover:bg-zinc-800">
           JD
         </button>
       </div>
