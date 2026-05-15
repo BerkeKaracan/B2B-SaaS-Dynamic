@@ -22,6 +22,8 @@ interface CanvasState {
 
   saveProject: (tenantId: string) => Promise<void>;
   loadProject: (tenantId: string) => Promise<void>;
+
+  updateBlockSettings: (id: string, settings: Record<string, unknown>) => void;
 }
 
 let saveTimeout: NodeJS.Timeout;
@@ -59,6 +61,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   updateBlockValue: (id, value) =>
     set((state) => ({
       blocks: state.blocks.map((b) => (b.id === id ? { ...b, value } : b)),
+    })),
+
+  updateBlockSettings: (id, settings) =>
+    set((state) => ({
+      blocks: state.blocks.map((b) =>
+        b.id === id ? { ...b, settings: { ...b.settings, ...settings } } : b,
+      ),
     })),
 
   setTitle: (title) => set({ title }),
