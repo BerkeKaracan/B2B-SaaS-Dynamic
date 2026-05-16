@@ -19,11 +19,12 @@ interface CanvasState {
   setTitle: (title: string) => void;
   setDescription: (desc: string) => void;
   setDate: (date: string) => void;
-
-  saveProject: (tenantId: string) => Promise<void>;
-  loadProject: (tenantId: string) => Promise<void>;
-
   updateBlockSettings: (id: string, settings: Record<string, unknown>) => void;
+
+  clearCanvas: () => void;
+
+  saveProject: (tenantId: string, moduleName: string) => Promise<void>;
+  loadProject: (tenantId: string, moduleName: string) => Promise<void>;
 }
 
 let saveTimeout: NodeJS.Timeout;
@@ -52,29 +53,25 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     })),
 
   removeBlock: (id) =>
-    set((state) => ({
-      blocks: state.blocks.filter((b) => b.id !== id),
-    })),
-
+    set((state) => ({ blocks: state.blocks.filter((b) => b.id !== id) })),
   setActiveBlock: (id) => set({ activeBlockId: id }),
-
   updateBlockValue: (id, value) =>
     set((state) => ({
       blocks: state.blocks.map((b) => (b.id === id ? { ...b, value } : b)),
     })),
-
   updateBlockSettings: (id, settings) =>
     set((state) => ({
       blocks: state.blocks.map((b) =>
         b.id === id ? { ...b, settings: { ...b.settings, ...settings } } : b,
       ),
     })),
-
   setTitle: (title) => set({ title }),
   setDescription: (description) => set({ description }),
   setDate: (date) => set({ date }),
 
-  saveProject: async (tenantId) => {
+  clearCanvas: () => set({ blocks: [], title: "", description: "", date: "" }),
+
+  saveProject: async (tenantId, moduleName) => {
     const state = get();
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -82,7 +79,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
     const payload = {
       tenant_id: tenantId,
-      module_name: "projects",
+      module_name: moduleName,
       record_data: {
         title: state.title,
         description: state.description,
@@ -99,42 +96,39 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       });
 
       set({ showSaved: true });
-
       if (saveTimeout) clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(() => {
-        set({ showSaved: false });
-      }, 2500);
+      saveTimeout = setTimeout(() => set({ showSaved: false }), 2500);
     } catch (error) {
-      console.error("Auto-Save Hatası:", error);
+      console.error("Auto-Save Error:", error);
     } finally {
       set({ isSaving: false });
     }
   },
 
-  loadProject: async (tenantId) => {
+  loadProject: async (tenantId, moduleName) => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     set({ isLoading: true });
 
     try {
       const response = await fetch(
-        `${apiUrl}/api/records/?tenant_id=${tenantId}&module_name=projects`,
+        `${apiUrl}/api/records/?tenant_id=${tenantId}&module_name=${moduleName}`,
       );
-
-      if (!response.ok) throw new Error("Veri çekilemedi");
+      if (!response.ok) throw new Error("Fetching error");
 
       const data = await response.json();
       if (data && data.length > 0) {
         const latestRecord = data[data.length - 1].record_data;
-
         set({
           title: latestRecord.title || "",
           description: latestRecord.description || "",
           date: latestRecord.date || "",
           blocks: latestRecord.blocks || [],
         });
+      } else {
+        get().clearCanvas();
       }
     } catch (error) {
-      console.error("Veri yükleme hatası:", error);
+      console.error("Loading data error:", error);
     } finally {
       set({ isLoading: false });
     }

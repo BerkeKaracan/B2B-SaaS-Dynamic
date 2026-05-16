@@ -1,14 +1,10 @@
-import React from "react";
-import CanvasArea from "@/components/canvas/renderers/CanvasArea";
+import { redirect } from "next/navigation";
 
-export default function DashboardPage() {
-  return (
-    <div className="flex flex-col h-full w-full bg-white relative">
-      <div className="flex-1 px-12 py-12 overflow-y-auto">
-        <div className="max-w-4xl mx-auto">
-          <CanvasArea />
-        </div>
-      </div>
-    </div>
-  );
+export default async function TenantRootPage({
+  params,
+}: {
+  params: Promise<{ tenantId: string }>;
+}) {
+  const resolvedParams = await params;
+  redirect(`/dashboard/${resolvedParams.tenantId}/projects`);
 }

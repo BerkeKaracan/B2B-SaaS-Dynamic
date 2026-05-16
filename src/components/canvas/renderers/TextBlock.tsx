@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { BlockContent } from "@/types/record";
 
 export default function TextBlock({
@@ -10,11 +10,21 @@ export default function TextBlock({
   onUpdate: (val: string) => void;
 }) {
   const [showStyleMenu, setShowStyleMenu] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height =
+        textareaRef.current.scrollHeight + "px";
+    }
+  }, [block.value]);
 
   return (
     <div className="group relative w-full">
       <div className="flex items-start gap-2">
         <textarea
+          ref={textareaRef}
           className="flex-1 p-0 border-none focus:ring-0 text-[15px] leading-relaxed text-zinc-800 resize-none overflow-hidden bg-transparent outline-none placeholder:text-zinc-300"
           value={typeof block.value === "string" ? block.value : ""}
           onChange={(e) => onUpdate(e.target.value)}

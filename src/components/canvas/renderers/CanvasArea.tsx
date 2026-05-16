@@ -4,6 +4,7 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { BlockContent } from "@/types/record";
 import TextBlock from "./TextBlock";
 import FormBlock from "./FormBlock";
+import DateBlock from "./DateBlock";
 
 export default function CanvasArea() {
   const {
@@ -50,6 +51,18 @@ export default function CanvasArea() {
       case "form":
         return (
           <FormBlock
+            block={block}
+            isActive={isActive}
+            onUpdate={(val: string) => updateBlockValue(block.id, val)}
+            onSettingsChange={(settings) =>
+              updateBlockSettings(block.id, settings)
+            }
+          />
+        );
+
+      case "date":
+        return (
+          <DateBlock
             block={block}
             isActive={isActive}
             onUpdate={(val: string) => updateBlockValue(block.id, val)}
