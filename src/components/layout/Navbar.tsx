@@ -3,15 +3,23 @@ import React from "react";
 import { useLayoutStore } from "@/store/useLayoutStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
 
-export default function Navbar({ tenantId }: { tenantId: string }) {
+export default function Navbar({
+  tenantId,
+  onMenuToggle,
+}: {
+  tenantId: string;
+  onMenuToggle?: () => void;
+}) {
   const { toggleSecondarySidebar } = useLayoutStore();
-
   const { isSaving, showSaved } = useCanvasStore();
 
   return (
     <nav className="h-14 w-full border-b border-zinc-200/60 bg-white flex items-center justify-between px-4 shrink-0 z-50">
       <div className="flex items-center gap-4">
-        <button className="p-2 hover:bg-zinc-100 rounded text-zinc-600 transition-colors">
+        <button
+          onClick={onMenuToggle}
+          className="p-2 hover:bg-zinc-100 rounded text-zinc-600 transition-colors"
+        >
           <svg
             width="20"
             height="20"
@@ -64,9 +72,8 @@ export default function Navbar({ tenantId }: { tenantId: string }) {
             <line x1="12" y1="16" x2="12" y2="12"></line>
             <line x1="12" y1="8" x2="12.01" y2="8"></line>
           </svg>
-          PROJECT INFO
+          <span className="hidden sm:inline">PROJECT INFO</span>
         </button>
-
         <button className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold hover:bg-zinc-800">
           JD
         </button>

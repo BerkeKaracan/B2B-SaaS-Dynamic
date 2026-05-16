@@ -2,6 +2,7 @@
 import React from "react";
 import { useLayoutStore } from "@/store/useLayoutStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useParams } from "next/navigation";
 
 export default function ProjectInfoSidebar() {
   const { toggleSecondarySidebar } = useLayoutStore();
@@ -17,9 +18,12 @@ export default function ProjectInfoSidebar() {
     isSaving,
   } = useCanvasStore();
 
+  const params = useParams();
+  const moduleName = (params.moduleName as string) || "projects";
+
   const handleSave = () => {
     const testUUID = "550e8400-e29b-41d4-a716-446655440000";
-    saveProject(testUUID);
+    saveProject(testUUID, moduleName);
   };
 
   return (
