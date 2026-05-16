@@ -1,4 +1,4 @@
-export type BlockType = "text" | "form" | "date" | "container";
+export type BlockType = "text" | "form" | "date" | "container" | "dropdown";
 
 export interface BlockContent {
   id: string;

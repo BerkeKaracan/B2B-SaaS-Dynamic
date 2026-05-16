@@ -5,6 +5,7 @@ import { BlockContent } from "@/types/record";
 import TextBlock from "./TextBlock";
 import FormBlock from "./FormBlock";
 import DateBlock from "./DateBlock";
+import DropdownBlock from "./DropdownBlock";
 
 export default function CanvasArea() {
   const {
@@ -71,6 +72,17 @@ export default function CanvasArea() {
             }
           />
         );
+      
+      case "dropdown":
+        return (
+          <DropdownBlock
+            block={block}
+            isActive={isActive}
+            onUpdate={(val: string) => updateBlockValue(block.id, val)}
+            onSettingsChange={(settings) => updateBlockSettings(block.id, settings)}
+          />
+        );
+    
       default:
         return (
           <div className="text-red-500 text-[10px]">
