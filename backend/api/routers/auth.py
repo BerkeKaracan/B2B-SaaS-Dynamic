@@ -87,6 +87,31 @@ def login_workspace(request: LoginRequest) -> LoginResponse:
             raise HTTPException(status_code=400, detail="Invalid email or password.")
         raise HTTPException(status_code=500, detail=error_msg)
 
+def get_current_user_role(authorization: str = Header(...)) -> dict:
+    try:
+        token = authorization.replace("Bearer ", "")
+        user_res = supabase.auth.get_user(token)
+        
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="Invalid session")
+            
+        user_id = user_res.user.id
+
+        role = "employee" 
+        try:
+            role_res = supabase.table("tenant_users").select("role").eq("user_id", user_id).execute()
+            if role_res.data:
+                role = role_res.data[0].get("role", "employee")
+        except Exception:
+            pass 
+        
+        return {
+            "user_id": user_id,
+            "role": role 
+        }
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+  
 @router.get("/me")
 def get_current_user(authorization: str = Header(...)) -> dict:
     try:

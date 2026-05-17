@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends, Header
 from typing import List, Optional
 from uuid import UUID
 
@@ -10,50 +10,100 @@ router = APIRouter(
     tags=["Dynamic Records"]
 )
 
+def get_user_role(authorization: str = Header(None)) -> dict:
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
+    
+    try:
+        token = authorization.replace("Bearer ", "")
+        user_res = supabase.auth.get_user(token)
+        
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="Invalid session")
+            
+        user_id = user_res.user.id
+        role = "employee"
+        role_res = supabase.table("tenant_users").select("role").eq("user_id", user_id).execute()
+        if role_res.data:
+            role = role_res.data[0].get("role", "employee")
+            
+        return {"user_id": user_id, "role": role}
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Invalid token or session expired")
+
+
 @router.post("/", response_model=RecordResponse)
-def create_record(record: RecordCreate):
+def create_record(
+    record: RecordCreate,
+    user: dict = Depends(get_user_role)
+):
     """
     Create a new dynamic JSONB record for a specific tenant and module.
     """
     try:
-        # model_dump(mode='json') safely converts UUIDs to strings for Supabase
         data = record.model_dump(mode='json')
-        
         response = supabase.table("custom_records").insert(data).execute()
         
         if not response.data:
             raise HTTPException(status_code=400, detail="Failed to create record")
             
         return response.data[0]
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/", response_model=List[RecordResponse])
 def get_records(
     tenant_id: UUID = Query(..., description="Mandatory tenant ID for data isolation"),
-    module_name: Optional[str] = Query(None, description="Optional module filter (e.g., 'fleet_vehicles')")
+    module_name: Optional[str] = Query(None, description="Optional module filter (e.g., 'fleet_vehicles')"),
+    user: dict = Depends(get_user_role)
 ):
     """
     Fetch records securely. 
     A tenant_id is strictly required to prevent cross-tenant data leaks.
     """
     try:
-        # Start building the Supabase query with the mandatory tenant filter
         query = supabase.table("custom_records").select("*").eq("tenant_id", str(tenant_id))
         
-        # Add module filter if requested
         if module_name:
             query = query.eq("module_name", module_name)
             
         response = query.execute()
-        return response.data
+        records = response.data
+
+        if user["role"] not in ["admin", "owner"]:
+            filtered_records = []
+            for record in records:
+                record_data = record.get("record_data", {})
+                visibility = record_data.get("visibility", "public")
+
+                if visibility != "just_admin":
+                    filtered_records.append(record)
+            return filtered_records
+        return records
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.patch("/{record_id}", response_model=RecordResponse)
-def update_record(record_id: UUID, payload: RecordUpdate):
+def update_record(
+    record_id: UUID, 
+    payload: RecordUpdate,
+    user: dict = Depends(get_user_role)
+):
     try:
+        existing_res = supabase.table("custom_records").select("record_data").eq("id", str(record_id)).execute()
+        if not existing_res.data:
+            raise HTTPException(status_code=404, detail="Record not found")
+            
+        current_record_data = existing_res.data[0].get("record_data", {})
+
+        if user["role"] not in ["admin", "owner"]:
+            if current_record_data.get("visibility") == "just_admin":
+                raise HTTPException(status_code=403, detail="You do not have permission to modify an Admin Only record.")
+
         response = (
             supabase.table("custom_records")
             .update({"record_data": payload.record_data})
