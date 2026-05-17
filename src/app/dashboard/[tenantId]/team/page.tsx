@@ -25,6 +25,9 @@ export default function TeamBillingPage({
   const [newEmail, setNewEmail] = useState("");
   const [error, setError] = useState("");
 
+  // EKRAN GİZLEME STATE'İ (Başlangıçta true, yani ekran kilitli)
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -33,13 +36,19 @@ export default function TeamBillingPage({
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
+
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
         if (res.ok) {
           const data = await res.json();
           if (data.role !== "admin" && data.role !== "owner") {
+            // Employee ise tekmeyi bas ve ekranı ASLA açma
             router.replace(`/dashboard/${tenantId}/projects`);
+          } else {
+            // SADECE Admin ise kalkanı indir ve ekranı göster
+            setIsCheckingAccess(false);
           }
         }
       } catch (err) {
@@ -72,10 +81,12 @@ export default function TeamBillingPage({
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenantId]);
+    if (!isCheckingAccess) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantId, isCheckingAccess]);
 
   const changeTier = async (newTier: string) => {
     const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/tier`, {
@@ -124,6 +135,20 @@ export default function TeamBillingPage({
   const maxSeats = limits[tier] || 3;
   const isLimitReached =
     tier !== "pro" && members.length >= (maxSeats as number);
+
+  // EĞER KONTROL SÜRÜYORSA, O YASAKLI EKRANI GÖSTERMEK YERİNE LOADING GÖSTER
+  if (isCheckingAccess) {
+    return (
+      <div className="flex-1 p-10 flex items-center justify-center w-full h-full bg-zinc-50/50">
+        <div className="flex flex-col items-center gap-4">
+          <span className="w-8 h-8 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"></span>
+          <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider animate-pulse">
+            Verifying Access...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 p-10 overflow-y-auto w-full">
