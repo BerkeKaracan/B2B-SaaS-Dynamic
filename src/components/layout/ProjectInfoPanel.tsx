@@ -5,32 +5,18 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 
 export default function ProjectInfoPanel() {
   const { isSecondarySidebarOpen, toggleSecondarySidebar } = useLayoutStore();
-  const { title, description, date, setTitle, setDescription, setDate, recordId } =
-    useCanvasStore();
+  const {
+    title,
+    description,
+    date,
+    setTitle,
+    setDescription,
+    setDate,
+    recordId,
+  } = useCanvasStore();
 
   if (!isSecondarySidebarOpen) {
-    return (
-      <div className="w-12 h-full flex flex-col items-center py-3 border-l border-zinc-200/80 bg-[#FAFAFA] shrink-0">
-        <button
-          type="button"
-          onClick={toggleSecondarySidebar}
-          className="p-1.5 text-zinc-400 hover:text-zinc-800 hover:bg-zinc-200/50 rounded-md transition-all"
-          aria-label="Open project info"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
-            <path d="M15 18l-6-6-6-6" />
-          </svg>
-        </button>
-      </div>
-    );
+    return null;
   }
 
   return (

@@ -2,7 +2,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCanvasStore } from "@/store/useCanvasStore";
 import { WORKSPACE_MODULE } from "@/lib/workspace";
 import {
   getProjectDisplayName,
@@ -12,7 +11,7 @@ import { RecordData } from "@/types/record";
 
 type ProjectRecord = {
   id: string;
-  record_data: RecordData;
+  record_data: RecordData & { visibility?: string };
 };
 
 export default function ProjectCardsGrid() {
@@ -22,16 +21,22 @@ export default function ProjectCardsGrid() {
 
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [isCreating, setIsCreating] = useState(false);
-  const { createProject } = useCanvasStore();
 
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectVisibility, setNewProjectVisibility] = useState("public");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   useEffect(() => {
     const checkRole = async () => {
       try {
         const token = localStorage.getItem("token");
-        const API_BASE_URL =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        if (!token) return;
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -40,18 +45,15 @@ export default function ProjectCardsGrid() {
           setIsAdmin(data.role === "admin" || data.role === "owner");
         }
       } catch (error) {
-        console.error("Role check failed", error);
+        console.error("Role check failed:", error);
       }
     };
     checkRole();
-  }, []);
+  }, [API_BASE_URL]);
 
   const fetchProjects = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
-      const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
       const res = await fetch(
         `${API_BASE_URL}/api/records/?tenant_id=${tenantId}&module_name=${WORKSPACE_MODULE}`,
         {
@@ -69,64 +71,176 @@ export default function ProjectCardsGrid() {
     } catch (error) {
       console.error("Failed to fetch projects:", error);
     }
-  }, [tenantId]);
+  }, [tenantId, API_BASE_URL]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (tenantId) fetchProjects();
   }, [tenantId, fetchProjects]);
 
-  const handleNewProject = async () => {
-    if (isCreating) return;
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProjectName.trim() || !isAdmin) return;
+
     setIsCreating(true);
 
-    const newId = await createProject(
-      tenantId,
-      `New Project ${projects.length + 1}`,
-    );
-    setIsCreating(false);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/records/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          module_name: WORKSPACE_MODULE,
+          record_data: {
+            name: newProjectName,
+            status: "active",
+            visibility: newProjectVisibility,
+          },
+        }),
+      });
 
-    if (newId) {
-      router.push(`/dashboard/${tenantId}/projects/${newId}`);
+      if (res.ok) {
+        const newRecord = await res.json();
+        setIsModalOpen(false);
+        setNewProjectName("");
+        setNewProjectVisibility("public");
+        router.push(`/dashboard/${tenantId}/projects/${newRecord.id}`);
+      }
+    } catch (error) {
+      console.error("Creation failed", error);
+    } finally {
+      setIsCreating(false);
     }
   };
 
+  const changeVisibility = async (
+    e: React.MouseEvent,
+    projectId: string,
+    currentData: RecordData,
+    newVisibility: string,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      const token = localStorage.getItem("token");
+      const updatedData = { ...currentData, visibility: newVisibility };
+
+      const res = await fetch(`${API_BASE_URL}/api/records/${projectId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ record_data: updatedData }),
+      });
+
+      if (res.ok) {
+        setOpenMenuId(null);
+        fetchProjects();
+      }
+    } catch (error) {
+      console.error("Failed to update visibility", error);
+    }
+  };
+
+  const visibleProjects = projects.filter(
+    (p) => isAdmin || p.record_data?.visibility !== "just_admin",
+  );
+
   return (
-    <div className="flex-1 p-6 md:p-10 overflow-y-auto">
+    <div className="flex-1 p-6 md:p-10 overflow-y-auto relative">
       <div className="max-w-4xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {projects.map((project) => (
-            <Link
-              key={project.id}
-              href={`/dashboard/${tenantId}/projects/${project.id}`}
-              className="group relative aspect-4/3 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all flex flex-col"
-            >
-              <button
-                type="button"
-                onClick={(e) => e.preventDefault()}
-                className="absolute top-4 right-4 p-1 text-zinc-300 hover:text-zinc-600 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-label="Project menu"
+          {visibleProjects.map((project) => {
+            const isJustAdmin =
+              project.record_data?.visibility === "just_admin";
+            return (
+              <Link
+                key={project.id}
+                href={`/dashboard/${tenantId}/projects/${project.id}`}
+                className="group relative aspect-4/3 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all flex flex-col"
               >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <circle cx="5" cy="12" r="2" />
-                  <circle cx="12" cy="12" r="2" />
-                  <circle cx="19" cy="12" r="2" />
-                </svg>
-              </button>
-              <span className="text-base font-semibold text-zinc-800 mt-auto leading-snug">
-                {getProjectDisplayName(project.record_data ?? {}, project.id)}
-              </span>
-            </Link>
-          ))}
+                <div className="absolute top-4 left-4">
+                  <span
+                    className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md border ${isJustAdmin ? "bg-red-50 text-red-600 border-red-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"}`}
+                  >
+                    {isJustAdmin ? "Admin Only" : "Public"}
+                  </span>
+                </div>
+
+                {isAdmin && (
+                  <div className="absolute top-4 right-4">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setOpenMenuId(
+                          openMenuId === project.id ? null : project.id,
+                        );
+                      }}
+                      className="p-1 text-zinc-300 hover:text-zinc-600 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <circle cx="5" cy="12" r="2" />
+                        <circle cx="12" cy="12" r="2" />
+                        <circle cx="19" cy="12" r="2" />
+                      </svg>
+                    </button>
+
+                    {openMenuId === project.id && (
+                      <div className="absolute right-0 mt-2 w-36 bg-white border border-zinc-200 shadow-xl rounded-xl py-1.5 z-20 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                        <button
+                          onClick={(e) =>
+                            changeVisibility(
+                              e,
+                              project.id,
+                              project.record_data,
+                              "public",
+                            )
+                          }
+                          className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
+                        >
+                          Make Public
+                        </button>
+                        <button
+                          onClick={(e) =>
+                            changeVisibility(
+                              e,
+                              project.id,
+                              project.record_data,
+                              "just_admin",
+                            )
+                          }
+                          className="text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          Make Admin Only
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <span className="text-base font-extrabold text-zinc-800 mt-auto leading-snug">
+                  {getProjectDisplayName(project.record_data ?? {}, project.id)}
+                </span>
+              </Link>
+            );
+          })}
 
           <button
             type="button"
-            onClick={handleNewProject}
+            onClick={() => isAdmin && setIsModalOpen(true)}
             disabled={isCreating || !isAdmin}
             aria-label="Create new project"
             className={`aspect-4/3 rounded-2xl border-2 flex items-center justify-center transition-all ${
@@ -144,10 +258,10 @@ export default function ProjectCardsGrid() {
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.5"
+                strokeWidth="1.25"
               >
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             ) : (
               <div className="flex flex-col items-center">
@@ -178,6 +292,70 @@ export default function ProjectCardsGrid() {
           </button>
         </div>
       </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-zinc-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-8 border-b border-zinc-100">
+              <h2 className="text-2xl font-extrabold text-zinc-900 tracking-tight">
+                Create Workspace
+              </h2>
+              <p className="text-sm text-zinc-500 mt-1.5">
+                Define name and visibility rules for the new project.
+              </p>
+            </div>
+            <form onSubmit={handleCreateSubmit} className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider pl-1">
+                  Project Name
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder="e.g. Q3 Financial Planning"
+                  className="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:bg-white transition-all shadow-inner"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider pl-1">
+                  Visibility Level
+                </label>
+                <select
+                  value={newProjectVisibility}
+                  onChange={(e) => setNewProjectVisibility(e.target.value)}
+                  className="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:bg-white transition-all"
+                >
+                  <option value="public">Public (All Employees)</option>
+                  <option value="just_admin">
+                    Just Admin (Only Owners/Admins)
+                  </option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-5 py-2.5 text-sm font-bold text-zinc-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreating}
+                  className="bg-zinc-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 shadow-md transition-all"
+                >
+                  {isCreating ? "Creating..." : "Create"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
