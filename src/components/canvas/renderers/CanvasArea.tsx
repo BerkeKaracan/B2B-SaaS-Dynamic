@@ -72,17 +72,19 @@ export default function CanvasArea() {
             }
           />
         );
-      
+
       case "dropdown":
         return (
           <DropdownBlock
             block={block}
             isActive={isActive}
             onUpdate={(val: string) => updateBlockValue(block.id, val)}
-            onSettingsChange={(settings) => updateBlockSettings(block.id, settings)}
+            onSettingsChange={(settings) =>
+              updateBlockSettings(block.id, settings)
+            }
           />
         );
-    
+
       default:
         return (
           <div className="text-red-500 text-[10px]">

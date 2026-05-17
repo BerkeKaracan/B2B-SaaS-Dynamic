@@ -1,98 +1,114 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { useParams, usePathname } from "next/navigation";
 import { useLayoutStore } from "@/store/useLayoutStore";
-import { useCanvasStore } from "@/store/useCanvasStore";
-import { useParams } from "next/navigation";
 
-export default function ProjectInfoSidebar() {
-  const { toggleSecondarySidebar } = useLayoutStore();
-
-  const {
-    title,
-    description,
-    date,
-    setTitle,
-    setDescription,
-    setDate,
-    saveProject,
-    isSaving,
-  } = useCanvasStore();
-
-  const params = useParams();
-  const moduleName = (params.moduleName as string) || "projects";
-
-  const handleSave = () => {
-    const testUUID = "550e8400-e29b-41d4-a716-446655440000";
-    saveProject(testUUID, moduleName);
+// Dynamic type mapping for backend custom_records
+type ProjectRecord = {
+  id: string;
+  tenant_id: string;
+  module_name: string;
+  record_data: {
+    name: string;
   };
+};
+
+export default function ProjectSidebar() {
+  const { isPrimarySidebarOpen, togglePrimarySidebar } = useLayoutStore();
+  const params = useParams();
+  const pathname = usePathname();
+
+  const tenantId = params.tenantId as string;
+  const currentModuleName = (params.moduleName as string) || "projects";
+
+  // State to hold dynamic backend records
+  const [projects, setProjects] = useState<ProjectRecord[]>([]);
+
+  // Fetch the active projects from your custom_records JSONB table
+  useEffect(() => {
+    const fetchSidebarProjects = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const API_BASE_URL =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+        const res = await fetch(
+          `${API_BASE_URL}/api/records/?tenant_id=${tenantId}&module_name=${currentModuleName}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          setProjects(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch sidebar workspace items:", error);
+      }
+    };
+
+    if (tenantId) {
+      fetchSidebarProjects();
+    }
+  }, [tenantId, currentModuleName]);
 
   return (
     <div className="flex flex-col h-full bg-white w-full">
       <div className="h-12 flex items-center justify-between px-4 border-b border-zinc-100 shrink-0">
         <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
-          Project Info
+          Active Workspaces
         </span>
         <button
-          onClick={toggleSecondarySidebar}
-          className="p-1 hover:bg-zinc-100 rounded text-zinc-400 transition-colors"
+          onClick={togglePrimarySidebar}
+          className="p-1.5 hover:bg-zinc-50 rounded text-zinc-400 hover:text-zinc-800 transition-all"
         >
           <svg
-            width="14"
-            height="14"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
           >
-            <path d="M9 18l6-6-6-6" />
+            <path d="M15 18l-6-6 6-6" />
           </svg>
         </button>
       </div>
-      <div className="flex-1 p-6 space-y-8 overflow-y-auto">
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase">
-            Project Title
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Untitled Project"
-            className="w-full bg-transparent text-sm font-semibold text-zinc-800 outline-none border-b border-zinc-100 pb-2 focus:border-zinc-900 transition-colors"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase">
-            Description
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Add a brief description..."
-            className="w-full bg-transparent text-sm text-zinc-500 outline-none h-24 resize-none border border-zinc-100 p-2 rounded focus:border-zinc-900 transition-colors"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase">
-            Target Date
-          </label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full bg-zinc-50 text-xs font-medium text-zinc-600 p-2 border border-zinc-100 rounded outline-none"
-          />
-        </div>
-      </div>
 
-      <div className="p-6 border-t border-zinc-100 bg-zinc-50/50 shrink-0">
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="w-full py-2.5 bg-zinc-900 text-white text-xs font-bold rounded-md hover:bg-zinc-800 disabled:bg-zinc-400 transition-colors shadow-sm"
-        >
-          {isSaving ? "SAVING TO BACKEND..." : "SAVE PROJECT"}
-        </button>
+      {/* DYNAMIC LIST FETCHED FROM YOUR BACKEND */}
+      <div className="flex-1 px-2 space-y-1 overflow-y-auto mt-2">
+        {projects.map((project) => {
+          // Detect if this specific backend project is currently active in the URL
+          const isActive = pathname.includes(`/${project.id}`);
+
+          return (
+            <Link
+              key={project.id}
+              href={`/dashboard/${tenantId}/${project.module_name}/${project.id}`}
+              className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md border text-sm font-medium transition-all ${
+                isActive
+                  ? "bg-zinc-900 border-zinc-900 text-white shadow-sm font-semibold"
+                  : "border-transparent text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100/50"
+              }`}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              </svg>
+              <span className="truncate">{project.record_data.name}</span>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

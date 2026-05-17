@@ -3,7 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from core.database import supabase
-from models.record import RecordCreate, RecordResponse
+from models.record import RecordCreate, RecordUpdate, RecordResponse
 
 router = APIRouter(
     prefix="/api/records",
@@ -47,5 +47,25 @@ def get_records(
             
         response = query.execute()
         return response.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/{record_id}", response_model=RecordResponse)
+def update_record(record_id: UUID, payload: RecordUpdate):
+    try:
+        response = (
+            supabase.table("custom_records")
+            .update({"record_data": payload.record_data})
+            .eq("id", str(record_id))
+            .execute()
+        )
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Record not found")
+
+        return response.data[0]
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -37,7 +37,7 @@ export default function LoginPage() {
         throw new Error(data.detail || "Authentication failed.");
       }
       localStorage.setItem("token", data.access_token);
-      router.push(`/dashboard/${data.tenant_id}/projects`);
+      router.push(`/dashboard/${data.tenant_id}`);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
