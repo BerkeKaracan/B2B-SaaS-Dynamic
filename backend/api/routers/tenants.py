@@ -1,9 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
-import uuid
 
-from core.database import supabase
+from core.database import supabase, supabase_admin 
 
 router = APIRouter(
     prefix="/api/tenants",
@@ -15,18 +14,12 @@ class UpdateTierRequest(BaseModel):
 
 class InviteUserRequest(BaseModel):
     email: EmailStr
-    password: str
     role: str = "employee"
 
 @router.get("/{tenant_id}")
 def get_tenant(tenant_id: UUID):
     try:
-        response = (
-            supabase.table("tenants")
-            .select("id, name, tier, created_at")
-            .eq("id", str(tenant_id))
-            .execute()
-        )
+        response = supabase.table("tenants").select("id, name, tier, created_at").eq("id", str(tenant_id)).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="Workspace not found")
         return response.data[0]
@@ -41,7 +34,6 @@ def update_tenant_tier(tenant_id: UUID, request: UpdateTierRequest):
         valid_tiers = ["basic", "advanced", "pro"]
         if request.tier not in valid_tiers:
             raise HTTPException(status_code=400, detail="Invalid tier")
-        
         supabase.table("tenants").update({"tier": request.tier}).eq("id", str(tenant_id)).execute()
         return {"message": f"Plan upgraded to {request.tier.upper()}"}
     except Exception as e:
@@ -63,27 +55,20 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
             raise HTTPException(status_code=404, detail="Workspace not found")
             
         current_tier = tenant_res.data[0].get("tier", "basic")
-
         team_res = supabase.table("tenant_users").select("id", count="exact").eq("tenant_id", str(tenant_id)).execute()
         current_seat_count = team_res.count if team_res.count else 0
-
-        limits = {"basic": 3, "advanced": 50, "pro": float('inf')}
         
+        limits = {"basic": 3, "advanced": 50, "pro": float('inf')}
         if current_seat_count >= limits[current_tier]:
-            raise HTTPException(status_code=403, detail=f"Seat limit reached for {current_tier.upper()} plan. Upgrade to add more.")
+            raise HTTPException(status_code=403, detail=f"Seat limit reached for {current_tier.upper()} plan.")
 
-        auth_res = supabase.auth.sign_up({
-            "email": request.email,
-            "password": request.password,
-            "options": {
-                "data": {"full_name": "Team Member"}
-            }
-        })
-
+        auth_res = supabase_admin.auth.admin.invite_user_by_email(request.email)
+        
         if not auth_res.user:
-            raise HTTPException(status_code=400, detail="Could not create user account. Maybe email already exists.")
-            
+            raise HTTPException(status_code=400, detail="Could not invite user.")
+
         real_user_id = auth_res.user.id
+            
         new_member = {
             "tenant_id": str(tenant_id),
             "user_id": real_user_id,
@@ -91,7 +76,7 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
         }
         supabase.table("tenant_users").insert(new_member).execute()
         
-        return {"message": "Team member added successfully"}
+        return {"message": "Invitation email sent successfully"}
     except HTTPException:
         raise
     except Exception as e:
