@@ -1,20 +1,53 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLayoutStore } from "@/store/useLayoutStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
 
 export default function Navbar({
   tenantId,
   onMenuToggle,
+  showProjectInfo = false, 
 }: {
   tenantId: string;
   onMenuToggle?: () => void;
+  showProjectInfo?: boolean;
 }) {
   const { toggleSecondarySidebar } = useLayoutStore();
   const { isSaving, showSaved } = useCanvasStore();
 
+  const [initials, setInitials] = useState<string>("--");
+  const [fullName, setFullName] = useState<string>("Loading...");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const API_BASE_URL =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setInitials(data.initials);
+          setFullName(data.full_name);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
   return (
-    <nav className="h-14 w-full border-b border-zinc-200/60 bg-white flex items-center justify-between px-4 shrink-0 z-50">
+    <nav className="h-14 w-full border-b border-zinc-200/60 bg-white flex items-center justify-between px-4 shrink-0 z-50 sticky top-0">
       <div className="flex items-center gap-4">
         <button
           onClick={onMenuToggle}
@@ -56,26 +89,33 @@ export default function Navbar({
       </div>
 
       <div className="flex items-center gap-3">
-        <button
-          onClick={toggleSecondarySidebar}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 rounded transition-colors"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
+        {/* Only render PROJECT INFO if showProjectInfo is true */}
+        {showProjectInfo && (
+          <button
+            onClick={toggleSecondarySidebar}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 rounded transition-colors"
           >
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-          <span className="hidden sm:inline">PROJECT INFO</span>
-        </button>
-        <button className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold hover:bg-zinc-800">
-          JD
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span className="hidden sm:inline">PROJECT INFO</span>
+          </button>
+        )}
+
+        <button
+          title={fullName}
+          className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold hover:bg-zinc-800 transition-colors"
+        >
+          {initials}
         </button>
       </div>
     </nav>

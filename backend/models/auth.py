@@ -11,3 +11,13 @@ class RegisterResponse(BaseModel):
     message: str
     tenant_id: str
     user_id: str
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class LoginResponse(BaseModel):
+    message: str
+    access_token: str
+    tenant_id: str
+    user_id: str

@@ -11,7 +11,7 @@ router = APIRouter(
 )
 
 @router.post("/", response_model=RecordResponse)
-async def create_record(record: RecordCreate):
+def create_record(record: RecordCreate):
     """
     Create a new dynamic JSONB record for a specific tenant and module.
     """
@@ -29,7 +29,7 @@ async def create_record(record: RecordCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/", response_model=List[RecordResponse])
-async def get_records(
+def get_records(
     tenant_id: UUID = Query(..., description="Mandatory tenant ID for data isolation"),
     module_name: Optional[str] = Query(None, description="Optional module filter (e.g., 'fleet_vehicles')")
 ):
