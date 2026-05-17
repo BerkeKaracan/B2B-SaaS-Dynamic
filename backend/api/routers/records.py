@@ -37,9 +37,6 @@ def create_record(
     record: RecordCreate,
     user: dict = Depends(get_user_role)
 ):
-    """
-    Create a new dynamic JSONB record for a specific tenant and module.
-    """
     try:
         data = record.model_dump(mode='json')
         response = supabase.table("custom_records").insert(data).execute()
@@ -60,10 +57,6 @@ def get_records(
     module_name: Optional[str] = Query(None, description="Optional module filter (e.g., 'fleet_vehicles')"),
     user: dict = Depends(get_user_role)
 ):
-    """
-    Fetch records securely. 
-    A tenant_id is strictly required to prevent cross-tenant data leaks.
-    """
     try:
         query = supabase.table("custom_records").select("*").eq("tenant_id", str(tenant_id))
         
@@ -83,6 +76,30 @@ def get_records(
                     filtered_records.append(record)
             return filtered_records
         return records
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{record_id}", response_model=RecordResponse)
+def get_record(
+    record_id: UUID,
+    user: dict = Depends(get_user_role)
+):
+    try:
+        response = supabase.table("custom_records").select("*").eq("id", str(record_id)).execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Record not found")
+            
+        record = response.data[0]
+        record_data = record.get("record_data", {})
+        visibility = record_data.get("visibility", "public")
+        
+        if user["role"] not in ["admin", "owner"] and visibility == "just_admin":
+            raise HTTPException(status_code=403, detail="Forbidden: Admin only record")
+            
+        return record
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

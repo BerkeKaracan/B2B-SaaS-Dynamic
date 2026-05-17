@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
 
 type TeamMember = {
   id: string;
@@ -17,6 +18,7 @@ export default function TeamBillingPage({
 }) {
   const resolvedParams = use(params);
   const tenantId = resolvedParams.tenantId;
+  const router = useRouter();
 
   const [tier, setTier] = useState<string>("basic");
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -25,6 +27,27 @@ export default function TeamBillingPage({
 
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.role !== "admin" && data.role !== "owner") {
+            router.replace(`/dashboard/${tenantId}/projects`);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    checkAccess();
+  }, [tenantId, router, API_BASE_URL]);
 
   const fetchData = async () => {
     const token = localStorage.getItem("token");
@@ -51,7 +74,7 @@ export default function TeamBillingPage({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
 
   const changeTier = async (newTier: string) => {
