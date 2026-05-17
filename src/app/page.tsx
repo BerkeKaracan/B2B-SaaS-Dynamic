@@ -5,8 +5,8 @@ import Footer from "@/components/layout/Footer";
 export default function LandingPage() {
   return (
     <div className="relative min-h-screen bg-[#fafafb] text-zinc-900 font-sans antialiased selection:bg-zinc-200 flex flex-col overflow-hidden">
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] opacity-40"></div>
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center transform-gpu will-change-transform">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] opacity-[0.3] transform-gpu"></div>
 
         <svg
           className="absolute top-0 left-0 w-full md:w-1/2 h-full opacity-5 text-zinc-900"
@@ -42,7 +42,7 @@ export default function LandingPage() {
           />
         </svg>
 
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-white rounded-full blur-[100px] opacity-100"></div>
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-white rounded-full blur-[100px] opacity-80 transform-gpu will-change-transform"></div>
       </div>
       <header className="fixed top-0 left-0 right-0 h-16 border-b border-zinc-200/60 bg-white/70 backdrop-blur-xl z-50 px-6 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
