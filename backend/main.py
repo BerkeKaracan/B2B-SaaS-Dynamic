@@ -13,7 +13,8 @@ app = FastAPI(
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://saas-engine-backend.onrender.com" 
+    "https://saas-engine-backend.onrender.com",
+    "https://b2-b-saa-s-dynamic.vercel.app"
 ]
 
 app.add_middleware(
