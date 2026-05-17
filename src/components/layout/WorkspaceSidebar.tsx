@@ -14,6 +14,28 @@ export default function WorkspaceSidebar() {
   const tenantId = params.tenantId as string;
   const isOnProject = Boolean(params.projectId);
 
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkRole = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const API_BASE_URL =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setIsAdmin(data.role === "admin" || data.role === "owner");
+        }
+      } catch (error) {
+        console.error("Role check failed", error);
+      }
+    };
+    checkRole();
+  }, []);
+
   const [tenant, setTenant] = useState<TenantInfo | null>(null);
 
   useEffect(() => {
@@ -60,6 +82,19 @@ export default function WorkspaceSidebar() {
         >
           Projects
         </Link>
+
+        {isAdmin && (
+          <Link
+            href={`/dashboard/${tenantId}/team`}
+            className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              pathname.endsWith("/team")
+                ? "bg-white border border-zinc-200/80 text-zinc-900 shadow-sm"
+                : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100/60"
+            }`}
+          >
+            Team & Billing
+          </Link>
+        )}
 
         {isOnProject && (
           <Link
