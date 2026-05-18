@@ -9,6 +9,7 @@ import {
 } from "@/lib/projectRecord";
 import { RecordData } from "@/types/record";
 import { useAuthStore } from "@/store/useAuthStore";
+import { fetchAPI } from "@/services/api";
 
 type ProjectRecord = {
   id: string;
@@ -51,17 +52,10 @@ export default function ProjectCardsGrid() {
   const [newProjectVisibility, setNewProjectVisibility] = useState("public");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
   const fetchProjects = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const res = await fetch(
-        `${API_BASE_URL}/api/records/?tenant_id=${tenantId}&module_name=${WORKSPACE_MODULE}`,
-        { headers: { Authorization: `Bearer ${token}` } },
+      const res = await fetchAPI(
+        `/api/records/?tenant_id=${tenantId}&module_name=${WORKSPACE_MODULE}`,
       );
 
       if (res.ok) {
@@ -74,10 +68,9 @@ export default function ProjectCardsGrid() {
     } catch (error) {
       console.error(error);
     }
-  }, [tenantId, API_BASE_URL]);
+  }, [tenantId]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (tenantId) fetchProjects();
   }, [tenantId, fetchProjects]);
 
@@ -87,13 +80,8 @@ export default function ProjectCardsGrid() {
     setIsCreating(true);
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/records/`, {
+      const res = await fetchAPI(`/api/records/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           tenant_id: tenantId,
           module_name: WORKSPACE_MODULE,
@@ -129,15 +117,9 @@ export default function ProjectCardsGrid() {
     e.stopPropagation();
 
     try {
-      const token = localStorage.getItem("token");
       const updatedData = { ...currentData, visibility: newVisibility };
-
-      const res = await fetch(`${API_BASE_URL}/api/records/${projectId}`, {
+      const res = await fetchAPI(`/api/records/${projectId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ record_data: updatedData }),
       });
 
@@ -164,15 +146,9 @@ export default function ProjectCardsGrid() {
     }
 
     try {
-      const token = localStorage.getItem("token");
       const updatedData = { ...currentData, status: "archived" };
-
-      const res = await fetch(`${API_BASE_URL}/api/records/${projectId}`, {
+      const res = await fetchAPI(`/api/records/${projectId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ record_data: updatedData }),
       });
 
@@ -194,15 +170,9 @@ export default function ProjectCardsGrid() {
     e.stopPropagation();
 
     try {
-      const token = localStorage.getItem("token");
       const updatedData = { ...currentData, status: "active" };
-
-      const res = await fetch(`${API_BASE_URL}/api/records/${projectId}`, {
+      const res = await fetchAPI(`/api/records/${projectId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ record_data: updatedData }),
       });
 
@@ -229,10 +199,8 @@ export default function ProjectCardsGrid() {
     }
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/records/${projectId}`, {
+      const res = await fetchAPI(`/api/records/${projectId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.ok) {
