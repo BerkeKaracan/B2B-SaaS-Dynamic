@@ -136,3 +136,23 @@ def update_record(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{record_id}")
+def delete_record(
+    record_id: UUID,
+    user: dict = Depends(get_user_role)
+):
+    try:
+        if user["role"] not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Only admins can permanently delete records.")
+
+        response = supabase.table("custom_records").delete().eq("id", str(record_id)).execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Record not found")
+            
+        return {"message": "Record permanently deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

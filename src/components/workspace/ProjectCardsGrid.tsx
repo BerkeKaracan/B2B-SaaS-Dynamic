@@ -12,7 +12,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 
 type ProjectRecord = {
   id: string;
-  record_data: RecordData & { visibility?: string };
+  record_data: RecordData & { visibility?: string; status?: string };
 };
 
 export default function ProjectCardsGrid() {
@@ -25,8 +25,10 @@ export default function ProjectCardsGrid() {
 
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [isCreating, setIsCreating] = useState(false);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [showArchived, setShowArchived] = useState(false);
+
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectVisibility, setNewProjectVisibility] = useState("public");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -131,165 +133,375 @@ export default function ProjectCardsGrid() {
     }
   };
 
-  const visibleProjects = projects.filter(
-    (p) => isAdmin || p.record_data?.visibility !== "just_admin",
-  );
+  const archiveProject = async (
+    e: React.MouseEvent,
+    projectId: string,
+    currentData: RecordData,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!window.confirm("Move this project to the archive?")) {
+      setOpenMenuId(null);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const updatedData = { ...currentData, status: "archived" };
+
+      const res = await fetch(`${API_BASE_URL}/api/records/${projectId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ record_data: updatedData }),
+      });
+
+      if (res.ok) {
+        setOpenMenuId(null);
+        fetchProjects();
+      }
+    } catch (error) {
+      console.error("Failed to archive project", error);
+    }
+  };
+
+  const restoreProject = async (
+    e: React.MouseEvent,
+    projectId: string,
+    currentData: RecordData,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      const token = localStorage.getItem("token");
+      const updatedData = { ...currentData, status: "active" };
+
+      const res = await fetch(`${API_BASE_URL}/api/records/${projectId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ record_data: updatedData }),
+      });
+
+      if (res.ok) {
+        setOpenMenuId(null);
+        fetchProjects();
+      }
+    } catch (error) {
+      console.error("Failed to restore project", error);
+    }
+  };
+
+  const deletePermanently = async (e: React.MouseEvent, projectId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (
+      !window.confirm(
+        "WARNING! This will permanently delete the project and all its contents. This action CANNOT be undone. Are you sure?",
+      )
+    ) {
+      setOpenMenuId(null);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/records/${projectId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        setOpenMenuId(null);
+        fetchProjects();
+      }
+    } catch (error) {
+      console.error("Failed to delete project permanently", error);
+    }
+  };
+
+  const displayedProjects = projects.filter((p) => {
+    const hasPermission = isAdmin || p.record_data?.visibility !== "just_admin";
+    const isArchived = p.record_data?.status === "archived";
+
+    return hasPermission && (showArchived ? isArchived : !isArchived);
+  });
 
   return (
-    <div className="flex-1 p-6 md:p-10 overflow-y-auto relative">
+    <div className="flex-1 p-6 md:p-10 overflow-y-auto relative bg-zinc-50/50">
       <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-end mb-8 border-b border-zinc-200/60 pb-4">
+          <div>
+            <h2 className="text-2xl font-extrabold text-zinc-950 tracking-tight">
+              {showArchived ? "Archived Projects" : "Projects"}
+            </h2>
+            <p className="text-sm text-zinc-500 mt-1 font-medium">
+              {showArchived
+                ? "Hidden from the main view. You can restore or delete them permanently."
+                : "Manage your workspaces and canvases."}
+            </p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${showArchived ? "bg-zinc-950 text-white hover:bg-zinc-800" : "bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm"}`}
+            >
+              {showArchived ? "← Back to Active" : "🗑️ View Archive"}
+            </button>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {visibleProjects.map((project) => {
+          {!showArchived && (
+            <button
+              type="button"
+              onClick={() => isAdmin && setIsModalOpen(true)}
+              disabled={isCreating || !isAdmin}
+              aria-label="Create new project"
+              className={`group aspect-4/3 rounded-3xl border-2 flex flex-col items-center justify-center transition-all duration-300 shadow-sm bg-white ${
+                isAdmin
+                  ? "border-dashed border-zinc-200 text-zinc-400 hover:border-zinc-400 hover:text-zinc-950 hover:shadow-xl hover:-translate-y-1"
+                  : "border-solid border-zinc-100 bg-zinc-50/50 text-zinc-300 cursor-not-allowed opacity-70"
+              }`}
+            >
+              {isCreating ? (
+                <span className="w-10 h-10 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin" />
+              ) : isAdmin ? (
+                <>
+                  <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-500 group-hover:bg-zinc-950 group-hover:text-white transition-colors duration-300 mb-4">
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-extrabold tracking-tight text-zinc-800 group-hover:text-zinc-950">
+                    New Project
+                  </span>
+                  <span className="text-xs text-zinc-400 mt-1">
+                    Start from scratch
+                  </span>
+                </>
+              ) : (
+                <div className="flex flex-col items-center text-zinc-300">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="mb-3"
+                  >
+                    <rect
+                      x="3"
+                      y="11"
+                      width="18"
+                      height="11"
+                      rx="2"
+                      ry="2"
+                    ></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">
+                    Admin Only
+                  </span>
+                </div>
+              )}
+            </button>
+          )}
+
+          {displayedProjects.map((project) => {
             const isJustAdmin =
               project.record_data?.visibility === "just_admin";
-            return (
-              <Link
-                key={project.id}
-                href={`/dashboard/${tenantId}/projects/${project.id}`}
-                className="group relative aspect-4/3 rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm hover:shadow-md hover:border-zinc-300 transition-all flex flex-col"
-              >
-                <div className="absolute top-4 left-4">
-                  <span
-                    className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md border ${isJustAdmin ? "bg-red-50 text-red-600 border-red-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"}`}
-                  >
-                    {isJustAdmin ? "Admin Only" : "Public"}
+            const displayName = getProjectDisplayName(
+              project.record_data ?? {},
+              project.id,
+            );
+            const initial = displayName.charAt(0).toUpperCase();
+
+            const cardClasses = `group relative aspect-4/3 rounded-3xl border border-zinc-100 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] flex flex-col overflow-hidden transition-all duration-300 ${!showArchived ? "hover:shadow-[0_20px_50px_rgb(0,0,0,0.1)] hover:-translate-y-1.5 cursor-pointer" : "opacity-80"}`;
+
+            const cardContent = (
+              <>
+                <div className="flex-1 w-full bg-zinc-100 border-b border-zinc-100 flex items-center justify-center group-hover:bg-zinc-50 transition-colors duration-300">
+                  <span className="text-6xl font-black text-white group-hover:text-zinc-200 transition-colors duration-300 animate-pulse">
+                    {initial}
                   </span>
                 </div>
 
-                {isAdmin && (
-                  <div className="absolute top-4 right-4">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setOpenMenuId(
-                          openMenuId === project.id ? null : project.id,
-                        );
-                      }}
-                      className="p-1 text-zinc-300 hover:text-zinc-600 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <circle cx="5" cy="12" r="2" />
-                        <circle cx="12" cy="12" r="2" />
-                        <circle cx="19" cy="12" r="2" />
-                      </svg>
-                    </button>
+                <div className="px-6 py-5 flex items-center justify-between gap-4 border-t border-zinc-50">
+                  <span className="text-base font-extrabold text-zinc-950 leading-tight truncate flex-1 tracking-tight">
+                    {displayName}
+                  </span>
 
-                    {openMenuId === project.id && (
-                      <div className="absolute right-0 mt-2 w-36 bg-white border border-zinc-200 shadow-xl rounded-xl py-1.5 z-20 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className={`px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-full border ${isJustAdmin ? "bg-red-50 text-red-700 border-red-100" : "bg-emerald-50 text-emerald-700 border-emerald-100"}`}
+                    >
+                      {isJustAdmin ? "Admin" : "Public"}
+                    </span>
+
+                    {isAdmin && (
+                      <div className="relative">
                         <button
-                          onClick={(e) =>
-                            changeVisibility(
-                              e,
-                              project.id,
-                              project.record_data,
-                              "public",
-                            )
-                          }
-                          className="text-left px-4 py-2 text-xs font-bold text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setOpenMenuId(
+                              openMenuId === project.id ? null : project.id,
+                            );
+                          }}
+                          className={`p-1 rounded-lg transition-all duration-200 ${showArchived ? "text-zinc-500 bg-zinc-100 hover:bg-zinc-200" : "text-zinc-400 hover:text-zinc-800 opacity-0 group-hover:opacity-100"}`}
                         >
-                          Make Public
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <circle cx="5" cy="12" r="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <circle cx="19" cy="12" r="2" />
+                          </svg>
                         </button>
-                        <button
-                          onClick={(e) =>
-                            changeVisibility(
-                              e,
-                              project.id,
-                              project.record_data,
-                              "just_admin",
-                            )
-                          }
-                          className="text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          Make Admin Only
-                        </button>
+
+                        {openMenuId === project.id && (
+                          <div className="absolute right-0 bottom-full mb-3 w-44 bg-white border border-zinc-100 shadow-2xl rounded-2xl py-2 z-30 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+                            {!showArchived ? (
+                              <>
+                                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-4 py-1">
+                                  Visibility
+                                </p>
+                                <button
+                                  onClick={(e) =>
+                                    changeVisibility(
+                                      e,
+                                      project.id,
+                                      project.record_data,
+                                      "public",
+                                    )
+                                  }
+                                  className="text-left px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950 transition-colors"
+                                >
+                                  Make Public
+                                </button>
+                                <button
+                                  onClick={(e) =>
+                                    changeVisibility(
+                                      e,
+                                      project.id,
+                                      project.record_data,
+                                      "just_admin",
+                                    )
+                                  }
+                                  className="text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  Make Admin Only
+                                </button>
+                                <div className="h-px bg-zinc-100 my-1.5" />
+                                <button
+                                  onClick={(e) =>
+                                    archiveProject(
+                                      e,
+                                      project.id,
+                                      project.record_data,
+                                    )
+                                  }
+                                  className="text-left px-4 py-2 text-xs font-semibold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 transition-colors"
+                                >
+                                  🗑️ Archive Project
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={(e) =>
+                                    restoreProject(
+                                      e,
+                                      project.id,
+                                      project.record_data,
+                                    )
+                                  }
+                                  className="text-left px-4 py-2 text-xs font-extrabold text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                >
+                                  ♻️ Restore Project
+                                </button>
+                                <div className="h-px bg-zinc-100 my-1.5" />
+                                <button
+                                  onClick={(e) =>
+                                    deletePermanently(e, project.id)
+                                  }
+                                  className="text-left px-4 py-2 text-xs font-extrabold text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  💥 Delete Permanently
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                )}
+                </div>
+              </>
+            );
 
-                <span className="text-base font-extrabold text-zinc-800 mt-auto leading-snug">
-                  {getProjectDisplayName(project.record_data ?? {}, project.id)}
-                </span>
+            return showArchived ? (
+              <div key={project.id} className={cardClasses}>
+                {cardContent}
+              </div>
+            ) : (
+              <Link
+                key={project.id}
+                href={`/dashboard/${tenantId}/projects/${project.id}`}
+                className={cardClasses}
+              >
+                {cardContent}
               </Link>
             );
           })}
 
-          <button
-            type="button"
-            onClick={() => isAdmin && setIsModalOpen(true)}
-            disabled={isCreating || !isAdmin}
-            aria-label="Create new project"
-            className={`aspect-4/3 rounded-2xl border-2 flex items-center justify-center transition-all ${
-              isAdmin
-                ? "border-dashed border-zinc-200 bg-zinc-50/30 text-zinc-400 hover:border-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
-                : "border-solid border-zinc-100 bg-zinc-50/50 text-zinc-300 cursor-not-allowed opacity-70"
-            }`}
-          >
-            {isCreating ? (
-              <span className="w-8 h-8 border-2 border-zinc-300 border-t-zinc-700 rounded-full animate-spin" />
-            ) : isAdmin ? (
-              <svg
-                width="40"
-                height="40"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.25"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            ) : (
-              <div className="flex flex-col items-center">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="mb-2"
-                >
-                  <rect
-                    x="3"
-                    y="11"
-                    width="18"
-                    height="11"
-                    rx="2"
-                    ry="2"
-                  ></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  Admin Only
-                </span>
-              </div>
-            )}
-          </button>
+          {showArchived && displayedProjects.length === 0 && (
+            <div className="col-span-1 sm:col-span-2 py-20 flex flex-col items-center justify-center border-2 border-dashed border-zinc-200 rounded-3xl">
+              <span className="text-4xl mb-4">📭</span>
+              <p className="text-zinc-400 font-bold">Trash is empty.</p>
+            </div>
+          )}
         </div>
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-zinc-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-zinc-100">
-              <h2 className="text-2xl font-extrabold text-zinc-900 tracking-tight">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-zinc-950/20 backdrop-blur-sm">
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-10 border-b border-zinc-100 bg-zinc-50/50">
+              <h2 className="text-3xl font-extrabold text-zinc-950 tracking-tighter">
                 Create Workspace
               </h2>
-              <p className="text-sm text-zinc-500 mt-1.5">
+              <p className="text-sm text-zinc-500 mt-2 font-medium">
                 Define name and visibility rules for the new project.
               </p>
             </div>
-            <form onSubmit={handleCreateSubmit} className="p-8 space-y-6">
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider pl-1">
+            <form
+              onSubmit={handleCreateSubmit}
+              className="p-10 space-y-8 bg-white"
+            >
+              <div className="space-y-2.5">
+                <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest pl-1">
                   Project Name
                 </label>
                 <input
@@ -298,41 +510,41 @@ export default function ProjectCardsGrid() {
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   placeholder="e.g. Q3 Financial Planning"
-                  className="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:bg-white transition-all shadow-inner"
+                  className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all shadow-inner placeholder:text-zinc-300"
                   required
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider pl-1">
-                  Visibility Level
+              <div className="space-y-2.5">
+                <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest pl-1">
+                  Initial Visibility
                 </label>
                 <select
                   value={newProjectVisibility}
                   onChange={(e) => setNewProjectVisibility(e.target.value)}
-                  className="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:bg-white transition-all"
+                  className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all shadow-inner appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg- bg-no-repeat"
                 >
                   <option value="public">Public (All Employees)</option>
                   <option value="just_admin">
-                    Just Admin (Only Owners/Admins)
+                    Just Admin (Owners/Admins Only)
                   </option>
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4">
+              <div className="flex items-center justify-end gap-3 pt-6">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 text-sm font-bold text-zinc-500"
+                  className="px-6 py-3 text-sm font-bold text-zinc-500 hover:text-zinc-950 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="bg-zinc-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 shadow-md transition-all"
+                  className="bg-zinc-950 text-white px-8 py-3 rounded-2xl text-sm font-bold hover:bg-zinc-800 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150"
                 >
-                  {isCreating ? "Creating..." : "Create"}
+                  {isCreating ? "Creating..." : "Create Project"}
                 </button>
               </div>
             </form>
