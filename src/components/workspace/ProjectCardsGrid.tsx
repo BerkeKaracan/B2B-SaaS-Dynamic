@@ -71,6 +71,7 @@ export default function ProjectCardsGrid() {
   }, [tenantId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (tenantId) fetchProjects();
   }, [tenantId, fetchProjects]);
 
