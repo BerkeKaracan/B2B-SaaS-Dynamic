@@ -1,15 +1,62 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function LoginPage() {
   const router = useRouter();
+  const fetchUser = useAuthStore((state) => state.fetchUser);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    const verifyToken = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setIsChecking(false);
+        return;
+      }
+
+      try {
+        const API_BASE_URL =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const tenantId =
+            data.tenant_id ||
+            data.user?.tenant_id ||
+            localStorage.getItem("tenant_id");
+
+          if (tenantId && tenantId !== "undefined") {
+            router.replace(`/dashboard/${tenantId}`);
+          } else {
+            localStorage.removeItem("token");
+            localStorage.removeItem("tenant_id");
+            setIsChecking(false);
+          }
+        } else {
+          localStorage.removeItem("token");
+          localStorage.removeItem("tenant_id");
+          setIsChecking(false);
+        }
+      } catch {
+        localStorage.removeItem("token");
+        localStorage.removeItem("tenant_id");
+        setIsChecking(false);
+      }
+    };
+
+    verifyToken();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,8 +83,23 @@ export default function LoginPage() {
       if (!res.ok) {
         throw new Error(data.detail || "Authentication failed.");
       }
+
+      const tenantId = data.tenant_id || data.user?.tenant_id;
+
+      if (!tenantId) {
+        throw new Error(
+          "Giriş başarılı fakat Tenant ID backend'den alınamadı.",
+        );
+      }
+
       localStorage.setItem("token", data.access_token);
-      router.push(`/dashboard/${data.tenant_id}`);
+      localStorage.setItem("tenant_id", tenantId);
+
+      if (fetchUser) {
+        await fetchUser();
+      }
+
+      router.push(`/dashboard/${tenantId}`);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -48,6 +110,14 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafb]">
+        <span className="w-10 h-10 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"></span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-[#fafafb] font-sans text-zinc-900 selection:bg-zinc-200 overflow-hidden relative">

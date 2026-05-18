@@ -1,10 +1,12 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const fetchUser = useAuthStore((state) => state.fetchUser);
 
   const [workspaceName, setWorkspaceName] = useState("");
   const [fullName, setFullName] = useState("");
@@ -14,6 +16,21 @@ export default function RegisterPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isChecking, setIsChecking] = useState(true);
+
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const savedTenant = localStorage.getItem("tenant_id");
+      router.replace(`/dashboard/${savedTenant || ""}/projects`);
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsChecking(false);
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,9 +44,6 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
       const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: {
@@ -51,7 +65,11 @@ export default function RegisterPage() {
         );
       }
 
-      router.push(`/dashboard/${data.tenant_id}/projects`);
+      if (data.tenant_id) {
+        localStorage.setItem("tenant_id", data.tenant_id);
+      }
+
+      router.push("/login?registered=true");
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -62,6 +80,14 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafb]">
+        <span className="w-10 h-10 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"></span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-[#fafafb] font-sans text-zinc-900 selection:bg-zinc-200 overflow-hidden relative">
