@@ -2,63 +2,74 @@
 import React, { useState, useRef, useEffect } from "react";
 import { BlockContent } from "@/types/record";
 
-export default function TextBlock({
-  block,
-  onUpdate,
-}: {
+interface TextBlockProps {
   block: BlockContent;
   onUpdate: (val: string) => void;
-}) {
+}
+
+export default function TextBlock({ block, onUpdate }: TextBlockProps) {
   const [showStyleMenu, setShowStyleMenu] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height =
-        textareaRef.current.scrollHeight + "px";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [block.value]);
 
+  const textValue = typeof block.value === "string" ? block.value : "";
+
   return (
-    <div className="group relative w-full">
+    <div className="relative w-full group/text">
       <div className="flex items-start gap-2">
         <textarea
           ref={textareaRef}
-          className="flex-1 p-0 border-none focus:ring-0 text-[15px] leading-relaxed text-zinc-800 resize-none overflow-hidden bg-transparent outline-none placeholder:text-zinc-300"
-          value={typeof block.value === "string" ? block.value : ""}
+          className="flex-1 p-0 border-none focus:ring-0 text-[15px] leading-relaxed text-zinc-800 bg-transparent outline-none resize-none overflow-hidden placeholder:text-zinc-300"
+          value={textValue}
           onChange={(e) => onUpdate(e.target.value)}
           placeholder="Start typing your content..."
           rows={1}
         />
         <button
+          type="button"
           onClick={() => setShowStyleMenu(!showStyleMenu)}
-          className="p-1 opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-900 transition-all rounded"
+          className="p-1 opacity-0 group-hover/text:opacity-100 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded transition-all shrink-0"
         >
           <svg
-            width="12"
-            height="12"
+            width="14"
+            height="14"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="3"
+            strokeWidth="2.5"
           >
             <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
       </div>
+
       {showStyleMenu && (
-        <div className="absolute right-0 top-6 z-20 w-40 bg-white border border-zinc-200 shadow-xl rounded-lg p-2 flex flex-col gap-1">
-          <p className="text-[9px] font-bold text-zinc-400 uppercase px-2 mb-1">
+        <div className="absolute right-0 top-7 z-30 w-40 bg-white border border-zinc-200/80 shadow-xl rounded-xl p-1 animate-in fade-in slide-in-from-top-1 duration-150">
+          <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider px-2 py-1">
             Text Styles
           </p>
-          <button className="text-left text-[11px] font-medium px-2 py-1.5 hover:bg-zinc-100 rounded transition-colors">
+          <button
+            type="button"
+            className="w-full text-left text-[12px] font-medium px-2 py-1.5 hover:bg-zinc-50 text-zinc-700 rounded-lg transition-colors"
+          >
             Bold
           </button>
-          <button className="text-left text-[11px] font-medium px-2 py-1.5 hover:bg-zinc-100 rounded transition-colors text-red-500">
+          <button
+            type="button"
+            className="w-full text-left text-[12px] font-medium px-2 py-1.5 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+          >
             Red Text
           </button>
-          <button className="text-left text-[11px] font-medium px-2 py-1.5 hover:bg-zinc-100 rounded transition-colors">
+          <button
+            type="button"
+            className="w-full text-left text-[12px] font-medium px-2 py-1.5 hover:bg-zinc-50 text-zinc-700 rounded-lg transition-colors"
+          >
             Small Font
           </button>
         </div>

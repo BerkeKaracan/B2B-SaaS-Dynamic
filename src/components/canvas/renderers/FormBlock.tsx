@@ -17,20 +17,21 @@ export default function FormBlock({
 }: FormBlockProps) {
   const label = (block.settings?.label as string) ?? "New Field";
   const jsonKey = (block.settings?.jsonKey as string) ?? "custom_field";
+  const inputValue = (block.value as string) || "";
 
   return (
-    <div className="w-full space-y-1.5 relative">
+    <div className="w-full relative space-y-2">
       {isActive && (
-        <div className="absolute -top-9 left-0 flex gap-1.5 items-center bg-zinc-900 p-1.5 px-2 rounded shadow-md z-30 animate-in fade-in slide-in-from-bottom-1">
-          <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider shrink-0">
+        <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200/60 rounded-xl p-1.5 px-2.5 max-w-max mb-2 animate-in fade-in slide-in-from-top-1 duration-150">
+          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider shrink-0">
             Schema:
           </span>
           <input
             type="text"
             value={label}
             onChange={(e) => onSettingsChange({ label: e.target.value })}
-            placeholder="Label (e.g. Price)"
-            className="text-[10px] bg-zinc-800 text-white border-none outline-none px-1.5 py-0.5 rounded w-28 placeholder:text-zinc-600"
+            placeholder="Label"
+            className="text-[11px] font-semibold bg-white border border-zinc-200 rounded-lg px-2 py-0.5 w-28 text-zinc-800 focus:outline-none focus:border-zinc-400 transition-colors"
           />
           <input
             type="text"
@@ -42,24 +43,24 @@ export default function FormBlock({
               onSettingsChange({ jsonKey: formattedKey });
             }}
             placeholder="json_key"
-            className="text-[10px] font-mono bg-zinc-800 text-blue-400 border-none outline-none px-1.5 py-0.5 rounded w-24 placeholder:text-zinc-700"
+            className="text-[11px] font-mono bg-white border border-zinc-200 rounded-lg px-2 py-0.5 w-28 text-zinc-500 focus:outline-none focus:border-zinc-400 transition-colors"
           />
         </div>
       )}
 
       <div className="flex flex-col gap-1">
-        <span className="text-[10px] font-semibold text-zinc-400 tracking-wide uppercase">
-          {label || "..."}{" "}
-          <span className="text-[9px] font-mono text-zinc-300 lowercase">
-            ({jsonKey || "..."})
+        <label className="text-[10px] font-bold text-zinc-400 tracking-wider uppercase select-none flex items-center gap-1.5">
+          <span>{label || "Untitled Field"}</span>
+          <span className="text-[9px] font-mono text-zinc-300 lowercase font-normal">
+            ({jsonKey || "no_key"})
           </span>
-        </span>
+        </label>
         <input
           type="text"
-          value={(block.value as string) || ""}
+          value={inputValue}
           onChange={(e) => onUpdate(e.target.value)}
-          placeholder={`Enter ${label ? label.toLowerCase() : "value"}...`}
-          className="w-full bg-transparent border-b border-zinc-100 py-1 text-sm text-zinc-800 outline-none focus:border-zinc-900 transition-colors"
+          placeholder="Enter content..."
+          className="w-full p-0 py-1 bg-transparent border-b border-zinc-100 hover:border-zinc-200 focus:border-zinc-900 text-[14px] text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-0 transition-colors"
         />
       </div>
     </div>
