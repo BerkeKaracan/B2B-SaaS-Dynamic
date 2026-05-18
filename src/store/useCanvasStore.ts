@@ -1,26 +1,52 @@
 import { create } from "zustand";
-import { BlockContent, BlockType } from "@/types/record";
+import { BlockContent, BlockType, PageContent } from "@/types/record";
 import { WORKSPACE_MODULE } from "@/lib/workspace";
 import { fetchAPI } from "@/services/api";
 
 interface CanvasState {
   recordId: string | null;
-  blocks: BlockContent[];
+  pages: PageContent[];
+  activePageId: string | null;
   activeBlockId: string | null;
   title: string;
   description: string;
   date: string;
+  zoom: number;
+  panX: number;
+  panY: number;
   isSaving: boolean;
   showSaved: boolean;
   isLoading: boolean;
-  addBlock: (type: BlockType) => void;
-  removeBlock: (id: string) => void;
+  addPage: (type: PageContent["type"], x: number, y: number) => void;
+  removePage: (pageId: string) => void;
+  addBlockToPage: (
+    pageId: string,
+    type: BlockType,
+    x: number,
+    y: number,
+  ) => void;
+  removeBlockFromPage: (pageId: string, blockId: string) => void;
+  setActivePage: (id: string | null) => void;
   setActiveBlock: (id: string | null) => void;
-  updateBlockValue: (id: string, value: unknown) => void;
+  updateBlockValue: (pageId: string, blockId: string, value: unknown) => void;
+  updateBlockSettings: (
+    pageId: string,
+    blockId: string,
+    settings: Record<string, unknown>,
+  ) => void;
+  updatePagePosition: (pageId: string, x: number, y: number) => void;
+  updateBlockPosition: (
+    pageId: string,
+    blockId: string,
+    x: number,
+    y: number,
+  ) => void;
+  updatePageDimensions: (pageId: string, width: number, height: number) => void;
   setTitle: (title: string) => void;
   setDescription: (desc: string) => void;
   setDate: (date: string) => void;
-  updateBlockSettings: (id: string, settings: Record<string, unknown>) => void;
+  setZoom: (zoom: number) => void;
+  setPan: (panX: number, panY: number) => void;
   clearCanvas: () => void;
   loadProjectById: (tenantId: string, recordId: string) => Promise<void>;
   createProject: (tenantId: string, name?: string) => Promise<string | null>;
@@ -31,52 +57,151 @@ let saveTimeout: NodeJS.Timeout;
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
   recordId: null,
-  blocks: [],
+  pages: [],
+  activePageId: null,
   activeBlockId: null,
   title: "",
   description: "",
   date: "",
+  zoom: 100,
+  panX: 0,
+  panY: 0,
   isSaving: false,
   showSaved: false,
   isLoading: false,
 
-  addBlock: (type) =>
+  addPage: (type, x, y) =>
+    set((state) => {
+      const newPage: PageContent = {
+        id: crypto.randomUUID(),
+        type,
+        title: "Untitled Frame",
+        x,
+        y,
+        width: 800,
+        height: 1131,
+        blocks: [],
+      };
+      return { pages: [...state.pages, newPage], activePageId: newPage.id };
+    }),
+
+  removePage: (pageId) =>
     set((state) => ({
-      blocks: [
-        ...state.blocks,
-        {
-          id: crypto.randomUUID(),
-          type,
-          value: type === "text" ? "New text block" : "",
-          settings: {},
-        },
-      ],
+      pages: state.pages.filter((p) => p.id !== pageId),
+      activePageId: state.activePageId === pageId ? null : state.activePageId,
     })),
 
-  removeBlock: (id) =>
-    set((state) => ({ blocks: state.blocks.filter((b) => b.id !== id) })),
-  setActiveBlock: (id) => set({ activeBlockId: id }),
-  updateBlockValue: (id, value) =>
+  addBlockToPage: (pageId, type, x, y) =>
     set((state) => ({
-      blocks: state.blocks.map((b) => (b.id === id ? { ...b, value } : b)),
+      pages: state.pages.map((p) => {
+        if (p.id !== pageId) return p;
+        return {
+          ...p,
+          blocks: [
+            ...p.blocks,
+            {
+              id: crypto.randomUUID(),
+              type,
+              value:
+                type === "text"
+                  ? "New block"
+                  : type === "checkbox"
+                    ? false
+                    : "",
+              x,
+              y,
+              settings: {},
+            } as BlockContent,
+          ],
+        };
+      }),
     })),
-  updateBlockSettings: (id, settings) =>
+
+  removeBlockFromPage: (pageId, blockId) =>
     set((state) => ({
-      blocks: state.blocks.map((b) =>
-        b.id === id ? { ...b, settings: { ...b.settings, ...settings } } : b,
+      pages: state.pages.map((p) =>
+        p.id === pageId
+          ? { ...p, blocks: p.blocks.filter((b) => b.id !== blockId) }
+          : p,
       ),
     })),
+
+  setActivePage: (id) => set({ activePageId: id, activeBlockId: null }),
+  setActiveBlock: (id) => set({ activeBlockId: id }),
+
+  updateBlockValue: (pageId, blockId, value) =>
+    set((state) => ({
+      pages: state.pages.map((p) =>
+        p.id === pageId
+          ? {
+              ...p,
+              blocks: p.blocks.map((b) =>
+                b.id === blockId ? { ...b, value } : b,
+              ),
+            }
+          : p,
+      ),
+    })),
+
+  updateBlockSettings: (pageId, blockId, settings) =>
+    set((state) => ({
+      pages: state.pages.map((p) =>
+        p.id === pageId
+          ? {
+              ...p,
+              blocks: p.blocks.map((b) =>
+                b.id === blockId
+                  ? { ...b, settings: { ...b.settings, ...settings } }
+                  : b,
+              ),
+            }
+          : p,
+      ),
+    })),
+
+  updatePagePosition: (pageId, x, y) =>
+    set((state) => ({
+      pages: state.pages.map((p) => (p.id === pageId ? { ...p, x, y } : p)),
+    })),
+
+  updateBlockPosition: (pageId, blockId, x, y) =>
+    set((state) => ({
+      pages: state.pages.map((p) =>
+        p.id === pageId
+          ? {
+              ...p,
+              blocks: p.blocks.map((b) =>
+                b.id === blockId ? { ...b, x, y } : b,
+              ),
+            }
+          : p,
+      ),
+    })),
+
+  updatePageDimensions: (pageId, width, height) =>
+    set((state) => ({
+      pages: state.pages.map((p) =>
+        p.id === pageId ? { ...p, width, height } : p,
+      ),
+    })),
+
   setTitle: (title) => set({ title }),
   setDescription: (description) => set({ description }),
   setDate: (date) => set({ date }),
+  setZoom: (zoom) => set({ zoom: Math.min(Math.max(zoom, 10), 400) }),
+  setPan: (panX, panY) => set({ panX, panY }),
 
   clearCanvas: () =>
     set({
       recordId: null,
-      blocks: [],
+      pages: [],
       title: "",
       description: "",
       date: "",
+      zoom: 100,
+      panX: 0,
+      panY: 0,
+      activePageId: null,
       activeBlockId: null,
     }),
 
@@ -93,12 +218,33 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
       if (record?.record_data) {
         const rd = record.record_data;
+        let loadedPages = (rd.pages as PageContent[]) || [];
+
+        if (
+          loadedPages.length === 0 &&
+          rd.blocks &&
+          (rd.blocks as BlockContent[]).length > 0
+        ) {
+          loadedPages = [
+            {
+              id: crypto.randomUUID(),
+              type: "empty",
+              title: "Recovered Workspace",
+              x: 100,
+              y: 100,
+              width: 800,
+              height: 1131,
+              blocks: rd.blocks as BlockContent[],
+            },
+          ];
+        }
+
         set({
           recordId: record.id,
           title: (rd.title as string) || (rd.name as string) || "",
           description: (rd.description as string) || "",
           date: (rd.date as string) || "",
-          blocks: (rd.blocks as BlockContent[]) || [],
+          pages: loadedPages,
         });
       } else {
         get().clearCanvas();
@@ -119,7 +265,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         title: name,
         description: "",
         date: "",
-        blocks: [],
+        pages: [],
       },
     };
 
@@ -149,7 +295,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       title: state.title,
       description: state.description,
       date: state.date,
-      blocks: state.blocks,
+      pages: state.pages,
     };
 
     try {
