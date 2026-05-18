@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, Depends, Header
 from typing import List, Optional
 from uuid import UUID
+from datetime import datetime, timezone
 
 from core.database import supabase
 from models.record import RecordCreate, RecordUpdate, RecordResponse
@@ -22,13 +23,16 @@ def get_user_role(authorization: str = Header(None)) -> dict:
             raise HTTPException(status_code=401, detail="Invalid session")
             
         user_id = user_res.user.id
+        email = user_res.user.email
+        full_name = email.split("@")[0]
         role = "employee"
         role_res = supabase.table("tenant_users").select("role").eq("user_id", user_id).execute()
         if role_res.data:
             role = role_res.data[0].get("role", "employee")
             
-        return {"user_id": user_id, "role": role}
+        return {"user_id": user_id, "role": role, "full_name": full_name}
     except Exception as e:
+        print(f"Auth Error: {str(e)}") # Konsola gerçek hatayı bas
         raise HTTPException(status_code=401, detail="Invalid token or session expired")
 
 
@@ -39,6 +43,13 @@ def create_record(
 ):
     try:
         data = record.model_dump(mode='json')
+        
+        if "record_data" not in data or not data["record_data"]:
+            data["record_data"] = {}
+            
+        data["record_data"]["updated_at"] = datetime.now(timezone.utc).isoformat()
+        data["record_data"]["updated_by"] = user["full_name"]
+
         response = supabase.table("custom_records").insert(data).execute()
         
         if not response.data:
@@ -121,9 +132,13 @@ def update_record(
             if current_record_data.get("visibility") == "just_admin":
                 raise HTTPException(status_code=403, detail="You do not have permission to modify an Admin Only record.")
 
+        payload_data = payload.record_data
+        payload_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        payload_data["updated_by"] = user["full_name"]
+
         response = (
             supabase.table("custom_records")
-            .update({"record_data": payload.record_data})
+            .update({"record_data": payload_data})
             .eq("id", str(record_id))
             .execute()
         )
@@ -136,6 +151,7 @@ def update_record(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.delete("/{record_id}")
 def delete_record(
