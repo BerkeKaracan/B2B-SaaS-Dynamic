@@ -1,12 +1,13 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useLayoutStore } from "@/store/useLayoutStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useAuthStore } from "@/store/useAuthStore"; 
 
 export default function Navbar({
   tenantId,
   onMenuToggle,
-  showProjectInfo = false, 
+  showProjectInfo = false,
 }: {
   tenantId: string;
   onMenuToggle?: () => void;
@@ -15,36 +16,10 @@ export default function Navbar({
   const { toggleSecondarySidebar } = useLayoutStore();
   const { isSaving, showSaved } = useCanvasStore();
 
-  const [initials, setInitials] = useState<string>("--");
-  const [fullName, setFullName] = useState<string>("Loading...");
+  const { user } = useAuthStore();
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) return;
-
-        const API_BASE_URL =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setInitials(data.initials);
-          setFullName(data.full_name);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user profile:", error);
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
+  const initials = user?.initials || "--";
+  const fullName = user?.full_name || "Loading...";
 
   return (
     <nav className="h-14 w-full border-b border-zinc-200/60 bg-white flex items-center justify-between px-4 shrink-0 z-50 sticky top-0">
@@ -89,7 +64,6 @@ export default function Navbar({
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Only render PROJECT INFO if showProjectInfo is true */}
         {showProjectInfo && (
           <button
             onClick={toggleSecondarySidebar}

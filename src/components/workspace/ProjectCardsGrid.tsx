@@ -8,6 +8,7 @@ import {
   isMeaningfulProjectRecord,
 } from "@/lib/projectRecord";
 import { RecordData } from "@/types/record";
+import { useAuthStore } from "@/store/useAuthStore";
 
 type ProjectRecord = {
   id: string;
@@ -19,10 +20,11 @@ export default function ProjectCardsGrid() {
   const router = useRouter();
   const tenantId = params.tenantId as string;
 
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === "admin" || user?.role === "owner";
+
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [isCreating, setIsCreating] = useState(false);
-
-  const [isAdmin, setIsAdmin] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
@@ -31,25 +33,6 @@ export default function ProjectCardsGrid() {
 
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-  useEffect(() => {
-    const checkRole = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) return;
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setIsAdmin(data.role === "admin" || data.role === "owner");
-        }
-      } catch (error) {
-        console.error("Role check failed:", error);
-      }
-    };
-    checkRole();
-  }, [API_BASE_URL]);
 
   const fetchProjects = useCallback(async () => {
     try {

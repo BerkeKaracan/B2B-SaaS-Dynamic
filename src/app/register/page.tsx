@@ -83,7 +83,7 @@ export default function RegisterPage() {
           </Link>
 
           <h1 className="text-4xl font-extrabold leading-tight mb-8 tracking-tighter">
-            Start building your <br /> company's operating system.
+            Start building your <br /> company&apos;s operating system.
           </h1>
           <p className="text-zinc-400 text-base max-w-sm leading-relaxed mb-10">
             Join thousands of modern teams who use SaaS Engine to manage their

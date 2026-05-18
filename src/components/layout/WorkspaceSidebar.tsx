@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
 
 type TenantInfo = {
   id: string;
@@ -14,27 +15,8 @@ export default function WorkspaceSidebar() {
   const tenantId = params.tenantId as string;
   const isOnProject = Boolean(params.projectId);
 
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkRole = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const API_BASE_URL =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setIsAdmin(data.role === "admin" || data.role === "owner");
-        }
-      } catch (error) {
-        console.error("Role check failed", error);
-      }
-    };
-    checkRole();
-  }, []);
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === "admin" || user?.role === "owner";
 
   const [tenant, setTenant] = useState<TenantInfo | null>(null);
 
