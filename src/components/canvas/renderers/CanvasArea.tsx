@@ -1,15 +1,19 @@
 "use client";
-
 import React, {
   useRef,
   useState,
-  useEffect,
   MouseEvent,
+  useEffect,
   DragEvent,
 } from "react";
-import { useCanvasStore, PageWithSettings } from "@/store/useCanvasStore";
+import {
+  useCanvasStore,
+  PageWithSettings,
+  Connection,
+} from "@/store/useCanvasStore";
 import { BlockContent, BlockType, PageContent } from "@/types/record";
 import { useCanvasNavigation } from "@/hooks/useCanvasNavigation";
+import { ConnectionLayer } from "./ConnectionLayer";
 
 import TextBlock from "./TextBlock";
 import FormBlock from "./FormBlock";
@@ -22,6 +26,7 @@ import AssetStreamBlock from "./AssetStreamBlock";
 export default function CanvasArea() {
   const store = useCanvasStore();
   const pages = (store.pages as PageWithSettings[]) ?? [];
+  const connections = store.connections ?? [];
   const activePageId = store.activePageId ?? null;
   const activeBlockId = store.activeBlockId ?? null;
   const zoom = store.zoom ?? 100;
@@ -41,8 +46,11 @@ export default function CanvasArea() {
     setPan,
     updatePagePosition,
     updateBlockPosition,
+    updatePageDimensions,
     updatePageTitle,
     updatePageSettings,
+    addConnection,
+    removeConnection,
     undo,
     redo,
     saveHistory,
@@ -50,10 +58,8 @@ export default function CanvasArea() {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Native Zoom ve Pan Motorunu (Hook) Bağlıyoruz
   const { startPan } = useCanvasNavigation(containerRef);
 
-  // Sürükle-Bırak State'leri
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
   const [draggedBlockInfo, setDraggedBlockInfo] = useState<{
     pageId: string;
@@ -61,7 +67,20 @@ export default function CanvasArea() {
   } | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-  // 1. Zaman Makinesi Kısayolları (Ctrl+Z / Ctrl+Y)
+  const [resizingPageId, setResizingPageId] = useState<string | null>(null);
+  const [resizeStart, setResizeStart] = useState({
+    width: 0,
+    height: 0,
+    x: 0,
+    y: 0,
+  });
+
+  const [connectingFrom, setConnectingFrom] = useState<{
+    pageId: string;
+    blockId: string;
+  } | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeElement = document.activeElement as HTMLElement;
@@ -69,25 +88,60 @@ export default function CanvasArea() {
         activeElement &&
         ["INPUT", "TEXTAREA", "SELECT"].includes(activeElement.tagName);
 
-      if (!isInputActive && (e.ctrlKey || e.metaKey)) {
-        if (e.key.toLowerCase() === "z") {
+      if (!isInputActive) {
+        if (e.ctrlKey || e.metaKey) {
+          if (e.key.toLowerCase() === "z") {
+            e.preventDefault();
+            if (e.shiftKey) redo();
+            else undo();
+          } else if (e.key.toLowerCase() === "y") {
+            e.preventDefault();
+            redo();
+          }
+        }
+
+        if (e.key === "Delete" || e.key === "Backspace") {
           e.preventDefault();
-          if (e.shiftKey) redo();
-          else undo();
-        } else if (e.key.toLowerCase() === "y") {
-          e.preventDefault();
-          redo();
+          const currentState = useCanvasStore.getState();
+          const pId = currentState.activePageId;
+          const bId = currentState.activeBlockId;
+
+          if (pId && bId) {
+            removeBlockFromPage(pId, bId);
+          } else if (pId && !bId) {
+            removePage(pId);
+          }
+        }
+
+        if (e.key === "Escape") {
+          setConnectingFrom(null);
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undo, redo]);
+  }, [undo, redo, removePage, removeBlockFromPage]);
 
-  // 2. Blok ve Sayfa Sürükleme (Drag & Drop) Motoru
   useEffect(() => {
     const handleGlobalMouseMove = (e: globalThis.MouseEvent) => {
+      if (connectingFrom) {
+        const state = useCanvasStore.getState();
+        const currentZoom = (state.zoom ?? 100) / 100;
+        const currentPanX = state.panX ?? 0;
+        const currentPanY = state.panY ?? 0;
+
+        const container = containerRef.current;
+        const rect = container
+          ? container.getBoundingClientRect()
+          : { left: 0, top: 0 };
+
+        setMousePos({
+          x: (e.clientX - rect.left - currentPanX) / currentZoom,
+          y: (e.clientY - rect.top - currentPanY) / currentZoom,
+        });
+      }
+
       if (draggedPageId) {
         const state = useCanvasStore.getState();
         const currentZoom = (state.zoom ?? 100) / 100;
@@ -118,18 +172,34 @@ export default function CanvasArea() {
             newY,
           );
         }
+      } else if (resizingPageId) {
+        const state = useCanvasStore.getState();
+        const currentZoom = (state.zoom ?? 100) / 100;
+        const targetPage = state.pages.find((p) => p.id === resizingPageId);
+
+        if (targetPage) {
+          const deltaX = (e.clientX - resizeStart.x) / currentZoom;
+          const deltaY = (e.clientY - resizeStart.y) / currentZoom;
+
+          updatePageDimensions(
+            resizingPageId,
+            Math.max(300, resizeStart.width + deltaX),
+            Math.max(300, resizeStart.height + deltaY),
+          );
+        }
       }
     };
 
     const handleGlobalMouseUp = () => {
-      if (draggedPageId || draggedBlockInfo) {
+      if (draggedPageId || draggedBlockInfo || resizingPageId) {
         saveHistory();
       }
       setDraggedPageId(null);
       setDraggedBlockInfo(null);
+      setResizingPageId(null);
     };
 
-    if (draggedPageId || draggedBlockInfo) {
+    if (draggedPageId || draggedBlockInfo || resizingPageId || connectingFrom) {
       window.addEventListener("mousemove", handleGlobalMouseMove);
       window.addEventListener("mouseup", handleGlobalMouseUp);
     }
@@ -141,9 +211,13 @@ export default function CanvasArea() {
   }, [
     draggedPageId,
     draggedBlockInfo,
+    resizingPageId,
+    connectingFrom,
     dragOffset,
+    resizeStart,
     updatePagePosition,
     updateBlockPosition,
+    updatePageDimensions,
     saveHistory,
   ]);
 
@@ -156,7 +230,6 @@ export default function CanvasArea() {
   }
 
   const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
-    // Orta fare tuşu veya boşluğa tıklama ile Pan'ı tetikle
     if (
       e.button === 1 ||
       e.target === containerRef.current ||
@@ -165,6 +238,7 @@ export default function CanvasArea() {
       if (e.button === 1) e.preventDefault();
       startPan(e.clientX, e.clientY);
       setActivePage(null);
+      setConnectingFrom(null);
     }
   };
 
@@ -239,6 +313,27 @@ export default function CanvasArea() {
 
     addBlockToPage(page.id, type, blockX, blockY);
     setActivePage(page.id);
+  };
+
+  const handleBlockClick = (
+    e: React.MouseEvent,
+    pageId: string,
+    blockId: string,
+  ) => {
+    e.stopPropagation();
+    setActivePage(pageId);
+    setActiveBlock(blockId);
+
+    if (connectingFrom && connectingFrom.blockId !== blockId) {
+      addConnection({
+        id: crypto.randomUUID(),
+        fromPage: connectingFrom.pageId,
+        fromBlock: connectingFrom.blockId,
+        toPage: pageId,
+        toBlock: blockId,
+      });
+      setConnectingFrom(null);
+    }
   };
 
   const renderBlock = (
@@ -364,7 +459,7 @@ export default function CanvasArea() {
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 overflow-hidden select-none cursor-grab active:cursor-grabbing bg-[#F9F9FB]"
+      className={`absolute inset-0 overflow-hidden select-none bg-[#F9F9FB] ${connectingFrom ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
       onMouseDown={handleMouseDown}
     >
       <div
@@ -394,6 +489,13 @@ export default function CanvasArea() {
           transformOrigin: "0 0",
         }}
       >
+        <ConnectionLayer
+          connections={connections}
+          pages={pages}
+          connectingFrom={connectingFrom}
+          mousePos={mousePos}
+          onRemoveConnection={removeConnection}
+        />
         {pages.map((page: PageWithSettings) => {
           const isPageActive = activePageId === page.id;
           const px = page.x ?? 150;
@@ -410,6 +512,7 @@ export default function CanvasArea() {
               onClick={(e) => {
                 e.stopPropagation();
                 setActivePage(page.id);
+                if (connectingFrom) setConnectingFrom(null);
               }}
               onDragEnter={handleDragOverPage}
               onDragOver={handleDragOverPage}
@@ -462,16 +565,44 @@ export default function CanvasArea() {
               )}
 
               {isPageActive && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removePage(page.id);
-                  }}
-                  className="absolute -top-8 right-0 text-zinc-400 hover:text-red-500 text-[11px] font-bold px-2 py-1 uppercase tracking-wider cursor-pointer transition-colors"
-                >
-                  Delete Frame
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removePage(page.id);
+                    }}
+                    className="absolute -top-8 right-0 text-zinc-400 hover:text-red-500 text-[11px] font-bold px-2 py-1 uppercase tracking-wider cursor-pointer transition-colors"
+                  >
+                    Delete Frame
+                  </button>
+
+                  <div
+                    className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-nwse-resize rounded-br-md rounded-tl-md z-50 flex items-center justify-center"
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setResizingPageId(page.id);
+                      setResizeStart({
+                        width: page.width,
+                        height: page.height,
+                        x: e.clientX,
+                        y: e.clientY,
+                      });
+                    }}
+                  >
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="3"
+                    >
+                      <path d="M21 15v6h-6M21 21l-7-7M15 3h6v6M21 3l-7 7M9 21H3v-6M3 21l7-7M3 9V3h6M3 3l7 7" />
+                    </svg>
+                  </div>
+                </>
               )}
 
               <div className="relative w-full h-full p-4 overflow-visible">
@@ -483,25 +614,47 @@ export default function CanvasArea() {
                   return (
                     <div
                       key={block.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActivePage(page.id);
-                        setActiveBlock(block.id);
+                      onClick={(e) => handleBlockClick(e, page.id, block.id)}
+                      onMouseUp={(e) => {
+                        if (
+                          connectingFrom &&
+                          connectingFrom.blockId !== block.id
+                        ) {
+                          e.stopPropagation();
+                          addConnection({
+                            id: crypto.randomUUID(),
+                            fromPage: connectingFrom.pageId,
+                            fromBlock: connectingFrom.blockId,
+                            toPage: page.id,
+                            toBlock: block.id,
+                          });
+                          setConnectingFrom(null);
+                        }
                       }}
                       className={`absolute bg-white border border-zinc-200/80 rounded-2xl p-5 pt-7 min-w-[320px] cursor-default select-text group transition-shadow ${
                         isBlockActive
                           ? "ring-2 ring-zinc-950 shadow-xl z-20"
                           : "shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-md z-10"
-                      }`}
+                      } ${connectingFrom && connectingFrom.blockId !== block.id ? "hover:ring-2 hover:ring-blue-400" : ""}`}
                       style={{
                         left: `${bx}px`,
                         top: `${by}px`,
                       }}
                     >
                       <div
-                        onMouseDown={(e) =>
-                          startBlockDrag(e, page.id, block.id, px, py, bx, by)
-                        }
+                        onMouseDown={(e) => {
+                          if (!connectingFrom) {
+                            startBlockDrag(
+                              e,
+                              page.id,
+                              block.id,
+                              px,
+                              py,
+                              bx,
+                              by,
+                            );
+                          }
+                        }}
                         className="absolute top-0 left-0 right-0 h-6 bg-zinc-50/50 hover:bg-zinc-100/80 border-b border-zinc-100/50 rounded-t-2xl flex items-center justify-center cursor-move transition-colors select-none"
                       >
                         <div className="flex gap-0.5 pointer-events-none">
@@ -513,26 +666,59 @@ export default function CanvasArea() {
                       </div>
 
                       {isBlockActive && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeBlockFromPage(page.id, block.id);
-                          }}
-                          className="absolute -top-2.5 -right-2.5 w-6 h-6 flex items-center justify-center bg-white border border-zinc-200 rounded-full text-zinc-400 hover:text-red-600 shadow-sm transition-colors z-30 cursor-pointer select-none"
-                        >
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
+                        <div className="absolute -top-3 -right-3 flex gap-1 z-30">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (connectingFrom?.blockId === block.id) {
+                                setConnectingFrom(null);
+                              } else {
+                                setConnectingFrom({
+                                  pageId: page.id,
+                                  blockId: block.id,
+                                });
+                              }
+                            }}
+                            className={`w-7 h-7 flex items-center justify-center bg-white border rounded-full shadow-sm transition-colors cursor-pointer select-none ${connectingFrom?.blockId === block.id ? "border-blue-500 text-blue-500 bg-blue-50" : "border-zinc-200 text-zinc-500 hover:text-blue-500"}`}
+                            title="Connect to another block"
                           >
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                        </button>
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeBlockFromPage(page.id, block.id);
+                            }}
+                            className="w-7 h-7 flex items-center justify-center bg-white border border-zinc-200 rounded-full text-zinc-400 hover:text-red-600 shadow-sm transition-colors cursor-pointer select-none"
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                            >
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </button>
+                        </div>
                       )}
 
                       <div onMouseDown={(e) => e.stopPropagation()}>
@@ -547,7 +733,6 @@ export default function CanvasArea() {
         })}
       </div>
 
-      {/* Kontroller ve Undo/Redo Menüsü */}
       <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
         <button
           type="button"

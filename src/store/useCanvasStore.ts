@@ -7,11 +7,23 @@ export type PageWithSettings = PageContent & {
   settings?: Record<string, unknown>;
 };
 
+export interface Connection {
+  id: string;
+  fromPage: string;
+  fromBlock: string;
+  toPage: string;
+  toBlock: string;
+}
+
 interface CanvasState {
   recordId: string | null;
   pages: PageWithSettings[];
   past: PageWithSettings[][];
   future: PageWithSettings[][];
+  connections: Connection[];
+  addConnection: (conn: Connection) => void;
+  removeConnection: (connId: string) => void;
+
   activePageId: string | null;
   activeBlockId: string | null;
   title: string;
@@ -74,6 +86,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   pages: [],
   past: [],
   future: [],
+  connections: [],
   activePageId: null,
   activeBlockId: null,
   title: "",
@@ -85,6 +98,18 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   isSaving: false,
   showSaved: false,
   isLoading: false,
+
+  addConnection: (conn) => {
+    get().saveHistory();
+    set((state) => ({ connections: [...state.connections, conn] }));
+  },
+
+  removeConnection: (connId) => {
+    get().saveHistory();
+    set((state) => ({
+      connections: state.connections.filter((c) => c.id !== connId),
+    }));
+  },
 
   saveHistory: () =>
     set((state) => {
@@ -148,6 +173,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     get().saveHistory();
     set((state) => ({
       pages: state.pages.filter((p) => p.id !== pageId),
+      connections: state.connections.filter(
+        (c) => c.fromPage !== pageId && c.toPage !== pageId,
+      ),
       activePageId: state.activePageId === pageId ? null : state.activePageId,
     }));
   },
@@ -189,6 +217,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         p.id === pageId
           ? { ...p, blocks: p.blocks.filter((b) => b.id !== blockId) }
           : p,
+      ),
+      connections: state.connections.filter(
+        (c) => c.fromBlock !== blockId && c.toBlock !== blockId,
       ),
     }));
   },
@@ -270,6 +301,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       pages: [],
       past: [],
       future: [],
+      connections: [],
       title: "",
       description: "",
       date: "",
@@ -294,6 +326,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           recordId: record.id,
           title: record.record_data.title || "",
           pages: record.record_data.pages || [],
+          connections: record.record_data.connections || [],
         });
       }
     } finally {
@@ -308,7 +341,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         body: JSON.stringify({
           tenant_id: tenantId,
           module_name: WORKSPACE_MODULE,
-          record_data: { name, pages: [] },
+          record_data: { name, pages: [], connections: [] },
         }),
       });
       const data = await response.json();
@@ -319,17 +352,26 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   saveProject: async (tenantId) => {
-    const { recordId, title, description, date, pages } = get();
+    const { recordId, title, description, date, pages, connections } = get();
     if (!recordId) return;
+
+    set({ isSaving: true, showSaved: false });
+
     try {
       await fetchAPI(`/api/records/${recordId}`, {
         method: "PATCH",
         body: JSON.stringify({
-          record_data: { title, description, date, pages },
+          record_data: { title, description, date, pages, connections },
         }),
       });
+
+      set({ showSaved: true });
+      if (saveTimeout) clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => set({ showSaved: false }), 1600);
     } catch (e) {
       console.error(e);
+    } finally {
+      set({ isSaving: false });
     }
   },
 }));
