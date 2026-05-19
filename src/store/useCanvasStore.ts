@@ -3,9 +3,15 @@ import { BlockContent, BlockType, PageContent } from "@/types/record";
 import { WORKSPACE_MODULE } from "@/lib/workspace";
 import { fetchAPI } from "@/services/api";
 
+export type PageWithSettings = PageContent & {
+  settings?: Record<string, unknown>;
+};
+
 interface CanvasState {
   recordId: string | null;
-  pages: PageContent[];
+  pages: PageWithSettings[];
+  past: PageWithSettings[][];
+  future: PageWithSettings[][];
   activePageId: string | null;
   activeBlockId: string | null;
   title: string;
@@ -17,8 +23,16 @@ interface CanvasState {
   isSaving: boolean;
   showSaved: boolean;
   isLoading: boolean;
+  saveHistory: () => void;
+  undo: () => void;
+  redo: () => void;
   addPage: (type: PageContent["type"], x: number, y: number) => void;
   removePage: (pageId: string) => void;
+  updatePageTitle: (pageId: string, title: string) => void;
+  updatePageSettings: (
+    pageId: string,
+    settings: Record<string, unknown>,
+  ) => void;
   addBlockToPage: (
     pageId: string,
     type: BlockType,
@@ -43,7 +57,7 @@ interface CanvasState {
   ) => void;
   updatePageDimensions: (pageId: string, width: number, height: number) => void;
   setTitle: (title: string) => void;
-  setDescription: (desc: string) => void;
+  setDescription: (description: string) => void;
   setDate: (date: string) => void;
   setZoom: (zoom: number) => void;
   setPan: (panX: number, panY: number) => void;
@@ -58,6 +72,8 @@ let saveTimeout: NodeJS.Timeout;
 export const useCanvasStore = create<CanvasState>((set, get) => ({
   recordId: null,
   pages: [],
+  past: [],
+  future: [],
   activePageId: null,
   activeBlockId: null,
   title: "",
@@ -70,210 +86,118 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   showSaved: false,
   isLoading: false,
 
-  addPage: (type, x, y) =>
+  saveHistory: () =>
     set((state) => {
-      const pageId = crypto.randomUUID();
-      let width = 800;
-      let height = 1131;
-      let blocks: BlockContent[] = [];
-      let frameTitle = "Untitled Frame";
-
-      switch (type) {
-        case "kanban":
-          frameTitle = "Kanban Board Workspace";
-          width = 1100;
-          height = 800;
-          blocks = [
-            {
-              id: crypto.randomUUID(),
-              type: "form",
-              value: "Review design specs",
-              x: 40,
-              y: 40,
-              settings: { label: "To Do Column", jsonKey: "todo_tasks" },
-            } as BlockContent,
-            {
-              id: crypto.randomUUID(),
-              type: "form",
-              value: "Refactor store layer",
-              x: 390,
-              y: 40,
-              settings: {
-                label: "In Progress Column",
-                jsonKey: "progress_tasks",
-              },
-            } as BlockContent,
-            {
-              id: crypto.randomUUID(),
-              type: "form",
-              value: "Deploy build worker",
-              x: 740,
-              y: 40,
-              settings: { label: "Done Column", jsonKey: "done_tasks" },
-            } as BlockContent,
-          ];
-          break;
-        case "notes":
-          frameTitle = "Notes & Feedback Workspace";
-          blocks = [
-            {
-              id: crypto.randomUUID(),
-              type: "text",
-              value: "Executive Summary",
-              x: 50,
-              y: 40,
-              settings: {},
-            } as BlockContent,
-            {
-              id: crypto.randomUUID(),
-              type: "text",
-              value:
-                "Operational milestones must match the revised canvas grid blueprint.",
-              x: 50,
-              y: 120,
-              settings: {},
-            } as BlockContent,
-            {
-              id: crypto.randomUUID(),
-              type: "badge_selector",
-              value: "High",
-              x: 50,
-              y: 220,
-              settings: {
-                label: "Priority Status",
-                jsonKey: "priority",
-                options: "Low, Medium, High",
-              },
-            } as BlockContent,
-          ];
-          break;
-        case "agenda":
-          frameTitle = "Sprint Agenda Timeline";
-          blocks = [
-            {
-              id: crypto.randomUUID(),
-              type: "date",
-              value: new Date().toISOString().split("T")[0],
-              x: 60,
-              y: 40,
-              settings: { label: "Kickoff Deadline", jsonKey: "kickoff_date" },
-            } as BlockContent,
-            {
-              id: crypto.randomUUID(),
-              type: "dropdown",
-              value: "Planning",
-              x: 60,
-              y: 150,
-              settings: {
-                label: "Phase Category",
-                jsonKey: "sprint_phase",
-                options: "Backlog, Planning, Development, Review",
-              },
-            } as BlockContent,
-          ];
-          break;
-        case "database":
-          frameTitle = "Structured Database Field Schema";
-          blocks = [
-            {
-              id: crypto.randomUUID(),
-              type: "form",
-              value: "Asset Management Client",
-              x: 50,
-              y: 40,
-              settings: { label: "Entry Name", jsonKey: "entry_title" },
-            } as BlockContent,
-            {
-              id: crypto.randomUUID(),
-              type: "dropdown",
-              value: "Active",
-              x: 50,
-              y: 150,
-              settings: {
-                label: "Deployment Status",
-                jsonKey: "deployment_status",
-                options: "Pipeline, Active, Deprecated",
-              },
-            } as BlockContent,
-            {
-              id: crypto.randomUUID(),
-              type: "checkbox",
-              value: true,
-              x: 50,
-              y: 260,
-              settings: { label: "Production Verified", jsonKey: "is_prod" },
-            } as BlockContent,
-          ];
-          break;
-        case "empty":
-        default:
-          frameTitle = "Empty Document Frame";
-          break;
-      }
-
-      const newPage: PageContent = {
-        id: pageId,
-        type,
-        title: frameTitle,
-        x,
-        y,
-        width,
-        height,
-        blocks,
-      };
-
-      return { pages: [...state.pages, newPage], activePageId: pageId };
+      const clonedPages = JSON.parse(
+        JSON.stringify(state.pages),
+      ) as PageWithSettings[];
+      const newPast = [...state.past, clonedPages].slice(-50);
+      return { past: newPast, future: [] };
     }),
 
-  removePage: (pageId) =>
+  undo: () =>
+    set((state) => {
+      if (state.past.length === 0) return state;
+      const previous = state.past[state.past.length - 1];
+      const newPast = state.past.slice(0, -1);
+      const clonedCurrent = JSON.parse(
+        JSON.stringify(state.pages),
+      ) as PageWithSettings[];
+      return {
+        pages: previous,
+        past: newPast,
+        future: [clonedCurrent, ...state.future],
+      };
+    }),
+
+  redo: () =>
+    set((state) => {
+      if (state.future.length === 0) return state;
+      const next = state.future[0];
+      const newFuture = state.future.slice(1);
+      const clonedCurrent = JSON.parse(
+        JSON.stringify(state.pages),
+      ) as PageWithSettings[];
+      return {
+        pages: next,
+        past: [...state.past, clonedCurrent],
+        future: newFuture,
+      };
+    }),
+
+  addPage: (type, x, y) => {
+    get().saveHistory();
+    set((state) => {
+      const pageId = crypto.randomUUID();
+      const newPage: PageWithSettings = {
+        id: pageId,
+        type,
+        title: "New Frame",
+        x,
+        y,
+        width: 800,
+        height: 1131,
+        blocks: [],
+        settings: { backgroundColor: "#ffffff" },
+      };
+      return { pages: [...state.pages, newPage], activePageId: pageId };
+    });
+  },
+
+  removePage: (pageId) => {
+    get().saveHistory();
     set((state) => ({
       pages: state.pages.filter((p) => p.id !== pageId),
       activePageId: state.activePageId === pageId ? null : state.activePageId,
+    }));
+  },
+
+  updatePageTitle: (pageId, title) =>
+    set((state) => ({
+      pages: state.pages.map((p) => (p.id === pageId ? { ...p, title } : p)),
     })),
 
-  addBlockToPage: (pageId, type, x, y) =>
+  updatePageSettings: (pageId, settings) =>
+    set((state) => ({
+      pages: state.pages.map((p) =>
+        p.id === pageId
+          ? { ...p, settings: { ...(p.settings || {}), ...settings } }
+          : p,
+      ),
+    })),
+
+  addBlockToPage: (pageId, type, x, y) => {
+    get().saveHistory();
     set((state) => ({
       pages: state.pages.map((p) => {
         if (p.id !== pageId) return p;
-        const defaultOptions =
-          type === "dropdown" || type === "badge_selector"
-            ? "Option 1, Option 2, Option 3"
-            : undefined;
         return {
           ...p,
           blocks: [
             ...p.blocks,
-            {
-              id: crypto.randomUUID(),
-              type,
-              value:
-                type === "text"
-                  ? "New block text entry"
-                  : type === "checkbox"
-                    ? false
-                    : "",
-              x,
-              y,
-              settings: defaultOptions ? { options: defaultOptions } : {},
-            } as BlockContent,
+            { id: crypto.randomUUID(), type, value: "", x, y, settings: {} },
           ],
         };
       }),
-    })),
+    }));
+  },
 
-  removeBlockFromPage: (pageId, blockId) =>
+  removeBlockFromPage: (pageId, blockId) => {
+    get().saveHistory();
     set((state) => ({
       pages: state.pages.map((p) =>
         p.id === pageId
           ? { ...p, blocks: p.blocks.filter((b) => b.id !== blockId) }
           : p,
       ),
-    })),
+    }));
+  },
 
   setActivePage: (id) => set({ activePageId: id, activeBlockId: null }),
   setActiveBlock: (id) => set({ activeBlockId: id }),
 
-  updateBlockValue: (pageId, blockId, value) =>
+  updateBlockValue: (pageId, blockId, value) => {
+    get().saveHistory();
     set((state) => ({
       pages: state.pages.map((p) =>
         p.id === pageId
@@ -285,9 +209,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             }
           : p,
       ),
-    })),
+    }));
+  },
 
-  updateBlockSettings: (pageId, blockId, settings) =>
+  updateBlockSettings: (pageId, blockId, settings) => {
+    get().saveHistory();
     set((state) => ({
       pages: state.pages.map((p) =>
         p.id === pageId
@@ -295,13 +221,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               ...p,
               blocks: p.blocks.map((b) =>
                 b.id === blockId
-                  ? { ...b, settings: { ...b.settings, ...settings } }
+                  ? { ...b, settings: { ...(b.settings || {}), ...settings } }
                   : b,
               ),
             }
           : p,
       ),
-    })),
+    }));
+  },
 
   updatePagePosition: (pageId, x, y) =>
     set((state) => ({
@@ -322,12 +249,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       ),
     })),
 
-  updatePageDimensions: (pageId, width, height) =>
+  updatePageDimensions: (pageId, width, height) => {
+    get().saveHistory();
     set((state) => ({
       pages: state.pages.map((p) =>
         p.id === pageId ? { ...p, width, height } : p,
       ),
-    })),
+    }));
+  },
 
   setTitle: (title) => set({ title }),
   setDescription: (description) => set({ description }),
@@ -339,6 +268,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set({
       recordId: null,
       pages: [],
+      past: [],
+      future: [],
       title: "",
       description: "",
       date: "",
@@ -355,107 +286,50 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       const response = await fetchAPI(
         `/api/records/?tenant_id=${tenantId}&module_name=${WORKSPACE_MODULE}`,
       );
-      if (!response.ok) throw new Error("Fetching error");
-
+      if (!response.ok) throw new Error("Fetch failed");
       const data = await response.json();
       const record = data.find((r: { id: string }) => r.id === recordId);
-
       if (record?.record_data) {
-        const rd = record.record_data;
-        let loadedPages = (rd.pages as PageContent[]) || [];
-
-        if (
-          loadedPages.length === 0 &&
-          rd.blocks &&
-          (rd.blocks as BlockContent[]).length > 0
-        ) {
-          loadedPages = [
-            {
-              id: crypto.randomUUID(),
-              type: "empty",
-              title: "Recovered Workspace",
-              x: 100,
-              y: 100,
-              width: 800,
-              height: 1131,
-              blocks: rd.blocks as BlockContent[],
-            },
-          ];
-        }
-
         set({
           recordId: record.id,
-          title: (rd.title as string) || (rd.name as string) || "",
-          description: (rd.description as string) || "",
-          date: (rd.date as string) || "",
-          pages: loadedPages,
+          title: record.record_data.title || "",
+          pages: record.record_data.pages || [],
         });
-      } else {
-        get().clearCanvas();
       }
-    } catch (error) {
-      console.error(error);
     } finally {
       set({ isLoading: false });
     }
   },
 
   createProject: async (tenantId, name = "New Project") => {
-    const payload = {
-      tenant_id: tenantId,
-      module_name: WORKSPACE_MODULE,
-      record_data: {
-        name,
-        title: name,
-        description: "",
-        date: "",
-        pages: [],
-      },
-    };
-
     try {
       const response = await fetchAPI(`/api/records/`, {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          module_name: WORKSPACE_MODULE,
+          record_data: { name, pages: [] },
+        }),
       });
-      if (!response.ok) throw new Error("Create failed");
-
       const data = await response.json();
-      return data.id as string;
-    } catch (error) {
-      console.error(error);
+      return data.id;
+    } catch {
       return null;
     }
   },
 
   saveProject: async (tenantId) => {
-    const state = get();
-    if (!state.recordId) return;
-
-    set({ isSaving: true, showSaved: false });
-
-    const recordData = {
-      name: state.title || "Untitled Project",
-      title: state.title,
-      description: state.description,
-      date: state.date,
-      pages: state.pages,
-    };
-
+    const { recordId, title, description, date, pages } = get();
+    if (!recordId) return;
     try {
-      const response = await fetchAPI(`/api/records/${state.recordId}`, {
+      await fetchAPI(`/api/records/${recordId}`, {
         method: "PATCH",
-        body: JSON.stringify({ record_data: recordData }),
+        body: JSON.stringify({
+          record_data: { title, description, date, pages },
+        }),
       });
-      if (!response.ok) throw new Error("Save failed");
-
-      set({ showSaved: true });
-      if (saveTimeout) clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(() => set({ showSaved: false }), 2500);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      set({ isSaving: false });
+    } catch (e) {
+      console.error(e);
     }
   },
 }));

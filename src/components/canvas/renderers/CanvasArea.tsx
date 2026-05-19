@@ -1,14 +1,16 @@
 "use client";
+
 import React, {
   useRef,
   useState,
-  MouseEvent,
-  WheelEvent,
   useEffect,
+  MouseEvent,
   DragEvent,
 } from "react";
-import { useCanvasStore } from "@/store/useCanvasStore";
-import { BlockContent, PageContent, BlockType } from "@/types/record";
+import { useCanvasStore, PageWithSettings } from "@/store/useCanvasStore";
+import { BlockContent, BlockType, PageContent } from "@/types/record";
+import { useCanvasNavigation } from "@/hooks/useCanvasNavigation";
+
 import TextBlock from "./TextBlock";
 import FormBlock from "./FormBlock";
 import DateBlock from "./DateBlock";
@@ -19,7 +21,7 @@ import AssetStreamBlock from "./AssetStreamBlock";
 
 export default function CanvasArea() {
   const store = useCanvasStore();
-  const pages = store.pages ?? [];
+  const pages = (store.pages as PageWithSettings[]) ?? [];
   const activePageId = store.activePageId ?? null;
   const activeBlockId = store.activeBlockId ?? null;
   const zoom = store.zoom ?? 100;
@@ -39,11 +41,19 @@ export default function CanvasArea() {
     setPan,
     updatePagePosition,
     updateBlockPosition,
+    updatePageTitle,
+    updatePageSettings,
+    undo,
+    redo,
+    saveHistory,
   } = store;
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+  // Native Zoom ve Pan Motorunu (Hook) Bağlıyoruz
+  const { startPan } = useCanvasNavigation(containerRef);
+
+  // Sürükle-Bırak State'leri
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
   const [draggedBlockInfo, setDraggedBlockInfo] = useState<{
     pageId: string;
@@ -51,11 +61,34 @@ export default function CanvasArea() {
   } | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
+  // 1. Zaman Makinesi Kısayolları (Ctrl+Z / Ctrl+Y)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement as HTMLElement;
+      const isInputActive =
+        activeElement &&
+        ["INPUT", "TEXTAREA", "SELECT"].includes(activeElement.tagName);
+
+      if (!isInputActive && (e.ctrlKey || e.metaKey)) {
+        if (e.key.toLowerCase() === "z") {
+          e.preventDefault();
+          if (e.shiftKey) redo();
+          else undo();
+        } else if (e.key.toLowerCase() === "y") {
+          e.preventDefault();
+          redo();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo]);
+
+  // 2. Blok ve Sayfa Sürükleme (Drag & Drop) Motoru
   useEffect(() => {
     const handleGlobalMouseMove = (e: globalThis.MouseEvent) => {
-      if (isPanning) {
-        setPan(e.clientX - panStart.x, e.clientY - panStart.y);
-      } else if (draggedPageId) {
+      if (draggedPageId) {
         const state = useCanvasStore.getState();
         const currentZoom = (state.zoom ?? 100) / 100;
         const currentPanX = state.panX ?? 0;
@@ -89,12 +122,14 @@ export default function CanvasArea() {
     };
 
     const handleGlobalMouseUp = () => {
-      setIsPanning(false);
+      if (draggedPageId || draggedBlockInfo) {
+        saveHistory();
+      }
       setDraggedPageId(null);
       setDraggedBlockInfo(null);
     };
 
-    if (isPanning || draggedPageId || draggedBlockInfo) {
+    if (draggedPageId || draggedBlockInfo) {
       window.addEventListener("mousemove", handleGlobalMouseMove);
       window.addEventListener("mouseup", handleGlobalMouseUp);
     }
@@ -104,14 +139,12 @@ export default function CanvasArea() {
       window.removeEventListener("mouseup", handleGlobalMouseUp);
     };
   }, [
-    isPanning,
     draggedPageId,
     draggedBlockInfo,
-    panStart,
     dragOffset,
-    setPan,
     updatePagePosition,
     updateBlockPosition,
+    saveHistory,
   ]);
 
   if (isLoading) {
@@ -122,23 +155,15 @@ export default function CanvasArea() {
     );
   }
 
-  const handleWheel = (e: WheelEvent<HTMLDivElement>) => {
-    if (e.ctrlKey) {
-      e.preventDefault();
-      const zoomFactor = e.deltaY < 0 ? 5 : -5;
-      setZoom(zoom + zoomFactor);
-    } else {
-      setPan(panX - e.deltaX, panY - e.deltaY);
-    }
-  };
-
   const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    // Orta fare tuşu veya boşluğa tıklama ile Pan'ı tetikle
     if (
+      e.button === 1 ||
       e.target === containerRef.current ||
       (e.target as HTMLElement).classList.contains("infinite-grid-layer")
     ) {
-      setIsPanning(true);
-      setPanStart({ x: e.clientX - panX, y: e.clientY - panY });
+      if (e.button === 1) e.preventDefault();
+      startPan(e.clientX, e.clientY);
       setActivePage(null);
     }
   };
@@ -204,13 +229,13 @@ export default function CanvasArea() {
     const container = containerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
-    const currentZoom = (zoom ?? 100) / 100;
+    const currentZoom = zoom / 100;
 
-    const mouseCanvasX = (e.clientX - rect.left - (panX ?? 0)) / currentZoom;
-    const mouseCanvasY = (e.clientY - rect.top - (panY ?? 0)) / currentZoom;
+    const mouseCanvasX = (e.clientX - rect.left - panX) / currentZoom;
+    const mouseCanvasY = (e.clientY - rect.top - panY) / currentZoom;
 
-    const blockX = mouseCanvasX - (page.x ?? 0);
-    const blockY = mouseCanvasY - (page.y ?? 0);
+    const blockX = mouseCanvasX - page.x;
+    const blockY = mouseCanvasY - page.y;
 
     addBlockToPage(page.id, type, blockX, blockY);
     setActivePage(page.id);
@@ -340,7 +365,6 @@ export default function CanvasArea() {
     <div
       ref={containerRef}
       className="absolute inset-0 overflow-hidden select-none cursor-grab active:cursor-grabbing bg-[#F9F9FB]"
-      onWheel={handleWheel}
       onMouseDown={handleMouseDown}
     >
       <div
@@ -370,10 +394,12 @@ export default function CanvasArea() {
           transformOrigin: "0 0",
         }}
       >
-        {pages.map((page: PageContent) => {
+        {pages.map((page: PageWithSettings) => {
           const isPageActive = activePageId === page.id;
           const px = page.x ?? 150;
           const py = page.y ?? 150;
+          const pageBgColor =
+            (page.settings?.backgroundColor as string) || "#ffffff";
 
           return (
             <section
@@ -388,7 +414,7 @@ export default function CanvasArea() {
               onDragEnter={handleDragOverPage}
               onDragOver={handleDragOverPage}
               onDrop={(e) => handleDropOnPage(e, page)}
-              className={`absolute bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] rounded-md pointer-events-auto transition-shadow focus:outline-none ${
+              className={`absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] rounded-md pointer-events-auto transition-shadow focus:outline-none ${
                 isPageActive
                   ? "ring-2 ring-blue-500 shadow-2xl z-10"
                   : "ring-1 ring-zinc-200/80 hover:shadow-xl z-0"
@@ -398,14 +424,42 @@ export default function CanvasArea() {
                 top: `${py}px`,
                 width: `${page.width}px`,
                 minHeight: `${page.height}px`,
+                backgroundColor: pageBgColor,
               }}
             >
-              <div
-                onMouseDown={(e) => startPageDrag(e, page.id, px, py)}
-                className="absolute -top-8 left-0 flex items-center gap-2 text-zinc-500 font-bold text-[11px] uppercase tracking-wider cursor-move px-2 py-1 rounded hover:bg-zinc-100 transition-colors"
-              >
-                <span># {page.title}</span>
-              </div>
+              {isPageActive && !activeBlockId ? (
+                <div className="absolute -top-12 left-0 flex items-center gap-2 bg-zinc-900 p-1.5 rounded-lg shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-150 z-50">
+                  <input
+                    type="text"
+                    value={page.title}
+                    onChange={(e) => updatePageTitle(page.id, e.target.value)}
+                    className="bg-zinc-800 text-white text-[11px] font-bold px-2 py-1 rounded outline-none w-40 focus:ring-1 focus:ring-blue-500 transition-all"
+                  />
+                  <div className="w-px h-4 bg-zinc-700 mx-1" />
+                  <div
+                    className="relative flex items-center justify-center p-1 rounded hover:bg-zinc-800 transition-colors cursor-pointer overflow-hidden w-6 h-6"
+                    title="Background Color"
+                  >
+                    <input
+                      type="color"
+                      value={pageBgColor}
+                      onChange={(e) =>
+                        updatePageSettings(page.id, {
+                          backgroundColor: e.target.value,
+                        })
+                      }
+                      className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer border-0 p-0"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onMouseDown={(e) => startPageDrag(e, page.id, px, py)}
+                  className="absolute -top-8 left-0 flex items-center gap-2 text-zinc-500 font-bold text-[11px] uppercase tracking-wider cursor-move px-2 py-1 rounded hover:bg-zinc-100 transition-colors"
+                >
+                  <span># {page.title}</span>
+                </div>
+              )}
 
               {isPageActive && (
                 <button
@@ -491,6 +545,46 @@ export default function CanvasArea() {
             </section>
           );
         })}
+      </div>
+
+      {/* Kontroller ve Undo/Redo Menüsü */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={undo}
+          className="w-8 h-8 flex items-center justify-center bg-white border border-zinc-200 rounded-lg text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm transition-all"
+          title="Undo (Ctrl+Z)"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+          >
+            <path d="M3 7v6h6" />
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onClick={redo}
+          className="w-8 h-8 flex items-center justify-center bg-white border border-zinc-200 rounded-lg text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm transition-all"
+          title="Redo (Ctrl+Y)"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+          >
+            <path d="M21 7v6h-6" />
+            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+          </svg>
+        </button>
       </div>
 
       <div className="absolute bottom-6 right-6 z-50 flex items-center gap-1.5 bg-white/90 backdrop-blur-md border border-zinc-200/80 rounded-xl p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] cursor-default select-none pointer-events-auto">
