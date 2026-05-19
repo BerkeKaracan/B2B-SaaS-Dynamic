@@ -6,14 +6,11 @@ import React, {
   useEffect,
   DragEvent,
 } from "react";
-import {
-  useCanvasStore,
-  PageWithSettings,
-  Connection,
-} from "@/store/useCanvasStore";
+import { useCanvasStore, PageWithSettings } from "@/store/useCanvasStore";
 import { BlockContent, BlockType, PageContent } from "@/types/record";
 import { useCanvasNavigation } from "@/hooks/useCanvasNavigation";
 import { ConnectionLayer } from "./ConnectionLayer";
+import { LassoLayer } from "./LassoLayer";
 
 import TextBlock from "./TextBlock";
 import FormBlock from "./FormBlock";
@@ -29,6 +26,8 @@ export default function CanvasArea() {
   const connections = store.connections ?? [];
   const activePageId = store.activePageId ?? null;
   const activeBlockId = store.activeBlockId ?? null;
+  const selectedBlocks = store.selectedBlocks ?? [];
+
   const zoom = store.zoom ?? 100;
   const panX = store.panX ?? 0;
   const panY = store.panY ?? 0;
@@ -40,6 +39,8 @@ export default function CanvasArea() {
     updateBlockSettings,
     setActivePage,
     setActiveBlock,
+    setSelectedBlocks,
+    removeSelectedBlocks,
     removePage,
     removeBlockFromPage,
     setZoom,
@@ -57,7 +58,6 @@ export default function CanvasArea() {
   } = store;
 
   const containerRef = useRef<HTMLDivElement>(null);
-
   const { startPan } = useCanvasNavigation(containerRef);
 
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
@@ -81,6 +81,15 @@ export default function CanvasArea() {
   } | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
+  const [lassoStart, setLassoStart] = useState<{ x: number; y: number } | null>(
+    null,
+  );
+  const [lassoEnd, setLassoEnd] = useState<{ x: number; y: number } | null>(
+    null,
+  );
+
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeElement = document.activeElement as HTMLElement;
@@ -89,11 +98,15 @@ export default function CanvasArea() {
         ["INPUT", "TEXTAREA", "SELECT"].includes(activeElement.tagName);
 
       if (!isInputActive) {
+        if (e.code === "Space") {
+          e.preventDefault();
+          setIsSpacePressed(true);
+        }
+
         if (e.ctrlKey || e.metaKey) {
           if (e.key.toLowerCase() === "z") {
             e.preventDefault();
-            if (e.shiftKey) redo();
-            else undo();
+            e.shiftKey ? redo() : undo();
           } else if (e.key.toLowerCase() === "y") {
             e.preventDefault();
             redo();
@@ -103,103 +116,122 @@ export default function CanvasArea() {
         if (e.key === "Delete" || e.key === "Backspace") {
           e.preventDefault();
           const currentState = useCanvasStore.getState();
-          const pId = currentState.activePageId;
-          const bId = currentState.activeBlockId;
 
-          if (pId && bId) {
-            removeBlockFromPage(pId, bId);
-          } else if (pId && !bId) {
-            removePage(pId);
+          if (currentState.selectedBlocks?.length > 0) {
+            removeSelectedBlocks();
+          } else {
+            const pId = currentState.activePageId;
+            const bId = currentState.activeBlockId;
+            if (pId && bId) removeBlockFromPage(pId, bId);
+            else if (pId && !bId) removePage(pId);
           }
         }
 
-        if (e.key === "Escape") {
-          setConnectingFrom(null);
-        }
+        if (e.key === "Escape") setConnectingFrom(null);
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        setIsSpacePressed(false);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undo, redo, removePage, removeBlockFromPage]);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [undo, redo, removePage, removeBlockFromPage, removeSelectedBlocks]);
 
   useEffect(() => {
     const handleGlobalMouseMove = (e: globalThis.MouseEvent) => {
+      const state = useCanvasStore.getState();
+      const currentZoom = (state.zoom ?? 100) / 100;
+      const currentPanX = state.panX ?? 0;
+      const currentPanY = state.panY ?? 0;
+
+      const container = containerRef.current;
+      const rect = container
+        ? container.getBoundingClientRect()
+        : { left: 0, top: 0 };
+
+      const mouseCanvasX = (e.clientX - rect.left - currentPanX) / currentZoom;
+      const mouseCanvasY = (e.clientY - rect.top - currentPanY) / currentZoom;
+
       if (connectingFrom) {
-        const state = useCanvasStore.getState();
-        const currentZoom = (state.zoom ?? 100) / 100;
-        const currentPanX = state.panX ?? 0;
-        const currentPanY = state.panY ?? 0;
-
-        const container = containerRef.current;
-        const rect = container
-          ? container.getBoundingClientRect()
-          : { left: 0, top: 0 };
-
-        setMousePos({
-          x: (e.clientX - rect.left - currentPanX) / currentZoom,
-          y: (e.clientY - rect.top - currentPanY) / currentZoom,
-        });
+        setMousePos({ x: mouseCanvasX, y: mouseCanvasY });
       }
 
-      if (draggedPageId) {
-        const state = useCanvasStore.getState();
-        const currentZoom = (state.zoom ?? 100) / 100;
-        const currentPanX = state.panX ?? 0;
-        const currentPanY = state.panY ?? 0;
+      if (lassoStart) {
+        setLassoEnd({ x: mouseCanvasX, y: mouseCanvasY });
 
-        const newX = (e.clientX - currentPanX) / currentZoom - dragOffset.x;
-        const newY = (e.clientY - currentPanY) / currentZoom - dragOffset.y;
-        updatePagePosition(draggedPageId, newX, newY);
+        const minX = Math.min(lassoStart.x, mouseCanvasX);
+        const maxX = Math.max(lassoStart.x, mouseCanvasX);
+        const minY = Math.min(lassoStart.y, mouseCanvasY);
+        const maxY = Math.max(lassoStart.y, mouseCanvasY);
+
+        const newSelected: string[] = [];
+        pages.forEach((page) => {
+          page.blocks.forEach((block) => {
+            const bx = page.x + block.x;
+            const by = page.y + block.y;
+            if (bx < maxX && bx + 320 > minX && by < maxY && by + 150 > minY) {
+              newSelected.push(block.id);
+            }
+          });
+        });
+        setSelectedBlocks(newSelected);
+      } else if (draggedPageId) {
+        updatePagePosition(
+          draggedPageId,
+          mouseCanvasX - dragOffset.x,
+          mouseCanvasY - dragOffset.y,
+        );
       } else if (draggedBlockInfo) {
-        const state = useCanvasStore.getState();
-        const currentZoom = (state.zoom ?? 100) / 100;
-        const currentPanX = state.panX ?? 0;
-        const currentPanY = state.panY ?? 0;
         const targetPage = state.pages.find(
           (p) => p.id === draggedBlockInfo.pageId,
         );
-
         if (targetPage) {
-          const mouseCanvasX = (e.clientX - currentPanX) / currentZoom;
-          const mouseCanvasY = (e.clientY - currentPanY) / currentZoom;
-          const newX = mouseCanvasX - targetPage.x - dragOffset.x;
-          const newY = mouseCanvasY - targetPage.y - dragOffset.y;
           updateBlockPosition(
             draggedBlockInfo.pageId,
             draggedBlockInfo.blockId,
-            newX,
-            newY,
+            mouseCanvasX - targetPage.x - dragOffset.x,
+            mouseCanvasY - targetPage.y - dragOffset.y,
           );
         }
       } else if (resizingPageId) {
-        const state = useCanvasStore.getState();
-        const currentZoom = (state.zoom ?? 100) / 100;
-        const targetPage = state.pages.find((p) => p.id === resizingPageId);
-
-        if (targetPage) {
-          const deltaX = (e.clientX - resizeStart.x) / currentZoom;
-          const deltaY = (e.clientY - resizeStart.y) / currentZoom;
-
-          updatePageDimensions(
-            resizingPageId,
-            Math.max(300, resizeStart.width + deltaX),
-            Math.max(300, resizeStart.height + deltaY),
-          );
-        }
+        updatePageDimensions(
+          resizingPageId,
+          Math.max(
+            300,
+            resizeStart.width + (e.clientX - resizeStart.x) / currentZoom,
+          ),
+          Math.max(
+            300,
+            resizeStart.height + (e.clientY - resizeStart.y) / currentZoom,
+          ),
+        );
       }
     };
 
     const handleGlobalMouseUp = () => {
-      if (draggedPageId || draggedBlockInfo || resizingPageId) {
-        saveHistory();
-      }
+      if (draggedPageId || draggedBlockInfo || resizingPageId) saveHistory();
       setDraggedPageId(null);
       setDraggedBlockInfo(null);
       setResizingPageId(null);
+      setLassoStart(null);
+      setLassoEnd(null);
     };
 
-    if (draggedPageId || draggedBlockInfo || resizingPageId || connectingFrom) {
+    if (
+      draggedPageId ||
+      draggedBlockInfo ||
+      resizingPageId ||
+      connectingFrom ||
+      lassoStart
+    ) {
       window.addEventListener("mousemove", handleGlobalMouseMove);
       window.addEventListener("mouseup", handleGlobalMouseUp);
     }
@@ -213,12 +245,15 @@ export default function CanvasArea() {
     draggedBlockInfo,
     resizingPageId,
     connectingFrom,
+    lassoStart,
     dragOffset,
     resizeStart,
     updatePagePosition,
     updateBlockPosition,
     updatePageDimensions,
     saveHistory,
+    pages,
+    setSelectedBlocks,
   ]);
 
   if (isLoading) {
@@ -230,14 +265,32 @@ export default function CanvasArea() {
   }
 
   const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+
     if (
-      e.button === 1 ||
-      e.target === containerRef.current ||
-      (e.target as HTMLElement).classList.contains("infinite-grid-layer")
+      target === containerRef.current ||
+      target.classList.contains("infinite-grid-layer") ||
+      target.classList.contains("canvas-bg")
     ) {
-      if (e.button === 1) e.preventDefault();
-      startPan(e.clientX, e.clientY);
+      if (e.button === 1 || (e.button === 0 && isSpacePressed)) {
+        e.preventDefault();
+        startPan(e.clientX, e.clientY);
+      } else if (e.button === 0 && !isSpacePressed) {
+        const currentZoom = zoom / 100;
+        const rect = containerRef.current?.getBoundingClientRect() || {
+          left: 0,
+          top: 0,
+        };
+        const mouseCanvasX = (e.clientX - rect.left - panX) / currentZoom;
+        const mouseCanvasY = (e.clientY - rect.top - panY) / currentZoom;
+
+        setLassoStart({ x: mouseCanvasX, y: mouseCanvasY });
+        setLassoEnd({ x: mouseCanvasX, y: mouseCanvasY });
+      }
+
       setActivePage(null);
+      setActiveBlock(null);
+      setSelectedBlocks([]);
       setConnectingFrom(null);
     }
   };
@@ -251,15 +304,11 @@ export default function CanvasArea() {
     e.stopPropagation();
     e.preventDefault();
     setActivePage(pageId);
-
     const currentZoom = zoom / 100;
-    const mouseInCanvasX = (e.clientX - panX) / currentZoom;
-    const mouseInCanvasY = (e.clientY - panY) / currentZoom;
-
     setDraggedPageId(pageId);
     setDragOffset({
-      x: mouseInCanvasX - currentX,
-      y: mouseInCanvasY - currentY,
+      x: (e.clientX - panX) / currentZoom - currentX,
+      y: (e.clientY - panY) / currentZoom - currentY,
     });
   };
 
@@ -276,15 +325,11 @@ export default function CanvasArea() {
     e.preventDefault();
     setActivePage(pageId);
     setActiveBlock(blockId);
-
     const currentZoom = zoom / 100;
-    const mouseInCanvasX = (e.clientX - panX) / currentZoom;
-    const mouseInCanvasY = (e.clientY - panY) / currentZoom;
-
     setDraggedBlockInfo({ pageId, blockId });
     setDragOffset({
-      x: mouseInCanvasX - pageX - blockX,
-      y: mouseInCanvasY - pageY - blockY,
+      x: (e.clientX - panX) / currentZoom - pageX - blockX,
+      y: (e.clientY - panY) / currentZoom - pageY - blockY,
     });
   };
 
@@ -298,42 +343,16 @@ export default function CanvasArea() {
     e.preventDefault();
     e.stopPropagation();
     const type = e.dataTransfer.getData("text/plain") as BlockType;
-    if (!type) return;
-
-    const container = containerRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
+    if (!type || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
     const currentZoom = zoom / 100;
-
-    const mouseCanvasX = (e.clientX - rect.left - panX) / currentZoom;
-    const mouseCanvasY = (e.clientY - rect.top - panY) / currentZoom;
-
-    const blockX = mouseCanvasX - page.x;
-    const blockY = mouseCanvasY - page.y;
-
-    addBlockToPage(page.id, type, blockX, blockY);
+    addBlockToPage(
+      page.id,
+      type,
+      (e.clientX - rect.left - panX) / currentZoom - page.x,
+      (e.clientY - rect.top - panY) / currentZoom - page.y,
+    );
     setActivePage(page.id);
-  };
-
-  const handleBlockClick = (
-    e: React.MouseEvent,
-    pageId: string,
-    blockId: string,
-  ) => {
-    e.stopPropagation();
-    setActivePage(pageId);
-    setActiveBlock(blockId);
-
-    if (connectingFrom && connectingFrom.blockId !== blockId) {
-      addConnection({
-        id: crypto.randomUUID(),
-        fromPage: connectingFrom.pageId,
-        fromBlock: connectingFrom.blockId,
-        toPage: pageId,
-        toBlock: blockId,
-      });
-      setConnectingFrom(null);
-    }
   };
 
   const renderBlock = (
@@ -355,85 +374,84 @@ export default function CanvasArea() {
               onUpdate={(val: string) =>
                 updateBlockValue(pageId, block.id, val)
               }
-              onSettingsChange={(settings: Record<string, unknown>) =>
-                updateBlockSettings(pageId, block.id, settings)
+              onSettingsChange={(s: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, s)
               }
             />
           )}
           {block.type === "form" && (
             <FormBlock
               block={block}
-              isActive={isActive}
               onUpdate={(val: string) =>
                 updateBlockValue(pageId, block.id, val)
               }
-              onSettingsChange={(settings: Record<string, unknown>) =>
-                updateBlockSettings(pageId, block.id, settings)
+              onSettingsChange={(s: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, s)
               }
+              isActive={isActive}
             />
           )}
           {block.type === "date" && (
             <DateBlock
               block={block}
-              isActive={isActive}
               onUpdate={(val: string) =>
                 updateBlockValue(pageId, block.id, val)
               }
-              onSettingsChange={(settings: Record<string, unknown>) =>
-                updateBlockSettings(pageId, block.id, settings)
+              onSettingsChange={(s: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, s)
               }
+              isActive={isActive}
             />
           )}
           {block.type === "dropdown" && (
             <DropdownBlock
               block={block}
-              isActive={isActive}
               onUpdate={(val: string) =>
                 updateBlockValue(pageId, block.id, val)
               }
-              onSettingsChange={(settings: Record<string, unknown>) =>
-                updateBlockSettings(pageId, block.id, settings)
+              onSettingsChange={(s: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, s)
               }
+              isActive={isActive}
             />
           )}
           {block.type === "checkbox" && (
             <ToggleSwitchBlock
               block={block}
-              isActive={isActive}
               onUpdate={(val: boolean) =>
                 updateBlockValue(pageId, block.id, val)
               }
-              onSettingsChange={(settings: Record<string, unknown>) =>
-                updateBlockSettings(pageId, block.id, settings)
+              onSettingsChange={(s: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, s)
               }
+              isActive={isActive}
             />
           )}
           {block.type === "badge_selector" && (
             <BadgeSelectorBlock
               block={block}
-              isActive={isActive}
               onUpdate={(val: string) =>
                 updateBlockValue(pageId, block.id, val)
               }
-              onSettingsChange={(settings: Record<string, unknown>) =>
-                updateBlockSettings(pageId, block.id, settings)
+              onSettingsChange={(s: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, s)
               }
+              isActive={isActive}
             />
           )}
           {block.type === "asset_stream" && (
             <AssetStreamBlock
               block={block}
-              isActive={isActive}
               onUpdate={(val: string) =>
                 updateBlockValue(pageId, block.id, val)
               }
-              onSettingsChange={(settings: Record<string, unknown>) =>
-                updateBlockSettings(pageId, block.id, settings)
+              onSettingsChange={(s: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, s)
               }
+              isActive={isActive}
             />
           )}
         </div>
-
         {isActive && hasOptions && (
           <div className="mt-2 pt-2 border-t border-zinc-100 flex flex-col gap-1.5 animate-in fade-in duration-100">
             <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
@@ -456,19 +474,23 @@ export default function CanvasArea() {
     );
   };
 
+  let cursorStyle = "cursor-default";
+  if (isSpacePressed) {
+    cursorStyle = "cursor-grab active:cursor-grabbing";
+  } else if (connectingFrom || lassoStart) {
+    cursorStyle = "cursor-crosshair";
+  }
+
   return (
     <div
       ref={containerRef}
-      className={`absolute inset-0 overflow-hidden select-none bg-[#F9F9FB] ${connectingFrom ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"}`}
+      className={`canvas-bg absolute inset-0 overflow-hidden select-none bg-[#F9F9FB] ${cursorStyle}`}
       onMouseDown={handleMouseDown}
     >
       <div
-        className="absolute inset-0 infinite-grid-layer pointer-events-none"
+        className="canvas-bg absolute inset-0 infinite-grid-layer pointer-events-none"
         style={{
-          backgroundImage: `
-            linear-gradient(to right, #ECECEF 1px, transparent 1px),
-            linear-gradient(to bottom, #ECECEF 1px, transparent 1px)
-          `,
+          backgroundImage: `linear-gradient(to right, #ECECEF 1px, transparent 1px), linear-gradient(to bottom, #ECECEF 1px, transparent 1px)`,
           backgroundSize: `${40 * (zoom / 100)}px ${40 * (zoom / 100)}px`,
           backgroundPosition: `${panX}px ${panY}px`,
         }}
@@ -496,6 +518,9 @@ export default function CanvasArea() {
           mousePos={mousePos}
           onRemoveConnection={removeConnection}
         />
+
+        <LassoLayer lassoStart={lassoStart} lassoEnd={lassoEnd} />
+
         {pages.map((page: PageWithSettings) => {
           const isPageActive = activePageId === page.id;
           const px = page.x ?? 150;
@@ -517,7 +542,7 @@ export default function CanvasArea() {
               onDragEnter={handleDragOverPage}
               onDragOver={handleDragOverPage}
               onDrop={(e) => handleDropOnPage(e, page)}
-              className={`absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] rounded-md pointer-events-auto transition-shadow focus:outline-none ${
+              className={`canvas-bg absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] rounded-md pointer-events-auto transition-shadow focus:outline-none ${
                 isPageActive
                   ? "ring-2 ring-blue-500 shadow-2xl z-10"
                   : "ring-1 ring-zinc-200/80 hover:shadow-xl z-0"
@@ -539,10 +564,7 @@ export default function CanvasArea() {
                     className="bg-zinc-800 text-white text-[11px] font-bold px-2 py-1 rounded outline-none w-40 focus:ring-1 focus:ring-blue-500 transition-all"
                   />
                   <div className="w-px h-4 bg-zinc-700 mx-1" />
-                  <div
-                    className="relative flex items-center justify-center p-1 rounded hover:bg-zinc-800 transition-colors cursor-pointer overflow-hidden w-6 h-6"
-                    title="Background Color"
-                  >
+                  <div className="relative flex items-center justify-center p-1 rounded hover:bg-zinc-800 transition-colors cursor-pointer overflow-hidden w-6 h-6">
                     <input
                       type="color"
                       value={pageBgColor}
@@ -576,7 +598,6 @@ export default function CanvasArea() {
                   >
                     Delete Frame
                   </button>
-
                   <div
                     className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-nwse-resize rounded-br-md rounded-tl-md z-50 flex items-center justify-center"
                     onMouseDown={(e) => {
@@ -605,16 +626,35 @@ export default function CanvasArea() {
                 </>
               )}
 
-              <div className="relative w-full h-full p-4 overflow-visible">
+              <div className="canvas-bg relative w-full h-full p-4 overflow-visible">
                 {page.blocks.map((block) => {
-                  const isBlockActive = activeBlockId === block.id;
+                  const isBlockActive =
+                    activeBlockId === block.id ||
+                    selectedBlocks.includes(block.id);
                   const bx = block.x ?? 20;
                   const by = block.y ?? 20;
 
                   return (
                     <div
                       key={block.id}
-                      onClick={(e) => handleBlockClick(e, page.id, block.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActivePage(page.id);
+                        setActiveBlock(block.id);
+                        if (
+                          connectingFrom &&
+                          connectingFrom.blockId !== block.id
+                        ) {
+                          addConnection({
+                            id: crypto.randomUUID(),
+                            fromPage: connectingFrom.pageId,
+                            fromBlock: connectingFrom.blockId,
+                            toPage: page.id,
+                            toBlock: block.id,
+                          });
+                          setConnectingFrom(null);
+                        }
+                      }}
                       onMouseUp={(e) => {
                         if (
                           connectingFrom &&
@@ -633,17 +673,14 @@ export default function CanvasArea() {
                       }}
                       className={`absolute bg-white border border-zinc-200/80 rounded-2xl p-5 pt-7 min-w-[320px] cursor-default select-text group transition-shadow ${
                         isBlockActive
-                          ? "ring-2 ring-zinc-950 shadow-xl z-20"
+                          ? "ring-2 ring-blue-500 shadow-xl z-20"
                           : "shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-md z-10"
                       } ${connectingFrom && connectingFrom.blockId !== block.id ? "hover:ring-2 hover:ring-blue-400" : ""}`}
-                      style={{
-                        left: `${bx}px`,
-                        top: `${by}px`,
-                      }}
+                      style={{ left: `${bx}px`, top: `${by}px` }}
                     >
                       <div
                         onMouseDown={(e) => {
-                          if (!connectingFrom) {
+                          if (!connectingFrom)
                             startBlockDrag(
                               e,
                               page.id,
@@ -653,7 +690,6 @@ export default function CanvasArea() {
                               bx,
                               by,
                             );
-                          }
                         }}
                         className="absolute top-0 left-0 right-0 h-6 bg-zinc-50/50 hover:bg-zinc-100/80 border-b border-zinc-100/50 rounded-t-2xl flex items-center justify-center cursor-move transition-colors select-none"
                       >
@@ -665,23 +701,21 @@ export default function CanvasArea() {
                         </div>
                       </div>
 
-                      {isBlockActive && (
+                      {activeBlockId === block.id && (
                         <div className="absolute -top-3 -right-3 flex gap-1 z-30">
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (connectingFrom?.blockId === block.id) {
+                              if (connectingFrom?.blockId === block.id)
                                 setConnectingFrom(null);
-                              } else {
+                              else
                                 setConnectingFrom({
                                   pageId: page.id,
                                   blockId: block.id,
                                 });
-                              }
                             }}
                             className={`w-7 h-7 flex items-center justify-center bg-white border rounded-full shadow-sm transition-colors cursor-pointer select-none ${connectingFrom?.blockId === block.id ? "border-blue-500 text-blue-500 bg-blue-50" : "border-zinc-200 text-zinc-500 hover:text-blue-500"}`}
-                            title="Connect to another block"
                           >
                             <svg
                               width="12"
@@ -735,10 +769,8 @@ export default function CanvasArea() {
 
       <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
         <button
-          type="button"
           onClick={undo}
           className="w-8 h-8 flex items-center justify-center bg-white border border-zinc-200 rounded-lg text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm transition-all"
-          title="Undo (Ctrl+Z)"
         >
           <svg
             width="14"
@@ -753,10 +785,8 @@ export default function CanvasArea() {
           </svg>
         </button>
         <button
-          type="button"
           onClick={redo}
           className="w-8 h-8 flex items-center justify-center bg-white border border-zinc-200 rounded-lg text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm transition-all"
-          title="Redo (Ctrl+Y)"
         >
           <svg
             width="14"
@@ -774,7 +804,6 @@ export default function CanvasArea() {
 
       <div className="absolute bottom-6 right-6 z-50 flex items-center gap-1.5 bg-white/90 backdrop-blur-md border border-zinc-200/80 rounded-xl p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] cursor-default select-none pointer-events-auto">
         <button
-          type="button"
           onClick={() => setZoom(zoom - 10)}
           className="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-lg text-xs font-black transition-all"
         >
@@ -784,7 +813,6 @@ export default function CanvasArea() {
           {zoom}%
         </span>
         <button
-          type="button"
           onClick={() => setZoom(zoom + 10)}
           className="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-lg text-xs font-black transition-all"
         >
@@ -792,7 +820,6 @@ export default function CanvasArea() {
         </button>
         <div className="w-px h-4 bg-zinc-200 mx-0.5" />
         <button
-          type="button"
           onClick={() => setPan(0, 0)}
           className="px-2 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-lg text-[10px] font-bold transition-all"
         >

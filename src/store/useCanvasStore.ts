@@ -21,9 +21,7 @@ interface CanvasState {
   past: PageWithSettings[][];
   future: PageWithSettings[][];
   connections: Connection[];
-  addConnection: (conn: Connection) => void;
-  removeConnection: (connId: string) => void;
-
+  selectedBlocks: string[];
   activePageId: string | null;
   activeBlockId: string | null;
   title: string;
@@ -35,6 +33,10 @@ interface CanvasState {
   isSaving: boolean;
   showSaved: boolean;
   isLoading: boolean;
+  addConnection: (conn: Connection) => void;
+  removeConnection: (connId: string) => void;
+  setSelectedBlocks: (blockIds: string[]) => void;
+  removeSelectedBlocks: () => void;
   saveHistory: () => void;
   undo: () => void;
   redo: () => void;
@@ -87,6 +89,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   past: [],
   future: [],
   connections: [],
+  selectedBlocks: [],
   activePageId: null,
   activeBlockId: null,
   title: "",
@@ -111,6 +114,32 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }));
   },
 
+  setSelectedBlocks: (blockIds) => set({ selectedBlocks: blockIds }),
+
+  removeSelectedBlocks: () => {
+    get().saveHistory();
+    set((state) => {
+      const selected = state.selectedBlocks;
+      if (!selected || selected.length === 0) return state;
+
+      const newPages = state.pages.map((p) => ({
+        ...p,
+        blocks: p.blocks.filter((b) => !selected.includes(b.id)),
+      }));
+
+      const newConnections = state.connections.filter(
+        (c) => !selected.includes(c.fromBlock) && !selected.includes(c.toBlock),
+      );
+
+      return {
+        pages: newPages,
+        connections: newConnections,
+        selectedBlocks: [],
+        activeBlockId: null,
+      };
+    });
+  },
+
   saveHistory: () =>
     set((state) => {
       const clonedPages = JSON.parse(
@@ -132,6 +161,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         pages: previous,
         past: newPast,
         future: [clonedCurrent, ...state.future],
+        selectedBlocks: [],
       };
     }),
 
@@ -147,6 +177,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         pages: next,
         past: [...state.past, clonedCurrent],
         future: newFuture,
+        selectedBlocks: [],
       };
     }),
 
@@ -165,7 +196,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         blocks: [],
         settings: { backgroundColor: "#ffffff" },
       };
-      return { pages: [...state.pages, newPage], activePageId: pageId };
+      return {
+        pages: [...state.pages, newPage],
+        activePageId: pageId,
+        selectedBlocks: [],
+      };
     });
   },
 
@@ -177,6 +212,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         (c) => c.fromPage !== pageId && c.toPage !== pageId,
       ),
       activePageId: state.activePageId === pageId ? null : state.activePageId,
+      selectedBlocks: [],
     }));
   },
 
@@ -221,6 +257,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       connections: state.connections.filter(
         (c) => c.fromBlock !== blockId && c.toBlock !== blockId,
       ),
+      selectedBlocks: state.selectedBlocks.filter((id) => id !== blockId),
     }));
   },
 
@@ -302,6 +339,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       past: [],
       future: [],
       connections: [],
+      selectedBlocks: [],
       title: "",
       description: "",
       date: "",
@@ -367,7 +405,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
       set({ showSaved: true });
       if (saveTimeout) clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(() => set({ showSaved: false }), 1600);
+      saveTimeout = setTimeout(() => set({ showSaved: false }), 2500);
     } catch (e) {
       console.error(e);
     } finally {
