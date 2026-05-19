@@ -72,17 +72,157 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   addPage: (type, x, y) =>
     set((state) => {
+      const pageId = crypto.randomUUID();
+      let width = 800;
+      let height = 1131;
+      let blocks: BlockContent[] = [];
+      let frameTitle = "Untitled Frame";
+
+      switch (type) {
+        case "kanban":
+          frameTitle = "Kanban Board Workspace";
+          width = 1100;
+          height = 800;
+          blocks = [
+            {
+              id: crypto.randomUUID(),
+              type: "form",
+              value: "Review design specs",
+              x: 40,
+              y: 40,
+              settings: { label: "To Do Column", jsonKey: "todo_tasks" },
+            } as BlockContent,
+            {
+              id: crypto.randomUUID(),
+              type: "form",
+              value: "Refactor store layer",
+              x: 390,
+              y: 40,
+              settings: {
+                label: "In Progress Column",
+                jsonKey: "progress_tasks",
+              },
+            } as BlockContent,
+            {
+              id: crypto.randomUUID(),
+              type: "form",
+              value: "Deploy build worker",
+              x: 740,
+              y: 40,
+              settings: { label: "Done Column", jsonKey: "done_tasks" },
+            } as BlockContent,
+          ];
+          break;
+        case "notes":
+          frameTitle = "Notes & Feedback Workspace";
+          blocks = [
+            {
+              id: crypto.randomUUID(),
+              type: "text",
+              value: "Executive Summary",
+              x: 50,
+              y: 40,
+              settings: {},
+            } as BlockContent,
+            {
+              id: crypto.randomUUID(),
+              type: "text",
+              value:
+                "Operational milestones must match the revised canvas grid blueprint.",
+              x: 50,
+              y: 120,
+              settings: {},
+            } as BlockContent,
+            {
+              id: crypto.randomUUID(),
+              type: "badge_selector",
+              value: "High",
+              x: 50,
+              y: 220,
+              settings: {
+                label: "Priority Status",
+                jsonKey: "priority",
+                options: "Low, Medium, High",
+              },
+            } as BlockContent,
+          ];
+          break;
+        case "agenda":
+          frameTitle = "Sprint Agenda Timeline";
+          blocks = [
+            {
+              id: crypto.randomUUID(),
+              type: "date",
+              value: new Date().toISOString().split("T")[0],
+              x: 60,
+              y: 40,
+              settings: { label: "Kickoff Deadline", jsonKey: "kickoff_date" },
+            } as BlockContent,
+            {
+              id: crypto.randomUUID(),
+              type: "dropdown",
+              value: "Planning",
+              x: 60,
+              y: 150,
+              settings: {
+                label: "Phase Category",
+                jsonKey: "sprint_phase",
+                options: "Backlog, Planning, Development, Review",
+              },
+            } as BlockContent,
+          ];
+          break;
+        case "database":
+          frameTitle = "Structured Database Field Schema";
+          blocks = [
+            {
+              id: crypto.randomUUID(),
+              type: "form",
+              value: "Asset Management Client",
+              x: 50,
+              y: 40,
+              settings: { label: "Entry Name", jsonKey: "entry_title" },
+            } as BlockContent,
+            {
+              id: crypto.randomUUID(),
+              type: "dropdown",
+              value: "Active",
+              x: 50,
+              y: 150,
+              settings: {
+                label: "Deployment Status",
+                jsonKey: "deployment_status",
+                options: "Pipeline, Active, Deprecated",
+              },
+            } as BlockContent,
+            {
+              id: crypto.randomUUID(),
+              type: "checkbox",
+              value: true,
+              x: 50,
+              y: 260,
+              settings: { label: "Production Verified", jsonKey: "is_prod" },
+            } as BlockContent,
+          ];
+          break;
+        case "empty":
+        default:
+          frameTitle = "Empty Document Frame";
+          break;
+      }
+
       const newPage: PageContent = {
-        id: crypto.randomUUID(),
+        id: pageId,
         type,
-        title: "Untitled Frame",
+        title: frameTitle,
         x,
         y,
-        width: 800,
-        height: 1131,
-        blocks: [],
+        width,
+        height,
+        blocks,
       };
-      return { pages: [...state.pages, newPage], activePageId: newPage.id };
+
+      return { pages: [...state.pages, newPage], activePageId: pageId };
     }),
 
   removePage: (pageId) =>
@@ -95,6 +235,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((state) => ({
       pages: state.pages.map((p) => {
         if (p.id !== pageId) return p;
+        const defaultOptions =
+          type === "dropdown" || type === "badge_selector"
+            ? "Option 1, Option 2, Option 3"
+            : undefined;
         return {
           ...p,
           blocks: [
@@ -104,13 +248,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               type,
               value:
                 type === "text"
-                  ? "New block"
+                  ? "New block text entry"
                   : type === "checkbox"
                     ? false
                     : "",
               x,
               y,
-              settings: {},
+              settings: defaultOptions ? { options: defaultOptions } : {},
             } as BlockContent,
           ],
         };

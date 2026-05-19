@@ -182,7 +182,7 @@ export default function ItemSidebar() {
     {
       type: "empty",
       label: "Empty Page",
-      description: "Insert a blank A4 frame to your workspace",
+      description: "Insert a blank standard A4 frame to your workspace",
       icon: (
         <svg
           width="14"
@@ -202,7 +202,8 @@ export default function ItemSidebar() {
     {
       type: "kanban",
       label: "Kanban Board",
-      description: "Project management grid split into agile columns",
+      description:
+        "Pre-loaded landscape frame with ToDo, InProgress, Done matrix columns",
       icon: (
         <svg
           width="14"
@@ -223,7 +224,8 @@ export default function ItemSidebar() {
     {
       type: "notes",
       label: "Notes Workspace",
-      description: "Document tailored for tracking operational feedback",
+      description:
+        "Pre-loaded portrait workspace with notes, summaries and priority selectors",
       icon: (
         <svg
           width="14"
@@ -243,7 +245,8 @@ export default function ItemSidebar() {
     {
       type: "agenda",
       label: "Agenda Timeline",
-      description: "Calendar based schedule tracking view matrix",
+      description:
+        "Pre-loaded roadmap frame mapping sprint deadlines and phase categories",
       icon: (
         <svg
           width="14"
@@ -262,8 +265,9 @@ export default function ItemSidebar() {
     },
     {
       type: "database",
-      label: "Empty Database",
-      description: "Structured rows and schema building field template",
+      label: "Structured Database",
+      description:
+        "Pre-loaded validation workspace mapping client titles, active status and prod boolean",
       icon: (
         <svg
           width="14"
@@ -291,8 +295,12 @@ export default function ItemSidebar() {
       const rect = container.getBoundingClientRect();
       const state = useCanvasStore.getState();
       const currentZoom = (state.zoom ?? 100) / 100;
-      cx = (-(state.panX ?? 0) + rect.width / 2 - 400) / currentZoom;
-      cy = (-(state.panY ?? 0) + rect.height / 2 - 500) / currentZoom;
+      cx =
+        (-(state.panX ?? 0) +
+          rect.width / 2 -
+          (type === "kanban" ? 550 : 400)) /
+        currentZoom;
+      cy = (-(state.panY ?? 0) + rect.height / 2 - 400) / currentZoom;
     }
     addPage(type, cx, cy);
   };
@@ -316,9 +324,7 @@ export default function ItemSidebar() {
         cx = (-(state.panX ?? 0) + rect.width / 2 - 400) / currentZoom;
         cy = (-(state.panY ?? 0) + rect.height / 2 - 500) / currentZoom;
       }
-
       addPage("empty", cx, cy);
-
       setTimeout(() => {
         const newState = useCanvasStore.getState();
         const newPageId = newState.activePageId;
@@ -330,7 +336,7 @@ export default function ItemSidebar() {
     }
 
     const targetPage = state.pages.find((p) => p.id === targetPageId);
-    const offsetY = targetPage ? targetPage.blocks.length * 100 + 40 : 40;
+    const offsetY = targetPage ? targetPage.blocks.length * 110 + 40 : 40;
     addBlockToPage(targetPageId, type, 40, offsetY);
   };
 

@@ -221,87 +221,119 @@ export default function CanvasArea() {
     block: BlockContent,
     isActive: boolean,
   ) => {
-    switch (block.type) {
-      case "text":
-        return (
-          <TextBlock
-            block={block}
-            onUpdate={(val: string) => updateBlockValue(pageId, block.id, val)}
-          />
-        );
-      case "form":
-        return (
-          <FormBlock
-            block={block}
-            isActive={isActive}
-            onUpdate={(val: string) => updateBlockValue(pageId, block.id, val)}
-            onSettingsChange={(settings: Record<string, unknown>) =>
-              updateBlockSettings(pageId, block.id, settings)
-            }
-          />
-        );
-      case "date":
-        return (
-          <DateBlock
-            block={block}
-            isActive={isActive}
-            onUpdate={(val: string) => updateBlockValue(pageId, block.id, val)}
-            onSettingsChange={(settings: Record<string, unknown>) =>
-              updateBlockSettings(pageId, block.id, settings)
-            }
-          />
-        );
-      case "dropdown":
-        return (
-          <DropdownBlock
-            block={block}
-            isActive={isActive}
-            onUpdate={(val: string) => updateBlockValue(pageId, block.id, val)}
-            onSettingsChange={(settings: Record<string, unknown>) =>
-              updateBlockSettings(pageId, block.id, settings)
-            }
-          />
-        );
-      case "checkbox":
-        return (
-          <ToggleSwitchBlock
-            block={block}
-            isActive={isActive}
-            onUpdate={(val: boolean) => updateBlockValue(pageId, block.id, val)}
-            onSettingsChange={(settings: Record<string, unknown>) =>
-              updateBlockSettings(pageId, block.id, settings)
-            }
-          />
-        );
-      case "badge_selector":
-        return (
-          <BadgeSelectorBlock
-            block={block}
-            isActive={isActive}
-            onUpdate={(val: string) => updateBlockValue(pageId, block.id, val)}
-            onSettingsChange={(settings: Record<string, unknown>) =>
-              updateBlockSettings(pageId, block.id, settings)
-            }
-          />
-        );
-      case "asset_stream":
-        return (
-          <AssetStreamBlock
-            block={block}
-            isActive={isActive}
-            onUpdate={(val: string) => updateBlockValue(pageId, block.id, val)}
-            onSettingsChange={(settings: Record<string, unknown>) =>
-              updateBlockSettings(pageId, block.id, settings)
-            }
-          />
-        );
-      default:
-        return (
-          <div className="font-mono text-xs text-red-500">
-            Unknown element: {block.type}
+    const hasOptions =
+      block.type === "dropdown" || block.type === "badge_selector";
+    const currentOptions =
+      (block.settings?.options as string) ?? "Option 1, Option 2, Option 3";
+
+    return (
+      <div className="flex flex-col gap-3">
+        <div>
+          {block.type === "text" && (
+            <TextBlock
+              block={block}
+              onUpdate={(val: string) =>
+                updateBlockValue(pageId, block.id, val)
+              }
+              onSettingsChange={(settings: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, settings)
+              }
+            />
+          )}
+          {block.type === "form" && (
+            <FormBlock
+              block={block}
+              isActive={isActive}
+              onUpdate={(val: string) =>
+                updateBlockValue(pageId, block.id, val)
+              }
+              onSettingsChange={(settings: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, settings)
+              }
+            />
+          )}
+          {block.type === "date" && (
+            <DateBlock
+              block={block}
+              isActive={isActive}
+              onUpdate={(val: string) =>
+                updateBlockValue(pageId, block.id, val)
+              }
+              onSettingsChange={(settings: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, settings)
+              }
+            />
+          )}
+          {block.type === "dropdown" && (
+            <DropdownBlock
+              block={block}
+              isActive={isActive}
+              onUpdate={(val: string) =>
+                updateBlockValue(pageId, block.id, val)
+              }
+              onSettingsChange={(settings: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, settings)
+              }
+            />
+          )}
+          {block.type === "checkbox" && (
+            <ToggleSwitchBlock
+              block={block}
+              isActive={isActive}
+              onUpdate={(val: boolean) =>
+                updateBlockValue(pageId, block.id, val)
+              }
+              onSettingsChange={(settings: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, settings)
+              }
+            />
+          )}
+          {block.type === "badge_selector" && (
+            <BadgeSelectorBlock
+              block={block}
+              isActive={isActive}
+              onUpdate={(val: string) =>
+                updateBlockValue(pageId, block.id, val)
+              }
+              onSettingsChange={(settings: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, settings)
+              }
+            />
+          )}
+          {block.type === "asset_stream" && (
+            <AssetStreamBlock
+              block={block}
+              isActive={isActive}
+              onUpdate={(val: string) =>
+                updateBlockValue(pageId, block.id, val)
+              }
+              onSettingsChange={(settings: Record<string, unknown>) =>
+                updateBlockSettings(pageId, block.id, settings)
+              }
+            />
+          )}
+        </div>
+
+        {isActive && hasOptions && (
+          <div className="mt-2 pt-2 border-t border-zinc-100 flex flex-col gap-1.5 animate-in fade-in duration-100">
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+              Manage Choices (Comma Separated):
+            </label>
+            <input
+              type="text"
+              value={currentOptions}
+              onChange={(e) =>
+                updateBlockSettings(pageId, block.id, {
+                  options: e.target.value,
+                })
+              }
+              placeholder="e.g. Critical, High, Normal"
+              className="text-[11px] font-medium bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1 w-full text-zinc-800 focus:outline-none focus:border-zinc-950 focus:bg-white transition-all"
+            />
           </div>
-        );
-    }
+        )}
+      </div>
+    );
   };
 
   return (
