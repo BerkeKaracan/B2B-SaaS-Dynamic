@@ -266,7 +266,6 @@ export default function CanvasArea() {
 
   const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
-
     if (
       target === containerRef.current ||
       target.classList.contains("infinite-grid-layer") ||
@@ -305,10 +304,14 @@ export default function CanvasArea() {
     e.preventDefault();
     setActivePage(pageId);
     const currentZoom = zoom / 100;
+    const rect = containerRef.current?.getBoundingClientRect() || {
+      left: 0,
+      top: 0,
+    };
     setDraggedPageId(pageId);
     setDragOffset({
-      x: (e.clientX - panX) / currentZoom - currentX,
-      y: (e.clientY - panY) / currentZoom - currentY,
+      x: (e.clientX - rect.left - panX) / currentZoom - currentX,
+      y: (e.clientY - rect.top - panY) / currentZoom - currentY,
     });
   };
 
@@ -326,10 +329,14 @@ export default function CanvasArea() {
     setActivePage(pageId);
     setActiveBlock(blockId);
     const currentZoom = zoom / 100;
+    const rect = containerRef.current?.getBoundingClientRect() || {
+      left: 0,
+      top: 0,
+    };
     setDraggedBlockInfo({ pageId, blockId });
     setDragOffset({
-      x: (e.clientX - panX) / currentZoom - pageX - blockX,
-      y: (e.clientY - panY) / currentZoom - pageY - blockY,
+      x: (e.clientX - rect.left - panX) / currentZoom - pageX - blockX,
+      y: (e.clientY - rect.top - panY) / currentZoom - pageY - blockY,
     });
   };
 
