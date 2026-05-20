@@ -1,11 +1,5 @@
 "use client";
-import React, {
-  useRef,
-  useState,
-  MouseEvent,
-  useEffect,
-  DragEvent,
-} from "react";
+import React, { useRef, useState, useEffect, DragEvent } from "react";
 import { useCanvasStore, PageWithSettings } from "@/store/useCanvasStore";
 import { BlockContent, BlockType, PageContent } from "@/types/record";
 import { useCanvasNavigation } from "@/hooks/useCanvasNavigation";
@@ -132,9 +126,7 @@ export default function CanvasArea() {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === "Space") {
-        setIsSpacePressed(false);
-      }
+      if (e.code === "Space") setIsSpacePressed(false);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -146,7 +138,7 @@ export default function CanvasArea() {
   }, [undo, redo, removePage, removeBlockFromPage, removeSelectedBlocks]);
 
   useEffect(() => {
-    const handleGlobalMouseMove = (e: globalThis.MouseEvent) => {
+    const handleGlobalPointerMove = (e: globalThis.PointerEvent) => {
       const state = useCanvasStore.getState();
       const currentZoom = (state.zoom ?? 100) / 100;
       const currentPanX = state.panX ?? 0;
@@ -216,7 +208,7 @@ export default function CanvasArea() {
       }
     };
 
-    const handleGlobalMouseUp = () => {
+    const handleGlobalPointerUp = () => {
       if (draggedPageId || draggedBlockInfo || resizingPageId) saveHistory();
       setDraggedPageId(null);
       setDraggedBlockInfo(null);
@@ -232,13 +224,13 @@ export default function CanvasArea() {
       connectingFrom ||
       lassoStart
     ) {
-      window.addEventListener("mousemove", handleGlobalMouseMove);
-      window.addEventListener("mouseup", handleGlobalMouseUp);
+      window.addEventListener("pointermove", handleGlobalPointerMove);
+      window.addEventListener("pointerup", handleGlobalPointerUp);
     }
 
     return () => {
-      window.removeEventListener("mousemove", handleGlobalMouseMove);
-      window.removeEventListener("mouseup", handleGlobalMouseUp);
+      window.removeEventListener("pointermove", handleGlobalPointerMove);
+      window.removeEventListener("pointerup", handleGlobalPointerUp);
     };
   }, [
     draggedPageId,
@@ -264,17 +256,19 @@ export default function CanvasArea() {
     );
   }
 
-  const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
+    const isTouch = e.pointerType === "touch";
+
     if (
       target === containerRef.current ||
       target.classList.contains("infinite-grid-layer") ||
       target.classList.contains("canvas-bg")
     ) {
-      if (e.button === 1 || (e.button === 0 && isSpacePressed)) {
+      if (e.button === 1 || (e.button === 0 && isSpacePressed) || isTouch) {
         e.preventDefault();
         startPan(e.clientX, e.clientY);
-      } else if (e.button === 0 && !isSpacePressed) {
+      } else if (e.button === 0 && !isSpacePressed && !isTouch) {
         const currentZoom = zoom / 100;
         const rect = containerRef.current?.getBoundingClientRect() || {
           left: 0,
@@ -295,7 +289,7 @@ export default function CanvasArea() {
   };
 
   const startPageDrag = (
-    e: MouseEvent,
+    e: React.PointerEvent,
     pageId: string,
     currentX: number,
     currentY: number,
@@ -316,7 +310,7 @@ export default function CanvasArea() {
   };
 
   const startBlockDrag = (
-    e: MouseEvent,
+    e: React.PointerEvent,
     pageId: string,
     blockId: string,
     pageX: number,
@@ -491,8 +485,8 @@ export default function CanvasArea() {
   return (
     <div
       ref={containerRef}
-      className={`canvas-bg absolute inset-0 overflow-hidden select-none bg-[#F9F9FB] ${cursorStyle}`}
-      onMouseDown={handleMouseDown}
+      className={`canvas-bg absolute inset-0 overflow-hidden select-none touch-none bg-[#F9F9FB] ${cursorStyle}`}
+      onPointerDown={handlePointerDown}
     >
       <div
         className="canvas-bg absolute inset-0 infinite-grid-layer pointer-events-none"
@@ -503,7 +497,7 @@ export default function CanvasArea() {
         }}
       />
 
-      <div className="absolute top-4 left-4 z-50 bg-zinc-900/95 text-white backdrop-blur px-3 py-1.5 rounded-xl border border-zinc-800 text-[10px] font-mono shadow-md pointer-events-none flex items-center gap-3">
+      <div className="absolute top-4 left-4 z-50 bg-zinc-900/95 text-white backdrop-blur px-3 py-1.5 rounded-xl border border-zinc-800 text-[10px] font-mono shadow-md pointer-events-none flex items-center gap-3 hidden sm:flex">
         <span className="text-zinc-500 font-bold uppercase tracking-wider">
           Radar:
         </span>
@@ -568,7 +562,7 @@ export default function CanvasArea() {
                     type="text"
                     value={page.title}
                     onChange={(e) => updatePageTitle(page.id, e.target.value)}
-                    className="bg-zinc-800 text-white text-[11px] font-bold px-2 py-1 rounded outline-none w-40 focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="bg-zinc-800 text-white text-[11px] font-bold px-2 py-1 rounded outline-none w-32 sm:w-40 focus:ring-1 focus:ring-blue-500 transition-all"
                   />
                   <div className="w-px h-4 bg-zinc-700 mx-1" />
                   <div className="relative flex items-center justify-center p-1 rounded hover:bg-zinc-800 transition-colors cursor-pointer overflow-hidden w-6 h-6">
@@ -586,7 +580,7 @@ export default function CanvasArea() {
                 </div>
               ) : (
                 <div
-                  onMouseDown={(e) => startPageDrag(e, page.id, px, py)}
+                  onPointerDown={(e) => startPageDrag(e, page.id, px, py)}
                   className="absolute -top-8 left-0 flex items-center gap-2 text-zinc-500 font-bold text-[11px] uppercase tracking-wider cursor-move px-2 py-1 rounded hover:bg-zinc-100 transition-colors"
                 >
                   <span># {page.title}</span>
@@ -606,8 +600,8 @@ export default function CanvasArea() {
                     Delete Frame
                   </button>
                   <div
-                    className="absolute bottom-0 right-0 w-4 h-4 bg-blue-500 cursor-nwse-resize rounded-br-md rounded-tl-md z-50 flex items-center justify-center"
-                    onMouseDown={(e) => {
+                    className="absolute bottom-0 right-0 w-8 h-8 sm:w-4 sm:h-4 bg-blue-500 cursor-nwse-resize rounded-br-md rounded-tl-md z-50 flex items-center justify-center"
+                    onPointerDown={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
                       setResizingPageId(page.id);
@@ -620,8 +614,8 @@ export default function CanvasArea() {
                     }}
                   >
                     <svg
-                      width="10"
-                      height="10"
+                      width="12"
+                      height="12"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="white"
@@ -662,7 +656,7 @@ export default function CanvasArea() {
                           setConnectingFrom(null);
                         }
                       }}
-                      onMouseUp={(e) => {
+                      onPointerUp={(e) => {
                         if (
                           connectingFrom &&
                           connectingFrom.blockId !== block.id
@@ -678,7 +672,7 @@ export default function CanvasArea() {
                           setConnectingFrom(null);
                         }
                       }}
-                      className={`absolute bg-white border border-zinc-200/80 rounded-2xl p-5 pt-7 min-w-[320px] cursor-default select-text group transition-shadow ${
+                      className={`absolute bg-white border border-zinc-200/80 rounded-2xl p-5 pt-7 min-w-[280px] sm:min-w-[320px] cursor-default select-text group transition-shadow ${
                         isBlockActive
                           ? "ring-2 ring-blue-500 shadow-xl z-20"
                           : "shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-md z-10"
@@ -686,7 +680,7 @@ export default function CanvasArea() {
                       style={{ left: `${bx}px`, top: `${by}px` }}
                     >
                       <div
-                        onMouseDown={(e) => {
+                        onPointerDown={(e) => {
                           if (!connectingFrom)
                             startBlockDrag(
                               e,
@@ -698,18 +692,18 @@ export default function CanvasArea() {
                               by,
                             );
                         }}
-                        className="absolute top-0 left-0 right-0 h-6 bg-zinc-50/50 hover:bg-zinc-100/80 border-b border-zinc-100/50 rounded-t-2xl flex items-center justify-center cursor-move transition-colors select-none"
+                        className="absolute top-0 left-0 right-0 h-10 sm:h-6 bg-zinc-50/50 hover:bg-zinc-100/80 border-b border-zinc-100/50 rounded-t-2xl flex items-center justify-center cursor-move transition-colors select-none"
                       >
-                        <div className="flex gap-0.5 pointer-events-none">
-                          <span className="w-1 h-1 bg-zinc-300 rounded-full" />
-                          <span className="w-1 h-1 bg-zinc-300 rounded-full" />
-                          <span className="w-1 h-1 bg-zinc-300 rounded-full" />
-                          <span className="w-1 h-1 bg-zinc-300 rounded-full" />
+                        <div className="flex gap-1 pointer-events-none">
+                          <span className="w-1 h-1 bg-zinc-400 sm:bg-zinc-300 rounded-full" />
+                          <span className="w-1 h-1 bg-zinc-400 sm:bg-zinc-300 rounded-full" />
+                          <span className="w-1 h-1 bg-zinc-400 sm:bg-zinc-300 rounded-full" />
+                          <span className="w-1 h-1 bg-zinc-400 sm:bg-zinc-300 rounded-full" />
                         </div>
                       </div>
 
                       {activeBlockId === block.id && (
-                        <div className="absolute -top-3 -right-3 flex gap-1 z-30">
+                        <div className="absolute -top-4 -right-4 sm:-top-3 sm:-right-3 flex gap-1.5 sm:gap-1 z-30">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -722,11 +716,10 @@ export default function CanvasArea() {
                                   blockId: block.id,
                                 });
                             }}
-                            className={`w-7 h-7 flex items-center justify-center bg-white border rounded-full shadow-sm transition-colors cursor-pointer select-none ${connectingFrom?.blockId === block.id ? "border-blue-500 text-blue-500 bg-blue-50" : "border-zinc-200 text-zinc-500 hover:text-blue-500"}`}
+                            className={`w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center bg-white border rounded-full shadow-sm transition-colors cursor-pointer select-none ${connectingFrom?.blockId === block.id ? "border-blue-500 text-blue-500 bg-blue-50" : "border-zinc-200 text-zinc-500 hover:text-blue-500"}`}
                           >
                             <svg
-                              width="12"
-                              height="12"
+                              className="w-5 h-5 sm:w-3 sm:h-3"
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"
@@ -745,11 +738,10 @@ export default function CanvasArea() {
                               e.stopPropagation();
                               removeBlockFromPage(page.id, block.id);
                             }}
-                            className="w-7 h-7 flex items-center justify-center bg-white border border-zinc-200 rounded-full text-zinc-400 hover:text-red-600 shadow-sm transition-colors cursor-pointer select-none"
+                            className="w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center bg-white border border-zinc-200 rounded-full text-zinc-400 hover:text-red-600 shadow-sm transition-colors cursor-pointer select-none"
                           >
                             <svg
-                              width="12"
-                              height="12"
+                              className="w-5 h-5 sm:w-3 sm:h-3"
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"
@@ -762,7 +754,7 @@ export default function CanvasArea() {
                         </div>
                       )}
 
-                      <div onMouseDown={(e) => e.stopPropagation()}>
+                      <div onPointerDown={(e) => e.stopPropagation()}>
                         {renderBlock(page.id, block, isBlockActive)}
                       </div>
                     </div>
@@ -777,11 +769,11 @@ export default function CanvasArea() {
       <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
         <button
           onClick={undo}
-          className="w-8 h-8 flex items-center justify-center bg-white border border-zinc-200 rounded-lg text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm transition-all"
+          className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center bg-white border border-zinc-200 rounded-lg text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm transition-all"
         >
           <svg
-            width="14"
-            height="14"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -793,11 +785,11 @@ export default function CanvasArea() {
         </button>
         <button
           onClick={redo}
-          className="w-8 h-8 flex items-center justify-center bg-white border border-zinc-200 rounded-lg text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm transition-all"
+          className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center bg-white border border-zinc-200 rounded-lg text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm transition-all"
         >
           <svg
-            width="14"
-            height="14"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -809,26 +801,26 @@ export default function CanvasArea() {
         </button>
       </div>
 
-      <div className="absolute bottom-6 right-6 z-50 flex items-center gap-1.5 bg-white/90 backdrop-blur-md border border-zinc-200/80 rounded-xl p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] cursor-default select-none pointer-events-auto">
+      <div className="absolute bottom-6 right-6 sm:bottom-6 sm:right-6 left-6 sm:left-auto z-50 flex items-center justify-center gap-2 sm:gap-1.5 bg-white/95 backdrop-blur-md border border-zinc-200/80 rounded-2xl sm:rounded-xl p-2 sm:p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] pointer-events-auto">
         <button
           onClick={() => setZoom(zoom - 10)}
-          className="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-lg text-xs font-black transition-all"
+          className="flex-1 sm:flex-none w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-xl sm:rounded-lg text-lg sm:text-xs font-black transition-all"
         >
           —
         </button>
-        <span className="text-[11px] font-extrabold text-zinc-600 min-w-[36px] text-center tracking-tight">
+        <span className="text-xs sm:text-[11px] font-extrabold text-zinc-600 min-w-[40px] sm:min-w-[36px] text-center tracking-tight">
           {zoom}%
         </span>
         <button
           onClick={() => setZoom(zoom + 10)}
-          className="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-lg text-xs font-black transition-all"
+          className="flex-1 sm:flex-none w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-xl sm:rounded-lg text-lg sm:text-xs font-black transition-all"
         >
           +
         </button>
-        <div className="w-px h-4 bg-zinc-200 mx-0.5" />
+        <div className="w-px h-6 sm:h-4 bg-zinc-200 mx-1 sm:mx-0.5" />
         <button
           onClick={() => setPan(0, 0)}
-          className="px-2 h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-lg text-[10px] font-bold transition-all"
+          className="px-4 sm:px-2 h-10 sm:h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-xl sm:rounded-lg text-xs sm:text-[10px] font-bold transition-all"
         >
           Reset View
         </button>
