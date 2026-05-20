@@ -1,5 +1,11 @@
 "use client";
-import React, { useRef, useState, useEffect, DragEvent } from "react";
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  DragEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react";
 import { useCanvasStore, PageWithSettings } from "@/store/useCanvasStore";
 import { BlockContent, BlockType, PageContent } from "@/types/record";
 import { ConnectionLayer } from "./ConnectionLayer";
@@ -84,6 +90,12 @@ export default function CanvasArea() {
   const [isSpacePanning, setIsSpacePanning] = useState(false);
   const [spacePanStart, setSpacePanStart] = useState({ x: 0, y: 0 });
 
+  // 🚀 MOBİL ÇİFT PARMAK ZOOM İÇİN AKILLI POINTER TAKİPÇİSİ
+  const activePointers = useRef<
+    Map<number, { clientX: number; clientY: number }>
+  >(new Map());
+  const prevTouchDistance = useRef<number | null>(null);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeElement = document.activeElement as HTMLElement;
@@ -142,6 +154,34 @@ export default function CanvasArea() {
 
   useEffect(() => {
     const handleGlobalPointerMove = (e: globalThis.PointerEvent) => {
+      // Çift parmak zoom durumunda pointer listesini güncelle
+      if (activePointers.current.has(e.pointerId)) {
+        activePointers.current.set(e.pointerId, {
+          clientX: e.clientX,
+          clientY: e.clientY,
+        });
+      }
+
+      // 🚀 1. MOBİL ÇİFT PARMAK ZOOM MOTORU (Pinch-to-Zoom)
+      if (activePointers.current.size === 2) {
+        const pts = Array.from(activePointers.current.values());
+        const dx = pts[0].clientX - pts[1].clientX;
+        const dy = pts[0].clientY - pts[1].clientY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (prevTouchDistance.current !== null) {
+          const delta = distance - prevTouchDistance.current;
+          // Hassas bir katsayı ile zoom tetikle
+          if (Math.abs(delta) > 2) {
+            const currentStore = useCanvasStore.getState();
+            const nextZoom = (currentStore.zoom ?? 100) + (delta > 0 ? 4 : -4);
+            setZoom(nextZoom);
+          }
+        }
+        prevTouchDistance.current = distance;
+        return; // Çift parmak varken diğer işlemleri (pan vb.) ez
+      }
+
       const state = useCanvasStore.getState();
       const currentZoom = (state.zoom ?? 100) / 100;
 
@@ -159,7 +199,6 @@ export default function CanvasArea() {
         setMousePos({ x: mouseCanvasX, y: mouseCanvasY });
       }
 
-      // 🚀 ÇÖZÜM: Zustand doğrudan state güncellemesi ile gecikme/geri sekme hatası yokedildi
       if (isSpacePanning) {
         const dx = e.clientX - spacePanStart.x;
         const dy = e.clientY - spacePanStart.y;
@@ -220,7 +259,12 @@ export default function CanvasArea() {
       }
     };
 
-    const handleGlobalPointerUp = () => {
+    const handleGlobalPointerUp = (e: globalThis.PointerEvent) => {
+      activePointers.current.delete(e.pointerId);
+      if (activePointers.current.size < 2) {
+        prevTouchDistance.current = null;
+      }
+
       if (draggedPageId || draggedBlockInfo || resizingPageId) saveHistory();
       setDraggedPageId(null);
       setDraggedBlockInfo(null);
@@ -230,21 +274,20 @@ export default function CanvasArea() {
       setIsSpacePanning(false);
     };
 
-    if (
-      draggedPageId ||
-      draggedBlockInfo ||
-      resizingPageId ||
-      connectingFrom ||
-      lassoStart ||
-      isSpacePanning
-    ) {
-      window.addEventListener("pointermove", handleGlobalPointerMove);
-      window.addEventListener("pointerup", handleGlobalPointerUp);
-    }
+    // İptal durumlarında pointer listesini temizle (Örn: Ekrandan parmak çıkması)
+    const handleGlobalPointerCancel = (e: globalThis.PointerEvent) => {
+      activePointers.current.delete(e.pointerId);
+      prevTouchDistance.current = null;
+    };
+
+    window.addEventListener("pointermove", handleGlobalPointerMove);
+    window.addEventListener("pointerup", handleGlobalPointerUp);
+    window.addEventListener("pointercancel", handleGlobalPointerCancel);
 
     return () => {
       window.removeEventListener("pointermove", handleGlobalPointerMove);
       window.removeEventListener("pointerup", handleGlobalPointerUp);
+      window.removeEventListener("pointercancel", handleGlobalPointerCancel);
     };
   }, [
     draggedPageId,
@@ -264,6 +307,22 @@ export default function CanvasArea() {
     spacePanStart,
   ]);
 
+  // 🚀 3. PC MOUSE ORTA ZOOM MOTORU (Ctrl + Wheel ve Standart Tekerlek Uyumu)
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const currentStore = useCanvasStore.getState();
+
+    // Eğer Mac trackpad kıstırması veya Ctrl basılı tekerlek ise (Zoom yap)
+    if (e.ctrlKey) {
+      const nextZoom = (currentStore.zoom ?? 100) - e.deltaY * 0.5;
+      setZoom(nextZoom);
+    } else {
+      // Standart fare tekerleği aşağı/yukarı ise direkt zoom yap
+      const nextZoom = (currentStore.zoom ?? 100) - e.deltaY * 0.1;
+      setZoom(nextZoom);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-white z-50">
@@ -272,10 +331,21 @@ export default function CanvasArea() {
     );
   }
 
-  // 🚀 MOBİL VE MASAÜSTÜ BİRLEŞTİRİLDİ (Dokunma Direkt Pan Başlatır, PC Space Bekler)
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    activePointers.current.set(e.pointerId, {
+      clientX: e.clientX,
+      clientY: e.clientY,
+    });
+
     const target = e.target as HTMLElement;
     const isTouch = e.pointerType === "touch";
+
+    // Çift parmak varsa seçimi ve panı kilitle, zoom işlemine odaklan
+    if (activePointers.current.size === 2) {
+      setLassoStart(null);
+      setIsSpacePanning(false);
+      return;
+    }
 
     if (
       isSpacePressed ||
@@ -313,12 +383,12 @@ export default function CanvasArea() {
   };
 
   const startPageDrag = (
-    e: React.PointerEvent,
+    e: ReactPointerEvent,
     pageId: string,
     currentX: number,
     currentY: number,
   ) => {
-    if (isSpacePressed) return;
+    if (isSpacePressed || activePointers.current.size > 1) return;
     e.stopPropagation();
     e.preventDefault();
     setActivePage(pageId);
@@ -335,7 +405,7 @@ export default function CanvasArea() {
   };
 
   const startBlockDrag = (
-    e: React.PointerEvent,
+    e: ReactPointerEvent,
     pageId: string,
     blockId: string,
     pageX: number,
@@ -343,7 +413,7 @@ export default function CanvasArea() {
     blockX: number,
     blockY: number,
   ) => {
-    if (isSpacePressed) return;
+    if (isSpacePressed || activePointers.current.size > 1) return;
     e.stopPropagation();
     e.preventDefault();
     setActivePage(pageId);
@@ -513,6 +583,7 @@ export default function CanvasArea() {
       ref={containerRef}
       className={`canvas-bg absolute inset-0 overflow-hidden select-none touch-none bg-[#F9F9FB] ${cursorStyle}`}
       onPointerDown={handlePointerDown}
+      onWheel={handleWheel} // 🚀 PC TEKERLEK ZOOM BURAYA BAĞLANDI
     >
       <div
         className="canvas-bg absolute inset-0 infinite-grid-layer pointer-events-none"
@@ -562,7 +633,11 @@ export default function CanvasArea() {
               aria-label={`Frame: ${page.title}`}
               tabIndex={0}
               onClick={(e) => {
-                if (!isSpacePressed && !isSpacePanning) {
+                if (
+                  !isSpacePressed &&
+                  !isSpacePanning &&
+                  activePointers.current.size < 2
+                ) {
                   e.stopPropagation();
                   setActivePage(page.id);
                   if (connectingFrom) setConnectingFrom(null);
@@ -667,7 +742,11 @@ export default function CanvasArea() {
                     <div
                       key={block.id}
                       onClick={(e) => {
-                        if (!isSpacePressed && !isSpacePanning) {
+                        if (
+                          !isSpacePressed &&
+                          !isSpacePanning &&
+                          activePointers.current.size < 2
+                        ) {
                           e.stopPropagation();
                           setActivePage(page.id);
                           setActiveBlock(block.id);
