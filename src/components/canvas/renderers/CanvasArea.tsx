@@ -2,7 +2,6 @@
 import React, { useRef, useState, useEffect, DragEvent } from "react";
 import { useCanvasStore, PageWithSettings } from "@/store/useCanvasStore";
 import { BlockContent, BlockType, PageContent } from "@/types/record";
-import { useCanvasNavigation } from "@/hooks/useCanvasNavigation";
 import { ConnectionLayer } from "./ConnectionLayer";
 import { LassoLayer } from "./LassoLayer";
 
@@ -52,7 +51,6 @@ export default function CanvasArea() {
   } = store;
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const { startPan } = useCanvasNavigation(containerRef);
 
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
   const [draggedBlockInfo, setDraggedBlockInfo] = useState<{
@@ -83,6 +81,8 @@ export default function CanvasArea() {
   );
 
   const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const [isSpacePanning, setIsSpacePanning] = useState(false);
+  const [spacePanStart, setSpacePanStart] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -92,7 +92,7 @@ export default function CanvasArea() {
         ["INPUT", "TEXTAREA", "SELECT"].includes(activeElement.tagName);
 
       if (!isInputActive) {
-        if (e.code === "Space") {
+        if (e.code === "Space" && !e.repeat) {
           e.preventDefault();
           setIsSpacePressed(true);
         }
@@ -126,7 +126,10 @@ export default function CanvasArea() {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === "Space") setIsSpacePressed(false);
+      if (e.code === "Space") {
+        setIsSpacePressed(false);
+        setIsSpacePanning(false);
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -141,22 +144,31 @@ export default function CanvasArea() {
     const handleGlobalPointerMove = (e: globalThis.PointerEvent) => {
       const state = useCanvasStore.getState();
       const currentZoom = (state.zoom ?? 100) / 100;
-      const currentPanX = state.panX ?? 0;
-      const currentPanY = state.panY ?? 0;
 
       const container = containerRef.current;
       const rect = container
         ? container.getBoundingClientRect()
         : { left: 0, top: 0 };
 
-      const mouseCanvasX = (e.clientX - rect.left - currentPanX) / currentZoom;
-      const mouseCanvasY = (e.clientY - rect.top - currentPanY) / currentZoom;
+      const mouseCanvasX =
+        (e.clientX - rect.left - (state.panX ?? 0)) / currentZoom;
+      const mouseCanvasY =
+        (e.clientY - rect.top - (state.panY ?? 0)) / currentZoom;
 
       if (connectingFrom) {
         setMousePos({ x: mouseCanvasX, y: mouseCanvasY });
       }
 
-      if (lassoStart) {
+      // 🚀 ÇÖZÜM: Zustand doğrudan state güncellemesi ile gecikme/geri sekme hatası yokedildi
+      if (isSpacePanning) {
+        const dx = e.clientX - spacePanStart.x;
+        const dy = e.clientY - spacePanStart.y;
+        useCanvasStore.setState((prev) => ({
+          panX: prev.panX + dx,
+          panY: prev.panY + dy,
+        }));
+        setSpacePanStart({ x: e.clientX, y: e.clientY });
+      } else if (lassoStart) {
         setLassoEnd({ x: mouseCanvasX, y: mouseCanvasY });
 
         const minX = Math.min(lassoStart.x, mouseCanvasX);
@@ -215,6 +227,7 @@ export default function CanvasArea() {
       setResizingPageId(null);
       setLassoStart(null);
       setLassoEnd(null);
+      setIsSpacePanning(false);
     };
 
     if (
@@ -222,7 +235,8 @@ export default function CanvasArea() {
       draggedBlockInfo ||
       resizingPageId ||
       connectingFrom ||
-      lassoStart
+      lassoStart ||
+      isSpacePanning
     ) {
       window.addEventListener("pointermove", handleGlobalPointerMove);
       window.addEventListener("pointerup", handleGlobalPointerUp);
@@ -246,6 +260,8 @@ export default function CanvasArea() {
     saveHistory,
     pages,
     setSelectedBlocks,
+    isSpacePanning,
+    spacePanStart,
   ]);
 
   if (isLoading) {
@@ -256,18 +272,26 @@ export default function CanvasArea() {
     );
   }
 
+  // 🚀 MOBİL VE MASAÜSTÜ BİRLEŞTİRİLDİ (Dokunma Direkt Pan Başlatır, PC Space Bekler)
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     const isTouch = e.pointerType === "touch";
 
     if (
+      isSpacePressed ||
       target === containerRef.current ||
       target.classList.contains("infinite-grid-layer") ||
       target.classList.contains("canvas-bg")
     ) {
       if (e.button === 1 || (e.button === 0 && isSpacePressed) || isTouch) {
         e.preventDefault();
-        startPan(e.clientX, e.clientY);
+        setIsSpacePanning(true);
+        setSpacePanStart({ x: e.clientX, y: e.clientY });
+
+        setActivePage(null);
+        setActiveBlock(null);
+        setSelectedBlocks([]);
+        setConnectingFrom(null);
       } else if (e.button === 0 && !isSpacePressed && !isTouch) {
         const currentZoom = zoom / 100;
         const rect = containerRef.current?.getBoundingClientRect() || {
@@ -279,12 +303,12 @@ export default function CanvasArea() {
 
         setLassoStart({ x: mouseCanvasX, y: mouseCanvasY });
         setLassoEnd({ x: mouseCanvasX, y: mouseCanvasY });
-      }
 
-      setActivePage(null);
-      setActiveBlock(null);
-      setSelectedBlocks([]);
-      setConnectingFrom(null);
+        setActivePage(null);
+        setActiveBlock(null);
+        setSelectedBlocks([]);
+        setConnectingFrom(null);
+      }
     }
   };
 
@@ -294,6 +318,7 @@ export default function CanvasArea() {
     currentX: number,
     currentY: number,
   ) => {
+    if (isSpacePressed) return;
     e.stopPropagation();
     e.preventDefault();
     setActivePage(pageId);
@@ -318,6 +343,7 @@ export default function CanvasArea() {
     blockX: number,
     blockY: number,
   ) => {
+    if (isSpacePressed) return;
     e.stopPropagation();
     e.preventDefault();
     setActivePage(pageId);
@@ -476,7 +502,7 @@ export default function CanvasArea() {
   };
 
   let cursorStyle = "cursor-default";
-  if (isSpacePressed) {
+  if (isSpacePressed || isSpacePanning) {
     cursorStyle = "cursor-grab active:cursor-grabbing";
   } else if (connectingFrom || lassoStart) {
     cursorStyle = "cursor-crosshair";
@@ -536,9 +562,11 @@ export default function CanvasArea() {
               aria-label={`Frame: ${page.title}`}
               tabIndex={0}
               onClick={(e) => {
-                e.stopPropagation();
-                setActivePage(page.id);
-                if (connectingFrom) setConnectingFrom(null);
+                if (!isSpacePressed && !isSpacePanning) {
+                  e.stopPropagation();
+                  setActivePage(page.id);
+                  if (connectingFrom) setConnectingFrom(null);
+                }
               }}
               onDragEnter={handleDragOverPage}
               onDragOver={handleDragOverPage}
@@ -639,21 +667,23 @@ export default function CanvasArea() {
                     <div
                       key={block.id}
                       onClick={(e) => {
-                        e.stopPropagation();
-                        setActivePage(page.id);
-                        setActiveBlock(block.id);
-                        if (
-                          connectingFrom &&
-                          connectingFrom.blockId !== block.id
-                        ) {
-                          addConnection({
-                            id: crypto.randomUUID(),
-                            fromPage: connectingFrom.pageId,
-                            fromBlock: connectingFrom.blockId,
-                            toPage: page.id,
-                            toBlock: block.id,
-                          });
-                          setConnectingFrom(null);
+                        if (!isSpacePressed && !isSpacePanning) {
+                          e.stopPropagation();
+                          setActivePage(page.id);
+                          setActiveBlock(block.id);
+                          if (
+                            connectingFrom &&
+                            connectingFrom.blockId !== block.id
+                          ) {
+                            addConnection({
+                              id: crypto.randomUUID(),
+                              fromPage: connectingFrom.pageId,
+                              fromBlock: connectingFrom.blockId,
+                              toPage: page.id,
+                              toBlock: block.id,
+                            });
+                            setConnectingFrom(null);
+                          }
                         }
                       }}
                       onPointerUp={(e) => {
