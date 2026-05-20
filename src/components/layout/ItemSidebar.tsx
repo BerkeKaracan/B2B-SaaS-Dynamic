@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, DragEvent } from "react";
+import React, { useState } from "react";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { BlockType, PageContent } from "@/types/record";
 import {
@@ -29,8 +29,16 @@ export default function ItemSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isBlocksOpen, setIsBlocksOpen] = useState(true);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(true);
-
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const [activeDrag, setActiveDrag] = useState<{
+    itemType: string;
+    isBlock: boolean;
+    label: string;
+    icon: React.ReactNode;
+    x: number;
+    y: number;
+  } | null>(null);
 
   const menuItems: SidebarItem[] = [
     {
@@ -229,120 +237,23 @@ export default function ItemSidebar() {
         </svg>
       ),
     },
-    {
-      type: "notes",
-      label: "Notes Workspace",
-      description:
-        "Pre-loaded portrait workspace with notes, summaries and priority selectors",
-      icon: (
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3z" />
-          <polyline points="14 3 14 9 20 9" />
-        </svg>
-      ),
-    },
-    {
-      type: "agenda",
-      label: "Agenda Timeline",
-      description:
-        "Pre-loaded roadmap frame mapping sprint deadlines and phase categories",
-      icon: (
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
-      ),
-    },
-    {
-      type: "database",
-      label: "Structured Database",
-      description:
-        "Pre-loaded validation workspace mapping client titles, active status and prod boolean",
-      icon: (
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <ellipse cx="12" cy="5" rx="9" ry="3" />
-          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-          <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
-        </svg>
-      ),
-    },
   ];
 
-  const handleAddPage = (type: PageContent["type"]) => {
-    const container =
-      document.querySelector(".cursor-grab") ||
-      document.querySelector(".canvas-bg");
-    let cx = 100,
-      cy = 100;
-    if (container) {
-      const rect = container.getBoundingClientRect();
-      const state = useCanvasStore.getState();
-      const currentZoom = (state.zoom ?? 100) / 100;
-      cx =
-        (-(state.panX ?? 0) +
-          rect.width / 2 -
-          (type === "kanban" ? 550 : 400)) /
-        currentZoom;
-      cy = (-(state.panY ?? 0) + rect.height / 2 - 400) / currentZoom;
-    }
-    addPage(type, cx, cy);
-  };
-
-  const handleDragStart = (e: DragEvent<HTMLDivElement>, type: BlockType) => {
-    e.dataTransfer.setData("text/plain", type);
-    e.dataTransfer.effectAllowed = "copy";
-  };
-
-  const handleAddBlockToPage = (type: BlockType) => {
+  const handleTapToAddBlock = (type: BlockType) => {
     const state = useCanvasStore.getState();
     const targetPageId = state.activePageId || state.pages[0]?.id;
 
     if (!targetPageId) {
-      const container =
-        document.querySelector(".cursor-grab") ||
-        document.querySelector(".canvas-bg");
-      let cx = 100,
-        cy = 100;
-      if (container) {
-        const rect = container.getBoundingClientRect();
-        const currentZoom = (state.zoom ?? 100) / 100;
-        cx = (-(state.panX ?? 0) + rect.width / 2 - 400) / currentZoom;
-        cy = (-(state.panY ?? 0) + rect.height / 2 - 500) / currentZoom;
-      }
+      const currentZoom = (state.zoom ?? 100) / 100;
+      const cx =
+        (-(state.panX ?? 0) + window.innerWidth / 2 - 400) / currentZoom;
+      const cy =
+        (-(state.panY ?? 0) + window.innerHeight / 2 - 500) / currentZoom;
       addPage("empty", cx, cy);
       setTimeout(() => {
         const newState = useCanvasStore.getState();
-        const newPageId = newState.activePageId;
-        if (newPageId) {
-          useCanvasStore.getState().addBlockToPage(newPageId, type, 40, 40);
-        }
+        if (newState.activePageId)
+          newState.addBlockToPage(newState.activePageId, type, 40, 40);
       }, 0);
       return;
     }
@@ -352,12 +263,145 @@ export default function ItemSidebar() {
     addBlockToPage(targetPageId, type, 40, offsetY);
   };
 
+  const handleTapToAddPage = (type: PageContent["type"]) => {
+    const state = useCanvasStore.getState();
+    const currentZoom = (state.zoom ?? 100) / 100;
+    const cx = (-(state.panX ?? 0) + window.innerWidth / 2 - 400) / currentZoom;
+    const cy =
+      (-(state.panY ?? 0) + window.innerHeight / 2 - 400) / currentZoom;
+    addPage(type, cx, cy);
+  };
+
+  const handlePointerDown = (
+    e: React.PointerEvent,
+    item: SidebarItem | TemplateItem, 
+    isBlock: boolean,
+  ) => {
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let isDragging = false;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+
+      if (!isDragging && Math.sqrt(dx * dx + dy * dy) > 5) {
+        isDragging = true;
+      }
+
+      if (isDragging) {
+        setActiveDrag({
+          itemType: item.type,
+          isBlock,
+          label: item.label,
+          icon: item.icon,
+          x: moveEvent.clientX,
+          y: moveEvent.clientY,
+        });
+      }
+    };
+
+    const onPointerUp = (upEvent: PointerEvent) => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+
+      setActiveDrag((currentDrag) => {
+        if (currentDrag) {
+          processDrop(
+            currentDrag.itemType,
+            currentDrag.isBlock,
+            upEvent.clientX,
+            upEvent.clientY,
+          );
+        } else {
+          if (isBlock) {
+            handleTapToAddBlock(item.type as BlockType);
+          } else {
+            addPage(item.type as PageContent["type"], 100, 100);
+          }
+        }
+        return null;
+      });
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  };
+
+  const processDrop = (
+    type: string,
+    isBlock: boolean,
+    clientX: number,
+    clientY: number,
+  ) => {
+    const state = useCanvasStore.getState();
+    const sidebarRect = document
+      .getElementById("item-sidebar")
+      ?.getBoundingClientRect();
+
+    if (
+      sidebarRect &&
+      clientX >= sidebarRect.left &&
+      clientX <= sidebarRect.right &&
+      clientY >= sidebarRect.top &&
+      clientY <= sidebarRect.bottom
+    ) {
+      return;
+    }
+
+    const currentZoom = (state.zoom ?? 100) / 100;
+    const dropCanvasX = (clientX - (state.panX ?? 0)) / currentZoom;
+    const dropCanvasY = (clientY - (state.panY ?? 0)) / currentZoom;
+
+    if (!isBlock) {
+      state.addPage(type as PageContent["type"], dropCanvasX, dropCanvasY);
+    } else {
+      const pages = state.pages;
+      let targetPage = null;
+
+      for (let i = pages.length - 1; i >= 0; i--) {
+        const p = pages[i];
+        if (
+          dropCanvasX >= p.x &&
+          dropCanvasX <= p.x + p.width &&
+          dropCanvasY >= p.y &&
+          dropCanvasY <= p.y + p.height
+        ) {
+          targetPage = p;
+          break;
+        }
+      }
+
+      if (targetPage) {
+        state.addBlockToPage(
+          targetPage.id,
+          type as BlockType,
+          dropCanvasX - targetPage.x - 50,
+          dropCanvasY - targetPage.y - 20,
+        );
+        state.setActivePage(targetPage.id);
+      } else {
+        state.addPage("empty", dropCanvasX - 200, dropCanvasY - 50);
+        setTimeout(() => {
+          const newState = useCanvasStore.getState();
+          if (newState.activePageId) {
+            newState.addBlockToPage(
+              newState.activePageId,
+              type as BlockType,
+              20,
+              20,
+            );
+          }
+        }, 0);
+      }
+    }
+  };
+
   const filteredBlocks = menuItems.filter(
     (item) =>
       item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.description.toLowerCase().includes(searchQuery.toLowerCase()),
   );
-
   const filteredTemplates = templateItems.filter(
     (item) =>
       item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -365,169 +409,168 @@ export default function ItemSidebar() {
   );
 
   return (
-    <div
-      className={`h-[calc(100vh-5.5rem)] m-4 bg-white/80 backdrop-blur-xl border border-zinc-200/60 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden shrink-0 z-20 transition-all duration-300 ease-in-out ${
-        isCollapsed ? "w-16" : "w-72"
-      }`}
-    >
+    <>
       <div
-        className={`p-4 border-b border-zinc-100 flex flex-col gap-2 shrink-0 ${isCollapsed ? "items-center px-2" : ""}`}
+        id="item-sidebar"
+        className={`h-[calc(100vh-5.5rem)] m-4 bg-white/80 backdrop-blur-xl border border-zinc-200/60 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden shrink-0 z-20 transition-all duration-300 ease-in-out ${
+          isCollapsed ? "w-16" : "w-72"
+        }`}
       >
-        <div className="flex items-center justify-between w-full">
-          {!isCollapsed && (
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest whitespace-nowrap overflow-hidden">
-              Engine Toolkit
-            </span>
-          )}
-
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`p-1.5 hover:bg-zinc-100 rounded-md text-zinc-400 hover:text-zinc-800 transition-colors ${isCollapsed ? "mx-auto" : ""}`}
-            title={isCollapsed ? "Expand Toolkit" : "Collapse Toolkit"}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="w-4 h-4" />
-            ) : (
-              <ChevronLeft className="w-4 h-4" />
+        <div
+          className={`p-4 border-b border-zinc-100 flex flex-col gap-2 shrink-0 ${isCollapsed ? "items-center px-2" : ""}`}
+        >
+          <div className="flex items-center justify-between w-full">
+            {!isCollapsed && (
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest whitespace-nowrap overflow-hidden">
+                Engine Toolkit
+              </span>
             )}
-          </button>
-        </div>
-
-        {!isCollapsed && (
-          <div className="relative flex items-center animate-in fade-in zoom-in duration-200">
-            <Search className="w-3.5 h-3.5 absolute left-3 text-zinc-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search blocks or frames..."
-              className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200/80 rounded-xl text-xs font-medium placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:bg-white transition-all"
-            />
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className={`p-1.5 hover:bg-zinc-100 rounded-md text-zinc-400 hover:text-zinc-800 transition-colors ${isCollapsed ? "mx-auto" : ""}`}
+              title={isCollapsed ? "Expand Toolkit" : "Collapse Toolkit"}
+            >
+              {isCollapsed ? (
+                <ChevronRight className="w-4 h-4" />
+              ) : (
+                <ChevronLeft className="w-4 h-4" />
+              )}
+            </button>
           </div>
-        )}
-      </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2 select-none shrink-0 custom-scrollbar">
-        {/* --- BUILDING BLOCKS --- */}
-        <div className="space-y-1">
-          {!isCollapsed ? (
-            <button
-              type="button"
-              onClick={() => setIsBlocksOpen(!isBlocksOpen)}
-              className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
-            >
-              <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-                Building Blocks ({filteredBlocks.length})
-              </span>
-              {isBlocksOpen ? (
-                <ChevronUp className="w-3 h-3 text-zinc-400 shrink-0" />
-              ) : (
-                <ChevronDown className="w-3 h-3 text-zinc-400 shrink-0" />
-              )}
-            </button>
-          ) : (
-            <div className="h-px bg-zinc-200/50 w-6 mx-auto my-2" />
-          )}
-
-          {(isBlocksOpen || isCollapsed) && (
-            <div className="space-y-0.5">
-              {filteredBlocks.map((item) => (
-                <div
-                  key={item.type}
-                  title={isCollapsed ? item.label : undefined}
-                  draggable={true}
-                  onDragStart={(e) => handleDragStart(e, item.type)}
-                  onClick={() => handleAddBlockToPage(item.type)}
-                  className={`w-full flex items-center ${
-                    isCollapsed
-                      ? "justify-center p-2"
-                      : "justify-start gap-3 p-2"
-                  } rounded-xl text-left hover:bg-zinc-50 border border-transparent transition-all group shrink-0 cursor-grab active:cursor-grabbing`}
-                >
-                  <div className="p-1.5 bg-zinc-50 border border-zinc-100 rounded-lg text-zinc-500 group-hover:bg-zinc-950 group-hover:text-white group-hover:border-zinc-950 transition-all shrink-0 pointer-events-none">
-                    {item.icon}
-                  </div>
-                  {!isCollapsed && (
-                    <div className="space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap animate-in fade-in duration-200">
-                      <p className="text-[12px] font-bold text-zinc-800 tracking-tight group-hover:text-zinc-950">
-                        {item.label}
-                      </p>
-                      <p className="text-[10px] text-zinc-400 leading-tight truncate">
-                        {item.description}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
-              {filteredBlocks.length === 0 && !isCollapsed && (
-                <p className="text-[11px] text-zinc-400 text-center py-2">
-                  No blocks found
-                </p>
-              )}
+          {!isCollapsed && (
+            <div className="relative flex items-center animate-in fade-in zoom-in duration-200">
+              <Search className="w-3.5 h-3.5 absolute left-3 text-zinc-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search blocks or frames..."
+                className="w-full pl-9 pr-3 py-2 bg-zinc-50 border border-zinc-200/80 rounded-xl text-xs font-medium placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-950 focus:bg-white transition-all"
+              />
             </div>
           )}
         </div>
 
-        {!isCollapsed && <div className="h-px bg-zinc-100/80 my-1 mx-2" />}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2 select-none shrink-0 custom-scrollbar touch-pan-y">
+          <div className="space-y-1">
+            {!isCollapsed ? (
+              <button
+                type="button"
+                onClick={() => setIsBlocksOpen(!isBlocksOpen)}
+                className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
+              >
+                <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
+                  Building Blocks ({filteredBlocks.length})
+                </span>
+                {isBlocksOpen ? (
+                  <ChevronUp className="w-3 h-3 text-zinc-400 shrink-0" />
+                ) : (
+                  <ChevronDown className="w-3 h-3 text-zinc-400 shrink-0" />
+                )}
+              </button>
+            ) : (
+              <div className="h-px bg-zinc-200/50 w-6 mx-auto my-2" />
+            )}
 
-        {/* --- PAGE FRAMES --- */}
-        <div className="space-y-1">
-          {!isCollapsed ? (
-            <button
-              type="button"
-              onClick={() => setIsTemplatesOpen(!isTemplatesOpen)}
-              className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
-            >
-              <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
-                Page Frames ({filteredTemplates.length})
-              </span>
-              {isTemplatesOpen ? (
-                <ChevronUp className="w-3 h-3 text-zinc-400 shrink-0" />
-              ) : (
-                <ChevronDown className="w-3 h-3 text-zinc-400 shrink-0" />
-              )}
-            </button>
-          ) : (
-            <div className="h-px bg-zinc-200/50 w-6 mx-auto my-3" />
-          )}
-
-          {(isTemplatesOpen || isCollapsed) && (
-            <div className="space-y-0.5">
-              {filteredTemplates.map((template) => (
-                <button
-                  key={template.type}
-                  title={isCollapsed ? template.label : undefined}
-                  onClick={() => handleAddPage(template.type)}
-                  className={`w-full flex items-center ${
-                    isCollapsed
-                      ? "justify-center p-2"
-                      : "justify-start gap-3 p-2"
-                  } rounded-xl text-left hover:bg-zinc-50 border border-transparent transition-all group shrink-0`}
-                >
-                  <div className="p-1.5 bg-zinc-50 border border-zinc-100 rounded-lg text-zinc-500 group-hover:bg-zinc-950 group-hover:text-white group-hover:border-zinc-950 transition-all shrink-0">
-                    {template.icon}
-                  </div>
-                  {!isCollapsed && (
-                    <div className="space-y-0.5 min-w-0 whitespace-nowrap animate-in fade-in duration-200">
-                      <p className="text-[12px] font-bold text-zinc-800 tracking-tight group-hover:text-zinc-950">
-                        {template.label}
-                      </p>
-                      <p className="text-[10px] text-zinc-400 leading-tight truncate">
-                        {template.description}
-                      </p>
+            {(isBlocksOpen || isCollapsed) && (
+              <div className="space-y-0.5">
+                {filteredBlocks.map((item) => (
+                  <div
+                    key={item.type}
+                    title={isCollapsed ? item.label : undefined}
+                    onPointerDown={(e) => handlePointerDown(e, item, true)}
+                    className={`w-full flex items-center ${isCollapsed ? "justify-center p-2" : "justify-start gap-3 p-2"} rounded-xl text-left hover:bg-zinc-50 border border-transparent transition-all group shrink-0 cursor-grab active:cursor-grabbing`}
+                  >
+                    <div className="p-1.5 bg-zinc-50 border border-zinc-100 rounded-lg text-zinc-500 group-hover:bg-zinc-950 group-hover:text-white group-hover:border-zinc-950 transition-all shrink-0 pointer-events-none">
+                      {item.icon}
                     </div>
-                  )}
-                </button>
-              ))}
-              {filteredTemplates.length === 0 && !isCollapsed && (
-                <p className="text-[11px] text-zinc-400 text-center py-2">
-                  No frames found
-                </p>
-              )}
-            </div>
-          )}
+                    {!isCollapsed && (
+                      <div className="space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap animate-in fade-in duration-200">
+                        <p className="text-[12px] font-bold text-zinc-800 tracking-tight group-hover:text-zinc-950">
+                          {item.label}
+                        </p>
+                        <p className="text-[10px] text-zinc-400 leading-tight truncate">
+                          {item.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {!isCollapsed && <div className="h-px bg-zinc-100/80 my-1 mx-2" />}
+
+          <div className="space-y-1">
+            {!isCollapsed ? (
+              <button
+                type="button"
+                onClick={() => setIsTemplatesOpen(!isTemplatesOpen)}
+                className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
+              >
+                <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-wider">
+                  Page Frames ({filteredTemplates.length})
+                </span>
+                {isTemplatesOpen ? (
+                  <ChevronUp className="w-3 h-3 text-zinc-400 shrink-0" />
+                ) : (
+                  <ChevronDown className="w-3 h-3 text-zinc-400 shrink-0" />
+                )}
+              </button>
+            ) : (
+              <div className="h-px bg-zinc-200/50 w-6 mx-auto my-3" />
+            )}
+
+            {(isTemplatesOpen || isCollapsed) && (
+              <div className="space-y-0.5">
+                {filteredTemplates.map((template) => (
+                  <div
+                    key={template.type}
+                    title={isCollapsed ? template.label : undefined}
+                    onPointerDown={(e) => handlePointerDown(e, template, false)}
+                    className={`w-full flex items-center ${isCollapsed ? "justify-center p-2" : "justify-start gap-3 p-2"} rounded-xl text-left hover:bg-zinc-50 border border-transparent transition-all group shrink-0 cursor-grab active:cursor-grabbing`}
+                  >
+                    <div className="p-1.5 bg-zinc-50 border border-zinc-100 rounded-lg text-zinc-500 group-hover:bg-zinc-950 group-hover:text-white group-hover:border-zinc-950 transition-all shrink-0 pointer-events-none">
+                      {template.icon}
+                    </div>
+                    {!isCollapsed && (
+                      <div className="space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap animate-in fade-in duration-200">
+                        <p className="text-[12px] font-bold text-zinc-800 tracking-tight group-hover:text-zinc-950">
+                          {template.label}
+                        </p>
+                        <p className="text-[10px] text-zinc-400 leading-tight truncate">
+                          {template.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {activeDrag && (
+        <div
+          className="fixed z-[99999] pointer-events-none flex items-center gap-3 p-2.5 bg-white/90 backdrop-blur-md border-2 border-blue-500 rounded-xl shadow-2xl scale-105 transition-transform"
+          style={{ left: activeDrag.x + 15, top: activeDrag.y + 15 }}
+        >
+          <div className="p-1.5 bg-zinc-950 rounded-lg text-white">
+            {activeDrag.icon}
+          </div>
+          <div className="space-y-0.5 whitespace-nowrap pr-2">
+            <p className="text-[12px] font-bold text-zinc-950">
+              {activeDrag.label}
+            </p>
+            <p className="text-[10px] font-medium text-blue-500 uppercase tracking-widest">
+              Drop to Canvas
+            </p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
