@@ -82,44 +82,61 @@ export default function BlockResizer({
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
   };
-
-  const handleClasses =
-    "absolute w-3 h-3 bg-white border-[2.5px] border-blue-500 rounded-sm z-[100] hover:bg-blue-100 hover:scale-125 transition-transform shadow-sm";
+  const wrapperClasses =
+    "absolute w-8 h-8 flex items-center justify-center z-[100] touch-none";
+  const visualClasses =
+    "w-3 h-3 bg-white border-[2.5px] border-blue-500 rounded-sm hover:bg-blue-100 hover:scale-125 transition-transform shadow-sm pointer-events-none";
 
   return (
     <>
       <div
-        className={`${handleClasses} -top-1.5 -left-1.5 cursor-nwse-resize`}
+        className={`${wrapperClasses} -top-4 -left-4 cursor-nwse-resize`}
         onPointerDown={(e) => handlePointerDown(e, "nw")}
-      />
+      >
+        <div className={visualClasses} />
+      </div>
       <div
-        className={`${handleClasses} -top-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize`}
+        className={`${wrapperClasses} -top-4 left-1/2 -translate-x-1/2 cursor-ns-resize`}
         onPointerDown={(e) => handlePointerDown(e, "n")}
-      />
+      >
+        <div className={visualClasses} />
+      </div>
       <div
-        className={`${handleClasses} -top-1.5 -right-1.5 cursor-nesw-resize`}
+        className={`${wrapperClasses} -top-4 -right-4 cursor-nesw-resize`}
         onPointerDown={(e) => handlePointerDown(e, "ne")}
-      />
+      >
+        <div className={visualClasses} />
+      </div>
       <div
-        className={`${handleClasses} top-1/2 -right-1.5 -translate-y-1/2 cursor-ew-resize`}
+        className={`${wrapperClasses} top-1/2 -right-4 -translate-y-1/2 cursor-ew-resize`}
         onPointerDown={(e) => handlePointerDown(e, "e")}
-      />
+      >
+        <div className={visualClasses} />
+      </div>
       <div
-        className={`${handleClasses} -bottom-1.5 -right-1.5 cursor-nwse-resize`}
+        className={`${wrapperClasses} -bottom-4 -right-4 cursor-nwse-resize`}
         onPointerDown={(e) => handlePointerDown(e, "se")}
-      />
+      >
+        <div className={visualClasses} />
+      </div>
       <div
-        className={`${handleClasses} -bottom-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize`}
+        className={`${wrapperClasses} -bottom-4 left-1/2 -translate-x-1/2 cursor-ns-resize`}
         onPointerDown={(e) => handlePointerDown(e, "s")}
-      />
+      >
+        <div className={visualClasses} />
+      </div>
       <div
-        className={`${handleClasses} -bottom-1.5 -left-1.5 cursor-nesw-resize`}
+        className={`${wrapperClasses} -bottom-4 -left-4 cursor-nesw-resize`}
         onPointerDown={(e) => handlePointerDown(e, "sw")}
-      />
+      >
+        <div className={visualClasses} />
+      </div>
       <div
-        className={`${handleClasses} top-1/2 -left-1.5 -translate-y-1/2 cursor-ew-resize`}
+        className={`${wrapperClasses} top-1/2 -left-4 -translate-y-1/2 cursor-ew-resize`}
         onPointerDown={(e) => handlePointerDown(e, "w")}
-      />
+      >
+        <div className={visualClasses} />
+      </div>
     </>
   );
 }

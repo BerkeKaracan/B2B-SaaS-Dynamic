@@ -784,7 +784,7 @@ export default function CanvasArea() {
                           setConnectingFrom(null);
                         }
                       }}
-                      className={`absolute bg-white border border-zinc-200/80 rounded-2xl p-5 pt-7 cursor-default select-text group transition-shadow ${
+                      className={`absolute bg-white border border-zinc-200/80 rounded-2xl p-5 pt-12 sm:pt-8 cursor-default select-text group transition-shadow ${
                         isBlockActive
                           ? "ring-2 ring-blue-500 shadow-xl z-20"
                           : "shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-md z-10"
@@ -819,7 +819,7 @@ export default function CanvasArea() {
                               by,
                             );
                         }}
-                        className="absolute top-0 left-0 right-0 h-10 sm:h-6 bg-zinc-50/50 hover:bg-zinc-100/80 border-b border-zinc-100/50 rounded-t-2xl flex items-center justify-center cursor-move transition-colors select-none"
+                        className="absolute top-0 left-0 right-0 h-12 sm:h-6 bg-zinc-50/50 hover:bg-zinc-100/80 border-b border-zinc-100/50 rounded-t-2xl flex items-center justify-center cursor-move transition-colors select-none z-40 touch-none"
                       >
                         <div className="flex gap-1 pointer-events-none">
                           <span className="w-1 h-1 bg-zinc-400 sm:bg-zinc-300 rounded-full" />
