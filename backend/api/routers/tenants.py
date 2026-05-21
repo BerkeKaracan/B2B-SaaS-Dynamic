@@ -9,6 +9,10 @@ router = APIRouter(
     tags=["Tenants"],
 )
 
+
+class SetPasswordRequest(BaseModel):
+    password: str
+
 class UpdateTierRequest(BaseModel):
     tier: str
 
@@ -83,7 +87,7 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
             raise HTTPException(status_code=403, detail=f"Seat limit reached for {current_tier.upper()} plan.")
         FRONTEND_URL = "https://b2-b-saa-s-dynamic.vercel.app"
 
-        redirect_url = f"{FRONTEND_URL}/dashboard/{tenant_id}"
+        redirect_url = f"{FRONTEND_URL}/accept-invite?tenant_id={tenant_id}"
 
         auth_res = supabase_admin.auth.admin.invite_user_by_email(
             request.email,
@@ -115,3 +119,20 @@ def remove_team_member(tenant_id: UUID, member_id: UUID):
         return {"message": "Team member removed. Seat is available."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/set-password")
+def set_password(request: SetPasswordRequest, authorization: str = Header(...)):
+    try:
+        token = authorization.replace("Bearer ", "")
+        user_res = supabase.auth.get_user(token)
+        
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="Invalid or expired invitation session.")
+        
+        uid = user_res.user.id
+
+        supabase_admin.auth.admin.update_user_by_id(uid, {"password": request.password})
+        
+        return {"message": "Password set successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
