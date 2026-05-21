@@ -91,6 +91,13 @@ interface CanvasState {
     offsetX?: number,
     offsetY?: number,
   ) => void;
+  transferBlockToPage: (
+    blockId: string,
+    sourcePageId: string,
+    targetPageId: string,
+    newX: number,
+    newY: number,
+  ) => void;
 }
 
 let saveTimeout: NodeJS.Timeout;
@@ -422,18 +429,47 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       pages: state.pages.map((p) => (p.id === pageId ? { ...p, x, y } : p)),
     })),
   updateBlockPosition: (pageId, blockId, x, y) =>
-    set((state) => ({
-      pages: state.pages.map((p) =>
-        p.id === pageId
-          ? {
-              ...p,
-              blocks: p.blocks.map((b) =>
-                b.id === blockId ? { ...b, x, y } : b,
-              ),
-            }
-          : p,
-      ),
-    })),
+    set((state) => {
+      const sourcePage = state.pages.find((p) => p.id === pageId);
+      const sourceBlock = sourcePage?.blocks.find((b) => b.id === blockId);
+      if (!sourcePage || !sourceBlock) return state;
+      const dx = x - sourceBlock.x;
+      const dy = y - sourceBlock.y;
+
+      const isMultiDrag =
+        state.selectedBlocks.includes(blockId) &&
+        state.selectedBlocks.length > 1;
+
+      return {
+        pages: state.pages.map((p) => {
+          const hasBlocksToMove = p.blocks.some(
+            (b) =>
+              (p.id === pageId && b.id === blockId) ||
+              (isMultiDrag && state.selectedBlocks.includes(b.id)),
+          );
+
+          if (!hasBlocksToMove) return p;
+
+          return {
+            ...p,
+            blocks: p.blocks.map((b) => {
+              const isTargetBlock = p.id === pageId && b.id === blockId;
+              const isSelectedBlock =
+                isMultiDrag && state.selectedBlocks.includes(b.id);
+
+              if (isTargetBlock || isSelectedBlock) {
+                return {
+                  ...b,
+                  x: b.x + dx,
+                  y: b.y + dy,
+                };
+              }
+              return b;
+            }),
+          };
+        }),
+      };
+    }),
   updateBlockDimensions: (pageId, blockId, width, height) =>
     set((state) => ({
       pages: state.pages.map((p) =>
@@ -556,8 +592,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
       const newBlock: BlockContent = {
         ...JSON.parse(JSON.stringify(blockToCopy)),
-        id: crypto.randomUUID(), 
-        x: blockToCopy.x + offsetX, 
+        id: crypto.randomUUID(),
+        x: blockToCopy.x + offsetX,
         y: blockToCopy.y + offsetY,
       };
 
@@ -567,6 +603,31 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         ),
         activeBlockId: newBlock.id,
         selectedBlocks: [newBlock.id],
+      };
+    });
+  },
+  transferBlockToPage: (blockId, sourcePageId, targetPageId, newX, newY) => {
+    get().saveHistory();
+    set((state) => {
+      const sourcePage = state.pages.find((p) => p.id === sourcePageId);
+      if (!sourcePage) return state;
+
+      const blockToMove = sourcePage.blocks.find((b) => b.id === blockId);
+      if (!blockToMove) return state;
+
+      const updatedBlock = { ...blockToMove, x: newX, y: newY };
+
+      return {
+        pages: state.pages.map((p) => {
+          if (p.id === sourcePageId) {
+            return { ...p, blocks: p.blocks.filter((b) => b.id !== blockId) };
+          }
+          if (p.id === targetPageId) {
+            return { ...p, blocks: [...p.blocks, updatedBlock] };
+          }
+          return p;
+        }),
+        activePageId: targetPageId, 
       };
     });
   },

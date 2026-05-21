@@ -33,12 +33,6 @@ export default function CanvasArea() {
   const panY = store.panY ?? 0;
   const isLoading = store.isLoading ?? false;
 
-  const [clipboardBlock, setClipboardBlock] = useState<{
-    pageId: string;
-    blockId: string;
-  } | null>(null);
-  const [isAltPressed, setIsAltPressed] = useState(false);
-
   const {
     addBlockToPage,
     updateBlockValue,
@@ -61,9 +55,16 @@ export default function CanvasArea() {
     undo,
     redo,
     saveHistory,
+    duplicateBlock,
+    transferBlockToPage,
   } = store;
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const [clipboardBlock, setClipboardBlock] = useState<{
+    pageId: string;
+    blockId: string;
+  } | null>(null);
 
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
   const [draggedBlockInfo, setDraggedBlockInfo] = useState<{
@@ -103,48 +104,68 @@ export default function CanvasArea() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "Space") setIsSpacePressed(true);
-      if (e.key === "Alt") setIsAltPressed(true);
+      const activeElement = document.activeElement as HTMLElement;
+      const isInputActive =
+        activeElement &&
+        ["INPUT", "TEXTAREA", "SELECT"].includes(activeElement.tagName);
 
-      const target = e.target as HTMLElement;
-      if (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
-
-      if (
-        (e.ctrlKey || e.metaKey) &&
-        e.key === "c" &&
-        activeBlockId &&
-        activePageId
-      ) {
-        setClipboardBlock({ pageId: activePageId, blockId: activeBlockId });
-      }
-
-      if ((e.ctrlKey || e.metaKey) && e.key === "v" && clipboardBlock) {
-        store.duplicateBlock(
-          clipboardBlock.pageId,
-          clipboardBlock.blockId,
-          20,
-          20,
-        );
-      }
-
-      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
-        if (e.shiftKey) store.redo();
-        else store.undo();
-      }
-      if (e.key === "Delete" || e.key === "Backspace") {
-        if (activeBlockId && activePageId) {
-          store.removeBlockFromPage(activePageId, activeBlockId);
-        } else if (activePageId) {
-          store.removePage(activePageId);
-        } else if (selectedBlocks.length > 0) {
-          store.removeSelectedBlocks();
+      if (!isInputActive) {
+        if (e.code === "Space" && !e.repeat) {
+          e.preventDefault();
+          setIsSpacePressed(true);
         }
+
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
+          const state = useCanvasStore.getState();
+          if (state.activeBlockId && state.activePageId) {
+            setClipboardBlock({
+              pageId: state.activePageId,
+              blockId: state.activeBlockId,
+            });
+          }
+        }
+
+        if (
+          (e.ctrlKey || e.metaKey) &&
+          e.key.toLowerCase() === "v" &&
+          clipboardBlock
+        ) {
+          duplicateBlock(clipboardBlock.pageId, clipboardBlock.blockId, 40, 40);
+        }
+
+        if (e.ctrlKey || e.metaKey) {
+          if (e.key.toLowerCase() === "z") {
+            e.preventDefault();
+            e.shiftKey ? redo() : undo();
+          } else if (e.key.toLowerCase() === "y") {
+            e.preventDefault();
+            redo();
+          }
+        }
+
+        if (e.key === "Delete" || e.key === "Backspace") {
+          e.preventDefault();
+          const currentState = useCanvasStore.getState();
+
+          if (currentState.selectedBlocks?.length > 0) {
+            removeSelectedBlocks();
+          } else {
+            const pId = currentState.activePageId;
+            const bId = currentState.activeBlockId;
+            if (pId && bId) removeBlockFromPage(pId, bId);
+            else if (pId && !bId) removePage(pId);
+          }
+        }
+
+        if (e.key === "Escape") setConnectingFrom(null);
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === "Space") setIsSpacePressed(false);
-      if (e.key === "Alt") setIsAltPressed(false);
+      if (e.code === "Space") {
+        setIsSpacePressed(false);
+        setIsSpacePanning(false);
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -153,7 +174,15 @@ export default function CanvasArea() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [activeBlockId, activePageId, selectedBlocks, store, clipboardBlock]);
+  }, [
+    undo,
+    redo,
+    removePage,
+    removeBlockFromPage,
+    removeSelectedBlocks,
+    clipboardBlock,
+    duplicateBlock,
+  ]);
 
   useEffect(() => {
     const handleGlobalPointerMove = (e: globalThis.PointerEvent) => {
@@ -220,7 +249,8 @@ export default function CanvasArea() {
           page.blocks.forEach((block) => {
             const bx = page.x + block.x;
             const by = page.y + block.y;
-            if (bx < maxX && bx + 320 > minX && by < maxY && by + 150 > minY) {
+            const bw = block.width || 320;
+            if (bx < maxX && bx + bw > minX && by < maxY && by + 150 > minY) {
               newSelected.push(block.id);
             }
           });
@@ -265,6 +295,47 @@ export default function CanvasArea() {
         prevTouchDistance.current = null;
       }
 
+      if (draggedBlockInfo) {
+        const state = useCanvasStore.getState();
+        const sourcePage = state.pages.find(
+          (p) => p.id === draggedBlockInfo.pageId,
+        );
+        const block = sourcePage?.blocks.find(
+          (b) => b.id === draggedBlockInfo.blockId,
+        );
+
+        if (sourcePage && block) {
+          const blockAbsX = sourcePage.x + block.x;
+          const blockAbsY = sourcePage.y + block.y;
+          const blockCenterX = blockAbsX + (block.width || 320) / 2;
+          const blockCenterY = blockAbsY + (block.height || 120) / 2;
+
+          const targetPage = [...state.pages].reverse().find((p) => {
+            if (p.id === sourcePage.id) return false;
+            return (
+              blockCenterX >= p.x &&
+              blockCenterX <= p.x + p.width &&
+              blockCenterY >= p.y &&
+              blockCenterY <= p.y + p.height
+            );
+          });
+
+          if (targetPage) {
+            const newX = blockAbsX - targetPage.x;
+            const newY = blockAbsY - targetPage.y;
+            if (transferBlockToPage) {
+              transferBlockToPage(
+                block.id,
+                sourcePage.id,
+                targetPage.id,
+                newX,
+                newY,
+              );
+            }
+          }
+        }
+      }
+
       if (draggedPageId || draggedBlockInfo || resizingPageId) saveHistory();
       setDraggedPageId(null);
       setDraggedBlockInfo(null);
@@ -304,6 +375,7 @@ export default function CanvasArea() {
     setSelectedBlocks,
     isSpacePanning,
     spacePanStart,
+    transferBlockToPage,
   ]);
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -408,7 +480,7 @@ export default function CanvasArea() {
   };
 
   const startBlockDrag = (
-    e: ReactPointerEvent<HTMLDivElement>,
+    e: ReactPointerEvent,
     pageId: string,
     blockId: string,
     pageX: number,
@@ -422,9 +494,8 @@ export default function CanvasArea() {
 
     let targetBlockId = blockId;
 
-    if (isAltPressed) {
-      store.duplicateBlock(pageId, blockId, 0, 0);
-
+    if (e.altKey) {
+      duplicateBlock(pageId, blockId, 0, 0);
       const newState = useCanvasStore.getState();
       if (newState.activeBlockId) {
         targetBlockId = newState.activeBlockId;
@@ -433,13 +504,11 @@ export default function CanvasArea() {
 
     setActivePage(pageId);
     setActiveBlock(targetBlockId);
-
     const currentZoom = zoom / 100;
     const rect = containerRef.current?.getBoundingClientRect() || {
       left: 0,
       top: 0,
     };
-
     setDraggedBlockInfo({ pageId, blockId: targetBlockId });
     setDragOffset({
       x: (e.clientX - rect.left - panX) / currentZoom - pageX - blockX,
@@ -755,7 +824,6 @@ export default function CanvasArea() {
                     selectedBlocks.includes(block.id);
                   const bx = block.x ?? 20;
                   const by = block.y ?? 20;
-
                   const bw = block.width ?? 320;
                   const bh = block.height ?? 120;
 
@@ -824,6 +892,7 @@ export default function CanvasArea() {
                           height={bh}
                         />
                       )}
+
                       <div
                         onPointerDown={(e) => {
                           if (!connectingFrom)
