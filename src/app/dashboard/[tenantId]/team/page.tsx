@@ -42,7 +42,6 @@ export default function TeamBillingPage({
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [newEmail, setNewEmail] = useState("");
 
-  // UX Improvement: State for success and error notifications
   const [notification, setNotification] = useState<Notification | null>(null);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [isInviting, setIsInviting] = useState(false);
@@ -51,29 +50,35 @@ export default function TeamBillingPage({
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash && hash.includes("access_token=")) {
-      const params = new URLSearchParams(hash.replace("#", "?"));
-      const accessToken = params.get("access_token");
-
-      if (accessToken) {
-        localStorage.setItem("token", accessToken);
-        window.history.replaceState(null, "", window.location.pathname);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
     const checkAccess = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) return router.push("/login");
+        // STEP 1: Intercept and save the token from the URL hash (Supabase Invite Redirect)
+        const hash = window.location.hash;
+        if (hash && hash.includes("access_token=")) {
+          const params = new URLSearchParams(hash.replace("#", "?"));
+          const accessToken = params.get("access_token");
 
+          if (accessToken) {
+            localStorage.setItem("token", accessToken);
+            // Clean the URL for a better user experience
+            window.history.replaceState(null, "", window.location.pathname);
+          }
+        }
+
+        // STEP 2: Now safely read from localStorage
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.error("No token found. Redirecting to login.");
+          router.push("/login");
+          return;
+        }
+
+        // STEP 3: Validate token and get user role from backend
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!res.ok) throw new Error("Not logged in");
+        if (!res.ok) throw new Error("Not logged in or token expired");
 
         const data = await res.json();
         const roleStr = data.role || "employee";
@@ -83,6 +88,7 @@ export default function TeamBillingPage({
           return;
         }
 
+        // STEP 4: Fetch workspace team members
         const res2 = await fetch(
           `${API_BASE_URL}/api/tenants/${tenantId}/team`,
           {
@@ -101,6 +107,7 @@ export default function TeamBillingPage({
         setIsCheckingAccess(false);
       }
     };
+
     checkAccess();
   }, [tenantId, router, API_BASE_URL]);
 
@@ -240,7 +247,11 @@ export default function TeamBillingPage({
         {/* Toast Notification */}
         {notification && (
           <div
-            className={`mb-6 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 border ${notification.type === "success" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-700"}`}
+            className={`mb-6 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 border ${
+              notification.type === "success"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                : "bg-red-50 border-red-200 text-red-700"
+            }`}
           >
             {notification.type === "success" ? (
               <CheckCircle2 className="w-5 h-5" />
@@ -314,7 +325,9 @@ export default function TeamBillingPage({
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-tr ${getAvatarGradient(emailStr)} shadow-sm`}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-tr ${getAvatarGradient(
+                            emailStr,
+                          )} shadow-sm`}
                         >
                           {initial}
                         </div>
