@@ -51,6 +51,19 @@ export default function TeamBillingPage({
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes("access_token=")) {
+      const params = new URLSearchParams(hash.replace("#", "?"));
+      const accessToken = params.get("access_token");
+
+      if (accessToken) {
+        localStorage.setItem("token", accessToken);
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     const checkAccess = async () => {
       try {
         const token = localStorage.getItem("token");
