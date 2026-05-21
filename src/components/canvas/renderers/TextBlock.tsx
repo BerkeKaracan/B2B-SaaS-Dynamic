@@ -46,7 +46,7 @@ export default function TextBlock({
   };
 
   return (
-    <div className="relative w-full group/text pb-6">
+    <div className="relative w-full group/text pb-8">
       <textarea
         ref={textareaRef}
         className="w-full p-0 border-none focus:ring-0 leading-relaxed bg-transparent outline-none resize-none overflow-hidden placeholder:text-zinc-300 transition-all"
@@ -65,7 +65,7 @@ export default function TextBlock({
       />
 
       {onSettingsChange && (
-        <div className="absolute -bottom-1 -right-1 z-30 flex items-center gap-1.5 opacity-0 group-hover/text:opacity-100 focus-within:opacity-100 transition-opacity">
+        <div className="absolute bottom-0 right-0 z-30 flex items-center gap-1.5 opacity-100 md:opacity-0 md:group-hover/text:opacity-100 md:focus-within:opacity-100 transition-opacity">
           {isToolbarOpen && (
             <div className="flex items-center gap-1 bg-zinc-900 text-white p-1 rounded-lg shadow-xl animate-in fade-in slide-in-from-right-4 duration-200">
               <select
