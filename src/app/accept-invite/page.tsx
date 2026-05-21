@@ -9,6 +9,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
+
 function AcceptInviteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
