@@ -81,8 +81,14 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
         limits = {"basic": 3, "advanced": 50, "pro": float('inf')}
         if current_seat_count >= limits[current_tier]:
             raise HTTPException(status_code=403, detail=f"Seat limit reached for {current_tier.upper()} plan.")
+        FRONTEND_URL = "https://b2-b-saa-s-dynamic.vercel.app"
 
-        auth_res = supabase_admin.auth.admin.invite_user_by_email(request.email)
+        redirect_url = f"{FRONTEND_URL}/dashboard/{tenant_id}"
+
+        auth_res = supabase_admin.auth.admin.invite_user_by_email(
+            request.email,
+            options={"redirect_to": redirect_url}
+        )
         
         if not auth_res.user:
             raise HTTPException(status_code=400, detail="Could not invite user.")
