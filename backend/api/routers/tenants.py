@@ -40,10 +40,30 @@ def update_tenant_tier(tenant_id: UUID, request: UpdateTierRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{tenant_id}/team")
-def get_team_members(tenant_id: UUID):
+def get_tenant_members(tenant_id: UUID):
+    """
+    Fetches all members of a specific tenant and joins with the users table 
+    to retrieve their actual email addresses using Supabase native join.
+    """
     try:
-        response = supabase.table("tenant_users").select("*").eq("tenant_id", str(tenant_id)).execute()
-        return response.data
+        response = supabase.table("tenant_users").select(
+            "id, tenant_id, user_id, role, created_at, users(email)"
+        ).eq("tenant_id", str(tenant_id)).execute()
+
+        members = []
+        for row in response.data:
+            user_data = row.get("users") or {}
+            
+            members.append({
+                "id": str(row.get("id")),
+                "tenant_id": str(row.get("tenant_id")),
+                "user_id": str(row.get("user_id")),
+                "role": row.get("role"),
+                "created_at": row.get("created_at"),
+                "email": user_data.get("email") 
+            })
+            
+        return members
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
