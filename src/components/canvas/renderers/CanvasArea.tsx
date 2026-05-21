@@ -33,6 +33,12 @@ export default function CanvasArea() {
   const panY = store.panY ?? 0;
   const isLoading = store.isLoading ?? false;
 
+  const [clipboardBlock, setClipboardBlock] = useState<{
+    pageId: string;
+    blockId: string;
+  } | null>(null);
+  const [isAltPressed, setIsAltPressed] = useState(false);
+
   const {
     addBlockToPage,
     updateBlockValue,
@@ -97,50 +103,48 @@ export default function CanvasArea() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const activeElement = document.activeElement as HTMLElement;
-      const isInputActive =
-        activeElement &&
-        ["INPUT", "TEXTAREA", "SELECT"].includes(activeElement.tagName);
+      if (e.code === "Space") setIsSpacePressed(true);
+      if (e.key === "Alt") setIsAltPressed(true);
 
-      if (!isInputActive) {
-        if (e.code === "Space" && !e.repeat) {
-          e.preventDefault();
-          setIsSpacePressed(true);
+      const target = e.target as HTMLElement;
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
+
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key === "c" &&
+        activeBlockId &&
+        activePageId
+      ) {
+        setClipboardBlock({ pageId: activePageId, blockId: activeBlockId });
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "v" && clipboardBlock) {
+        store.duplicateBlock(
+          clipboardBlock.pageId,
+          clipboardBlock.blockId,
+          20,
+          20,
+        );
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        if (e.shiftKey) store.redo();
+        else store.undo();
+      }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (activeBlockId && activePageId) {
+          store.removeBlockFromPage(activePageId, activeBlockId);
+        } else if (activePageId) {
+          store.removePage(activePageId);
+        } else if (selectedBlocks.length > 0) {
+          store.removeSelectedBlocks();
         }
-
-        if (e.ctrlKey || e.metaKey) {
-          if (e.key.toLowerCase() === "z") {
-            e.preventDefault();
-            e.shiftKey ? redo() : undo();
-          } else if (e.key.toLowerCase() === "y") {
-            e.preventDefault();
-            redo();
-          }
-        }
-
-        if (e.key === "Delete" || e.key === "Backspace") {
-          e.preventDefault();
-          const currentState = useCanvasStore.getState();
-
-          if (currentState.selectedBlocks?.length > 0) {
-            removeSelectedBlocks();
-          } else {
-            const pId = currentState.activePageId;
-            const bId = currentState.activeBlockId;
-            if (pId && bId) removeBlockFromPage(pId, bId);
-            else if (pId && !bId) removePage(pId);
-          }
-        }
-
-        if (e.key === "Escape") setConnectingFrom(null);
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === "Space") {
-        setIsSpacePressed(false);
-        setIsSpacePanning(false);
-      }
+      if (e.code === "Space") setIsSpacePressed(false);
+      if (e.key === "Alt") setIsAltPressed(false);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -149,7 +153,7 @@ export default function CanvasArea() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [undo, redo, removePage, removeBlockFromPage, removeSelectedBlocks]);
+  }, [activeBlockId, activePageId, selectedBlocks, store, clipboardBlock]);
 
   useEffect(() => {
     const handleGlobalPointerMove = (e: globalThis.PointerEvent) => {
@@ -404,7 +408,7 @@ export default function CanvasArea() {
   };
 
   const startBlockDrag = (
-    e: ReactPointerEvent,
+    e: ReactPointerEvent<HTMLDivElement>,
     pageId: string,
     blockId: string,
     pageX: number,
@@ -415,14 +419,28 @@ export default function CanvasArea() {
     if (isSpacePressed || activePointers.current.size > 1) return;
     e.stopPropagation();
     e.preventDefault();
+
+    let targetBlockId = blockId;
+
+    if (isAltPressed) {
+      store.duplicateBlock(pageId, blockId, 0, 0);
+
+      const newState = useCanvasStore.getState();
+      if (newState.activeBlockId) {
+        targetBlockId = newState.activeBlockId;
+      }
+    }
+
     setActivePage(pageId);
-    setActiveBlock(blockId);
+    setActiveBlock(targetBlockId);
+
     const currentZoom = zoom / 100;
     const rect = containerRef.current?.getBoundingClientRect() || {
       left: 0,
       top: 0,
     };
-    setDraggedBlockInfo({ pageId, blockId });
+
+    setDraggedBlockInfo({ pageId, blockId: targetBlockId });
     setDragOffset({
       x: (e.clientX - rect.left - panX) / currentZoom - pageX - blockX,
       y: (e.clientY - rect.top - panY) / currentZoom - pageY - blockY,

@@ -85,6 +85,12 @@ interface CanvasState {
     width: number,
     height: number,
   ) => void;
+  duplicateBlock: (
+    pageId: string,
+    blockId: string,
+    offsetX?: number,
+    offsetY?: number,
+  ) => void;
 }
 
 let saveTimeout: NodeJS.Timeout;
@@ -538,5 +544,30 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     } finally {
       set({ isSaving: false });
     }
+  },
+  duplicateBlock: (pageId, blockId, offsetX = 40, offsetY = 40) => {
+    get().saveHistory();
+    set((state) => {
+      const page = state.pages.find((p) => p.id === pageId);
+      if (!page) return state;
+
+      const blockToCopy = page.blocks.find((b) => b.id === blockId);
+      if (!blockToCopy) return state;
+
+      const newBlock: BlockContent = {
+        ...JSON.parse(JSON.stringify(blockToCopy)),
+        id: crypto.randomUUID(), 
+        x: blockToCopy.x + offsetX, 
+        y: blockToCopy.y + offsetY,
+      };
+
+      return {
+        pages: state.pages.map((p) =>
+          p.id === pageId ? { ...p, blocks: [...p.blocks, newBlock] } : p,
+        ),
+        activeBlockId: newBlock.id,
+        selectedBlocks: [newBlock.id],
+      };
+    });
   },
 }));
