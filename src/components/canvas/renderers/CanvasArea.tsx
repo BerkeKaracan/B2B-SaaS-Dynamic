@@ -18,6 +18,7 @@ import DropdownBlock from "./DropdownBlock";
 import ToggleSwitchBlock from "./ToggleSwitchBlock";
 import BadgeSelectorBlock from "./BadgeSelectorBlock";
 import AssetStreamBlock from "./AssetStreamBlock";
+import BlockResizer from "./BlockResizer";
 
 export default function CanvasArea() {
   const store = useCanvasStore();
@@ -174,7 +175,7 @@ export default function CanvasArea() {
           }
         }
         prevTouchDistance.current = distance;
-        return; 
+        return;
       }
 
       const state = useCanvasStore.getState();
@@ -582,7 +583,7 @@ export default function CanvasArea() {
       ref={containerRef}
       className={`canvas-bg absolute inset-0 overflow-hidden select-none touch-none bg-[#F9F9FB] ${cursorStyle}`}
       onPointerDown={handlePointerDown}
-      onWheel={handleWheel} 
+      onWheel={handleWheel}
     >
       <div
         className="canvas-bg absolute inset-0 infinite-grid-layer pointer-events-none"
@@ -737,6 +738,9 @@ export default function CanvasArea() {
                   const bx = block.x ?? 20;
                   const by = block.y ?? 20;
 
+                  const bw = block.width ?? 320;
+                  const bh = block.height ?? 120;
+
                   return (
                     <div
                       key={block.id}
@@ -780,13 +784,28 @@ export default function CanvasArea() {
                           setConnectingFrom(null);
                         }
                       }}
-                      className={`absolute bg-white border border-zinc-200/80 rounded-2xl p-5 pt-7 min-w-[280px] sm:min-w-[320px] cursor-default select-text group transition-shadow ${
+                      className={`absolute bg-white border border-zinc-200/80 rounded-2xl p-5 pt-7 cursor-default select-text group transition-shadow ${
                         isBlockActive
                           ? "ring-2 ring-blue-500 shadow-xl z-20"
                           : "shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-md z-10"
                       } ${connectingFrom && connectingFrom.blockId !== block.id ? "hover:ring-2 hover:ring-blue-400" : ""}`}
-                      style={{ left: `${bx}px`, top: `${by}px` }}
+                      style={{
+                        left: `${bx}px`,
+                        top: `${by}px`,
+                        width: `${bw}px`,
+                        minHeight: `${bh}px`,
+                      }}
                     >
+                      {isBlockActive && (
+                        <BlockResizer
+                          pageId={page.id}
+                          blockId={block.id}
+                          x={bx}
+                          y={by}
+                          width={bw}
+                          height={bh}
+                        />
+                      )}
                       <div
                         onPointerDown={(e) => {
                           if (!connectingFrom)

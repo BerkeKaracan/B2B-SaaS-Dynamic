@@ -14,6 +14,8 @@ export interface BlockContent {
   value: unknown;
   x: number;
   y: number;
+  width?: number;
+  height?: number;
   settings?: Record<string, unknown>;
 }
 

@@ -79,6 +79,12 @@ interface CanvasState {
   loadProjectById: (tenantId: string, recordId: string) => Promise<void>;
   createProject: (tenantId: string, name?: string) => Promise<string | null>;
   saveProject: (tenantId: string) => Promise<void>;
+  updateBlockDimensions: (
+    pageId: string,
+    blockId: string,
+    width: number,
+    height: number,
+  ) => void;
 }
 
 let saveTimeout: NodeJS.Timeout;
@@ -422,6 +428,19 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           : p,
       ),
     })),
+  updateBlockDimensions: (pageId, blockId, width, height) =>
+    set((state) => ({
+      pages: state.pages.map((p) =>
+        p.id === pageId
+          ? {
+              ...p,
+              blocks: p.blocks.map((b) =>
+                b.id === blockId ? { ...b, width, height } : b,
+              ),
+            }
+          : p,
+      ),
+    })),
   updatePageDimensions: (pageId, width, height) => {
     get().saveHistory();
     set((state) => ({
@@ -469,8 +488,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         set({
           recordId: record.id,
           title: record.record_data.title || "",
-          description: record.record_data.description || "", 
-          date: record.record_data.date || "", 
+          description: record.record_data.description || "",
+          date: record.record_data.date || "",
           pages: record.record_data.pages || [],
           connections: record.record_data.connections || [],
         });
