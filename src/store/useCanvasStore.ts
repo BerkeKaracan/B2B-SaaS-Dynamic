@@ -186,7 +186,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((state) => {
       const pageId = crypto.randomUUID();
       let width = 800;
-      let height = 1131; 
+      let height = 1131;
       let title = "New Frame";
       let bgColor = "#ffffff";
       let initialBlocks: BlockContent[] = [];
@@ -464,10 +464,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       if (!response.ok) throw new Error("Fetch failed");
       const data = await response.json();
       const record = data.find((r: { id: string }) => r.id === recordId);
+
       if (record?.record_data) {
         set({
           recordId: record.id,
           title: record.record_data.title || "",
+          description: record.record_data.description || "", 
+          date: record.record_data.date || "", 
           pages: record.record_data.pages || [],
           connections: record.record_data.connections || [],
         });
