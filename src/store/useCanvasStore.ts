@@ -185,17 +185,125 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     get().saveHistory();
     set((state) => {
       const pageId = crypto.randomUUID();
+      let width = 800;
+      let height = 1131; 
+      let title = "New Frame";
+      let bgColor = "#ffffff";
+      let initialBlocks: BlockContent[] = [];
+
+      if (type === "kanban") {
+        width = 1200;
+        height = 800;
+        title = "Kanban Board";
+        bgColor = "#f4f4f5";
+        initialBlocks = [
+          {
+            id: crypto.randomUUID(),
+            type: "text",
+            value: "TO DO\n\n- Task 1",
+            x: 40,
+            y: 40,
+            settings: {},
+          },
+          {
+            id: crypto.randomUUID(),
+            type: "text",
+            value: "IN PROGRESS\n\n- Task 2",
+            x: 440,
+            y: 40,
+            settings: {},
+          },
+          {
+            id: crypto.randomUUID(),
+            type: "text",
+            value: "DONE\n\n- ",
+            x: 840,
+            y: 40,
+            settings: {},
+          },
+        ];
+      } else if (type === "notes") {
+        width = 800;
+        height = 1000;
+        title = "Notes Workspace";
+        bgColor = "#fffdf0";
+        initialBlocks = [
+          {
+            id: crypto.randomUUID(),
+            type: "text",
+            value: "# Meeting Notes\nDate:",
+            x: 40,
+            y: 40,
+            settings: {},
+          },
+          {
+            id: crypto.randomUUID(),
+            type: "checkbox",
+            value: false,
+            x: 40,
+            y: 200,
+            settings: {},
+          },
+        ];
+      } else if (type === "agenda") {
+        width = 1000;
+        height = 600;
+        title = "Agenda Timeline";
+        initialBlocks = [
+          {
+            id: crypto.randomUUID(),
+            type: "date",
+            value: "",
+            x: 40,
+            y: 40,
+            settings: {},
+          },
+          {
+            id: crypto.randomUUID(),
+            type: "text",
+            value: "Phase 1: Kickoff",
+            x: 350,
+            y: 40,
+            settings: {},
+          },
+        ];
+      } else if (type === "database") {
+        width = 1200;
+        height = 800;
+        title = "Structured Database";
+        bgColor = "#f8fafc";
+        initialBlocks = [
+          {
+            id: crypto.randomUUID(),
+            type: "form",
+            value: "",
+            x: 40,
+            y: 40,
+            settings: {},
+          },
+          {
+            id: crypto.randomUUID(),
+            type: "badge_selector",
+            value: "",
+            x: 350,
+            y: 40,
+            settings: { options: "Active, Pending, Closed" },
+          },
+        ];
+      }
+
       const newPage: PageWithSettings = {
         id: pageId,
         type,
-        title: "New Frame",
+        title,
         x,
         y,
-        width: 800,
-        height: 1131,
-        blocks: [],
-        settings: { backgroundColor: "#ffffff" },
+        width,
+        height,
+        blocks: initialBlocks,
+        settings: { backgroundColor: bgColor },
       };
+
       return {
         pages: [...state.pages, newPage],
         activePageId: pageId,
@@ -220,7 +328,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((state) => ({
       pages: state.pages.map((p) => (p.id === pageId ? { ...p, title } : p)),
     })),
-
   updatePageSettings: (pageId, settings) =>
     set((state) => ({
       pages: state.pages.map((p) =>
@@ -302,7 +409,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((state) => ({
       pages: state.pages.map((p) => (p.id === pageId ? { ...p, x, y } : p)),
     })),
-
   updateBlockPosition: (pageId, blockId, x, y) =>
     set((state) => ({
       pages: state.pages.map((p) =>
@@ -316,7 +422,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           : p,
       ),
     })),
-
   updatePageDimensions: (pageId, width, height) => {
     get().saveHistory();
     set((state) => ({

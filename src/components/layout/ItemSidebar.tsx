@@ -25,7 +25,7 @@ interface TemplateItem {
 }
 
 export default function ItemSidebar() {
-  const { addPage, addBlockToPage } = useCanvasStore();
+  const { addPage, addBlockToPage, setActivePage } = useCanvasStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [isBlocksOpen, setIsBlocksOpen] = useState(true);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(true);
@@ -237,6 +237,70 @@ export default function ItemSidebar() {
         </svg>
       ),
     },
+    {
+      type: "notes",
+      label: "Notes Workspace",
+      description:
+        "Pre-loaded portrait workspace with notes, summaries and priority selectors",
+      icon: (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3z" />
+          <polyline points="14 3 14 9 20 9" />
+        </svg>
+      ),
+    },
+    {
+      type: "agenda",
+      label: "Agenda Timeline",
+      description:
+        "Pre-loaded roadmap frame mapping sprint deadlines and phase categories",
+      icon: (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      ),
+    },
+    {
+      type: "database",
+      label: "Structured Database",
+      description:
+        "Pre-loaded validation workspace mapping client titles, active status and prod boolean",
+      icon: (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+          <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+        </svg>
+      ),
+    },
   ];
 
   const handleTapToAddBlock = (type: BlockType) => {
@@ -244,37 +308,61 @@ export default function ItemSidebar() {
     const targetPageId = state.activePageId || state.pages[0]?.id;
 
     if (!targetPageId) {
+      const canvasContainer = document.querySelector(".canvas-bg");
+      const rect = canvasContainer
+        ? canvasContainer.getBoundingClientRect()
+        : {
+            left: 0,
+            top: 0,
+            width: window.innerWidth,
+            height: window.innerHeight,
+          };
       const currentZoom = (state.zoom ?? 100) / 100;
-      const cx =
-        (-(state.panX ?? 0) + window.innerWidth / 2 - 400) / currentZoom;
-      const cy =
-        (-(state.panY ?? 0) + window.innerHeight / 2 - 500) / currentZoom;
+      const cx = (-(state.panX ?? 0) + rect.width / 2 - 200) / currentZoom;
+      const cy = (-(state.panY ?? 0) + rect.height / 2 - 200) / currentZoom;
+
       addPage("empty", cx, cy);
       setTimeout(() => {
         const newState = useCanvasStore.getState();
-        if (newState.activePageId)
+        if (newState.activePageId) {
           newState.addBlockToPage(newState.activePageId, type, 40, 40);
-      }, 0);
+          setActivePage(newState.activePageId);
+        }
+      }, 50);
       return;
     }
 
     const targetPage = state.pages.find((p) => p.id === targetPageId);
     const offsetY = targetPage ? targetPage.blocks.length * 110 + 40 : 40;
     addBlockToPage(targetPageId, type, 40, offsetY);
+    setActivePage(targetPageId);
   };
 
   const handleTapToAddPage = (type: PageContent["type"]) => {
     const state = useCanvasStore.getState();
+    const canvasContainer = document.querySelector(".canvas-bg");
+    const rect = canvasContainer
+      ? canvasContainer.getBoundingClientRect()
+      : {
+          left: 0,
+          top: 0,
+          width: window.innerWidth,
+          height: window.innerHeight,
+        };
     const currentZoom = (state.zoom ?? 100) / 100;
-    const cx = (-(state.panX ?? 0) + window.innerWidth / 2 - 400) / currentZoom;
-    const cy =
-      (-(state.panY ?? 0) + window.innerHeight / 2 - 400) / currentZoom;
+    const cx = (-(state.panX ?? 0) + rect.width / 2 - 400) / currentZoom;
+    const cy = (-(state.panY ?? 0) + rect.height / 2 - 400) / currentZoom;
+
     addPage(type, cx, cy);
+    setTimeout(() => {
+      const newState = useCanvasStore.getState();
+      if (newState.activePageId) setActivePage(newState.activePageId);
+    }, 50);
   };
 
   const handlePointerDown = (
     e: React.PointerEvent,
-    item: SidebarItem | TemplateItem, 
+    item: SidebarItem | TemplateItem,
     isBlock: boolean,
   ) => {
     const startX = e.clientX;
@@ -305,23 +393,15 @@ export default function ItemSidebar() {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
 
-      setActiveDrag((currentDrag) => {
-        if (currentDrag) {
-          processDrop(
-            currentDrag.itemType,
-            currentDrag.isBlock,
-            upEvent.clientX,
-            upEvent.clientY,
-          );
+      setActiveDrag(null);
+      setTimeout(() => {
+        if (isDragging) {
+          processDrop(item.type, isBlock, upEvent.clientX, upEvent.clientY);
         } else {
-          if (isBlock) {
-            handleTapToAddBlock(item.type as BlockType);
-          } else {
-            addPage(item.type as PageContent["type"], 100, 100);
-          }
+          if (isBlock) handleTapToAddBlock(item.type as BlockType);
+          else handleTapToAddPage(item.type as PageContent["type"]);
         }
-        return null;
-      });
+      }, 0);
     };
 
     window.addEventListener("pointermove", onPointerMove);
@@ -345,16 +425,24 @@ export default function ItemSidebar() {
       clientX <= sidebarRect.right &&
       clientY >= sidebarRect.top &&
       clientY <= sidebarRect.bottom
-    ) {
+    )
       return;
-    }
+
+    const canvasContainer = document.querySelector(".canvas-bg");
+    const rect = canvasContainer
+      ? canvasContainer.getBoundingClientRect()
+      : { left: 0, top: 0 };
 
     const currentZoom = (state.zoom ?? 100) / 100;
-    const dropCanvasX = (clientX - (state.panX ?? 0)) / currentZoom;
-    const dropCanvasY = (clientY - (state.panY ?? 0)) / currentZoom;
+    const dropCanvasX = (clientX - rect.left - (state.panX ?? 0)) / currentZoom;
+    const dropCanvasY = (clientY - rect.top - (state.panY ?? 0)) / currentZoom;
 
     if (!isBlock) {
       state.addPage(type as PageContent["type"], dropCanvasX, dropCanvasY);
+      setTimeout(() => {
+        const ns = useCanvasStore.getState();
+        if (ns.activePageId) setActivePage(ns.activePageId);
+      }, 50);
     } else {
       const pages = state.pages;
       let targetPage = null;
@@ -379,7 +467,7 @@ export default function ItemSidebar() {
           dropCanvasX - targetPage.x - 50,
           dropCanvasY - targetPage.y - 20,
         );
-        state.setActivePage(targetPage.id);
+        setActivePage(targetPage.id);
       } else {
         state.addPage("empty", dropCanvasX - 200, dropCanvasY - 50);
         setTimeout(() => {
@@ -391,8 +479,9 @@ export default function ItemSidebar() {
               20,
               20,
             );
+            setActivePage(newState.activePageId);
           }
-        }, 0);
+        }, 50);
       }
     }
   };
@@ -412,9 +501,7 @@ export default function ItemSidebar() {
     <>
       <div
         id="item-sidebar"
-        className={`h-[calc(100vh-5.5rem)] m-4 bg-white/80 backdrop-blur-xl border border-zinc-200/60 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden shrink-0 z-20 transition-all duration-300 ease-in-out ${
-          isCollapsed ? "w-16" : "w-72"
-        }`}
+        className={`h-[calc(100vh-5.5rem)] m-4 bg-white/80 backdrop-blur-xl border border-zinc-200/60 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden shrink-0 z-20 transition-all duration-300 ease-in-out ${isCollapsed ? "w-16" : "w-72"}`}
       >
         <div
           className={`p-4 border-b border-zinc-100 flex flex-col gap-2 shrink-0 ${isCollapsed ? "items-center px-2" : ""}`}
@@ -555,7 +642,7 @@ export default function ItemSidebar() {
 
       {activeDrag && (
         <div
-          className="fixed z-[99999] pointer-events-none flex items-center gap-3 p-2.5 bg-white/90 backdrop-blur-md border-2 border-blue-500 rounded-xl shadow-2xl scale-105 transition-transform"
+          className="fixed z-[99999] pointer-events-none flex items-center gap-3 p-2.5 bg-white/90 backdrop-blur-md border-2 border-blue-500 rounded-xl shadow-2xl scale-105"
           style={{ left: activeDrag.x + 15, top: activeDrag.y + 15 }}
         >
           <div className="p-1.5 bg-zinc-950 rounded-lg text-white">

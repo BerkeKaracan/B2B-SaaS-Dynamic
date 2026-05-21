@@ -89,8 +89,6 @@ export default function CanvasArea() {
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [isSpacePanning, setIsSpacePanning] = useState(false);
   const [spacePanStart, setSpacePanStart] = useState({ x: 0, y: 0 });
-
-  // 🚀 MOBİL ÇİFT PARMAK ZOOM İÇİN AKILLI POINTER TAKİPÇİSİ
   const activePointers = useRef<
     Map<number, { clientX: number; clientY: number }>
   >(new Map());
@@ -154,7 +152,6 @@ export default function CanvasArea() {
 
   useEffect(() => {
     const handleGlobalPointerMove = (e: globalThis.PointerEvent) => {
-      // Çift parmak zoom durumunda pointer listesini güncelle
       if (activePointers.current.has(e.pointerId)) {
         activePointers.current.set(e.pointerId, {
           clientX: e.clientX,
@@ -162,7 +159,6 @@ export default function CanvasArea() {
         });
       }
 
-      // 🚀 1. MOBİL ÇİFT PARMAK ZOOM MOTORU (Pinch-to-Zoom)
       if (activePointers.current.size === 2) {
         const pts = Array.from(activePointers.current.values());
         const dx = pts[0].clientX - pts[1].clientX;
@@ -171,7 +167,6 @@ export default function CanvasArea() {
 
         if (prevTouchDistance.current !== null) {
           const delta = distance - prevTouchDistance.current;
-          // Hassas bir katsayı ile zoom tetikle
           if (Math.abs(delta) > 2) {
             const currentStore = useCanvasStore.getState();
             const nextZoom = (currentStore.zoom ?? 100) + (delta > 0 ? 4 : -4);
@@ -179,7 +174,7 @@ export default function CanvasArea() {
           }
         }
         prevTouchDistance.current = distance;
-        return; // Çift parmak varken diğer işlemleri (pan vb.) ez
+        return; 
       }
 
       const state = useCanvasStore.getState();
@@ -274,7 +269,6 @@ export default function CanvasArea() {
       setIsSpacePanning(false);
     };
 
-    // İptal durumlarında pointer listesini temizle (Örn: Ekrandan parmak çıkması)
     const handleGlobalPointerCancel = (e: globalThis.PointerEvent) => {
       activePointers.current.delete(e.pointerId);
       prevTouchDistance.current = null;
@@ -307,17 +301,13 @@ export default function CanvasArea() {
     spacePanStart,
   ]);
 
-  // 🚀 3. PC MOUSE ORTA ZOOM MOTORU (Ctrl + Wheel ve Standart Tekerlek Uyumu)
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
     const currentStore = useCanvasStore.getState();
-
-    // Eğer Mac trackpad kıstırması veya Ctrl basılı tekerlek ise (Zoom yap)
     if (e.ctrlKey) {
       const nextZoom = (currentStore.zoom ?? 100) - e.deltaY * 0.5;
       setZoom(nextZoom);
     } else {
-      // Standart fare tekerleği aşağı/yukarı ise direkt zoom yap
       const nextZoom = (currentStore.zoom ?? 100) - e.deltaY * 0.1;
       setZoom(nextZoom);
     }
@@ -339,8 +329,16 @@ export default function CanvasArea() {
 
     const target = e.target as HTMLElement;
     const isTouch = e.pointerType === "touch";
+    const activeEl = document.activeElement as HTMLElement;
+    if (
+      activeEl &&
+      ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl.tagName)
+    ) {
+      if (!activeEl.contains(target)) {
+        activeEl.blur();
+      }
+    }
 
-    // Çift parmak varsa seçimi ve panı kilitle, zoom işlemine odaklan
     if (activePointers.current.size === 2) {
       setLassoStart(null);
       setIsSpacePanning(false);
@@ -464,7 +462,7 @@ export default function CanvasArea() {
 
     return (
       <div className="flex flex-col gap-3">
-        <div>
+        <div className="w-full h-auto min-h-[40px] overflow-visible relative">
           {block.type === "text" && (
             <TextBlock
               block={block}
@@ -549,6 +547,7 @@ export default function CanvasArea() {
             />
           )}
         </div>
+
         {isActive && hasOptions && (
           <div className="mt-2 pt-2 border-t border-zinc-100 flex flex-col gap-1.5 animate-in fade-in duration-100">
             <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
@@ -583,7 +582,7 @@ export default function CanvasArea() {
       ref={containerRef}
       className={`canvas-bg absolute inset-0 overflow-hidden select-none touch-none bg-[#F9F9FB] ${cursorStyle}`}
       onPointerDown={handlePointerDown}
-      onWheel={handleWheel} // 🚀 PC TEKERLEK ZOOM BURAYA BAĞLANDI
+      onWheel={handleWheel} 
     >
       <div
         className="canvas-bg absolute inset-0 infinite-grid-layer pointer-events-none"
