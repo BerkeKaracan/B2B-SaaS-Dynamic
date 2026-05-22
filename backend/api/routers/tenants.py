@@ -9,7 +9,6 @@ router = APIRouter(
     tags=["Tenants"],
 )
 
-
 class SetPasswordRequest(BaseModel):
     password: str
 
@@ -46,7 +45,6 @@ def update_tenant_tier(tenant_id: UUID, request: UpdateTierRequest):
 @router.get("/{tenant_id}/team")
 def get_tenant_members(tenant_id: UUID):
     try:
-        # 1. HATA VEREN YERİ SİLDİK (users(email) kısmını çıkardık, sadece tenant_users'ı çekiyoruz)
         response = supabase.table("tenant_users").select(
             "id, tenant_id, user_id, role, created_at"
         ).eq("tenant_id", str(tenant_id)).execute()
@@ -56,7 +54,6 @@ def get_tenant_members(tenant_id: UUID):
             uid = str(row.get("user_id"))
             email = "Pending..."
             
-            # 2. ARKA KAPI: E-postaları veritabanı join'i ile değil, Admin API ile doğrudan kapalı kasadan çekiyoruz!
             try:
                 user_data = supabase_admin.auth.admin.get_user_by_id(uid)
                 if user_data and user_data.user and user_data.user.email:
@@ -139,25 +136,18 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.delete("/{tenant_id}/team/{member_id}")
-def remove_team_member(tenant_id: UUID, member_id: UUID):
-    try:
-        supabase.table("tenant_users").delete().eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
-        return {"message": "Team member removed. Seat is available."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
     
 @router.post("/set-password")
 def set_password(request: SetPasswordRequest, authorization: str = Header(...)):
     try:
         token = authorization.replace("Bearer ", "")
+        
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="Geçersiz veya süresi dolmuş davet linki.")
 
         uid = user_res.user.id
-     
+        
         response = supabase_admin.auth.admin.update_user_by_id(
             uid,
             {"password": request.password, "email_confirm": True}
