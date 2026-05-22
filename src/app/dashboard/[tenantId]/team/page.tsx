@@ -401,7 +401,36 @@ export default function TeamBillingPage({
                   projects and team members.
                 </p>
               </div>
-              <button className="bg-zinc-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0">
+              <button
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem("token");
+                    const res = await fetch(
+                      `${API_BASE_URL}/api/tenants/${tenantId}/tier`,
+                      {
+                        method: "PUT",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ tier: "pro" }),
+                      },
+                    );
+
+                    if (res.ok) {
+                      showNotification(
+                        "success",
+                        "Plan upgraded to Pro successfully!",
+                      );
+                    } else {
+                      showNotification("error", "Failed to upgrade plan.");
+                    }
+                  } catch (e) {
+                    showNotification("error", "Server connection error.");
+                  }
+                }}
+                className="bg-zinc-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
+              >
                 Upgrade to Pro
               </button>
             </div>
