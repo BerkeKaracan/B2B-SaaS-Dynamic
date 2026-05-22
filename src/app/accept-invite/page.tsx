@@ -9,7 +9,6 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
-
 function AcceptInviteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,25 +22,35 @@ function AcceptInviteContent() {
 
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash && hash.includes("access_token=")) {
-      const params = new URLSearchParams(hash.replace("#", "?"));
-      const accessToken = params.get("access_token");
+    let accessToken: string | null = null;
 
-      if (accessToken) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setToken(accessToken);
-        window.history.replaceState(
-          null,
-          "",
-          window.location.pathname + window.location.search,
-        );
-      } else {
-        setError("Invalid invitation link. Token is missing.");
-      }
+    if (hash && hash.includes("access_token=")) {
+      const cleanHash = hash.startsWith("#") ? hash.substring(1) : hash;
+      const params = new URLSearchParams(cleanHash);
+      accessToken = params.get("access_token");
     } else {
-      setError(
-        "Invalid or expired invitation link. Please request a new invite.",
+      const urlParams = new URLSearchParams(window.location.search);
+      accessToken = urlParams.get("access_token");
+    }
+
+    const errorMsg = new URLSearchParams(hash.replace("#", "?")).get(
+      "error_description",
+    );
+    if (errorMsg) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setError(`Supabase Auth Error: ${errorMsg}`);
+      return;
+    }
+
+    if (accessToken) {
+      setToken(accessToken);
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
       );
+    } else {
+      setError("Invalid invitation link. Token is missing.");
     }
   }, []);
 

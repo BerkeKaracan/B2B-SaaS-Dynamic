@@ -38,7 +38,7 @@ export default function TeamBillingPage({
   const [activeTab, setActiveTab] = useState<"team" | "billing" | "advanced">(
     "team",
   );
-  const [tier] = useState<string>("Basic Plan");
+  const [tier, setTier] = useState<string>("Basic Plan");
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [newEmail, setNewEmail] = useState("");
 
@@ -52,7 +52,6 @@ export default function TeamBillingPage({
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        // STEP 1: Intercept and save the token from the URL hash (Supabase Invite Redirect)
         const hash = window.location.hash;
         if (hash && hash.includes("access_token=")) {
           const params = new URLSearchParams(hash.replace("#", "?"));
@@ -60,12 +59,10 @@ export default function TeamBillingPage({
 
           if (accessToken) {
             localStorage.setItem("token", accessToken);
-            // Clean the URL for a better user experience
             window.history.replaceState(null, "", window.location.pathname);
           }
         }
 
-        // STEP 2: Now safely read from localStorage
         const token = localStorage.getItem("token");
         if (!token) {
           console.error("No token found. Redirecting to login.");
@@ -73,7 +70,6 @@ export default function TeamBillingPage({
           return;
         }
 
-        // STEP 3: Validate token and get user role from backend
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -88,7 +84,7 @@ export default function TeamBillingPage({
           return;
         }
 
-        // STEP 4: Fetch workspace team members
+        // Fetch team members
         const res2 = await fetch(
           `${API_BASE_URL}/api/tenants/${tenantId}/team`,
           {
@@ -99,6 +95,20 @@ export default function TeamBillingPage({
         if (res2.ok) {
           const membersData = await res2.json();
           setMembers(membersData);
+        }
+
+        const tenantRes = await fetch(
+          `${API_BASE_URL}/api/tenants/${tenantId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+
+        if (tenantRes.ok) {
+          const tenantData = await tenantRes.json();
+          if (tenantData.tier === "pro") setTier("Pro Plan");
+          else if (tenantData.tier === "advanced") setTier("Advanced Plan");
+          else setTier("Basic Plan");
         }
       } catch (err: unknown) {
         console.error("Auth Error:", err);
@@ -123,7 +133,6 @@ export default function TeamBillingPage({
 
     try {
       const token = localStorage.getItem("token");
-
       const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/team`, {
         method: "POST",
         headers: {
@@ -159,7 +168,6 @@ export default function TeamBillingPage({
 
     try {
       const token = localStorage.getItem("token");
-
       const res = await fetch(
         `${API_BASE_URL}/api/tenants/${tenantId}/team/${memberId}`,
         {
@@ -182,7 +190,6 @@ export default function TeamBillingPage({
     }
   };
 
-  // Helper function to generate random gradient for avatars
   const getAvatarGradient = (email: string) => {
     const colors = [
       "from-blue-500 to-indigo-500",
@@ -212,7 +219,6 @@ export default function TeamBillingPage({
   return (
     <div className="flex-1 overflow-y-auto bg-[#FAFAFA] min-h-screen">
       <div className="max-w-5xl mx-auto w-full p-6 md:p-10 lg:p-12">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-extrabold text-zinc-900 tracking-tight">
             Workspace Settings
@@ -222,7 +228,6 @@ export default function TeamBillingPage({
           </p>
         </div>
 
-        {/* Custom Tabs */}
         <div className="flex items-center gap-6 border-b border-zinc-200 mb-8 overflow-x-auto select-none">
           <TabButton
             active={activeTab === "team"}
@@ -244,7 +249,6 @@ export default function TeamBillingPage({
           />
         </div>
 
-        {/* Toast Notification */}
         {notification && (
           <div
             className={`mb-6 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 border ${
@@ -262,10 +266,8 @@ export default function TeamBillingPage({
           </div>
         )}
 
-        {/* TAB 1: TEAM MEMBERS */}
         {activeTab === "team" && (
           <div className="animate-in fade-in duration-300">
-            {/* Invite Box */}
             <div className="bg-white border border-zinc-200 rounded-2xl p-6 mb-6 shadow-sm">
               <h2 className="text-base font-bold text-zinc-900 flex items-center gap-2 mb-1">
                 <UserPlus className="w-4 h-4 text-zinc-400" /> Invite New Member
@@ -299,7 +301,6 @@ export default function TeamBillingPage({
               </form>
             </div>
 
-            {/* Members List */}
             <div className="bg-white border border-zinc-200 rounded-2xl shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-zinc-100 bg-zinc-50/50 flex justify-between items-center">
                 <h3 className="text-sm font-bold text-zinc-900">
@@ -325,9 +326,7 @@ export default function TeamBillingPage({
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-tr ${getAvatarGradient(
-                            emailStr,
-                          )} shadow-sm`}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-tr ${getAvatarGradient(emailStr)} shadow-sm`}
                         >
                           {initial}
                         </div>
@@ -340,15 +339,12 @@ export default function TeamBillingPage({
                           </span>
                         </div>
                       </div>
-
                       <div className="flex items-center gap-4 justify-between sm:justify-end">
-                        {/* Fake Role Selector for Portfolio Showcase */}
                         <div
                           className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border cursor-pointer hover:opacity-80 transition-opacity ${roleColors}`}
                         >
                           {m.role}
                         </div>
-
                         <button
                           onClick={() => removeMember(m.id)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100"
@@ -382,7 +378,6 @@ export default function TeamBillingPage({
           </div>
         )}
 
-        {/* TAB 2: BILLING */}
         {activeTab === "billing" && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
             <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -397,7 +392,7 @@ export default function TeamBillingPage({
                   </span>
                 </div>
                 <p className="text-sm text-zinc-500 mt-2">
-                  You are currently on the free tier. Upgrade for unlimited
+                  You are currently on the {tier}. Upgrade for unlimited
                   projects and team members.
                 </p>
               </div>
@@ -422,6 +417,7 @@ export default function TeamBillingPage({
                         "success",
                         "Plan upgraded to Pro successfully!",
                       );
+                      setTier("Pro Plan");
                     } else {
                       showNotification("error", "Failed to upgrade plan.");
                     }
@@ -443,7 +439,9 @@ export default function TeamBillingPage({
                 <div>
                   <div className="flex justify-between text-sm font-medium mb-2">
                     <span className="text-zinc-600">Active Projects</span>
-                    <span className="text-zinc-900 font-bold">3 / 5</span>
+                    <span className="text-zinc-900 font-bold">
+                      3 / {tier === "Pro Plan" ? "Unlimited" : "5"}
+                    </span>
                   </div>
                   <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
                     <div
@@ -456,13 +454,19 @@ export default function TeamBillingPage({
                   <div className="flex justify-between text-sm font-medium mb-2">
                     <span className="text-zinc-600">Team Members</span>
                     <span className="text-zinc-900 font-bold">
-                      {members.length} / 10
+                      {members.length} /{" "}
+                      {tier === "Pro Plan" ? "Unlimited" : "10"}
                     </span>
                   </div>
                   <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
                     <div
                       className="bg-emerald-500 h-2 rounded-full"
-                      style={{ width: `${(members.length / 10) * 100}%` }}
+                      style={{
+                        width:
+                          tier === "Pro Plan"
+                            ? "10%"
+                            : `${(members.length / 10) * 100}%`,
+                      }}
                     ></div>
                   </div>
                 </div>
@@ -471,7 +475,6 @@ export default function TeamBillingPage({
           </div>
         )}
 
-        {/* TAB 3: ADVANCED / DANGER ZONE */}
         {activeTab === "advanced" && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="border border-red-200 bg-red-50/30 rounded-2xl p-6">
@@ -482,7 +485,6 @@ export default function TeamBillingPage({
                 Irreversible and destructive actions for your workspace. Proceed
                 with extreme caution.
               </p>
-
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white border border-red-100 rounded-xl gap-4">
                 <div>
                   <h4 className="text-sm font-bold text-zinc-900">
@@ -505,7 +507,6 @@ export default function TeamBillingPage({
   );
 }
 
-// Tab Button Component
 function TabButton({
   active,
   onClick,
