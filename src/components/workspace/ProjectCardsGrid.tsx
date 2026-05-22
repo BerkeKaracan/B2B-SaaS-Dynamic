@@ -36,10 +36,16 @@ const formatTimeAgo = (dateStr?: string) => {
   return `${diffInDays}d ago`;
 };
 
-export default function ProjectCardsGrid() {
+export default function ProjectCardsGrid({
+  moduleName,
+}: {
+  moduleName?: string;
+}) {
   const params = useParams();
   const router = useRouter();
   const tenantId = params.tenantId as string;
+
+  const activeModule = moduleName || WORKSPACE_MODULE;
 
   const { user } = useAuthStore();
   const isAdmin = user?.role === "admin" || user?.role === "owner";
@@ -55,7 +61,7 @@ export default function ProjectCardsGrid() {
   const fetchProjects = useCallback(async () => {
     try {
       const res = await fetchAPI(
-        `/api/records/?tenant_id=${tenantId}&module_name=${WORKSPACE_MODULE}`,
+        `/api/records/?tenant_id=${tenantId}&module_name=${activeModule}`,
       );
 
       if (res.ok) {
@@ -85,7 +91,7 @@ export default function ProjectCardsGrid() {
         method: "POST",
         body: JSON.stringify({
           tenant_id: tenantId,
-          module_name: WORKSPACE_MODULE,
+          module_name: activeModule,
           record_data: {
             name: newProjectName,
             status: "active",

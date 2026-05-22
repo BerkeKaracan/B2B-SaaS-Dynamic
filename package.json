@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@radix-ui/react-popover": "^1.1.15",
+    "@supabase/supabase-js": "^2.106.1",
     "date-fns": "^3.6.0",
     "email-validator": "^2.0.4",
     "lucide-react": "^1.16.0",
