@@ -270,9 +270,12 @@ export default function LandingPage() {
                 <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
             </Link>
-            <button className="w-full sm:w-auto px-8 py-4 bg-white text-zinc-900 border border-zinc-200 rounded-xl font-bold text-base hover:bg-zinc-50 transition-all flex items-center justify-center gap-2 shadow-sm">
+            <Link
+              href="/demo"
+              className="w-full sm:w-auto px-8 py-4 bg-white text-zinc-900 border-2 border-zinc-200 rounded-2xl font-bold text-base hover:border-zinc-300 hover:bg-zinc-50 transition-all flex items-center justify-center gap-2 shadow-sm"
+            >
               View Demo
-            </button>
+            </Link>
           </div>
         </section>
 
