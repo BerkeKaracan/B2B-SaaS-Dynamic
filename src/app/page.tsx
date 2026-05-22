@@ -196,7 +196,7 @@ export default function LandingPage() {
                 href="#"
                 className="px-3.5 py-2 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-600 hover:text-zinc-950 transition-colors"
               >
-                Community Havuz
+                Community Hub
               </Link>
               <Link
                 href="#"
@@ -375,6 +375,122 @@ export default function LandingPage() {
                 Everything is saved instantly in the background as you work.
                 Never lose data again.
               </p>
+            </div>
+          </div>
+        </section>
+
+        {/* TEMPLATE GALLERY BENTO GRID */}
+        <section className="py-24 px-6 max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-12 gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200/80 text-[10px] font-extrabold text-zinc-600 mb-4 uppercase tracking-widest">
+                Template Gallery
+              </div>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-zinc-900 tracking-tight">
+                The Template Ecosystem
+              </h2>
+              <p className="text-zinc-500 mt-4 max-w-xl text-lg leading-relaxed">
+                Don&apos;t start from scratch. Clone industry-standard workflows
+                built by the community in a single click.
+              </p>
+            </div>
+            <Link
+              href="/demo"
+              className="shrink-0 text-sm font-bold text-zinc-900 flex items-center gap-1.5 hover:gap-2.5 transition-all mb-2"
+            >
+              Explore all templates
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 12h14"></path>
+                <path d="m12 5 7 7-7 7"></path>
+              </svg>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[240px]">
+            {/* Card 1: Kanban (Large Block) */}
+            <div className="md:col-span-2 md:row-span-2 rounded-4xl bg-zinc-950 border border-zinc-800 p-8 sm:p-12 flex flex-col relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 group-hover:bg-blue-500/20 transition-all duration-700 pointer-events-none"></div>
+              <div className="relative z-10 flex-1">
+                <span className="text-5xl mb-6 block">📋</span>
+                <h3 className="text-3xl font-bold text-white mb-3 tracking-tight">
+                  Agile Kanban Board
+                </h3>
+                <p className="text-zinc-400 font-medium max-w-sm leading-relaxed">
+                  Manage sprints, track bugs, and ship products faster with our
+                  pre-configured development pipeline.
+                </p>
+              </div>
+              <div className="relative z-10 mt-auto flex items-center gap-4">
+                <span className="px-3 py-1.5 bg-white/10 text-white text-[11px] font-bold rounded-lg backdrop-blur-md border border-white/10 uppercase tracking-widest">
+                  Engineering
+                </span>
+                <span className="text-[13px] font-bold text-zinc-500 flex items-center gap-1.5">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  12.4k clones
+                </span>
+              </div>
+            </div>
+
+            {/* Card 2: CRM (Small Block) */}
+            <div className="md:col-span-1 md:row-span-1 rounded-4xl bg-white border border-zinc-200/80 p-8 flex flex-col relative overflow-hidden group hover:border-zinc-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer">
+              <div className="flex-1">
+                <span className="text-4xl mb-4 block">🤝</span>
+                <h3 className="text-xl font-bold text-zinc-900 mb-1 tracking-tight">
+                  CRM Pipeline
+                </h3>
+                <p className="text-sm text-zinc-500 font-medium">
+                  Track leads and close deals.
+                </p>
+              </div>
+              <div className="mt-auto flex items-center justify-between">
+                <span className="text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-widest">
+                  Sales
+                </span>
+                <span className="text-[11px] font-bold text-zinc-400">
+                  8.2k clones
+                </span>
+              </div>
+            </div>
+
+            {/* Card 3: HR (Small Block) */}
+            <div className="md:col-span-1 md:row-span-1 rounded-4xl bg-white border border-zinc-200/80 p-8 flex flex-col relative overflow-hidden group hover:border-zinc-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer">
+              <div className="flex-1">
+                <span className="text-4xl mb-4 block">👋</span>
+                <h3 className="text-xl font-bold text-zinc-900 mb-1 tracking-tight">
+                  Onboarding Hub
+                </h3>
+                <p className="text-sm text-zinc-500 font-medium">
+                  Streamline new hires.
+                </p>
+              </div>
+              <div className="mt-auto flex items-center justify-between">
+                <span className="text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-widest">
+                  HR
+                </span>
+                <span className="text-[11px] font-bold text-zinc-400">
+                  4.1k clones
+                </span>
+              </div>
             </div>
           </div>
         </section>
