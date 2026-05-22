@@ -77,7 +77,11 @@ interface CanvasState {
   setPan: (panX: number, panY: number) => void;
   clearCanvas: () => void;
   loadProjectById: (tenantId: string, recordId: string) => Promise<void>;
-  createProject: (tenantId: string, name?: string) => Promise<string | null>;
+  createProject: (
+    tenantId: string,
+    name?: string,
+    moduleName?: string,
+  ) => Promise<string | null>;
   saveProject: (tenantId: string) => Promise<void>;
   updateBlockDimensions: (
     pageId: string,
@@ -519,12 +523,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   loadProjectById: async (tenantId, recordId) => {
     set({ isLoading: true });
     try {
-      const response = await fetchAPI(
-        `/api/records/?tenant_id=${tenantId}&module_name=${WORKSPACE_MODULE}`,
-      );
+      const response = await fetchAPI(`/api/records/${recordId}`);
+
       if (!response.ok) throw new Error("Fetch failed");
-      const data = await response.json();
-      const record = data.find((r: { id: string }) => r.id === recordId);
+
+      const record = await response.json();
 
       if (record?.record_data) {
         set({
@@ -536,18 +539,24 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           connections: record.record_data.connections || [],
         });
       }
+    } catch (e) {
+      console.error("Failed to load project:", e);
     } finally {
       set({ isLoading: false });
     }
   },
 
-  createProject: async (tenantId, name = "New Project") => {
+  createProject: async (
+    tenantId,
+    name = "New Project",
+    moduleName = WORKSPACE_MODULE,
+  ) => {
     try {
       const response = await fetchAPI(`/api/records/`, {
         method: "POST",
         body: JSON.stringify({
           tenant_id: tenantId,
-          module_name: WORKSPACE_MODULE,
+          module_name: moduleName,
           record_data: { name, pages: [], connections: [] },
         }),
       });
@@ -627,7 +636,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           }
           return p;
         }),
-        activePageId: targetPageId, 
+        activePageId: targetPageId,
       };
     });
   },

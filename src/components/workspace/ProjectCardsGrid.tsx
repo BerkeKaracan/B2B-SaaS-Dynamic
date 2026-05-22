@@ -74,7 +74,7 @@ export default function ProjectCardsGrid({
     } catch (error) {
       console.error(error);
     }
-  }, [tenantId]);
+  }, [activeModule, tenantId]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
