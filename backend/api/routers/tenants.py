@@ -45,26 +45,32 @@ def update_tenant_tier(tenant_id: UUID, request: UpdateTierRequest):
 
 @router.get("/{tenant_id}/team")
 def get_tenant_members(tenant_id: UUID):
-    """
-    Fetches all members of a specific tenant and joins with the users table 
-    to retrieve their actual email addresses using Supabase native join.
-    """
     try:
+        # 1. HATA VEREN YERİ SİLDİK (users(email) kısmını çıkardık, sadece tenant_users'ı çekiyoruz)
         response = supabase.table("tenant_users").select(
-            "id, tenant_id, user_id, role, created_at, users(email)"
+            "id, tenant_id, user_id, role, created_at"
         ).eq("tenant_id", str(tenant_id)).execute()
 
         members = []
         for row in response.data:
-            user_data = row.get("users") or {}
+            uid = str(row.get("user_id"))
+            email = "Pending..."
+            
+            # 2. ARKA KAPI: E-postaları veritabanı join'i ile değil, Admin API ile doğrudan kapalı kasadan çekiyoruz!
+            try:
+                user_data = supabase_admin.auth.admin.get_user_by_id(uid)
+                if user_data and user_data.user and user_data.user.email:
+                    email = user_data.user.email
+            except Exception:
+                pass
             
             members.append({
                 "id": str(row.get("id")),
                 "tenant_id": str(row.get("tenant_id")),
-                "user_id": str(row.get("user_id")),
+                "user_id": uid,
                 "role": row.get("role"),
                 "created_at": row.get("created_at"),
-                "email": user_data.get("email") 
+                "email": email 
             })
             
         return members
@@ -82,8 +88,8 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
         current_tier = raw_tier.lower() if raw_tier else "basic"
         if current_tier == "free":
             current_tier = "basic"
-           
-        team_res = supabase.table("tenant_users").select("id, users(email)", count="exact").eq("tenant_id", str(tenant_id)).execute()
+            
+        team_res = supabase.table("tenant_users").select("id, user_id", count="exact").eq("tenant_id", str(tenant_id)).execute()
         current_seat_count = team_res.count if team_res.count is not None else len(team_res.data)
         
         limits = {"basic": 3, "advanced": 50, "pro": float('inf')}
@@ -93,17 +99,21 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
         redirect_url = f"{FRONTEND_URL}/accept-invite?tenant_id={tenant_id}"
 
         for member in team_res.data:
-            user_data = member.get("users")
-            if user_data and user_data.get("email") == request.email:
-                supabase_admin.auth.admin.invite_user_by_email(
-                    request.email,
-                    options={"redirect_to": redirect_url}
-                )
-                return {"message": "User is already in the workspace. Invitation resent."}
+            uid = str(member.get("user_id"))
+            try:
+                user_data = supabase_admin.auth.admin.get_user_by_id(uid)
+                if user_data and user_data.user and user_data.user.email == request.email:
+                    supabase_admin.auth.admin.invite_user_by_email(
+                        request.email,
+                        options={"redirect_to": redirect_url}
+                    )
+                    return {"message": "User is already in the workspace. Invitation resent."}
+            except Exception:
+                continue
 
         if current_seat_count >= limit:
             raise HTTPException(status_code=403, detail=f"Seat limit reached for {current_tier.upper()} plan. Maximum {limit} members allowed.")
-   
+        
         auth_res = supabase_admin.auth.admin.invite_user_by_email(
             request.email,
             options={"redirect_to": redirect_url}
