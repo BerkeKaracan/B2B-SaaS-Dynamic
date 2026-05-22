@@ -44,25 +44,187 @@ export default function LandingPage() {
 
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-white rounded-full blur-[100px] opacity-80 transform-gpu will-change-transform"></div>
       </div>
-      <header className="fixed top-0 left-0 right-0 h-16 border-b border-zinc-200/60 bg-white/70 backdrop-blur-xl z-50 px-6 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-white text-xs font-bold font-mono">B2</span>
+      <header className="fixed top-0 left-0 right-0 h-16 border-b border-zinc-200/50 bg-white/70 backdrop-blur-xl z-50 px-6 flex items-center justify-between">
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="w-8 h-8 bg-zinc-950 rounded-lg flex items-center justify-center shadow-sm border border-zinc-800">
+            <span className="text-white text-xs font-black font-mono">B2</span>
           </div>
-          <span className="text-sm font-bold text-zinc-800 tracking-tight uppercase">
+          <span className="text-sm font-extrabold text-zinc-900 tracking-tight uppercase">
             SaaS Engine
           </span>
         </div>
-        <div className="flex items-center gap-4">
+
+        <nav className="hidden md:flex items-center gap-2">
+          <div className="relative group py-5">
+            <button className="text-sm font-bold text-zinc-500 hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-1.5 rounded-xl hover:bg-zinc-100/60">
+              Product
+              <svg
+                className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                viewBox="0 0 24 24"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[520px] bg-white border border-zinc-200/80 shadow-2xl rounded-2xl p-4 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform origin-top scale-95 group-hover:scale-100 grid grid-cols-2 gap-2 z-50">
+              <Link
+                href="#"
+                className="p-3 hover:bg-zinc-50 rounded-xl transition-all border border-transparent hover:border-zinc-100 block"
+              >
+                <h4 className="text-sm font-extrabold text-zinc-950">
+                  Canvas Editor
+                </h4>
+                <p className="text-xs text-zinc-400 font-medium mt-1">
+                  Visual dynamic block workflow constructor.
+                </p>
+              </Link>
+              <Link
+                href="#"
+                className="p-3 hover:bg-zinc-50 rounded-xl transition-all border border-transparent hover:border-zinc-100 block"
+              >
+                <h4 className="text-sm font-extrabold text-zinc-950">
+                  Cloud Assets
+                </h4>
+                <p className="text-xs text-zinc-400 font-medium mt-1">
+                  Real-time media sync with Supabase Storage.
+                </p>
+              </Link>
+              <Link
+                href="#"
+                className="p-3 hover:bg-zinc-50 rounded-xl transition-all border border-transparent hover:border-zinc-100 block"
+              >
+                <h4 className="text-sm font-extrabold text-zinc-950">
+                  Auto-Save Engine
+                </h4>
+                <p className="text-xs text-zinc-400 font-medium mt-1">
+                  Zero-latency background database streaming.
+                </p>
+              </Link>
+              <Link
+                href="#"
+                className="p-3 hover:bg-zinc-50 rounded-xl transition-all border border-transparent hover:border-zinc-100 block"
+              >
+                <h4 className="text-sm font-extrabold text-zinc-950">
+                  Enterprise RLS
+                </h4>
+                <p className="text-xs text-zinc-400 font-medium mt-1">
+                  Row-level database security policies built-in.
+                </p>
+              </Link>
+            </div>
+          </div>
+
+          <div className="relative group py-5">
+            <button className="text-sm font-bold text-zinc-500 hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-1.5 rounded-xl hover:bg-zinc-100/60">
+              Templates
+              <svg
+                className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                viewBox="0 0 24 24"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[400px] bg-white border border-zinc-200/80 shadow-2xl rounded-2xl p-3 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform origin-top scale-95 group-hover:scale-100 flex flex-col gap-0.5 z-50">
+              <div className="px-3 py-1.5 text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 mb-1">
+                Popular Community Templates
+              </div>
+              <Link
+                href="#"
+                className="p-2.5 hover:bg-zinc-50 rounded-xl transition-colors flex items-center justify-between group/item"
+              >
+                <span className="text-sm font-bold text-zinc-700 group-hover/item:text-zinc-950">
+                  HR Processes Hub
+                </span>
+                <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">
+                  Free
+                </span>
+              </Link>
+              <Link
+                href="#"
+                className="p-2.5 hover:bg-zinc-50 rounded-xl transition-colors flex items-center justify-between group/item"
+              >
+                <span className="text-sm font-bold text-zinc-700 group-hover/item:text-zinc-950">
+                  CRM Deal Pipeline
+                </span>
+                <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">
+                  Free
+                </span>
+              </Link>
+              <Link
+                href="#"
+                className="p-2.5 hover:bg-zinc-50 rounded-xl transition-colors flex items-center justify-between group/item"
+              >
+                <span className="text-sm font-bold text-zinc-700 group-hover/item:text-zinc-950">
+                  Invoice & Finance Tracker
+                </span>
+                <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">
+                  Free
+                </span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="relative group py-5">
+            <button className="text-sm font-bold text-zinc-500 hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-1.5 rounded-xl hover:bg-zinc-100/60">
+              Resources
+              <svg
+                className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                viewBox="0 0 24 24"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+            <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-zinc-200/80 shadow-2xl rounded-2xl p-1.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform origin-top scale-95 group-hover:scale-100 flex flex-col z-50">
+              <Link
+                href="#"
+                className="px-3.5 py-2 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-600 hover:text-zinc-950 transition-colors"
+              >
+                Documentation
+              </Link>
+              <Link
+                href="#"
+                className="px-3.5 py-2 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-600 hover:text-zinc-950 transition-colors"
+              >
+                Community Havuz
+              </Link>
+              <Link
+                href="#"
+                className="px-3.5 py-2 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-600 hover:text-zinc-950 transition-colors"
+              >
+                Changelog
+              </Link>
+            </div>
+          </div>
+
+          <Link
+            href="#"
+            className="text-sm font-bold text-zinc-500 hover:text-zinc-950 transition-colors px-3 py-1.5 rounded-xl hover:bg-zinc-100/60"
+          >
+            Pricing
+          </Link>
+        </nav>
+
+        <div className="flex items-center gap-6 shrink-0">
           <Link
             href="/login"
-            className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors"
+            className="text-sm font-bold text-zinc-500 hover:text-zinc-950 transition-colors"
           >
             Log In
           </Link>
           <Link
             href="/register"
-            className="text-sm font-bold bg-zinc-900 text-white px-4 py-2 rounded-lg hover:bg-zinc-800 transition-colors shadow-sm"
+            className="text-sm font-bold bg-zinc-950 text-white px-5 py-2.5 rounded-xl hover:bg-zinc-800 transition-all shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:-translate-y-0.5"
           >
             Start for Free
           </Link>
@@ -218,18 +380,31 @@ export default function LandingPage() {
           <div className="bg-zinc-900 rounded-3xl p-12 text-center relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="relative z-10">
-              <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 tracking-tight">
+              <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tighter">
                 Ready to start the engine?
               </h2>
-              <p className="text-zinc-400 mb-8 max-w-xl mx-auto text-lg">
+              <p className="text-zinc-400 mb-10 max-w-xl mx-auto text-lg font-medium">
                 No credit card required. Set up your workspace and invite your
-                team in seconds.
+                team in seconds. Join the revolution.
               </p>
               <Link
                 href="/register"
-                className="inline-block px-8 py-4 bg-white text-zinc-900 rounded-xl font-bold text-base hover:bg-zinc-100 transition-all shadow-lg hover:scale-105"
+                className="inline-flex items-center gap-2 px-10 py-5 bg-white text-zinc-950 rounded-2xl font-extrabold text-base hover:bg-zinc-100 transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(255,255,255,0.3)] hover:-translate-y-1"
               >
                 Create Free Account
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
               </Link>
             </div>
           </div>
