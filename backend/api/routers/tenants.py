@@ -150,18 +150,19 @@ def remove_team_member(tenant_id: UUID, member_id: UUID):
     
 @router.post("/set-password")
 def set_password(request: SetPasswordRequest, authorization: str = Header(...)):
-    """
-    Directly updates the password using the token retrieved from the invitation link.
-    """
     try:
         token = authorization.replace("Bearer ", "")
-        supabase.auth.set_session(token, "") 
- 
-        response = supabase.auth.update_user({"password": request.password})
+        user_res = supabase.auth.get_user(token)
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="Geçersiz veya süresi dolmuş davet linki.")
+
+        uid = user_res.user.id
+     
+        response = supabase_admin.auth.admin.update_user_by_id(
+            uid,
+            {"password": request.password, "email_confirm": True}
+        )
         
-        if not response.user:
-            raise HTTPException(status_code=400, detail="Could not update password.")
-            
         return {"message": "Password set successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

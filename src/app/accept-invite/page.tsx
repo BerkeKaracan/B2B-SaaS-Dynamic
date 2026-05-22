@@ -68,7 +68,7 @@ function AcceptInviteContent() {
       const API_BASE_URL =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-      const res = await fetch(`${API_BASE_URL}/api/auth/set-password`, {
+      const res = await fetch(`${API_BASE_URL}/api/tenants/set-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
