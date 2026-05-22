@@ -122,6 +122,18 @@ export default function ProjectCardsGrid({
   ) => {
     e.preventDefault();
     e.stopPropagation();
+    setOpenMenuId(null);
+
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === projectId
+          ? {
+              ...p,
+              record_data: { ...p.record_data, visibility: newVisibility },
+            }
+          : p,
+      ),
+    );
 
     try {
       const updatedData = { ...currentData, visibility: newVisibility };
@@ -129,13 +141,10 @@ export default function ProjectCardsGrid({
         method: "PATCH",
         body: JSON.stringify({ record_data: updatedData }),
       });
-
-      if (res.ok) {
-        setOpenMenuId(null);
-        fetchProjects();
-      }
+      if (!res.ok) fetchProjects();
     } catch (error) {
       console.error(error);
+      fetchProjects();
     }
   };
 
@@ -152,19 +161,26 @@ export default function ProjectCardsGrid({
       return;
     }
 
+    setOpenMenuId(null);
+
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === projectId
+          ? { ...p, record_data: { ...p.record_data, status: "archived" } }
+          : p,
+      ),
+    );
+
     try {
       const updatedData = { ...currentData, status: "archived" };
       const res = await fetchAPI(`/api/records/${projectId}`, {
         method: "PATCH",
         body: JSON.stringify({ record_data: updatedData }),
       });
-
-      if (res.ok) {
-        setOpenMenuId(null);
-        fetchProjects();
-      }
+      if (!res.ok) fetchProjects();
     } catch (error) {
       console.error(error);
+      fetchProjects();
     }
   };
 
@@ -175,6 +191,15 @@ export default function ProjectCardsGrid({
   ) => {
     e.preventDefault();
     e.stopPropagation();
+    setOpenMenuId(null);
+
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === projectId
+          ? { ...p, record_data: { ...p.record_data, status: "active" } }
+          : p,
+      ),
+    );
 
     try {
       const updatedData = { ...currentData, status: "active" };
@@ -182,13 +207,10 @@ export default function ProjectCardsGrid({
         method: "PATCH",
         body: JSON.stringify({ record_data: updatedData }),
       });
-
-      if (res.ok) {
-        setOpenMenuId(null);
-        fetchProjects();
-      }
+      if (!res.ok) fetchProjects();
     } catch (error) {
       console.error(error);
+      fetchProjects();
     }
   };
 
@@ -205,17 +227,17 @@ export default function ProjectCardsGrid({
       return;
     }
 
+    setOpenMenuId(null);
+    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+
     try {
       const res = await fetchAPI(`/api/records/${projectId}`, {
         method: "DELETE",
       });
-
-      if (res.ok) {
-        setOpenMenuId(null);
-        fetchProjects();
-      }
+      if (!res.ok) fetchProjects();
     } catch (error) {
       console.error(error);
+      fetchProjects();
     }
   };
 
@@ -226,7 +248,7 @@ export default function ProjectCardsGrid({
   });
 
   return (
-    <div className="flex-1 p-6 md:p-10 overflow-y-auto relative bg-zinc-50/50">
+    <div className="flex-1 p-6 md:p-10 overflow-y-auto relative bg-zinc-50/50 min-h-[700px]">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-end mb-8 border-b border-zinc-200/60 pb-4">
           <div>
@@ -244,7 +266,7 @@ export default function ProjectCardsGrid({
               onClick={() => setShowArchived(!showArchived)}
               className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${showArchived ? "bg-zinc-950 text-white hover:bg-zinc-800" : "bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm"}`}
             >
-              {showArchived ? "← Back to Active" : "🗑️ View Archive"}
+              {showArchived ? "Active Projects" : "Archived"}
             </button>
           )}
         </div>
@@ -256,7 +278,7 @@ export default function ProjectCardsGrid({
               onClick={() => isAdmin && setIsModalOpen(true)}
               disabled={isCreating || !isAdmin}
               aria-label="Create new project"
-              className={`group aspect-[16/12] rounded-3xl border-2 flex flex-col items-center justify-center transition-all duration-300 shadow-sm bg-white ${
+              className={`group aspect-[16/12] rounded-3xl border-2 flex flex-col items-center justify-center transition-all duration-300 shadow-sm bg-white z-10 ${
                 isAdmin
                   ? "border-dashed border-zinc-200 text-zinc-400 hover:border-zinc-400 hover:text-zinc-950 hover:shadow-xl hover:-translate-y-1"
                   : "border-solid border-zinc-100 bg-zinc-50/50 text-zinc-300 cursor-not-allowed opacity-70"
@@ -328,7 +350,9 @@ export default function ProjectCardsGrid({
             const updatedBy = project.record_data?.updated_by || "System";
             const timeAgo = formatTimeAgo(updatedAt);
 
-            const cardClasses = `group relative aspect-[16/12] rounded-3xl border border-zinc-200/80 bg-white shadow-sm flex flex-col transition-all duration-300 ${!showArchived ? "hover:shadow-xl hover:border-zinc-300 hover:-translate-y-1.5 cursor-pointer ring-1 ring-transparent hover:ring-zinc-950/5" : "opacity-80"}`;
+            const isOpen = openMenuId === project.id;
+            const baseCardClasses = `group relative aspect-[16/12] rounded-3xl border border-zinc-200/80 bg-white shadow-sm flex flex-col transition-all duration-300 ${isOpen ? "z-50" : "z-10"}`;
+            const cardClasses = `${baseCardClasses} ${!showArchived ? "hover:shadow-xl hover:border-zinc-300 hover:-translate-y-1.5 cursor-pointer ring-1 ring-transparent hover:ring-zinc-950/5" : "grayscale opacity-60 hover:opacity-100 hover:grayscale-0 transition-all duration-500"}`;
 
             const cardContent = (
               <>
@@ -345,7 +369,7 @@ export default function ProjectCardsGrid({
                     </span>
                     <div className="flex items-center gap-2 shrink-0">
                       <span
-                        className={`px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-full border ${isJustAdmin ? "bg-red-50 text-red-700 border-red-100" : "bg-emerald-50 text-emerald-700 border-emerald-100"}`}
+                        className={`px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-full border ${isJustAdmin ? "bg-zinc-950 text-white border-zinc-950" : "bg-white text-zinc-600 border-zinc-200 shadow-sm"}`}
                       >
                         {isJustAdmin ? "Admin" : "Public"}
                       </span>
@@ -373,7 +397,7 @@ export default function ProjectCardsGrid({
                               <circle cx="19" cy="12" r="2" />
                             </svg>
                           </button>
-                          {openMenuId === project.id && (
+                          {isOpen && (
                             <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-zinc-200 shadow-xl rounded-2xl py-2 z-[100] flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                               {!showArchived ? (
                                 <>
@@ -402,7 +426,7 @@ export default function ProjectCardsGrid({
                                         "just_admin",
                                       )
                                     }
-                                    className="text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                                    className="text-left px-4 py-2 text-xs font-semibold text-zinc-950 hover:bg-zinc-50 transition-colors"
                                   >
                                     Make Admin Only
                                   </button>
@@ -417,7 +441,7 @@ export default function ProjectCardsGrid({
                                     }
                                     className="text-left px-4 py-2 text-xs font-semibold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 transition-colors"
                                   >
-                                    🗑️ Archive Project
+                                    Archive Project
                                   </button>
                                 </>
                               ) : (
@@ -430,9 +454,9 @@ export default function ProjectCardsGrid({
                                         project.record_data,
                                       )
                                     }
-                                    className="text-left px-4 py-2 text-xs font-extrabold text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                    className="text-left px-4 py-2 text-xs font-extrabold text-zinc-700 hover:bg-zinc-50 transition-colors"
                                   >
-                                    ♻️ Restore Project
+                                    Restore Project
                                   </button>
                                   <div className="h-px bg-zinc-100 my-1.5" />
                                   <button
@@ -441,7 +465,7 @@ export default function ProjectCardsGrid({
                                     }
                                     className="text-left px-4 py-2 text-xs font-extrabold text-red-600 hover:bg-red-50 transition-colors"
                                   >
-                                    💥 Delete Permanently
+                                    Delete Permanently
                                   </button>
                                 </>
                               )}
@@ -480,7 +504,6 @@ export default function ProjectCardsGrid({
 
           {showArchived && displayedProjects.length === 0 && (
             <div className="col-span-1 md:col-span-2 lg:col-span-3 py-20 flex flex-col items-center justify-center border-2 border-dashed border-zinc-200 rounded-3xl">
-              <span className="text-4xl mb-4">📭</span>
               <p className="text-zinc-400 font-bold">Trash is empty.</p>
             </div>
           )}
@@ -524,7 +547,7 @@ export default function ProjectCardsGrid({
                 <select
                   value={newProjectVisibility}
                   onChange={(e) => setNewProjectVisibility(e.target.value)}
-                  className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all shadow-inner appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg- bg-no-repeat"
+                  className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all shadow-inner appearance-none bg-[url('/down-arrow.svg')] bg-size-[16px] bg-no-repeat bg-position-[right_1rem_center]"
                 >
                   <option value="public">Public (All Employees)</option>
                   <option value="just_admin">
