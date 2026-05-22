@@ -78,17 +78,32 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
         if not tenant_res.data:
             raise HTTPException(status_code=404, detail="Workspace not found")
             
-        current_tier = tenant_res.data[0].get("tier", "basic")
-        team_res = supabase.table("tenant_users").select("id", count="exact").eq("tenant_id", str(tenant_id)).execute()
-        current_seat_count = team_res.count if team_res.count else 0
+        raw_tier = tenant_res.data[0].get("tier")
+        current_tier = raw_tier.lower() if raw_tier else "basic"
+        if current_tier == "free":
+            current_tier = "basic"
+           
+        team_res = supabase.table("tenant_users").select("id, users(email)", count="exact").eq("tenant_id", str(tenant_id)).execute()
+        current_seat_count = team_res.count if team_res.count is not None else len(team_res.data)
         
         limits = {"basic": 3, "advanced": 50, "pro": float('inf')}
-        if current_seat_count >= limits[current_tier]:
-            raise HTTPException(status_code=403, detail=f"Seat limit reached for {current_tier.upper()} plan.")
+        limit = limits.get(current_tier, 3)
+        
         FRONTEND_URL = "https://b2-b-saa-s-dynamic.vercel.app"
-
         redirect_url = f"{FRONTEND_URL}/accept-invite?tenant_id={tenant_id}"
 
+        for member in team_res.data:
+            user_data = member.get("users")
+            if user_data and user_data.get("email") == request.email:
+                supabase_admin.auth.admin.invite_user_by_email(
+                    request.email,
+                    options={"redirect_to": redirect_url}
+                )
+                return {"message": "User is already in the workspace. Invitation resent."}
+
+        if current_seat_count >= limit:
+            raise HTTPException(status_code=403, detail=f"Seat limit reached for {current_tier.upper()} plan. Maximum {limit} members allowed.")
+   
         auth_res = supabase_admin.auth.admin.invite_user_by_email(
             request.email,
             options={"redirect_to": redirect_url}
@@ -98,13 +113,16 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
             raise HTTPException(status_code=400, detail="Could not invite user.")
 
         real_user_id = auth_res.user.id
-            
-        new_member = {
-            "tenant_id": str(tenant_id),
-            "user_id": real_user_id,
-            "role": request.role
-        }
-        supabase.table("tenant_users").insert(new_member).execute()
+
+        existing_user = supabase.table("tenant_users").select("id").eq("tenant_id", str(tenant_id)).eq("user_id", real_user_id).execute()
+        
+        if not existing_user.data:
+            new_member = {
+                "tenant_id": str(tenant_id),
+                "user_id": real_user_id,
+                "role": request.role
+            }
+            supabase.table("tenant_users").insert(new_member).execute()
         
         return {"message": "Invitation email sent successfully"}
     except HTTPException:
