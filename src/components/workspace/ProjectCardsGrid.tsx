@@ -328,11 +328,11 @@ export default function ProjectCardsGrid({
             const updatedBy = project.record_data?.updated_by || "System";
             const timeAgo = formatTimeAgo(updatedAt);
 
-            const cardClasses = `group relative aspect-[16/12] rounded-3xl border border-zinc-100 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] flex flex-col overflow-hidden transition-all duration-300 ${!showArchived ? "hover:shadow-[0_20px_50px_rgb(0,0,0,0.1)] hover:-translate-y-1.5 cursor-pointer" : "opacity-80"}`;
+            const cardClasses = `group relative aspect-[16/12] rounded-3xl border border-zinc-200/80 bg-white shadow-sm flex flex-col transition-all duration-300 ${!showArchived ? "hover:shadow-xl hover:border-zinc-300 hover:-translate-y-1.5 cursor-pointer ring-1 ring-transparent hover:ring-zinc-950/5" : "opacity-80"}`;
 
             const cardContent = (
               <>
-                <div className="flex-1 w-full bg-zinc-100 border-b border-zinc-100 flex items-center justify-center group-hover:bg-zinc-50 transition-colors duration-300">
+                <div className="flex-1 w-full rounded-t-[23px] bg-linear-to-br from-zinc-100 to-zinc-50 border-b border-zinc-100/50 flex items-center justify-center group-hover:from-zinc-200 group-hover:to-zinc-100 transition-all duration-500">
                   <span className="text-6xl font-black text-white group-hover:text-zinc-200 transition-colors duration-300 animate-pulse">
                     {initial}
                   </span>
@@ -374,7 +374,7 @@ export default function ProjectCardsGrid({
                             </svg>
                           </button>
                           {openMenuId === project.id && (
-                            <div className="absolute right-0 bottom-full mb-3 w-44 bg-white border border-zinc-100 shadow-2xl rounded-2xl py-2 z-30 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+                            <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-zinc-200 shadow-xl rounded-2xl py-2 z-[100] flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                               {!showArchived ? (
                                 <>
                                   <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-4 py-1">
