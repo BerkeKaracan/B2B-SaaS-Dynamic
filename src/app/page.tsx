@@ -1,8 +1,45 @@
-import React from "react";
+"use client";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Footer from "@/components/layout/Footer";
+import { fetchAPI } from "@/services/api";
+
+type PublicRecord = {
+  id: string;
+  record_data: {
+    name?: string;
+    updated_by?: string;
+    [key: string]: unknown;
+  };
+};
 
 export default function LandingPage() {
+  const [publicProjects, setPublicProjects] = useState<PublicRecord[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchTopThree = async () => {
+      try {
+        const res = await fetchAPI(
+          `/api/public/records?limit=3&t=${new Date().getTime()}`,
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setPublicProjects(data);
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTopThree();
+  }, []);
+
+  const project1 = publicProjects[0];
+  const project2 = publicProjects[1];
+  const project3 = publicProjects[2];
+
   return (
     <div className="relative min-h-screen bg-[#fafafb] text-zinc-900 font-sans antialiased selection:bg-zinc-200 flex flex-col overflow-hidden">
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center transform-gpu will-change-transform">
@@ -270,12 +307,12 @@ export default function LandingPage() {
                 <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
             </Link>
-            <Link
+            <a
               href="/demo"
               className="w-full sm:w-auto px-8 py-4 bg-white text-zinc-900 border-2 border-zinc-200 rounded-2xl font-bold text-base hover:border-zinc-300 hover:bg-zinc-50 transition-all flex items-center justify-center gap-2 shadow-sm"
             >
               View Demo
-            </Link>
+            </a>
           </div>
         </section>
 
@@ -379,120 +416,93 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* TEMPLATE GALLERY BENTO GRID */}
         <section className="py-24 px-6 max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-12 gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-100 border border-zinc-200/80 text-[10px] font-extrabold text-zinc-600 mb-4 uppercase tracking-widest">
-                Template Gallery
-              </div>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-zinc-900 tracking-tight">
-                The Template Ecosystem
-              </h2>
-              <p className="text-zinc-500 mt-4 max-w-xl text-lg leading-relaxed">
-                Don&apos;t start from scratch. Clone industry-standard workflows
-                built by the community in a single click.
-              </p>
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <div className="w-8 h-8 border-2 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
             </div>
-            <Link
-              href="/demo"
-              className="shrink-0 text-sm font-bold text-zinc-900 flex items-center gap-1.5 hover:gap-2.5 transition-all mb-2"
-            >
-              Explore all templates
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[240px]">
+              <Link
+                href={project1 ? `/share/${project1.id}` : "#"}
+                className={`md:col-span-2 md:row-span-2 rounded-[2rem] bg-zinc-950 border border-zinc-800 p-8 sm:p-12 flex flex-col relative overflow-hidden group transition-all ${!project1 && "cursor-default opacity-80"}`}
               >
-                <path d="M5 12h14"></path>
-                <path d="m12 5 7 7-7 7"></path>
-              </svg>
-            </Link>
-          </div>
+                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 group-hover:bg-blue-500/20 transition-all duration-700 pointer-events-none"></div>
+                <div className="relative z-10 flex-1">
+                  <span className="text-5xl mb-6 block opacity-50">📋</span>
+                  <h3 className="text-3xl font-bold text-white mb-3 tracking-tight">
+                    {project1
+                      ? project1.record_data.name || "Untitled Canvas"
+                      : "Available Slot"}
+                  </h3>
+                  <p className="text-zinc-400 font-medium max-w-sm leading-relaxed">
+                    {project1
+                      ? `Public framework built by ${project1.record_data.updated_by || "Architect"}. Click to open read-only infinite canvas view.`
+                      : "Make your project public from the Share Options to feature it here in the community ecosystem."}
+                  </p>
+                </div>
+                {project1 && (
+                  <div className="relative z-10 mt-auto flex items-center gap-4">
+                    <span className="px-3 py-1.5 bg-white/10 text-white text-[11px] font-bold rounded-lg backdrop-blur-md border border-white/10 uppercase tracking-widest">
+                      Production
+                    </span>
+                  </div>
+                )}
+              </Link>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[240px]">
-            {/* Card 1: Kanban (Large Block) */}
-            <div className="md:col-span-2 md:row-span-2 rounded-4xl bg-zinc-950 border border-zinc-800 p-8 sm:p-12 flex flex-col relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 group-hover:bg-blue-500/20 transition-all duration-700 pointer-events-none"></div>
-              <div className="relative z-10 flex-1">
-                <span className="text-5xl mb-6 block">📋</span>
-                <h3 className="text-3xl font-bold text-white mb-3 tracking-tight">
-                  Agile Kanban Board
-                </h3>
-                <p className="text-zinc-400 font-medium max-w-sm leading-relaxed">
-                  Manage sprints, track bugs, and ship products faster with our
-                  pre-configured development pipeline.
-                </p>
-              </div>
-              <div className="relative z-10 mt-auto flex items-center gap-4">
-                <span className="px-3 py-1.5 bg-white/10 text-white text-[11px] font-bold rounded-lg backdrop-blur-md border border-white/10 uppercase tracking-widest">
-                  Engineering
-                </span>
-                <span className="text-[13px] font-bold text-zinc-500 flex items-center gap-1.5">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                  12.4k clones
-                </span>
-              </div>
-            </div>
+              <Link
+                href={project2 ? `/share/${project2.id}` : "#"}
+                className={`md:col-span-1 md:row-span-1 rounded-[2rem] bg-white border border-zinc-200/80 p-8 flex flex-col relative overflow-hidden group transition-all duration-300 ${project2 ? "hover:border-zinc-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer" : "cursor-default bg-zinc-50 opacity-60"}`}
+              >
+                <div className="flex-1">
+                  <span className="text-4xl mb-4 block opacity-50">🤝</span>
+                  <h3 className="text-xl font-bold text-zinc-900 mb-1 tracking-tight">
+                    {project2
+                      ? project2.record_data.name || "Untitled Canvas"
+                      : "Available Slot"}
+                  </h3>
+                  <p className="text-sm text-zinc-500 font-medium">
+                    {project2
+                      ? `By ${project2.record_data.updated_by || "User"}`
+                      : "Waiting for publish."}
+                  </p>
+                </div>
+                {project2 && (
+                  <div className="mt-auto flex items-center justify-between">
+                    <span className="text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-widest">
+                      Shared
+                    </span>
+                  </div>
+                )}
+              </Link>
 
-            {/* Card 2: CRM (Small Block) */}
-            <div className="md:col-span-1 md:row-span-1 rounded-4xl bg-white border border-zinc-200/80 p-8 flex flex-col relative overflow-hidden group hover:border-zinc-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer">
-              <div className="flex-1">
-                <span className="text-4xl mb-4 block">🤝</span>
-                <h3 className="text-xl font-bold text-zinc-900 mb-1 tracking-tight">
-                  CRM Pipeline
-                </h3>
-                <p className="text-sm text-zinc-500 font-medium">
-                  Track leads and close deals.
-                </p>
-              </div>
-              <div className="mt-auto flex items-center justify-between">
-                <span className="text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-widest">
-                  Sales
-                </span>
-                <span className="text-[11px] font-bold text-zinc-400">
-                  8.2k clones
-                </span>
-              </div>
+              <Link
+                href={project3 ? `/share/${project3.id}` : "#"}
+                className={`md:col-span-1 md:row-span-1 rounded-[2rem] bg-white border border-zinc-200/80 p-8 flex flex-col relative overflow-hidden group transition-all duration-300 ${project3 ? "hover:border-zinc-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer" : "cursor-default bg-zinc-50 opacity-60"}`}
+              >
+                <div className="flex-1">
+                  <span className="text-4xl mb-4 block opacity-50">👋</span>
+                  <h3 className="text-xl font-bold text-zinc-900 mb-1 tracking-tight">
+                    {project3
+                      ? project3.record_data.name || "Untitled Canvas"
+                      : "Available Slot"}
+                  </h3>
+                  <p className="text-sm text-zinc-500 font-medium">
+                    {project3
+                      ? `By ${project3.record_data.updated_by || "User"}`
+                      : "Waiting for publish."}
+                  </p>
+                </div>
+                {project3 && (
+                  <div className="mt-auto flex items-center justify-between">
+                    <span className="text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-widest">
+                      Shared
+                    </span>
+                  </div>
+                )}
+              </Link>
             </div>
-
-            {/* Card 3: HR (Small Block) */}
-            <div className="md:col-span-1 md:row-span-1 rounded-4xl bg-white border border-zinc-200/80 p-8 flex flex-col relative overflow-hidden group hover:border-zinc-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer">
-              <div className="flex-1">
-                <span className="text-4xl mb-4 block">👋</span>
-                <h3 className="text-xl font-bold text-zinc-900 mb-1 tracking-tight">
-                  Onboarding Hub
-                </h3>
-                <p className="text-sm text-zinc-500 font-medium">
-                  Streamline new hires.
-                </p>
-              </div>
-              <div className="mt-auto flex items-center justify-between">
-                <span className="text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-widest">
-                  HR
-                </span>
-                <span className="text-[11px] font-bold text-zinc-400">
-                  4.1k clones
-                </span>
-              </div>
-            </div>
-          </div>
+          )}
         </section>
 
         <section className="py-24 px-6 max-w-5xl mx-auto mb-10">

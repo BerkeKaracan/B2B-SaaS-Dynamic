@@ -33,6 +33,8 @@ interface CanvasState {
   isSaving: boolean;
   showSaved: boolean;
   isLoading: boolean;
+  metadata: Record<string, unknown>;
+
   addConnection: (conn: Connection) => void;
   removeConnection: (connId: string) => void;
   setSelectedBlocks: (blockIds: string[]) => void;
@@ -102,6 +104,7 @@ interface CanvasState {
     newX: number,
     newY: number,
   ) => void;
+  updateMetadata: (newData: Record<string, unknown>) => void;
 }
 
 let saveTimeout: NodeJS.Timeout;
@@ -124,6 +127,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   isSaving: false,
   showSaved: false,
   isLoading: false,
+  metadata: {},
+
+  updateMetadata: (newData) =>
+    set((state) => ({ metadata: { ...state.metadata, ...newData } })),
 
   addConnection: (conn) => {
     get().saveHistory();
@@ -518,15 +525,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       panY: 0,
       activePageId: null,
       activeBlockId: null,
+      metadata: {},
     }),
 
   loadProjectById: async (tenantId, recordId) => {
     set({ isLoading: true });
     try {
       const response = await fetchAPI(`/api/records/${recordId}`);
-
       if (!response.ok) throw new Error("Fetch failed");
-
       const record = await response.json();
 
       if (record?.record_data) {
@@ -537,6 +543,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           date: record.record_data.date || "",
           pages: record.record_data.pages || [],
           connections: record.record_data.connections || [],
+          metadata: record.record_data,
         });
       }
     } catch (e) {
@@ -557,7 +564,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         body: JSON.stringify({
           tenant_id: tenantId,
           module_name: moduleName,
-          record_data: { name, pages: [], connections: [] },
+          record_data: {
+            name,
+            pages: [],
+            connections: [],
+            visibility: "just_admin",
+          },
         }),
       });
       const data = await response.json();
@@ -568,7 +580,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   saveProject: async (tenantId) => {
-    const { recordId, title, description, date, pages, connections } = get();
+    const { recordId, title, description, date, pages, connections, metadata } =
+      get();
     if (!recordId) return;
 
     set({ isSaving: true, showSaved: false });
@@ -577,7 +590,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       await fetchAPI(`/api/records/${recordId}`, {
         method: "PATCH",
         body: JSON.stringify({
-          record_data: { title, description, date, pages, connections },
+          record_data: {
+            ...metadata,
+            title,
+            description,
+            date,
+            pages,
+            connections,
+          },
         }),
       });
 
@@ -590,6 +610,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       set({ isSaving: false });
     }
   },
+
   duplicateBlock: (pageId, blockId, offsetX = 40, offsetY = 40) => {
     get().saveHistory();
     set((state) => {
@@ -615,6 +636,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       };
     });
   },
+
   transferBlockToPage: (blockId, sourcePageId, targetPageId, newX, newY) => {
     get().saveHistory();
     set((state) => {
