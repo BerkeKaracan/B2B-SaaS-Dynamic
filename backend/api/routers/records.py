@@ -30,9 +30,9 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         if role_res.data:
             role = role_res.data[0].get("role", "employee")
             
-        return {"user_id": user_id, "role": role, "full_name": full_name}
+        return {"user_id": user_id, "role": role, "full_name": full_name, "email": email}
     except Exception as e:
-        print(f"Auth Error: {str(e)}") # Konsola gerçek hatayı bas
+        print(f"Auth Error: {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid token or session expired")
 
 
@@ -49,6 +49,7 @@ def create_record(
             
         data["record_data"]["updated_at"] = datetime.now(timezone.utc).isoformat()
         data["record_data"]["updated_by"] = user["full_name"]
+        data["record_data"]["collaborators"] = [] 
 
         response = supabase.table("custom_records").insert(data).execute()
         
@@ -82,8 +83,11 @@ def get_records(
             for record in records:
                 record_data = record.get("record_data", {})
                 visibility = record_data.get("visibility", "public")
+                
+                collaborators = record_data.get("collaborators", [])
+                is_collab = any(c.get("email") == user["email"] for c in collaborators)
 
-                if visibility != "just_admin":
+                if visibility != "just_admin" or is_collab:
                     filtered_records.append(record)
             return filtered_records
         return records
@@ -105,7 +109,10 @@ def get_record(
         record_data = record.get("record_data", {})
         visibility = record_data.get("visibility", "public")
         
-        if user["role"] not in ["admin", "owner"] and visibility == "just_admin":
+        collaborators = record_data.get("collaborators", [])
+        is_collab = any(c.get("email") == user["email"] for c in collaborators)
+        
+        if user["role"] not in ["admin", "owner"] and visibility == "just_admin" and not is_collab:
             raise HTTPException(status_code=403, detail="Forbidden: Admin only record")
             
         return record
@@ -127,10 +134,14 @@ def update_record(
             raise HTTPException(status_code=404, detail="Record not found")
             
         current_record_data = existing_res.data[0].get("record_data", {})
+        visibility = current_record_data.get("visibility", "public")
+        collaborators = current_record_data.get("collaborators", [])
+       
+        is_editor = any(c.get("email") == user["email"] and c.get("role") == "editor" for c in collaborators)
 
         if user["role"] not in ["admin", "owner"]:
-            if current_record_data.get("visibility") == "just_admin":
-                raise HTTPException(status_code=403, detail="You do not have permission to modify an Admin Only record.")
+            if visibility == "just_admin" and not is_editor:
+                raise HTTPException(status_code=403, detail="You do not have permission to modify this record.")
 
         payload_data = payload.record_data
         payload_data["updated_at"] = datetime.now(timezone.utc).isoformat()

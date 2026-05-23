@@ -6,9 +6,15 @@ import CanvasArea from "@/components/canvas/renderers/CanvasArea";
 import { fetchAPI } from "@/services/api";
 import { useCanvasStore } from "@/store/useCanvasStore";
 
+type Collaborator = {
+  email: string;
+  role: string;
+};
+
 type RecordDataProps = {
   name?: string;
   is_global_public?: boolean | string;
+  collaborators?: Collaborator[];
   [key: string]: unknown;
 };
 
@@ -21,6 +27,9 @@ export default function ProjectDesignPage() {
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [recordData, setRecordData] = useState<RecordDataProps | null>(null);
   const [isLoadingRecord, setIsLoadingRecord] = useState<boolean>(false);
+
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("viewer");
 
   const updateMetadata = useCanvasStore((state) => state.updateMetadata);
 
@@ -76,7 +85,70 @@ export default function ProjectDesignPage() {
     }
   };
 
+  const handleAddCollaborator = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!recordData || !inviteEmail) return;
+    setIsUpdating(true);
+
+    const currentCollabs = recordData.collaborators || [];
+    if (currentCollabs.some((c) => c.email === inviteEmail)) {
+      setIsUpdating(false);
+      setInviteEmail("");
+      return; 
+    }
+
+    const newCollabs = [
+      ...currentCollabs,
+      { email: inviteEmail, role: inviteRole },
+    ];
+
+    try {
+      const updatedData = { ...recordData, collaborators: newCollabs };
+      const res = await fetchAPI(`/api/records/${projectId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ record_data: updatedData }),
+      });
+
+      if (res.ok) {
+        setRecordData(updatedData);
+        updateMetadata({ collaborators: newCollabs });
+        setInviteEmail("");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleRemoveCollaborator = async (emailToRemove: string) => {
+    if (!recordData) return;
+    setIsUpdating(true);
+
+    const newCollabs = (recordData.collaborators || []).filter(
+      (c) => c.email !== emailToRemove,
+    );
+
+    try {
+      const updatedData = { ...recordData, collaborators: newCollabs };
+      const res = await fetchAPI(`/api/records/${projectId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ record_data: updatedData }),
+      });
+
+      if (res.ok) {
+        setRecordData(updatedData);
+        updateMetadata({ collaborators: newCollabs });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const isGlobal = String(recordData?.is_global_public) === "true";
+  const collaborators = recordData?.collaborators || [];
 
   return (
     <div className="flex flex-col h-full w-full bg-[#fafafb] relative selection:bg-zinc-200">
@@ -119,14 +191,14 @@ export default function ProjectDesignPage() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-zinc-950/20 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
               <div>
                 <h3 className="text-lg font-black text-zinc-950 tracking-tight">
-                  Internet Sharing
+                  Access & Sharing
                 </h3>
                 <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1">
-                  Global Access Settings
+                  Manage Workspace Visibility
                 </p>
               </div>
               <button
@@ -152,34 +224,8 @@ export default function ProjectDesignPage() {
                 <div className="w-6 h-6 border-2 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
               </div>
             ) : (
-              <div className="p-6 space-y-8 bg-white">
-                <div
-                  className={`space-y-3 transition-opacity ${!isGlobal ? "opacity-40 pointer-events-none grayscale" : "opacity-100"}`}
-                >
-                  <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                    Public Web Link
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={`${typeof window !== "undefined" ? window.location.origin : ""}/share/${projectId}`}
-                      className="flex-1 px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium text-zinc-600 focus:outline-none"
-                    />
-                    <button
-                      onClick={handleCopy}
-                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${isCopied ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-zinc-950 text-white hover:bg-zinc-800"}`}
-                    >
-                      {isCopied ? "Copied!" : "Copy"}
-                    </button>
-                  </div>
-                  <p className="text-[10px] font-bold text-amber-600">
-                    Anyone on the internet with this link can view the canvas.
-                  </p>
-                </div>
-
-                <div className="h-px bg-zinc-100 w-full"></div>
-
+              <div className="p-6 space-y-8 bg-white max-h-[70vh] overflow-y-auto">
+                {/* GLOBAL SHARING */}
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -187,11 +233,9 @@ export default function ProjectDesignPage() {
                         Publish to Global Gallery
                       </h4>
                       <p className="text-[11px] font-medium text-zinc-500 leading-relaxed max-w-[250px]">
-                        Enable this to generate a public link and feature your
-                        workspace in the SaaS Engine community landing page.
+                        Feature your workspace in the SaaS Engine community.
                       </p>
                     </div>
-
                     <button
                       onClick={handleGlobalToggle}
                       disabled={isUpdating}
@@ -202,6 +246,113 @@ export default function ProjectDesignPage() {
                       />
                     </button>
                   </div>
+
+                  <div
+                    className={`transition-opacity ${!isGlobal ? "hidden" : "block"}`}
+                  >
+                    <div className="flex items-center gap-2 mt-3">
+                      <input
+                        type="text"
+                        readOnly
+                        value={`${typeof window !== "undefined" ? window.location.origin : ""}/share/${projectId}`}
+                        className="flex-1 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium text-zinc-600 focus:outline-none"
+                      />
+                      <button
+                        onClick={handleCopy}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${isCopied ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-zinc-950 text-white hover:bg-zinc-800"}`}
+                      >
+                        {isCopied ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-px bg-zinc-100 w-full"></div>
+
+                {/* SPECIFIC COLLABORATORS */}
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-zinc-950 mb-1">
+                      Project-Specific Access
+                    </h4>
+                    <p className="text-[11px] font-medium text-zinc-500 leading-relaxed">
+                      Invite teammates to view or edit this specific project,
+                      regardless of their global workspace role.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleAddCollaborator} className="flex gap-2">
+                    <input
+                      type="email"
+                      required
+                      placeholder="Email address"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+                    />
+                    <select
+                      value={inviteRole}
+                      onChange={(e) => setInviteRole(e.target.value)}
+                      className="px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-700 focus:outline-none cursor-pointer"
+                    >
+                      <option value="viewer">Viewer</option>
+                      <option value="editor">Editor</option>
+                    </select>
+                    <button
+                      type="submit"
+                      disabled={isUpdating || !inviteEmail}
+                      className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                    >
+                      Invite
+                    </button>
+                  </form>
+
+                  {/* COLLABORATOR LIST */}
+                  {collaborators.length > 0 && (
+                    <div className="mt-4 border border-zinc-100 rounded-xl overflow-hidden divide-y divide-zinc-100">
+                      {collaborators.map((collab, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-zinc-50/50 hover:bg-zinc-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-6 h-6 rounded-md bg-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-600 uppercase">
+                              {collab.email.charAt(0)}
+                            </div>
+                            <span className="text-xs font-semibold text-zinc-900">
+                              {collab.email}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${collab.role === "editor" ? "bg-indigo-50 text-indigo-600" : "bg-zinc-100 text-zinc-500"}`}
+                            >
+                              {collab.role}
+                            </span>
+                            <button
+                              onClick={() =>
+                                handleRemoveCollaborator(collab.email)
+                              }
+                              disabled={isUpdating}
+                              className="text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                            >
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                              >
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
