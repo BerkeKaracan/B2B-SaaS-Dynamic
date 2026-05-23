@@ -19,6 +19,9 @@ class InviteUserRequest(BaseModel):
     email: EmailStr
     role: str = "employee"
 
+class UpdateRoleRequest(BaseModel):
+    role: str
+
 @router.get("/{tenant_id}")
 def get_tenant(tenant_id: UUID):
     try:
@@ -156,3 +159,19 @@ def set_password(request: SetPasswordRequest, authorization: str = Header(...)):
         return {"message": "Password set successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/{tenant_id}/team/{member_id}")
+def remove_member(tenant_id: UUID, member_id: UUID):
+    try:
+        supabase.table("tenant_users").delete().eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
+        return {"message": "Member removed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.patch("/{tenant_id}/team/{member_id}")
+def update_member_role(tenant_id: UUID, member_id: UUID, request: UpdateRoleRequest):
+    try:
+        supabase.table("tenant_users").update({"role": request.role}).eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
+        return {"message": "Role updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

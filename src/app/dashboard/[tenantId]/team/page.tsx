@@ -65,7 +65,6 @@ export default function TeamBillingPage({
 
         const token = localStorage.getItem("token");
         if (!token) {
-          console.error("No token found. Redirecting to login.");
           router.push("/login");
           return;
         }
@@ -84,7 +83,6 @@ export default function TeamBillingPage({
           return;
         }
 
-        // Fetch team members
         const res2 = await fetch(
           `${API_BASE_URL}/api/tenants/${tenantId}/team`,
           {
@@ -183,6 +181,37 @@ export default function TeamBillingPage({
 
       setMembers(members.filter((m) => m.id !== memberId));
       showNotification("success", "Member removed from the workspace.");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      showNotification("error", errorMessage);
+    }
+  };
+
+  const handleRoleChange = async (memberId: string, newRole: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${API_BASE_URL}/api/tenants/${tenantId}/team/${memberId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ role: newRole }),
+        },
+      );
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || "Failed to update role.");
+      }
+
+      setMembers(
+        members.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)),
+      );
+      showNotification("success", "Member role updated successfully.");
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -312,12 +341,6 @@ export default function TeamBillingPage({
                 {members.map((m) => {
                   const emailStr = m.email || "Pending Invite...";
                   const initial = emailStr.charAt(0).toUpperCase();
-                  const roleColors =
-                    m.role === "owner"
-                      ? "bg-purple-100 text-purple-700 border-purple-200"
-                      : m.role === "admin"
-                        ? "bg-blue-100 text-blue-700 border-blue-200"
-                        : "bg-zinc-100 text-zinc-600 border-zinc-200";
 
                   return (
                     <div
@@ -326,7 +349,7 @@ export default function TeamBillingPage({
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-tr ${getAvatarGradient(emailStr)} shadow-sm`}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-tr ${getAvatarGradient(emailStr)} shadow-sm shrink-0`}
                         >
                           {initial}
                         </div>
@@ -335,19 +358,50 @@ export default function TeamBillingPage({
                             {emailStr}
                           </span>
                           <span className="text-xs text-zinc-500 font-medium">
-                            Joined recently
+                            Workspace Access
                           </span>
                         </div>
                       </div>
+
                       <div className="flex items-center gap-4 justify-between sm:justify-end">
-                        <div
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border cursor-pointer hover:opacity-80 transition-opacity ${roleColors}`}
-                        >
-                          {m.role}
-                        </div>
+                        {m.role === "owner" ? (
+                          <span className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-zinc-950 text-white border border-zinc-800 shadow-sm flex items-center gap-1.5 cursor-default select-none">
+                            <ShieldAlert className="w-3.5 h-3.5 text-zinc-400" />
+                            Owner
+                          </span>
+                        ) : (
+                          <div className="relative">
+                            <select
+                              value={m.role}
+                              onChange={(e) =>
+                                handleRoleChange(m.id, e.target.value)
+                              }
+                              className={`appearance-none pr-8 pl-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border cursor-pointer focus:outline-none focus:ring-2 transition-all ${
+                                m.role === "admin"
+                                  ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 focus:ring-indigo-500/20"
+                                  : "bg-zinc-100 text-zinc-600 border-zinc-200 hover:bg-zinc-200 focus:ring-zinc-900/20"
+                              }`}
+                            >
+                              <option value="admin">Admin</option>
+                              <option value="employee">Employee</option>
+                            </select>
+                            <svg
+                              className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60 ${m.role === "admin" ? "text-indigo-700" : "text-zinc-600"}`}
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="m6 9 6 6 6-6" />
+                            </svg>
+                          </div>
+                        )}
+
                         <button
                           onClick={() => removeMember(m.id)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100"
+                          className={`w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100 ${m.role === "owner" && "invisible"}`}
                           title="Remove Member"
                         >
                           <svg
