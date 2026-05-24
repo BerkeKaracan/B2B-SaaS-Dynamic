@@ -1,45 +1,9 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Link from "next/link";
 import Footer from "@/components/layout/Footer";
-import { fetchAPI } from "@/services/api";
-
-type PublicRecord = {
-  id: string;
-  record_data: {
-    name?: string;
-    updated_by?: string;
-    [key: string]: unknown;
-  };
-};
 
 export default function LandingPage() {
-  const [publicProjects, setPublicProjects] = useState<PublicRecord[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    const fetchTopThree = async () => {
-      try {
-        const res = await fetchAPI(
-          `/api/public/records?limit=3&t=${new Date().getTime()}`,
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setPublicProjects(data);
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchTopThree();
-  }, []);
-
-  const project1 = publicProjects[0];
-  const project2 = publicProjects[1];
-  const project3 = publicProjects[2];
-
   return (
     <div className="relative min-h-screen bg-[#fafafb] text-zinc-900 font-sans antialiased selection:bg-zinc-200 flex flex-col overflow-hidden">
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center transform-gpu will-change-transform">
@@ -81,6 +45,7 @@ export default function LandingPage() {
 
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-white rounded-full blur-[100px] opacity-80 transform-gpu will-change-transform"></div>
       </div>
+
       <header className="fixed top-0 left-0 right-0 h-16 border-b border-zinc-200/50 bg-white/70 backdrop-blur-xl z-50 px-6 flex items-center justify-between">
         <div className="flex items-center gap-3 shrink-0">
           <div className="w-8 h-8 bg-zinc-950 rounded-lg flex items-center justify-center shadow-sm border border-zinc-800">
@@ -383,11 +348,11 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-zinc-900 mb-2">
-                Role-Based Access (RBAC)
+                Workspace RBAC
               </h3>
               <p className="text-zinc-500 leading-relaxed text-sm">
                 Admins see everything, while your team sees only what they need
-                to. Perfect security.
+                to. Perfect workspace security.
               </p>
             </div>
 
@@ -413,96 +378,85 @@ export default function LandingPage() {
                 Never lose data again.
               </p>
             </div>
+
+            <div className="p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all duration-300 transform hover:-translate-y-2 hover:border-zinc-300 hover:shadow-xl group">
+              <div className="w-12 h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-zinc-900 mb-2">
+                Project-Level Access
+              </h3>
+              <p className="text-zinc-500 leading-relaxed text-sm">
+                Invite specific teammates to view or edit individual projects
+                without giving full workspace access.
+              </p>
+            </div>
+
+            <div className="p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all duration-300 transform hover:-translate-y-2 hover:border-zinc-300 hover:shadow-xl group">
+              <div className="w-12 h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-zinc-900 mb-2">
+                Smart Notifications
+              </h3>
+              <p className="text-zinc-500 leading-relaxed text-sm">
+                Get real-time application alerts for project invites and role
+                updates right in your dashboard.
+              </p>
+            </div>
+
+            <div className="p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all duration-300 transform hover:-translate-y-2 hover:border-zinc-300 hover:shadow-xl group">
+              <div className="w-12 h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-zinc-900 mb-2">
+                JSONB Architecture
+              </h3>
+              <p className="text-zinc-500 leading-relaxed text-sm">
+                Store complex custom data structures securely with
+                lightning-fast PostgreSQL JSONB queries.
+              </p>
+            </div>
           </div>
-        </section>
-
-        <section className="py-24 px-6 max-w-6xl mx-auto">
-          {isLoading ? (
-            <div className="flex justify-center py-10">
-              <div className="w-8 h-8 border-2 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[240px]">
-              <Link
-                href={project1 ? `/share/${project1.id}` : "#"}
-                className={`md:col-span-2 md:row-span-2 rounded-[2rem] bg-zinc-950 border border-zinc-800 p-8 sm:p-12 flex flex-col relative overflow-hidden group transition-all ${!project1 && "cursor-default opacity-80"}`}
-              >
-                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 group-hover:bg-blue-500/20 transition-all duration-700 pointer-events-none"></div>
-                <div className="relative z-10 flex-1">
-                  <span className="text-5xl mb-6 block opacity-50">📋</span>
-                  <h3 className="text-3xl font-bold text-white mb-3 tracking-tight">
-                    {project1
-                      ? project1.record_data.name || "Untitled Canvas"
-                      : "Available Slot"}
-                  </h3>
-                  <p className="text-zinc-400 font-medium max-w-sm leading-relaxed">
-                    {project1
-                      ? `Public framework built by ${project1.record_data.updated_by || "Architect"}. Click to open read-only infinite canvas view.`
-                      : "Make your project public from the Share Options to feature it here in the community ecosystem."}
-                  </p>
-                </div>
-                {project1 && (
-                  <div className="relative z-10 mt-auto flex items-center gap-4">
-                    <span className="px-3 py-1.5 bg-white/10 text-white text-[11px] font-bold rounded-lg backdrop-blur-md border border-white/10 uppercase tracking-widest">
-                      Production
-                    </span>
-                  </div>
-                )}
-              </Link>
-
-              <Link
-                href={project2 ? `/share/${project2.id}` : "#"}
-                className={`md:col-span-1 md:row-span-1 rounded-[2rem] bg-white border border-zinc-200/80 p-8 flex flex-col relative overflow-hidden group transition-all duration-300 ${project2 ? "hover:border-zinc-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer" : "cursor-default bg-zinc-50 opacity-60"}`}
-              >
-                <div className="flex-1">
-                  <span className="text-4xl mb-4 block opacity-50">🤝</span>
-                  <h3 className="text-xl font-bold text-zinc-900 mb-1 tracking-tight">
-                    {project2
-                      ? project2.record_data.name || "Untitled Canvas"
-                      : "Available Slot"}
-                  </h3>
-                  <p className="text-sm text-zinc-500 font-medium">
-                    {project2
-                      ? `By ${project2.record_data.updated_by || "User"}`
-                      : "Waiting for publish."}
-                  </p>
-                </div>
-                {project2 && (
-                  <div className="mt-auto flex items-center justify-between">
-                    <span className="text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-widest">
-                      Shared
-                    </span>
-                  </div>
-                )}
-              </Link>
-
-              <Link
-                href={project3 ? `/share/${project3.id}` : "#"}
-                className={`md:col-span-1 md:row-span-1 rounded-[2rem] bg-white border border-zinc-200/80 p-8 flex flex-col relative overflow-hidden group transition-all duration-300 ${project3 ? "hover:border-zinc-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer" : "cursor-default bg-zinc-50 opacity-60"}`}
-              >
-                <div className="flex-1">
-                  <span className="text-4xl mb-4 block opacity-50">👋</span>
-                  <h3 className="text-xl font-bold text-zinc-900 mb-1 tracking-tight">
-                    {project3
-                      ? project3.record_data.name || "Untitled Canvas"
-                      : "Available Slot"}
-                  </h3>
-                  <p className="text-sm text-zinc-500 font-medium">
-                    {project3
-                      ? `By ${project3.record_data.updated_by || "User"}`
-                      : "Waiting for publish."}
-                  </p>
-                </div>
-                {project3 && (
-                  <div className="mt-auto flex items-center justify-between">
-                    <span className="text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-widest">
-                      Shared
-                    </span>
-                  </div>
-                )}
-              </Link>
-            </div>
-          )}
         </section>
 
         <section className="py-24 px-6 max-w-5xl mx-auto mb-10">
