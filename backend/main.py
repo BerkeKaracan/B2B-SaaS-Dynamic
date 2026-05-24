@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
-from api.routers import records, auth, tenants, public
+from api.routers import records, auth, tenants, public, notifications
 
 app = FastAPI(
     title="SaaS Engine API",
@@ -29,6 +29,7 @@ app.include_router(records.router)
 app.include_router(auth.router)
 app.include_router(tenants.router)
 app.include_router(public.router)
+app.include_router(notifications.router)
 
 @app.get("/health", tags=["System"])
 async def health_check() -> dict[str, str]:

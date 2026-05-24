@@ -49,20 +49,22 @@ def update_tenant_tier(tenant_id: UUID, request: UpdateTierRequest):
 def get_tenant_members(tenant_id: UUID):
     try:
         response = supabase.table("tenant_users").select(
-            "id, tenant_id, user_id, role, created_at"
+            "id, tenant_id, user_id, role, email, created_at"
         ).eq("tenant_id", str(tenant_id)).execute()
 
         members = []
         for row in response.data:
             uid = str(row.get("user_id"))
-            email = "Pending..."
+            email = row.get("email")
             
-            try:
-                user_data = supabase_admin.auth.admin.get_user_by_id(uid)
-                if user_data and user_data.user and user_data.user.email:
-                    email = user_data.user.email
-            except Exception:
-                pass
+            if not email:
+                email = "Pending..."
+                try:
+                    user_data = supabase_admin.auth.admin.get_user_by_id(uid)
+                    if user_data and user_data.user and user_data.user.email:
+                        email = user_data.user.email
+                except Exception:
+                    pass
             
             members.append({
                 "id": str(row.get("id")),
@@ -95,46 +97,58 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
         limits = {"basic": 3, "advanced": 50, "pro": float('inf')}
         limit = limits.get(current_tier, 3)
         
-        FRONTEND_URL = "https://b2-b-saa-s-dynamic.vercel.app"
-        redirect_url = f"{FRONTEND_URL}/accept-invite?tenant_id={tenant_id}"
-
-        for member in team_res.data:
-            uid = str(member.get("user_id"))
-            try:
-                user_data = supabase_admin.auth.admin.get_user_by_id(uid)
-                if user_data and user_data.user and user_data.user.email == request.email:
-                    supabase_admin.auth.admin.invite_user_by_email(
-                        request.email,
-                        options={"redirect_to": redirect_url}
-                    )
-                    return {"message": "User is already in the workspace. Invitation resent."}
-            except Exception:
-                continue
-
+        existing_member = supabase.table("tenant_users").select("id").eq("tenant_id", str(tenant_id)).eq("email", request.email).execute()
+        if existing_member.data:
+            return {"message": "User is already in this workspace."}
+            
         if current_seat_count >= limit:
-            raise HTTPException(status_code=403, detail=f"Seat limit reached for {current_tier.upper()} plan. Maximum {limit} members allowed.")
-        
-        auth_res = supabase_admin.auth.admin.invite_user_by_email(
-            request.email,
-            options={"redirect_to": redirect_url}
-        )
-        
-        if not auth_res.user:
-            raise HTTPException(status_code=400, detail="Could not invite user.")
+            raise HTTPException(status_code=403, detail=f"Seat limit reached for {current_tier.upper()} plan.")
 
-        real_user_id = auth_res.user.id
+        real_user_id = None
+        try:
+            users_list = supabase_admin.auth.admin.list_users()
+            users = getattr(users_list, 'users', users_list) 
+            for u in users:
+                if u.email == request.email:
+                    real_user_id = u.id
+                    break
+        except Exception as e:
+            print(f"List users error: {e}")
 
-        existing_user = supabase.table("tenant_users").select("id").eq("tenant_id", str(tenant_id)).eq("user_id", real_user_id).execute()
+        if real_user_id:
+            pass
+        else:
+            FRONTEND_URL = "https://b2-b-saa-s-dynamic.vercel.app"
+            redirect_url = f"{FRONTEND_URL}/accept-invite?tenant_id={tenant_id}"
+            auth_res = supabase_admin.auth.admin.invite_user_by_email(
+                request.email,
+                options={"redirect_to": redirect_url}
+            )
+            if not auth_res.user:
+                raise HTTPException(status_code=400, detail="Could not invite user.")
+            real_user_id = auth_res.user.id
+
+        new_member = {
+            "tenant_id": str(tenant_id),
+            "user_id": real_user_id,
+            "email": request.email,
+            "role": request.role
+        }
+        supabase.table("tenant_users").insert(new_member).execute()
         
-        if not existing_user.data:
-            new_member = {
-                "tenant_id": str(tenant_id),
-                "user_id": real_user_id,
-                "role": request.role
+        try:
+            notification_payload = {
+                "target_email": request.email,
+                "type": "role_update",
+                "title": "New Workspace Access",
+                "message": "You have been added to a new workspace. Check your dashboard.",
+                "link": f"/dashboard/{tenant_id}"
             }
-            supabase.table("tenant_users").insert(new_member).execute()
+            supabase.table("notifications").insert(notification_payload).execute()
+        except Exception as notif_err:
+            print(f"Notification error: {notif_err}")
         
-        return {"message": "Invitation email sent successfully"}
+        return {"message": "User successfully added to workspace."}
     except HTTPException:
         raise
     except Exception as e:

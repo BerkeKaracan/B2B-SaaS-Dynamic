@@ -90,16 +90,20 @@ export default function ProjectDesignPage() {
     if (!recordData || !inviteEmail) return;
     setIsUpdating(true);
 
+    const cleanEmail = inviteEmail.toLowerCase().trim();
     const currentCollabs = recordData.collaborators || [];
-    if (currentCollabs.some((c) => c.email === inviteEmail)) {
+
+    if (
+      currentCollabs.some((c) => c.email.toLowerCase().trim() === cleanEmail)
+    ) {
       setIsUpdating(false);
       setInviteEmail("");
-      return; 
+      return;
     }
 
     const newCollabs = [
       ...currentCollabs,
-      { email: inviteEmail, role: inviteRole },
+      { email: cleanEmail, role: inviteRole },
     ];
 
     try {
@@ -125,8 +129,9 @@ export default function ProjectDesignPage() {
     if (!recordData) return;
     setIsUpdating(true);
 
+    const cleanEmailToRemove = emailToRemove.toLowerCase().trim();
     const newCollabs = (recordData.collaborators || []).filter(
-      (c) => c.email !== emailToRemove,
+      (c) => c.email.toLowerCase().trim() !== cleanEmailToRemove,
     );
 
     try {
@@ -225,7 +230,6 @@ export default function ProjectDesignPage() {
               </div>
             ) : (
               <div className="p-6 space-y-8 bg-white max-h-[70vh] overflow-y-auto">
-                {/* GLOBAL SHARING */}
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -269,7 +273,6 @@ export default function ProjectDesignPage() {
 
                 <div className="h-px bg-zinc-100 w-full"></div>
 
-                {/* SPECIFIC COLLABORATORS */}
                 <div className="space-y-4">
                   <div>
                     <h4 className="text-sm font-bold text-zinc-950 mb-1">
@@ -307,7 +310,6 @@ export default function ProjectDesignPage() {
                     </button>
                   </form>
 
-                  {/* COLLABORATOR LIST */}
                   {collaborators.length > 0 && (
                     <div className="mt-4 border border-zinc-100 rounded-xl overflow-hidden divide-y divide-zinc-100">
                       {collaborators.map((collab, index) => (

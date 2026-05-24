@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useLayoutStore } from "@/store/useLayoutStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import NotificationBell from "@/components/layout/NotificationBell";
 
 export default function Navbar({
   tenantId,
@@ -72,7 +73,6 @@ export default function Navbar({
           </span>
         </div>
 
-        {/* Saving Indicator */}
         <div className="ml-4 flex items-center h-full">
           {isSaving ? (
             <div className="flex items-center gap-2 px-2.5 py-1 bg-zinc-50 rounded-md border border-zinc-100">
@@ -93,6 +93,8 @@ export default function Navbar({
       </div>
 
       <div className="flex items-center gap-4">
+        <NotificationBell />
+
         {showProjectInfo && (
           <button
             onClick={toggleSecondarySidebar}
