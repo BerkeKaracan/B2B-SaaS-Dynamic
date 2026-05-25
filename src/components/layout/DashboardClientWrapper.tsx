@@ -26,7 +26,9 @@ export default function DashboardClientWrapper({
   const { loadProjectById, isLoading, clearCanvas, recordId } =
     useCanvasStore();
   const { isCheckingAuth, isAuthenticated, fetchUser } = useAuthStore();
-  const { isPrimarySidebarOpen, togglePrimarySidebar } = useLayoutStore();
+
+  const { isPrimarySidebarOpen, togglePrimarySidebar, showEngineToolkit } =
+    useLayoutStore();
 
   useEffect(() => {
     fetchUser();
@@ -77,7 +79,8 @@ export default function DashboardClientWrapper({
           </div>
         )}
         <div className="flex flex-1 min-w-0 overflow-hidden">
-          {isDesignView && <ItemSidebar />}
+          {isDesignView && showEngineToolkit && <ItemSidebar />}
+
           <div className="flex-1 flex flex-col min-w-0 bg-white relative">
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-0">
               {children}

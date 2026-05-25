@@ -18,6 +18,7 @@ type ProjectRecord = {
     status?: string;
     updated_at?: string;
     updated_by?: string;
+    template?: string; 
   };
 };
 
@@ -54,8 +55,11 @@ export default function ProjectCardsGrid({
   const [isCreating, setIsCreating] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectVisibility, setNewProjectVisibility] = useState("public");
+  const [selectedTemplate, setSelectedTemplate] = useState("blank");
+
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const fetchProjects = useCallback(async () => {
@@ -96,6 +100,7 @@ export default function ProjectCardsGrid({
             name: newProjectName,
             status: "active",
             visibility: newProjectVisibility,
+            template: selectedTemplate,
           },
         }),
       });
@@ -105,6 +110,7 @@ export default function ProjectCardsGrid({
         setIsModalOpen(false);
         setNewProjectName("");
         setNewProjectVisibility("public");
+        setSelectedTemplate("blank");
         router.push(`/dashboard/${tenantId}/projects/${newRecord.id}`);
       }
     } catch (error) {
@@ -349,6 +355,7 @@ export default function ProjectCardsGrid({
             const updatedAt = project.record_data?.updated_at;
             const updatedBy = project.record_data?.updated_by || "System";
             const timeAgo = formatTimeAgo(updatedAt);
+            const isKanban = project.record_data?.template === "kanban";
 
             const isOpen = openMenuId === project.id;
             const baseCardClasses = `group relative aspect-[16/12] rounded-3xl border border-zinc-200/80 bg-white shadow-sm flex flex-col transition-all duration-300 ${isOpen ? "z-50" : "z-10"}`;
@@ -356,7 +363,13 @@ export default function ProjectCardsGrid({
 
             const cardContent = (
               <>
-                <div className="flex-1 w-full rounded-t-[23px] bg-linear-to-br from-zinc-100 to-zinc-50 border-b border-zinc-100/50 flex items-center justify-center group-hover:from-zinc-200 group-hover:to-zinc-100 transition-all duration-500">
+                <div className="flex-1 w-full rounded-t-[23px] bg-linear-to-br from-zinc-100 to-zinc-50 border-b border-zinc-100/50 flex items-center justify-center group-hover:from-zinc-200 group-hover:to-zinc-100 transition-all duration-500 relative">
+                  <div className="absolute top-4 left-4">
+                    <span className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-md bg-white/80 backdrop-blur-sm border border-zinc-200 text-zinc-600 shadow-sm">
+                      {isKanban ? "Kanban" : "Canvas"}
+                    </span>
+                  </div>
+
                   <span className="text-6xl font-black text-white group-hover:text-zinc-200 transition-colors duration-300 animate-pulse">
                     {initial}
                   </span>
@@ -512,67 +525,173 @@ export default function ProjectCardsGrid({
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-zinc-950/20 backdrop-blur-sm">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-10 border-b border-zinc-100 bg-zinc-50/50">
-              <h2 className="text-3xl font-extrabold text-zinc-950 tracking-tighter">
-                Create Workspace
-              </h2>
-              <p className="text-sm text-zinc-500 mt-2 font-medium">
-                Define name and visibility rules for the new project.
-              </p>
-            </div>
-            <form
-              onSubmit={handleCreateSubmit}
-              className="p-10 space-y-8 bg-white"
-            >
-              <div className="space-y-2.5">
-                <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest pl-1">
-                  Project Name
-                </label>
-                <input
-                  type="text"
-                  autoFocus
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  placeholder="e.g. Q3 Financial Planning"
-                  className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all shadow-inner placeholder:text-zinc-300"
-                  required
-                />
+          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col md:flex-row h-[600px]">
+            <div className="w-full md:w-1/2 flex flex-col border-r border-zinc-100 bg-zinc-50/50">
+              <div className="p-8 border-b border-zinc-100">
+                <h2 className="text-3xl font-extrabold text-zinc-950 tracking-tighter">
+                  Select Template
+                </h2>
+                <p className="text-sm text-zinc-500 mt-2 font-medium">
+                  Choose a layout that fits your workflow.
+                </p>
               </div>
 
-              <div className="space-y-2.5">
-                <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest pl-1">
-                  Initial Visibility
-                </label>
-                <select
-                  value={newProjectVisibility}
-                  onChange={(e) => setNewProjectVisibility(e.target.value)}
-                  className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all shadow-inner appearance-none bg-[url('/down-arrow.svg')] bg-size-[16px] bg-no-repeat bg-position-[right_1rem_center]"
-                >
-                  <option value="public">Public (All Employees)</option>
-                  <option value="just_admin">
-                    Just Admin (Owners/Admins Only)
-                  </option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-6">
+              <div className="flex-1 p-8 overflow-y-auto space-y-4">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-3 text-sm font-bold text-zinc-500 hover:text-zinc-950 rounded-xl transition-colors"
+                  onClick={() => setSelectedTemplate("blank")}
+                  className={`w-full flex items-start rounded-2xl border-2 p-5 text-left transition-all ${selectedTemplate === "blank" ? "border-zinc-900 bg-white shadow-md" : "border-zinc-200/80 bg-white hover:border-zinc-400"}`}
                 >
-                  Cancel
+                  <div className="mr-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600">
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <rect
+                        x="3"
+                        y="3"
+                        width="18"
+                        height="18"
+                        rx="2"
+                        ry="2"
+                      ></rect>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-zinc-950">
+                      Blank Canvas
+                    </h4>
+                    <p className="mt-1.5 text-xs text-zinc-500 font-medium leading-relaxed">
+                      Start from scratch with an infinite workspace layout for
+                      total freedom.
+                    </p>
+                  </div>
                 </button>
+
                 <button
-                  type="submit"
-                  disabled={isCreating}
-                  className="bg-zinc-950 text-white px-8 py-3 rounded-2xl text-sm font-bold hover:bg-zinc-800 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150"
+                  type="button"
+                  onClick={() => setSelectedTemplate("kanban")}
+                  className={`w-full flex items-start rounded-2xl border-2 p-5 text-left transition-all ${selectedTemplate === "kanban" ? "border-zinc-900 bg-white shadow-md" : "border-zinc-200/80 bg-white hover:border-zinc-400"}`}
                 >
-                  {isCreating ? "Creating..." : "Create Project"}
+                  <div className="mr-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-950">
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <rect
+                        x="3"
+                        y="3"
+                        width="18"
+                        height="18"
+                        rx="2"
+                        ry="2"
+                      ></rect>
+                      <line x1="9" y1="3" x2="9" y2="21"></line>
+                      <line x1="15" y1="3" x2="15" y2="21"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-zinc-950">
+                      Static Kanban Board
+                    </h4>
+                    <p className="mt-1.5 text-xs text-zinc-500 font-medium leading-relaxed">
+                      Manage tasks dynamically with a traditional, static board
+                      interface.
+                    </p>
+                  </div>
                 </button>
               </div>
-            </form>
+            </div>
+
+            <div className="w-full md:w-1/2 flex flex-col bg-white relative">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="absolute top-6 right-6 p-2 text-zinc-400 hover:text-zinc-900 rounded-full hover:bg-zinc-100 transition"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+
+              <div className="p-8 border-b border-zinc-100 mt-12 md:mt-0 md:pt-14">
+                <h3 className="text-xl font-extrabold text-zinc-950 tracking-tight">
+                  Project Details
+                </h3>
+                <p className="text-sm text-zinc-500 mt-1 font-medium">
+                  Define name and visibility rules.
+                </p>
+              </div>
+
+              <form
+                onSubmit={handleCreateSubmit}
+                className="flex-1 flex flex-col justify-between p-8"
+              >
+                <div className="space-y-8">
+                  <div className="space-y-2.5">
+                    <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest pl-1">
+                      Project Name
+                    </label>
+                    <input
+                      type="text"
+                      autoFocus
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      placeholder="e.g. Q3 Financial Planning"
+                      className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all shadow-inner placeholder:text-zinc-300"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest pl-1">
+                      Initial Visibility
+                    </label>
+                    <select
+                      value={newProjectVisibility}
+                      onChange={(e) => setNewProjectVisibility(e.target.value)}
+                      className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all shadow-inner appearance-none bg-[url('/down-arrow.svg')] bg-size-[16px] bg-no-repeat bg-position-[right_1rem_center]"
+                    >
+                      <option value="public">Public (All Employees)</option>
+                      <option value="just_admin">
+                        Just Admin (Owners/Admins Only)
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-8 border-t border-zinc-100 mt-8">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-6 py-3 text-sm font-bold text-zinc-500 hover:text-zinc-950 rounded-xl transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreating}
+                    className="bg-zinc-950 text-white px-8 py-3 rounded-2xl text-sm font-bold hover:bg-zinc-800 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150 w-full sm:w-auto"
+                  >
+                    {isCreating ? "Creating..." : "Create Project"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import CanvasArea from "@/components/canvas/renderers/CanvasArea";
 import { fetchAPI } from "@/services/api";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useLayoutStore } from "@/store/useLayoutStore";
 
 type Collaborator = {
   email: string;
@@ -15,23 +16,51 @@ type RecordDataProps = {
   name?: string;
   is_global_public?: boolean | string;
   collaborators?: Collaborator[];
+  template?: string;
   [key: string]: unknown;
 };
 
 export default function ProjectDesignPage() {
   const params = useParams();
   const projectId = params.projectId as string;
+  const setShowEngineToolkit = useLayoutStore(
+    (state) => state.setShowEngineToolkit,
+  );
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [recordData, setRecordData] = useState<RecordDataProps | null>(null);
+
+  const [isLoadingPage, setIsLoadingPage] = useState<boolean>(true);
   const [isLoadingRecord, setIsLoadingRecord] = useState<boolean>(false);
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("viewer");
 
   const updateMetadata = useCanvasStore((state) => state.updateMetadata);
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const res = await fetchAPI(`/api/records/${projectId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setRecordData(data.record_data);
+          if (data.record_data?.template === "kanban") {
+            setShowEngineToolkit(false);
+          } else {
+            setShowEngineToolkit(true);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoadingPage(false);
+      }
+    };
+    if (projectId) fetchInitialData();
+    return () => setShowEngineToolkit(true);
+  }, [projectId, setShowEngineToolkit]);
 
   const openShareModal = async () => {
     setIsModalOpen(true);
@@ -155,12 +184,14 @@ export default function ProjectDesignPage() {
   const isGlobal = String(recordData?.is_global_public) === "true";
   const collaborators = recordData?.collaborators || [];
 
+  const projectTemplate = recordData?.template || "blank";
+
   return (
     <div className="flex flex-col h-full w-full bg-[#fafafb] relative selection:bg-zinc-200">
       <div className="h-14 border-b border-zinc-200/80 bg-white px-6 flex items-center justify-between shrink-0 shadow-xs relative z-10">
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-100 px-2.5 py-1 rounded-md border border-zinc-200/50">
-            Design Mode
+            {projectTemplate === "kanban" ? "Kanban Mode" : "Design Mode"}
           </span>
         </div>
 
@@ -191,7 +222,22 @@ export default function ProjectDesignPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto relative z-0">
-        <CanvasArea />
+        {isLoadingPage ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="w-8 h-8 border-4 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
+          </div>
+        ) : projectTemplate === "kanban" ? (
+          <div className="flex flex-col items-center justify-center h-full opacity-50">
+            <h2 className="text-2xl font-extrabold text-zinc-950">
+              Static Kanban Board Placeholder
+            </h2>
+            <p className="text-zinc-500 mt-2">
+              Bu alana Trello benzeri Kanban tasarımını giydireceğiz.
+            </p>
+          </div>
+        ) : (
+          <CanvasArea />
+        )}
       </div>
 
       {isModalOpen && (
