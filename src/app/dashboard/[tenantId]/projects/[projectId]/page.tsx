@@ -6,6 +6,7 @@ import CanvasArea from "@/components/canvas/renderers/CanvasArea";
 import { fetchAPI } from "@/services/api";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useLayoutStore } from "@/store/useLayoutStore";
+import StaticKanbanBoard from "@/components/kanban/StaticKanbanBoard";
 
 type Collaborator = {
   email: string;
@@ -227,14 +228,7 @@ export default function ProjectDesignPage() {
             <div className="w-8 h-8 border-4 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
           </div>
         ) : projectTemplate === "kanban" ? (
-          <div className="flex flex-col items-center justify-center h-full opacity-50">
-            <h2 className="text-2xl font-extrabold text-zinc-950">
-              Static Kanban Board Placeholder
-            </h2>
-            <p className="text-zinc-500 mt-2">
-              Bu alana Trello benzeri Kanban tasarımını giydireceğiz.
-            </p>
-          </div>
+          <StaticKanbanBoard projectId={projectId} />
         ) : (
           <CanvasArea />
         )}
