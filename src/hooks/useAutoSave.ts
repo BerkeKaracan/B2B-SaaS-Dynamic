@@ -3,8 +3,15 @@ import { useEffect, useRef } from "react";
 import { useCanvasStore } from "@/store/useCanvasStore";
 
 export function useAutoSave(tenantId: string, recordId: string | null) {
-  const { title, description, date, pages, connections, saveProject } =
-    useCanvasStore();
+  const {
+    title,
+    description,
+    date,
+    pages,
+    connections,
+    saveProject,
+    metadata,
+  } = useCanvasStore();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstRender = useRef(true);
 
@@ -34,6 +41,7 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
     saveProject,
     tenantId,
     recordId,
+    metadata, 
   ]);
 
   useEffect(() => {

@@ -40,6 +40,7 @@ export default function ProjectDesignPage() {
   const [inviteRole, setInviteRole] = useState("viewer");
 
   const updateMetadata = useCanvasStore((state) => state.updateMetadata);
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -188,7 +189,7 @@ export default function ProjectDesignPage() {
   const projectTemplate = recordData?.template || "blank";
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#fafafb] relative selection:bg-zinc-200">
+    <div className="flex flex-col h-full w-full min-w-0 bg-[#fafafb] relative selection:bg-zinc-200">
       <div className="h-14 border-b border-zinc-200/80 bg-white px-6 flex items-center justify-between shrink-0 shadow-xs relative z-10">
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-100 px-2.5 py-1 rounded-md border border-zinc-200/50">
@@ -222,7 +223,8 @@ export default function ProjectDesignPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto relative z-0">
+      {/* DÜZELTME 2: min-w-0, flex ve overflow-hidden eklendi. (Gereksiz y-scrollu kapatıp içerideki Kanban'a yetkiyi verdik) */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden relative z-0">
         {isLoadingPage ? (
           <div className="flex items-center justify-center h-full">
             <div className="w-8 h-8 border-4 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
