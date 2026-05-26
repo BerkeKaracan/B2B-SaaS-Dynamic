@@ -7,6 +7,7 @@ import { fetchAPI } from "@/services/api";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useLayoutStore } from "@/store/useLayoutStore";
 import StaticKanbanBoard from "@/components/kanban/StaticKanbanBoard";
+import NotepadBoard from "@/components/notepad/NotepadBoard";
 
 type Collaborator = {
   email: string;
@@ -48,7 +49,7 @@ export default function ProjectDesignPage() {
         if (res.ok) {
           const data = await res.json();
           setRecordData(data.record_data);
-          if (data.record_data?.template === "kanban") {
+          if (data.record_data?.template === "kanban" || data.record_data?.template === "notepad") {
             setShowEngineToolkit(false);
           } else {
             setShowEngineToolkit(true);
@@ -223,7 +224,6 @@ export default function ProjectDesignPage() {
         </div>
       </div>
 
-      {/* DÜZELTME 2: min-w-0, flex ve overflow-hidden eklendi. (Gereksiz y-scrollu kapatıp içerideki Kanban'a yetkiyi verdik) */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden relative z-0">
         {isLoadingPage ? (
           <div className="flex items-center justify-center h-full">
@@ -231,6 +231,8 @@ export default function ProjectDesignPage() {
           </div>
         ) : projectTemplate === "kanban" ? (
           <StaticKanbanBoard projectId={projectId} />
+        ) : projectTemplate === "notepad" ? (
+          <NotepadBoard projectId={projectId} />
         ) : (
           <CanvasArea />
         )}

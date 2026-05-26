@@ -11,7 +11,8 @@ import {
   Image as ImageIcon,
   Link2,
   Blocks,
-  Move,
+  Trash2,
+  GripHorizontal,
 } from "lucide-react";
 
 type Point = { x: number; y: number; pressure: number };
@@ -52,6 +53,7 @@ export default function NotepadBoard({
 }) {
   const { metadata, updateMetadata } = useCanvasStore();
 
+  // Veritabanı State'leri
   const [strokes, setStrokes] = useState<Stroke[]>(
     (metadata.notepadStrokes as Stroke[]) || [],
   );
@@ -59,6 +61,7 @@ export default function NotepadBoard({
     (metadata.notepadTexts as FloatingText[]) || [],
   );
 
+  // Arayüz ve Araç State'leri
   const [activeTool, setActiveTool] = useState<
     "hand" | "pen" | "highlighter" | "eraser" | "text"
   >("hand");
@@ -70,45 +73,17 @@ export default function NotepadBoard({
     (metadata.notepadTitle as string) || "Untitled Note",
   );
 
+  // Yazı Taşıma (Drag & Drop Text) Stateleri
   const [draggingTextId, setDraggingTextId] = useState<string | null>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
-  const draggedPosRef = useRef<{ x: number; y: number } | null>(null);
 
+  // Çizim Referansları
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDrawing = useRef(false);
   const currentStroke = useRef<Stroke | null>(null);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        document.activeElement instanceof HTMLInputElement ||
-        document.activeElement instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
-
-      switch (e.key.toLowerCase()) {
-        case "v":
-        case "h":
-          setActiveTool("hand");
-          break;
-        case "p":
-          setActiveTool("pen");
-          break;
-        case "e":
-          setActiveTool("eraser");
-          break;
-        case "t":
-          setActiveTool("text");
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
+  // --- ÇİZİM MOTORU ---
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -148,6 +123,7 @@ export default function NotepadBoard({
     });
   }, [strokes]);
 
+  // BUG FIX: ResizeObserver entegrasyonu ile menü açılıp kapandığında tam responsive uyum sağlar
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -179,17 +155,19 @@ export default function NotepadBoard({
     };
   };
 
+  // --- POINTER ETKİLEŞİMLERİ ---
   const handlePointerDown = (e: React.PointerEvent) => {
     if (activeTool === "hand") return;
 
     if (activeTool === "text") {
+      // Eğer bir text kutusunun içine tıklanmadıysa yeni text kutusu aç
       if ((e.target as HTMLElement).closest(".text-block-wrapper")) return;
 
       const coords = getCoordinates(e);
       const newText: FloatingText = {
         id: "text-" + Date.now(),
         x: coords.x,
-        y: coords.y - 10,
+        y: coords.y - 30, // Mini kontrol barının yüksekliğini hesaba katıyoruz
         content: "",
         color: activeColor,
         size: activeFontSize,
@@ -221,21 +199,22 @@ export default function NotepadBoard({
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    // 1. Durum: Yazı sürükleme/taşıma aktifse
     if (draggingTextId) {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       const currentX = e.clientX - rect.left - dragOffset.current.x;
       const currentY = e.clientY - rect.top - dragOffset.current.y;
 
-      const el = document.getElementById(`text-node-${draggingTextId}`);
-      if (el) {
-        el.style.left = `${currentX}px`;
-        el.style.top = `${currentY}px`;
-      }
-      draggedPosRef.current = { x: currentX, y: currentY };
+      setTexts((prevTexts) =>
+        prevTexts.map((t) =>
+          t.id === draggingTextId ? { ...t, x: currentX, y: currentY } : t,
+        ),
+      );
       return;
     }
 
+    // 2. Durum: Çizim yapılıyorsa
     if (
       !isDrawing.current ||
       !currentStroke.current ||
@@ -274,21 +253,14 @@ export default function NotepadBoard({
   };
 
   const handlePointerUp = () => {
+    // Yazı taşımayı bitir ve veritabanına mühürle
     if (draggingTextId) {
-      if (draggedPosRef.current) {
-        const newTexts = texts.map((t) =>
-          t.id === draggingTextId
-            ? { ...t, x: draggedPosRef.current!.x, y: draggedPosRef.current!.y }
-            : t,
-        );
-        setTexts(newTexts);
-        updateMetadata({ notepadTexts: newTexts });
-      }
       setDraggingTextId(null);
-      draggedPosRef.current = null;
+      updateMetadata({ notepadTexts: texts });
       return;
     }
 
+    // Çizimi bitir
     if (!isDrawing.current || !currentStroke.current) return;
     isDrawing.current = false;
 
@@ -298,12 +270,14 @@ export default function NotepadBoard({
     currentStroke.current = null;
   };
 
+  // --- YAZI ELEMENTİ SÜRÜKLEME BAŞLANGICI ---
   const startTextDrag = (e: React.PointerEvent, textItem: FloatingText) => {
     e.preventDefault();
     setDraggingTextId(textItem.id);
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
 
+    // Tıklanan noktanın yazı kutusunun sol üst köşesine olan mesafesini kaydet
     dragOffset.current = {
       x: e.clientX - rect.left - textItem.x,
       y: e.clientY - rect.top - textItem.y,
@@ -329,14 +303,20 @@ export default function NotepadBoard({
     updateMetadata({ notepadTitle: e.target.value });
   };
 
+  const handleNotImplemented = (feature: string) => {
+    alert(`${feature} modülü sisteme eklendiğinde buradan tetiklenecek.`);
+  };
+
   return (
     <div className="absolute inset-0 flex flex-col bg-[#fdfdfc] overflow-hidden select-none">
+      {/* ÜST BAR (TOOLBAR) */}
       <div className="h-16 border-b border-zinc-200 bg-white px-4 shrink-0 shadow-sm flex items-center justify-between relative z-20">
+        {/* GRUP 1: Çizim Araçları */}
         <div className="flex items-center gap-1 border-r border-zinc-200 pr-4">
           <button
             onClick={() => setActiveTool("hand")}
             className={`p-2.5 rounded-xl transition-all ${activeTool === "hand" ? "bg-zinc-950 text-white shadow-md" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"}`}
-            title="Pan & Move (V / H)"
+            title="Pan / Select (Hand Mode for Moving Text)"
           >
             <Hand size={18} strokeWidth={2.5} />
           </button>
@@ -344,7 +324,7 @@ export default function NotepadBoard({
           <button
             onClick={() => setActiveTool("pen")}
             className={`p-2.5 rounded-xl transition-all ${activeTool === "pen" ? "bg-zinc-950 text-white shadow-md" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"}`}
-            title="Pen (P)"
+            title="Pen (Stylus Supported)"
           >
             <Pen size={18} strokeWidth={2.5} />
           </button>
@@ -358,7 +338,7 @@ export default function NotepadBoard({
           <button
             onClick={() => setActiveTool("eraser")}
             className={`p-2.5 rounded-xl transition-all ${activeTool === "eraser" ? "bg-zinc-200 text-zinc-900 shadow-inner" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"}`}
-            title="Eraser (E)"
+            title="Eraser"
           >
             <Eraser size={18} strokeWidth={2.5} />
           </button>
@@ -366,12 +346,13 @@ export default function NotepadBoard({
           <button
             onClick={() => setActiveTool("text")}
             className={`p-2.5 rounded-xl transition-all ${activeTool === "text" ? "bg-blue-600 text-white shadow-md" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"}`}
-            title="Add Text (T)"
+            title="Add Text"
           >
             <Type size={18} strokeWidth={2.5} />
           </button>
         </div>
 
+        {/* GRUP 2: Dinamik Ayar Paneli */}
         <div className="flex-1 px-4 flex items-center justify-start gap-4">
           {activeTool === "text" ? (
             <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-4 duration-200 bg-blue-50/50 p-1.5 rounded-xl border border-blue-100">
@@ -474,21 +455,22 @@ export default function NotepadBoard({
           ) : null}
         </div>
 
+        {/* GRUP 3: Ekleme Menüsü */}
         <div className="flex items-center gap-2 border-l border-zinc-200 pl-4">
           <button
-            onClick={() => alert("Image module ready to implement.")}
+            onClick={() => handleNotImplemented("Resim Ekleme")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
           >
             <ImageIcon size={14} /> Image
           </button>
           <button
-            onClick={() => alert("Widget module ready to implement.")}
+            onClick={() => handleNotImplemented("Widget Eklentisi")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
           >
             <Blocks size={14} /> Widget
           </button>
           <button
-            onClick={() => alert("Link module ready to implement.")}
+            onClick={() => handleNotImplemented("Bağlantı Ekleme")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
           >
             <Link2 size={14} /> Link
@@ -496,6 +478,7 @@ export default function NotepadBoard({
         </div>
       </div>
 
+      {/* ANA ÇİZİM VE ÇALIŞMA ALANI */}
       <div
         ref={containerRef}
         className={`flex-1 relative w-full h-full ${activeTool === "hand" ? "cursor-default" : activeTool === "text" ? "cursor-text" : "cursor-crosshair"}`}
@@ -509,6 +492,7 @@ export default function NotepadBoard({
           className="absolute inset-0 z-10 w-full h-full pointer-events-none"
         />
 
+        {/* BAŞLIK (TITLE) */}
         <div className="absolute top-6 left-6 z-30">
           <input
             type="text"
@@ -520,64 +504,61 @@ export default function NotepadBoard({
           />
         </div>
 
+        {/* METİN KATMANI (BUG FIX: İçiçe geçmeyi, silinememeyi ve taşmayı önleyen yeni yapışkan toolbar tasarımı) */}
         <div className="absolute inset-0 z-20 pointer-events-none">
           {texts.map((text) => (
             <div
               key={text.id}
-              id={`text-node-${text.id}`}
-              tabIndex={0}
-              className="absolute text-block-wrapper flex flex-col group outline-none rounded-md"
+              className="absolute text-block-wrapper flex flex-col group border border-transparent hover:border-zinc-200 hover:bg-white/60 focus-within:border-zinc-300 focus-within:bg-white rounded-xl p-1 transition-all duration-150 shadow-xs hover:shadow-md"
               style={{
                 left: text.x,
                 top: text.y,
                 pointerEvents: "auto",
                 zIndex: draggingTextId === text.id ? 50 : 20,
               }}
-              onKeyDown={(e) => {
-                if (
-                  (e.key === "Delete" || e.key === "Backspace") &&
-                  document.activeElement === e.currentTarget
-                ) {
-                  e.preventDefault();
-                  handleDeleteText(text.id);
-                }
-              }}
             >
-              <div
-                onPointerDown={(e) => startTextDrag(e, text)}
-                className={`absolute -top-4 left-1/2 -translate-x-1/2 bg-white border border-zinc-200 shadow-sm rounded-md p-1 cursor-grab active:cursor-grabbing transition-opacity z-10 text-zinc-500 hover:text-zinc-900 ${
-                  activeTool === "hand"
-                    ? "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
-                    : "opacity-0 pointer-events-none"
-                }`}
-                title="Drag to move"
-              >
-                <Move size={14} />
+              {/* İÇ KONTROL ÇUBUĞU (Kutunun tepesinde kalır, asla ekrandan dışarı taşmaz ve yan yana kutularda çakışmaz) */}
+              <div className="h-6 flex items-center justify-between px-1 bg-zinc-100 rounded-lg mb-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150 shrink-0">
+                {/* Sürükleme Kulpu (Sadece Hand modundaysa aktifleşir) */}
+                <div
+                  onPointerDown={(e) => startTextDrag(e, text)}
+                  className={`flex items-center gap-1 px-1 py-0.5 rounded cursor-grab active:cursor-grabbing hover:bg-zinc-200 ${activeTool !== "hand" ? "pointer-events-none opacity-40" : ""}`}
+                  title={
+                    activeTool === "hand"
+                      ? "Drag to move text"
+                      : "Switch to Hand Tool to move"
+                  }
+                >
+                  <GripHorizontal size={12} className="text-zinc-500" />
+                  <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                    Move
+                  </span>
+                </div>
+
+                {/* Bağımsız Silme Butonu */}
+                <button
+                  onClick={() => handleDeleteText(text.id)}
+                  className="p-1 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                  title="Delete text block"
+                >
+                  <Trash2 size={12} strokeWidth={2.5} />
+                </button>
               </div>
 
               <textarea
                 value={text.content}
                 onChange={(e) => handleTextChange(text.id, e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Backspace" && text.content === "") {
-                    e.preventDefault();
-                    handleDeleteText(text.id);
-                  }
-                  if (e.key === "Escape") {
-                    e.currentTarget.blur();
-                  }
-                }}
                 autoFocus={text.content === ""}
-                className="bg-transparent border border-transparent hover:border-zinc-200/60 focus:border-blue-400/50 rounded outline-none resize-none overflow-hidden p-1 transition-colors select-text"
+                className="bg-transparent border-none outline-none resize-none overflow-hidden p-1 select-text"
                 style={{
                   color: text.color,
                   fontSize: `${text.size}px`,
                   fontFamily: text.font,
                   lineHeight: "1.2",
-                  minWidth: "120px",
+                  minWidth: "180px",
                   minHeight: "40px",
                 }}
-                placeholder="Type..."
+                placeholder="Type here..."
               />
             </div>
           ))}

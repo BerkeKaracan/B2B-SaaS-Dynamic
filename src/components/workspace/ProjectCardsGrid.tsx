@@ -18,7 +18,7 @@ type ProjectRecord = {
     status?: string;
     updated_at?: string;
     updated_by?: string;
-    template?: string; 
+    template?: string;
   };
 };
 
@@ -605,6 +605,35 @@ export default function ProjectCardsGrid({
                     <p className="mt-1.5 text-xs text-zinc-500 font-medium leading-relaxed">
                       Manage tasks dynamically with a traditional, static board
                       interface.
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedTemplate("notepad")}
+                  className={`w-full flex items-start rounded-2xl border-2 p-5 text-left transition-all ${selectedTemplate === "notepad" ? "border-zinc-900 bg-white shadow-md" : "border-zinc-200/80 bg-white hover:border-zinc-400"}`}
+                >
+                  <div className="mr-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-950">
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-zinc-950">
+                      Notepad (Whiteboard)
+                    </h4>
+                    <p className="mt-1.5 text-xs text-zinc-500 font-medium leading-relaxed">
+                      Optimize for tablet and stylus. Take freeform notes and
+                      sketches.
                     </p>
                   </div>
                 </button>
