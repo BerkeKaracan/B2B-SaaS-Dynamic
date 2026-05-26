@@ -356,6 +356,7 @@ export default function ProjectCardsGrid({
             const updatedBy = project.record_data?.updated_by || "System";
             const timeAgo = formatTimeAgo(updatedAt);
             const isKanban = project.record_data?.template === "kanban";
+            const isNote = project.record_data?.template === "notepad";
 
             const isOpen = openMenuId === project.id;
             const baseCardClasses = `group relative aspect-[16/12] rounded-3xl border border-zinc-200/80 bg-white shadow-sm flex flex-col transition-all duration-300 ${isOpen ? "z-50" : "z-10"}`;
@@ -366,7 +367,7 @@ export default function ProjectCardsGrid({
                 <div className="flex-1 w-full rounded-t-[23px] bg-linear-to-br from-zinc-100 to-zinc-50 border-b border-zinc-100/50 flex items-center justify-center group-hover:from-zinc-200 group-hover:to-zinc-100 transition-all duration-500 relative">
                   <div className="absolute top-4 left-4">
                     <span className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-md bg-white/80 backdrop-blur-sm border border-zinc-200 text-zinc-600 shadow-sm">
-                      {isKanban ? "Kanban" : "Canvas"}
+                      {isKanban ? "Kanban" : isNote ? "notepad" : "Canvas"}
                     </span>
                   </div>
 
