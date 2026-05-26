@@ -367,7 +367,13 @@ export default function ProjectCardsGrid({
                 <div className="flex-1 w-full rounded-t-[23px] bg-linear-to-br from-zinc-100 to-zinc-50 border-b border-zinc-100/50 flex items-center justify-center group-hover:from-zinc-200 group-hover:to-zinc-100 transition-all duration-500 relative">
                   <div className="absolute top-4 left-4">
                     <span className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-md bg-white/80 backdrop-blur-sm border border-zinc-200 text-zinc-600 shadow-sm">
-                      {isKanban ? "Kanban" : isNote ? "notepad" : "Canvas"}
+                      {isKanban
+                        ? "Kanban"
+                        : isNote
+                          ? "Notepad"
+                          : isKanban
+                            ? "Timeline"
+                            : "Canvas"}
                     </span>
                   </div>
 
@@ -635,6 +641,44 @@ export default function ProjectCardsGrid({
                     <p className="mt-1.5 text-xs text-zinc-500 font-medium leading-relaxed">
                       Optimize for tablet and stylus. Take freeform notes and
                       sketches.
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedTemplate("timeline")}
+                  className={`w-full flex items-start rounded-2xl border-2 p-5 text-left transition-all ${selectedTemplate === "timeline" ? "border-zinc-900 bg-white shadow-md" : "border-zinc-200/80 bg-white hover:border-zinc-400"}`}
+                >
+                  <div className="mr-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-950">
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <rect
+                        x="3"
+                        y="4"
+                        width="18"
+                        height="18"
+                        rx="2"
+                        ry="2"
+                      ></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-zinc-950">
+                      Timeline (Calendar)
+                    </h4>
+                    <p className="mt-1.5 text-xs text-zinc-500 font-medium leading-relaxed">
+                      Plan events visually across months. Use simple blocks or
+                      detailed cards.
                     </p>
                   </div>
                 </button>

@@ -8,6 +8,7 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { useLayoutStore } from "@/store/useLayoutStore";
 import StaticKanbanBoard from "@/components/kanban/StaticKanbanBoard";
 import NotepadBoard from "@/components/notepad/NotepadBoard";
+import TimelineBoard from "@/components/timeline/TimelineBoard";
 
 type Collaborator = {
   email: string;
@@ -49,7 +50,11 @@ export default function ProjectDesignPage() {
         if (res.ok) {
           const data = await res.json();
           setRecordData(data.record_data);
-          if (data.record_data?.template === "kanban" || data.record_data?.template === "notepad") {
+          if (
+            data.record_data?.template === "kanban" ||
+            data.record_data?.template === "notepad" ||
+            data.record_data?.template === "timeline"
+          ) {
             setShowEngineToolkit(false);
           } else {
             setShowEngineToolkit(true);
@@ -194,7 +199,13 @@ export default function ProjectDesignPage() {
       <div className="h-14 border-b border-zinc-200/80 bg-white px-6 flex items-center justify-between shrink-0 shadow-xs relative z-10">
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-100 px-2.5 py-1 rounded-md border border-zinc-200/50">
-            {projectTemplate === "kanban" ? "Kanban Mode" : "Design Mode"}
+            {projectTemplate === "kanban"
+              ? "Kanban Mode"
+              : projectTemplate === "notepad"
+                ? "NotePad"
+                : projectTemplate === "timeline"
+                  ? "Time Schema"
+                  : "Design Mode"}
           </span>
         </div>
 
@@ -233,6 +244,8 @@ export default function ProjectDesignPage() {
           <StaticKanbanBoard projectId={projectId} />
         ) : projectTemplate === "notepad" ? (
           <NotepadBoard projectId={projectId} />
+        ) : projectTemplate === "timeline" ? (
+          <TimelineBoard projectId={projectId} />
         ) : (
           <CanvasArea />
         )}
