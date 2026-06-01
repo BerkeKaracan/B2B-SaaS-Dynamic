@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
+import ColdStartAlert from "@/components/ColdStartAlert";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -163,6 +164,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="w-full max-w-sm mx-auto z-10 lg:pt-0 pt-24 pb-16">
+          <ColdStartAlert />
           <div className="mb-10 text-center lg:text-left">
             <h2 className="text-3xl font-extrabold text-zinc-900 mb-2.5 tracking-tight">
               Create Workspace
@@ -424,7 +426,7 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] text-zinc-400/60 font-mono tracking-wider z-10">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] text-zinc-400/60 font-mono tracking-wider z-9">
           SaaS ENGINE // AUTH_REG v2.0
         </div>
       </div>
