@@ -29,7 +29,7 @@ export default function ColdStartAlert() {
           Waking up the server...
         </h3>
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          The initial load might take around 30 seconds. Thank you for your
+          The initial load might take around 50 seconds. Thank you for your
           patience!
         </p>
       </div>
