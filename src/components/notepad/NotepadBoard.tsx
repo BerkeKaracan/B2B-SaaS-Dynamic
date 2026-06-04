@@ -80,7 +80,11 @@ export default function NotepadBoard({
   const isDrawing = useRef(false);
   const currentStroke = useRef<Stroke | null>(null);
 
-  // --- KLAVYE KISAYOLLARI ---
+  const strokesRef = useRef<Stroke[]>(strokes);
+  useEffect(() => {
+    strokesRef.current = strokes;
+  }, [strokes]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -111,7 +115,6 @@ export default function NotepadBoard({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // --- ÇİZİM MOTORU ---
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -120,36 +123,49 @@ export default function NotepadBoard({
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    strokes.forEach((stroke) => {
+    strokesRef.current.forEach((stroke) => {
       if (stroke.points.length === 0) return;
 
-      ctx.beginPath();
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
       if (stroke.tool === "eraser") {
+        ctx.beginPath();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
         ctx.globalCompositeOperation = "destination-out";
         ctx.lineWidth = stroke.width * 15;
+        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+        for (let i = 1; i < stroke.points.length; i++) {
+          ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+        }
+        ctx.stroke();
       } else {
         ctx.globalCompositeOperation = "source-over";
         ctx.strokeStyle = stroke.color;
         ctx.globalAlpha = stroke.tool === "highlighter" ? 0.3 : 1.0;
-      }
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
 
-      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-      for (let i = 1; i < stroke.points.length; i++) {
-        const p = stroke.points[i];
+        let currentPressure = stroke.points[0].pressure || 1;
+        ctx.lineWidth = stroke.width * currentPressure;
+        ctx.beginPath();
+        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
 
-        if (stroke.tool !== "eraser") {
-          ctx.lineWidth = stroke.width * (p.pressure || 1);
+        for (let i = 1; i < stroke.points.length; i++) {
+          const p = stroke.points[i];
+
+          if (p.pressure !== currentPressure) {
+            ctx.stroke();
+            currentPressure = p.pressure;
+            ctx.lineWidth = stroke.width * currentPressure;
+            ctx.beginPath();
+            ctx.moveTo(stroke.points[i - 1].x, stroke.points[i - 1].y);
+            ctx.lineTo(p.x, p.y);
+          }
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
         }
-
-        ctx.lineTo(p.x, p.y);
       }
-      ctx.stroke();
-      ctx.globalAlpha = 1.0;
     });
-  }, [strokes]);
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -176,13 +192,13 @@ export default function NotepadBoard({
     if (!containerRef.current) return { x: 0, y: 0, pressure: 1 };
     const rect = containerRef.current.getBoundingClientRect();
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-      pressure: e.pointerType === "pen" ? e.pressure || 1 : 1,
+      x: Math.round((e.clientX - rect.left) * 10) / 10,
+      y: Math.round((e.clientY - rect.top) * 10) / 10,
+      pressure:
+        e.pointerType === "pen" ? Number((e.pressure || 1).toFixed(2)) : 1,
     };
   };
 
-  // --- KUSURSUZ YAZI SÜRÜKLEME (60 FPS Native Window Event) ---
   const startTextDrag = (e: React.PointerEvent, textItem: FloatingText) => {
     e.preventDefault();
     e.stopPropagation();
@@ -286,6 +302,9 @@ export default function NotepadBoard({
     const coords = getCoordinates(e);
     const lastPoint =
       currentStroke.current.points[currentStroke.current.points.length - 1];
+    const dx = coords.x - lastPoint.x;
+    const dy = coords.y - lastPoint.y;
+    if (dx * dx + dy * dy < 4) return;
 
     currentStroke.current.points.push(coords);
 
@@ -340,7 +359,6 @@ export default function NotepadBoard({
 
   return (
     <div className="absolute inset-0 flex flex-col bg-[#fdfdfc] overflow-hidden select-none">
-      {/* ÜST BAR (TOOLBAR) */}
       <div className="h-16 border-b border-zinc-200 bg-white px-4 shrink-0 shadow-sm flex items-center justify-between relative z-20">
         <div className="flex items-center gap-1 border-r border-zinc-200 pr-4">
           <button
@@ -500,7 +518,6 @@ export default function NotepadBoard({
         </div>
       </div>
 
-      {/* ANA ÇİZİM ALANI */}
       <div
         ref={containerRef}
         className={`flex-1 relative w-full h-full ${activeTool === "hand" ? "cursor-default" : activeTool === "text" ? "cursor-text" : "cursor-crosshair"}`}
@@ -525,7 +542,6 @@ export default function NotepadBoard({
           />
         </div>
 
-        {/* METİN KATMANI (Kusursuz hap tasarımlı silme ve taşıma) */}
         <div className="absolute inset-0 z-20 pointer-events-none">
           {texts.map((text) => (
             <div
@@ -549,7 +565,6 @@ export default function NotepadBoard({
                 }
               }}
             >
-              {/* SADE VE ZARİF KONTROL HAPI (Pill) - Hover/Focus durumunda belirir */}
               <div
                 className={`absolute -top-12 left-0 bg-white border border-zinc-200 shadow-md rounded-full flex items-center gap-1 px-1.5 py-1 transition-all duration-200 z-50 ${
                   activeTool === "hand" || activeTool === "text"
@@ -557,7 +572,6 @@ export default function NotepadBoard({
                     : "opacity-0 pointer-events-none"
                 }`}
               >
-                {/* Taşıma Kulpu */}
                 <div
                   onPointerDown={(e) => startTextDrag(e, text)}
                   className={`p-1.5 rounded-full cursor-grab active:cursor-grabbing hover:bg-zinc-100 text-zinc-400 hover:text-zinc-900 transition-colors ${
@@ -574,9 +588,8 @@ export default function NotepadBoard({
 
                 <div className="w-px h-4 bg-zinc-200"></div>
 
-                {/* Silme Butonu (Tablet için hayat kurtarır!) */}
                 <button
-                  onPointerDown={(e) => e.stopPropagation()} // Sürükleme veya çizimi tetiklemesini engeller
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => handleDeleteText(text.id)}
                   className="p-1.5 rounded-full hover:bg-red-50 text-zinc-400 hover:text-red-600 transition-colors"
                   title="Delete Text"
