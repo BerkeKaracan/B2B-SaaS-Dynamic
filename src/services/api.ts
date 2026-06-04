@@ -1,6 +1,6 @@
 import { RecordResponse, RecordBase } from "@/types/record";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const headers: Record<string, string> = {
@@ -15,7 +15,8 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     }
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  const response = await fetch(`${API_BASE_URL}${cleanEndpoint}`, {
     ...options,
     headers,
   });

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Query, Depends, Header
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, timezone
+import time
 
 from core.database import supabase
 from models.record import RecordCreate, RecordUpdate, RecordResponse
@@ -11,11 +12,25 @@ router = APIRouter(
     tags=["Dynamic Records"]
 )
 
+AUTH_CACHE = {}
+CACHE_TTL_SECONDS = 300
+
 def get_user_role(authorization: str = Header(None)) -> dict:
     if not authorization:
         raise HTTPException(status_code=401, detail="Missing Authorization header")
+    
+    token = authorization.replace("Bearer ", "")
+    current_time = time.time()
+    
+    if token in AUTH_CACHE:
+        cached_data, timestamp = AUTH_CACHE[token]
+        if current_time - timestamp < CACHE_TTL_SECONDS:
+            return cached_data
+            
+    if len(AUTH_CACHE) > 1000:
+        AUTH_CACHE.clear()
+
     try:
-        token = authorization.replace("Bearer ", "")
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="Invalid session")
@@ -23,13 +38,29 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         user_id = user_res.user.id
         email = str(user_res.user.email).lower().strip()
         full_name = email.split("@")[0]
-        role = "employee"
         
-        role_res = supabase.table("tenant_users").select("role").eq("user_id", user_id).execute()
+        role_res = supabase.table("tenant_users").select("role, tenant_id").eq("user_id", user_id).execute()
+        
+        tenant_roles = {}
         if role_res.data:
-            role = role_res.data[0].get("role", "employee")
+            for row in role_res.data:
+                tenant_roles[str(row.get("tenant_id"))] = row.get("role", "employee")
             
-        return {"user_id": user_id, "role": role, "full_name": full_name, "email": email}
+        if not tenant_roles:
+            raise HTTPException(status_code=403, detail="User does not belong to any workspace")
+            
+        result = {
+            "user_id": user_id, 
+            "full_name": full_name, 
+            "email": email, 
+            "tenant_roles": tenant_roles 
+        }
+        
+        AUTH_CACHE[token] = (result, current_time)
+        return result
+        
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Auth Error: {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid token or session expired")
@@ -39,6 +70,11 @@ def get_user_role(authorization: str = Header(None)) -> dict:
 def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
     try:
         data = record.model_dump(mode='json')
+        req_tenant = str(data.get("tenant_id"))
+        
+        if req_tenant not in user["tenant_roles"]:
+            raise HTTPException(status_code=403, detail="You do not have permission to create records in this workspace.")
+            
         if "record_data" not in data or not data["record_data"]:
             data["record_data"] = {}
             
@@ -60,14 +96,21 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
 @router.get("/", response_model=List[RecordResponse])
 def get_records(tenant_id: UUID = Query(...), module_name: Optional[str] = Query(None), user: dict = Depends(get_user_role)):
     try:
-        query = supabase.table("custom_records").select("*").eq("tenant_id", str(tenant_id))
+        tenant_str = str(tenant_id)
+        
+        if tenant_str not in user["tenant_roles"]:
+            raise HTTPException(status_code=403, detail="You do not have access to this workspace's records.")
+            
+        user_role = user["tenant_roles"][tenant_str]
+        
+        query = supabase.table("custom_records").select("*").eq("tenant_id", tenant_str)
         if module_name:
             query = query.eq("module_name", module_name)
             
         response = query.execute()
         records = response.data
 
-        if user["role"] not in ["admin", "owner"]:
+        if user_role not in ["admin", "owner"]:
             filtered_records = []
             for record in records:
                 record_data = record.get("record_data", {})
@@ -81,6 +124,8 @@ def get_records(tenant_id: UUID = Query(...), module_name: Optional[str] = Query
                     filtered_records.append(record)
             return filtered_records
         return records
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -93,6 +138,12 @@ def get_record(record_id: UUID, user: dict = Depends(get_user_role)):
             raise HTTPException(status_code=404, detail="Record not found")
             
         record = response.data[0]
+        rec_tenant = str(record.get("tenant_id"))
+        
+        if rec_tenant not in user["tenant_roles"]:
+            raise HTTPException(status_code=403, detail="Unauthorized to access this record")
+            
+        user_role = user["tenant_roles"][rec_tenant]
         record_data = record.get("record_data", {})
         visibility = record_data.get("visibility", "public")
         owner_email = str(record_data.get("owner_email", "")).lower().strip()
@@ -100,7 +151,7 @@ def get_record(record_id: UUID, user: dict = Depends(get_user_role)):
         collaborators = record_data.get("collaborators", [])
         is_collab = any(isinstance(c, dict) and str(c.get("email", "")).lower().strip() == user["email"] for c in collaborators)
         
-        if user["role"] not in ["admin", "owner"] and owner_email != user["email"] and visibility == "just_admin" and not is_collab:
+        if user_role not in ["admin", "owner"] and owner_email != user["email"] and visibility == "just_admin" and not is_collab:
             raise HTTPException(status_code=403, detail="Forbidden: Admin only record")
             
         return record
@@ -117,8 +168,13 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
         if not existing_res.data:
             raise HTTPException(status_code=404, detail="Record not found")
             
+        rec_tenant = str(existing_res.data[0].get("tenant_id"))
+        
+        if rec_tenant not in user["tenant_roles"]:
+            raise HTTPException(status_code=403, detail="Unauthorized to modify this record")
+            
+        user_role = user["tenant_roles"][rec_tenant]
         current_record_data = existing_res.data[0].get("record_data", {})
-        tenant_id = existing_res.data[0].get("tenant_id") 
         
         visibility = current_record_data.get("visibility", "public")
         collaborators = current_record_data.get("collaborators", [])
@@ -126,7 +182,7 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
        
         is_editor = any(isinstance(c, dict) and str(c.get("email", "")).lower().strip() == user["email"] and c.get("role") == "editor" for c in collaborators)
 
-        if user["role"] not in ["admin", "owner"] and owner_email != user["email"]:
+        if user_role not in ["admin", "owner"] and owner_email != user["email"]:
             if visibility == "just_admin" and not is_editor:
                 raise HTTPException(status_code=403, detail="You do not have permission to modify this record.")
 
@@ -149,7 +205,7 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
                     "type": "project_invite",
                     "title": "Project Invitation",
                     "message": f"{inviter} invited you to collaborate on '{project_name}'.",
-                    "link": f"/dashboard/{tenant_id}/projects/{str(record_id)}"
+                    "link": f"/dashboard/{rec_tenant}/projects/{str(record_id)}"
                 }
                 supabase.table("notifications").insert(notification_payload).execute()
         except Exception as notif_err:
@@ -171,8 +227,17 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
 @router.delete("/{record_id}")
 def delete_record(record_id: UUID, user: dict = Depends(get_user_role)):
     try:
-        if user["role"] not in ["admin", "owner"]:
+        res = supabase.table("custom_records").select("tenant_id").eq("id", str(record_id)).execute()
+        if not res.data:
+            raise HTTPException(status_code=404, detail="Record not found")
+            
+        rec_tenant = str(res.data[0]["tenant_id"])
+        if rec_tenant not in user["tenant_roles"]:
+            raise HTTPException(status_code=403, detail="Unauthorized")
+            
+        if user["tenant_roles"][rec_tenant] not in ["admin", "owner"]:
             raise HTTPException(status_code=403, detail="Only admins can permanently delete records.")
+            
         response = supabase.table("custom_records").delete().eq("id", str(record_id)).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="Record not found")

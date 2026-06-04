@@ -9,6 +9,7 @@ backend/.env
 backend/build/
 backend/dist/
 backend/*.egg-info/
+__pycache__
 
 # --- Node.js / Frontend ---
 node_modules/
