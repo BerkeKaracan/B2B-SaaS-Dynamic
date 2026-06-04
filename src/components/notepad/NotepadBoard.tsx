@@ -312,7 +312,6 @@ export default function NotepadBoard({
     const lastPoint =
       currentStroke.current.points[currentStroke.current.points.length - 1];
 
-    // Performans Optimizasyonu (RAM ve DB yükünü düşürür)
     const dx = coords.x - lastPoint.x;
     const dy = coords.y - lastPoint.y;
     if (dx * dx + dy * dy < 4) return;
