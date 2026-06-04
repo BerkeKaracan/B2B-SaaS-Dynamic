@@ -1,588 +1,758 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { Calendar } from "@/components/ui/calendar";
 import {
-  Hand,
-  Pen,
-  Highlighter,
-  Eraser,
-  Type,
-  Image as ImageIcon,
-  Link2,
-  Blocks,
-  Move,
-} from "lucide-react";
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "@hello-pangea/dnd";
 
-type Point = { x: number; y: number; pressure: number };
+export type TaskStatus = "TO DO" | "IN PROGRESS" | "DONE";
+export type TaskPriority = "URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NO PRIORITY";
 
-type Stroke = {
+export interface Task {
   id: string;
-  tool: "pen" | "highlighter" | "eraser";
-  color: string;
-  width: number;
-  points: Point[];
+  title: string;
+  description: string;
+  commitCode?: string;
+  assignee: string;
+  createdBy: string;
+  updatedBy: string;
+  startDate?: string;
+  deadline?: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+}
+
+const PRIORITIES: Record<TaskPriority, string> = {
+  URGENT: "#E3123B",
+  HIGH: "#7B323D",
+  MEDIUM: "#93B27D",
+  LOW: "#BEF109",
+  "NO PRIORITY": "#B2BAAE",
 };
 
-type FloatingText = {
-  id: string;
-  x: number;
-  y: number;
-  content: string;
-  color: string;
-  size: number;
-  font: string;
-};
-
-const COLORS = [
-  "#18181b",
-  "#ef4444",
-  "#3b82f6",
-  "#22c55e",
-  "#eab308",
-  "#a855f7",
+const COLUMNS: { id: TaskStatus; title: string; color: string }[] = [
+  { id: "TO DO", title: "TO DO", color: "#71C6C0" },
+  { id: "IN PROGRESS", title: "IN PROGRESS", color: "#6682FB" },
+  { id: "DONE", title: "DONE", color: "#89A841" },
 ];
-const FONTS = ["Inter", "serif", "monospace", "Comic Sans MS"];
-const SIZES = [14, 18, 24, 32, 48, 64];
 
-export default function NotepadBoard({
-  projectId: _projectId,
+export default function StaticKanbanBoard({
+  projectId,
 }: {
   projectId: string;
 }) {
-  const { metadata, updateMetadata } = useCanvasStore();
+  const { metadata, updateMetadata, isSaving, showSaved } = useCanvasStore();
+  const tasks = (metadata.tasks as Task[]) || [];
+  const collaborators =
+    (metadata.collaborators as { email: string; role: string }[]) || [];
 
-  const [strokes, setStrokes] = useState<Stroke[]>(
-    (metadata.notepadStrokes as Stroke[]) || [],
-  );
-  const [texts, setTexts] = useState<FloatingText[]>(
-    (metadata.notepadTexts as FloatingText[]) || [],
-  );
+  const { user } = useAuthStore();
+  const currentUserName =
+    user?.full_name || user?.email?.split("@")[0] || "System User";
 
-  const [activeTool, setActiveTool] = useState<
-    "hand" | "pen" | "highlighter" | "eraser" | "text"
-  >("hand");
-  const [activeColor, setActiveColor] = useState<string>(COLORS[0]);
-  const [strokeWidth, setStrokeWidth] = useState<number>(3);
-  const [activeFont, setActiveFont] = useState<string>(FONTS[0]);
-  const [activeFontSize, setActiveFontSize] = useState<number>(24);
-  const [title, setTitle] = useState<string>(
-    (metadata.notepadTitle as string) || "Untitled Note",
-  );
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
-  const [draggingTextId, setDraggingTextId] = useState<string | null>(null);
-  const dragOffset = useRef({ x: 0, y: 0 });
-  const draggedPosRef = useRef<{ x: number; y: number } | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isDrawing = useRef(false);
-  const currentStroke = useRef<Stroke | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
+  const [newTaskAssignee, setNewTaskAssignee] = useState("");
+  const [newTaskCommit, setNewTaskCommit] = useState("");
+  const [newTaskPriority, setNewTaskPriority] =
+    useState<TaskPriority>("NO PRIORITY");
+  const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>("TO DO");
+
+  const [startDateObj, setStartDateObj] = useState<Date | undefined>(undefined);
+  const [deadlineObj, setDeadlineObj] = useState<Date | undefined>(undefined);
+  const [showStartCalendar, setShowStartCalendar] = useState(false);
+  const [showDeadlineCalendar, setShowDeadlineCalendar] = useState(false);
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        document.activeElement instanceof HTMLInputElement ||
-        document.activeElement instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
-
-      switch (e.key.toLowerCase()) {
-        case "v":
-        case "h":
-          setActiveTool("hand");
-          break;
-        case "p":
-          setActiveTool("pen");
-          break;
-        case "e":
-          setActiveTool("eraser");
-          break;
-        case "t":
-          setActiveTool("text");
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsClient(true);
   }, []);
 
-  const redrawCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    strokes.forEach((stroke) => {
-      if (stroke.points.length === 0) return;
-
-      ctx.beginPath();
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
-      if (stroke.tool === "eraser") {
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.lineWidth = stroke.width * 15;
-      } else {
-        ctx.globalCompositeOperation = "source-over";
-        ctx.strokeStyle = stroke.color;
-        ctx.globalAlpha = stroke.tool === "highlighter" ? 0.3 : 1.0;
-      }
-
-      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-      for (let i = 1; i < stroke.points.length; i++) {
-        const p = stroke.points[i];
-
-        if (stroke.tool !== "eraser") {
-          ctx.lineWidth = stroke.width * (p.pressure || 1);
-        }
-
-        ctx.lineTo(p.x, p.y);
-      }
-      ctx.stroke();
-      ctx.globalAlpha = 1.0;
-    });
-  }, [strokes]);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const resizeObserver = new ResizeObserver(() => {
-      if (!canvasRef.current || !containerRef.current) return;
-      const { width, height } = containerRef.current.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-
-      canvasRef.current.width = width * dpr;
-      canvasRef.current.height = height * dpr;
-
-      const ctx = canvasRef.current.getContext("2d");
-      if (ctx) ctx.scale(dpr, dpr);
-
-      redrawCanvas();
-    });
-
-    resizeObserver.observe(containerRef.current);
-    return () => resizeObserver.disconnect();
-  }, [redrawCanvas]);
-
-  const getCoordinates = (e: React.PointerEvent): Point => {
-    if (!containerRef.current) return { x: 0, y: 0, pressure: 1 };
-    const rect = containerRef.current.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-      pressure: e.pointerType === "pen" ? e.pressure || 1 : 1,
-    };
+  const updateTasks = (newTasks: Task[]) => {
+    updateMetadata({ tasks: newTasks });
   };
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (activeTool === "hand") return;
+  const handleOpenAddModal = (status: TaskStatus) => {
+    setEditingTaskId(null);
+    setNewTaskStatus(status);
+    setNewTaskTitle("");
+    setNewTaskDescription("");
+    setNewTaskAssignee("");
+    setNewTaskCommit("");
+    setNewTaskPriority("NO PRIORITY");
+    setStartDateObj(undefined);
+    setDeadlineObj(undefined);
+    setIsAddModalOpen(true);
+  };
 
-    if (activeTool === "text") {
-      if ((e.target as HTMLElement).closest(".text-block-wrapper")) return;
+  const handleEditTask = (task: Task) => {
+    setEditingTaskId(task.id);
+    setNewTaskStatus(task.status);
+    setNewTaskTitle(task.title);
+    setNewTaskDescription(task.description);
+    setNewTaskAssignee(task.assignee);
+    setNewTaskCommit(task.commitCode || "");
+    setNewTaskPriority(task.priority);
 
-      const coords = getCoordinates(e);
-      const newText: FloatingText = {
-        id: "text-" + Date.now(),
-        x: coords.x,
-        y: coords.y - 10,
-        content: "",
-        color: activeColor,
-        size: activeFontSize,
-        font: activeFont,
+    if (task.startDate) {
+      const [day, month] = task.startDate.split("/");
+      setStartDateObj(
+        new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day)),
+      );
+    } else {
+      setStartDateObj(undefined);
+    }
+
+    if (task.deadline) {
+      const [day, month] = task.deadline.split("/");
+      setDeadlineObj(
+        new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day)),
+      );
+    } else {
+      setDeadlineObj(undefined);
+    }
+    setIsAddModalOpen(true);
+  };
+
+  const handleTaskSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+
+    const formattedStart = startDateObj
+      ? startDateObj.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+        })
+      : undefined;
+    const formattedDeadline = deadlineObj
+      ? deadlineObj.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+        })
+      : undefined;
+
+    let updatedTasks = [...tasks];
+
+    if (editingTaskId) {
+      updatedTasks = updatedTasks.map((task) =>
+        task.id === editingTaskId
+          ? {
+              ...task,
+              title: newTaskTitle,
+              description: newTaskDescription,
+              commitCode: newTaskCommit || undefined,
+              assignee: newTaskAssignee || "Unassigned",
+              updatedBy: currentUserName,
+              startDate: formattedStart,
+              deadline: formattedDeadline,
+              priority: newTaskPriority,
+              status: newTaskStatus,
+            }
+          : task,
+      );
+    } else {
+      const taskToSave: Task = {
+        id: "t-" + Date.now(),
+        title: newTaskTitle,
+        description: newTaskDescription,
+        commitCode: newTaskCommit || undefined,
+        assignee: newTaskAssignee || "Unassigned",
+        createdBy: currentUserName,
+        updatedBy: currentUserName,
+        startDate: formattedStart,
+        deadline: formattedDeadline,
+        priority: newTaskPriority,
+        status: newTaskStatus,
       };
-      const updatedTexts = [...texts, newText];
-      setTexts(updatedTexts);
-      updateMetadata({ notepadTexts: updatedTexts });
-      return;
+      updatedTasks.push(taskToSave);
     }
 
-    isDrawing.current = true;
-    const coords = getCoordinates(e);
-    currentStroke.current = {
-      id: "stroke-" + Date.now(),
-      tool: activeTool,
-      color: activeColor,
-      width: strokeWidth,
-      points: [coords],
-    };
-
-    const ctx = canvasRef.current?.getContext("2d");
-    if (ctx && activeTool !== "eraser") {
-      ctx.beginPath();
-      ctx.fillStyle = activeColor;
-      ctx.arc(coords.x, coords.y, strokeWidth / 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    updateTasks(updatedTasks);
+    setIsAddModalOpen(false);
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (draggingTextId) {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const currentX = e.clientX - rect.left - dragOffset.current.x;
-      const currentY = e.clientY - rect.top - dragOffset.current.y;
+  const handleDragEnd = (result: DropResult) => {
+    const { destination, source, draggableId } = result;
 
-      const el = document.getElementById(`text-node-${draggingTextId}`);
-      if (el) {
-        el.style.left = `${currentX}px`;
-        el.style.top = `${currentY}px`;
-      }
-      draggedPosRef.current = { x: currentX, y: currentY };
-      return;
-    }
-
+    if (!destination) return;
     if (
-      !isDrawing.current ||
-      !currentStroke.current ||
-      activeTool === "text" ||
-      activeTool === "hand"
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
     )
       return;
 
-    const ctx = canvasRef.current?.getContext("2d");
-    if (!ctx) return;
+    const draggedTask = tasks.find((t) => t.id === draggableId);
+    if (!draggedTask) return;
 
-    const coords = getCoordinates(e);
-    const lastPoint =
-      currentStroke.current.points[currentStroke.current.points.length - 1];
-
-    currentStroke.current.points.push(coords);
-
-    ctx.beginPath();
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    if (activeTool === "eraser") {
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.lineWidth = strokeWidth * 15;
-    } else {
-      ctx.globalCompositeOperation = "source-over";
-      ctx.strokeStyle = activeColor;
-      ctx.globalAlpha = activeTool === "highlighter" ? 0.3 : 1.0;
-      ctx.lineWidth = strokeWidth * (coords.pressure || 1);
-    }
-
-    ctx.moveTo(lastPoint.x, lastPoint.y);
-    ctx.lineTo(coords.x, coords.y);
-    ctx.stroke();
-    ctx.globalAlpha = 1.0;
-  };
-
-  const handlePointerUp = () => {
-    if (draggingTextId) {
-      if (draggedPosRef.current) {
-        const newTexts = texts.map((t) =>
-          t.id === draggingTextId
-            ? { ...t, x: draggedPosRef.current!.x, y: draggedPosRef.current!.y }
-            : t,
-        );
-        setTexts(newTexts);
-        updateMetadata({ notepadTexts: newTexts });
-      }
-      setDraggingTextId(null);
-      draggedPosRef.current = null;
-      return;
-    }
-
-    if (!isDrawing.current || !currentStroke.current) return;
-    isDrawing.current = false;
-
-    const updatedStrokes = [...strokes, currentStroke.current];
-    setStrokes(updatedStrokes);
-    updateMetadata({ notepadStrokes: updatedStrokes });
-    currentStroke.current = null;
-  };
-
-  const startTextDrag = (e: React.PointerEvent, textItem: FloatingText) => {
-    e.preventDefault();
-    setDraggingTextId(textItem.id);
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-
-    dragOffset.current = {
-      x: e.clientX - rect.left - textItem.x,
-      y: e.clientY - rect.top - textItem.y,
+    const newTasks = tasks.filter((t) => t.id !== draggableId);
+    const updatedTask = {
+      ...draggedTask,
+      status: destination.droppableId as TaskStatus,
+      updatedBy: currentUserName,
     };
-  };
 
-  const handleTextChange = (id: string, newContent: string) => {
-    const updatedTexts = texts.map((t) =>
-      t.id === id ? { ...t, content: newContent } : t,
+    const destColTasks = newTasks.filter(
+      (t) => t.status === destination.droppableId,
     );
-    setTexts(updatedTexts);
-    updateMetadata({ notepadTexts: updatedTexts });
+    destColTasks.splice(destination.index, 0, updatedTask);
+
+    const finalTasks: Task[] = [];
+    for (const col of COLUMNS) {
+      if (col.id === destination.droppableId) {
+        finalTasks.push(...destColTasks);
+      } else {
+        finalTasks.push(...newTasks.filter((t) => t.status === col.id));
+      }
+    }
+
+    updateTasks(finalTasks);
   };
 
-  const handleDeleteText = (id: string) => {
-    const updatedTexts = texts.filter((t) => t.id !== id);
-    setTexts(updatedTexts);
-    updateMetadata({ notepadTexts: updatedTexts });
-  };
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
-    updateMetadata({ notepadTitle: e.target.value });
-  };
+  if (!isClient) return null;
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-[#fdfdfc] overflow-hidden select-none">
-      <div className="h-16 border-b border-zinc-200 bg-white px-4 shrink-0 shadow-sm flex items-center justify-between relative z-20">
-        <div className="flex items-center gap-1 border-r border-zinc-200 pr-4">
-          <button
-            onClick={() => setActiveTool("hand")}
-            className={`p-2.5 rounded-xl transition-all ${activeTool === "hand" ? "bg-zinc-950 text-white shadow-md" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"}`}
-            title="Pan & Move (V / H)"
-          >
-            <Hand size={18} strokeWidth={2.5} />
-          </button>
-          <div className="w-px h-6 bg-zinc-200 mx-1"></div>
-          <button
-            onClick={() => setActiveTool("pen")}
-            className={`p-2.5 rounded-xl transition-all ${activeTool === "pen" ? "bg-zinc-950 text-white shadow-md" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"}`}
-            title="Pen (P)"
-          >
-            <Pen size={18} strokeWidth={2.5} />
-          </button>
-          <button
-            onClick={() => setActiveTool("highlighter")}
-            className={`p-2.5 rounded-xl transition-all ${activeTool === "highlighter" ? "bg-yellow-400 text-yellow-950 shadow-md" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"}`}
-            title="Highlighter"
-          >
-            <Highlighter size={18} strokeWidth={2.5} />
-          </button>
-          <button
-            onClick={() => setActiveTool("eraser")}
-            className={`p-2.5 rounded-xl transition-all ${activeTool === "eraser" ? "bg-zinc-200 text-zinc-900 shadow-inner" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"}`}
-            title="Eraser (E)"
-          >
-            <Eraser size={18} strokeWidth={2.5} />
-          </button>
-          <div className="w-px h-8 bg-zinc-200 mx-2"></div>
-          <button
-            onClick={() => setActiveTool("text")}
-            className={`p-2.5 rounded-xl transition-all ${activeTool === "text" ? "bg-blue-600 text-white shadow-md" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"}`}
-            title="Add Text (T)"
-          >
-            <Type size={18} strokeWidth={2.5} />
-          </button>
+    <div className="absolute inset-0 flex flex-col bg-zinc-50 overflow-hidden">
+      {/* ÜST BAR */}
+      <div className="flex items-center justify-between p-4 md:px-6 py-4 bg-white border-b border-zinc-200 shrink-0 z-10 shadow-xs">
+        <div className="flex items-center gap-3 md:gap-4">
+          <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 tracking-tight">
+            Project Board
+          </h2>
         </div>
 
-        <div className="flex-1 px-4 flex items-center justify-start gap-4">
-          {activeTool === "text" ? (
-            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-4 duration-200 bg-blue-50/50 p-1.5 rounded-xl border border-blue-100">
-              <div className="flex flex-col px-2">
-                <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-0.5">
-                  Font
-                </span>
-                <select
-                  value={activeFont}
-                  onChange={(e) => setActiveFont(e.target.value)}
-                  className="bg-transparent text-zinc-800 text-xs font-bold focus:outline-none cursor-pointer"
-                >
-                  {FONTS.map((font) => (
-                    <option
-                      key={font}
-                      value={font}
-                      style={{ fontFamily: font }}
+        <div className="flex items-center gap-2 md:gap-3">
+          <button className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-zinc-600 bg-white border border-zinc-200 px-3 py-1.5 rounded-md hover:bg-zinc-50 shadow-xs">
+            Filter
+          </button>
+          <button className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-zinc-600 bg-white border border-zinc-200 px-3 py-1.5 rounded-md hover:bg-zinc-50 shadow-xs">
+            Sort
+          </button>
+
+          <div className="hidden sm:block w-px h-6 bg-zinc-200 mx-1"></div>
+
+          <button
+            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+            className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors font-bold text-sm border ${isDrawerOpen ? "bg-zinc-900 text-white border-zinc-900" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border-zinc-200"}`}
+            title="Toggle Github History"
+          >
+            {isDrawerOpen ? "[>]" : "[<]"}
+          </button>
+        </div>
+      </div>
+
+      {/* ANA ALAN VE DRAWER */}
+      <div className="flex-1 flex overflow-hidden relative w-full">
+        {/* KANBAN PANOSU */}
+        <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar h-full">
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <div className="flex gap-4 md:gap-6 p-4 md:p-6 items-start h-full w-max">
+              {COLUMNS.map((col) => {
+                const colTasks = tasks.filter((t) => t.status === col.id);
+
+                return (
+                  <div
+                    key={col.id}
+                    /* SON ÇÖZÜM: w-max konteyner içinde sabit 340px, asla esnemez (flex-1 yook) ve ezilmez (shrink-0 var). Mobilde ekranın %85'i olur. */
+                    className="w-[85vw] sm:w-[340px] shrink-0 flex flex-col max-h-full bg-zinc-100/50 rounded-xl border border-zinc-200"
+                  >
+                    <div
+                      className="p-3 md:p-4 rounded-t-xl border-b border-zinc-200/50 flex items-center justify-between shadow-sm shrink-0"
+                      style={{ backgroundColor: col.color }}
                     >
-                      {font}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                      <h3 className="font-black text-white tracking-wider text-sm md:text-base">
+                        {col.title}
+                      </h3>
+                      <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-xs font-bold">
+                        {colTasks.length}
+                      </span>
+                    </div>
 
-              <div className="w-px h-6 bg-blue-200 mx-1"></div>
+                    <Droppable droppableId={col.id}>
+                      {(provided, snapshot) => (
+                        <div
+                          className={`flex-1 overflow-y-auto p-2 md:p-3 flex flex-col gap-2 md:gap-3 custom-scrollbar transition-colors ${snapshot.isDraggingOver ? "bg-zinc-200/30" : ""}`}
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                        >
+                          {colTasks.map((task, index) => {
+                            const isDarkBg = [
+                              "URGENT",
+                              "HIGH",
+                              "MEDIUM",
+                            ].includes(task.priority);
+                            const textColor = isDarkBg
+                              ? "text-white"
+                              : "text-zinc-900";
+                            const mutedTextColor = isDarkBg
+                              ? "text-white/80"
+                              : "text-zinc-500";
+                            const borderColor = isDarkBg
+                              ? "border-white/20"
+                              : "border-zinc-200";
 
-              <div className="flex flex-col px-2">
-                <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-0.5">
-                  Size (PX)
-                </span>
-                <select
-                  value={activeFontSize}
-                  onChange={(e) => setActiveFontSize(Number(e.target.value))}
-                  className="bg-transparent text-zinc-800 text-xs font-bold focus:outline-none cursor-pointer"
+                            return (
+                              <Draggable
+                                key={task.id}
+                                draggableId={task.id}
+                                index={index}
+                              >
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    onClick={() => handleEditTask(task)}
+                                    style={{
+                                      ...provided.draggableProps.style,
+                                      backgroundColor:
+                                        PRIORITIES[task.priority],
+                                    }}
+                                    className={`rounded-xl shadow-xs flex flex-col overflow-hidden cursor-grab active:cursor-grabbing hover:-translate-y-0.5
+                                      ${snapshot.isDragging ? "shadow-2xl scale-105 z-50 opacity-100" : "opacity-100 scale-100"}
+                                      ${textColor}
+                                    `}
+                                  >
+                                    <div className="p-3 md:p-4 flex flex-col gap-2 md:gap-3">
+                                      <div className="flex justify-between items-start gap-2 md:gap-4">
+                                        <div className="flex-1">
+                                          <h4 className="text-sm font-extrabold leading-snug tracking-tight">
+                                            {task.title}
+                                          </h4>
+                                          {task.description && (
+                                            <p
+                                              className={`text-[10px] md:text-[11px] mt-1 line-clamp-2 ${mutedTextColor}`}
+                                            >
+                                              {task.description}
+                                            </p>
+                                          )}
+                                        </div>
+
+                                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                          {task.commitCode && (
+                                            <span
+                                              className={`px-1.5 py-0.5 rounded text-[8px] md:text-[9px] font-mono font-bold border ${isDarkBg ? "bg-white/10 border-white/20" : "bg-white/50 border-zinc-300"}`}
+                                            >
+                                              {task.commitCode}
+                                            </span>
+                                          )}
+                                          <span
+                                            className={`text-[8px] md:text-[9px] font-bold px-2 py-0.5 rounded-full border ${isDarkBg ? "bg-white/10 border-white/20" : "bg-zinc-200/50 border-zinc-200"}`}
+                                          >
+                                            For {task.assignee}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div
+                                        className={`h-px w-full ${borderColor} my-0.5`}
+                                      />
+
+                                      <div className="flex justify-between items-end">
+                                        <div className="flex flex-col gap-0.5">
+                                          <span
+                                            className={`text-[8px] md:text-[9px] font-medium ${mutedTextColor}`}
+                                          >
+                                            Created by{" "}
+                                            <span className="font-bold">
+                                              {task.createdBy}
+                                            </span>
+                                          </span>
+                                          <span
+                                            className={`text-[8px] md:text-[9px] font-medium ${mutedTextColor}`}
+                                          >
+                                            Updated by{" "}
+                                            <span className="font-bold">
+                                              {task.updatedBy}
+                                            </span>
+                                          </span>
+                                        </div>
+
+                                        <div className="flex flex-col items-end gap-0.5 text-[9px] md:text-[10px] font-bold">
+                                          {task.startDate && (
+                                            <span className={mutedTextColor}>
+                                              Start: {task.startDate}
+                                            </span>
+                                          )}
+                                          {task.deadline && (
+                                            <span className={mutedTextColor}>
+                                              Deadline: {task.deadline}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </Draggable>
+                            );
+                          })}
+                          {provided.placeholder}
+
+                          <button
+                            onClick={() => handleOpenAddModal(col.id)}
+                            className="mt-1 md:mt-2 w-full flex items-center justify-center gap-2 py-2 md:py-3 rounded-xl text-xs font-extrabold text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50 transition-all border border-dashed border-zinc-300 hover:border-zinc-400"
+                          >
+                            + Add Task
+                          </button>
+                        </div>
+                      )}
+                    </Droppable>
+                  </div>
+                );
+              })}
+            </div>
+          </DragDropContext>
+        </div>
+
+        {/* DRAWER */}
+        {isDrawerOpen && (
+          <div className="w-[85vw] sm:w-80 shrink-0 bg-white border-l border-zinc-200 shadow-2xl flex flex-col h-full absolute md:relative right-0 z-40 animate-in slide-in-from-right duration-300">
+            <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50 shrink-0">
+              <div className="flex items-center gap-2">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  className="text-zinc-800"
                 >
-                  {SIZES.map((size) => (
-                    <option key={size} value={size}>
-                      {size}px
-                    </option>
-                  ))}
-                </select>
+                  <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path>
+                  <path d="M9 18c-4.51 2-5-2-7-2"></path>
+                </svg>
+                <h3 className="font-extrabold text-zinc-900 text-sm">
+                  Git History
+                </h3>
               </div>
+              <button
+                onClick={() => setIsDrawerOpen(false)}
+                className="flex items-center justify-center w-7 h-7 bg-zinc-200 text-zinc-700 rounded-md hover:bg-zinc-300 font-bold text-sm"
+              >
+                [&gt;]
+              </button>
+            </div>
 
-              <div className="w-px h-6 bg-blue-200 mx-1"></div>
-
-              <div className="flex items-center gap-1.5 px-2">
-                {COLORS.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setActiveColor(color)}
-                    className={`w-6 h-6 rounded-full border-2 transition-transform ${activeColor === color ? "scale-110 border-blue-400 shadow-sm" : "border-transparent hover:scale-105"}`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
+            <div className="p-6 flex-1 overflow-y-auto bg-zinc-50 custom-scrollbar relative">
+              <div className="absolute left-9 top-6 bottom-6 w-0.5 bg-zinc-200"></div>
+              <div className="space-y-6 relative z-10">
+                <div className="flex gap-4">
+                  <div className="w-6 h-6 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-blue-600 shrink-0 shadow-sm mt-0.5">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                    >
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <line x1="12" y1="5" x2="12" y2="9"></line>
+                      <line x1="12" y1="15" x2="12" y2="19"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-900">
+                      Merge pull request #42
+                    </p>
+                    <p className="text-[10px] font-medium text-zinc-500 mt-0.5">
+                      by <b>User001</b> • 2 hours ago
+                    </p>
+                    <span className="inline-block mt-1.5 px-1.5 py-0.5 bg-zinc-200/50 text-zinc-600 rounded text-[9px] font-mono font-bold border border-zinc-200">
+                      0560MK8
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-6 h-6 rounded-full bg-emerald-100 border-2 border-white flex items-center justify-center text-emerald-600 shrink-0 shadow-sm mt-0.5">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                    >
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-900">
+                      Fix transparent dragging bug
+                    </p>
+                    <p className="text-[10px] font-medium text-zinc-500 mt-0.5">
+                      by <b>Boss</b> • 5 hours ago
+                    </p>
+                    <span className="inline-block mt-1.5 px-1.5 py-0.5 bg-zinc-200/50 text-zinc-600 rounded text-[9px] font-mono font-bold border border-zinc-200">
+                      1A9F43B
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          ) : activeTool === "pen" || activeTool === "highlighter" ? (
-            <div className="flex items-center gap-4 animate-in fade-in slide-in-from-left-4 duration-200">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                  Thickness
-                </span>
+          </div>
+        )}
+      </div>
+
+      {/* GÖREV EKLEME/DÜZENLEME MODALI */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-full">
+            <div className="p-4 md:p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50 shrink-0">
+              <h2 className="text-lg md:text-xl font-extrabold text-zinc-900">
+                {editingTaskId ? "Edit Task" : "Add New Task"}
+              </h2>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-zinc-400 hover:text-zinc-900 p-1.5 hover:bg-zinc-200/80 rounded-lg transition-colors flex items-center justify-center"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleTaskSubmit}
+              className="p-4 md:p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar"
+            >
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                  Title
+                </label>
                 <input
-                  type="range"
-                  min="1"
-                  max="20"
-                  value={strokeWidth}
-                  onChange={(e) => setStrokeWidth(Number(e.target.value))}
-                  className="w-24 accent-zinc-950"
+                  required
+                  type="text"
+                  autoFocus
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 border border-zinc-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none"
+                  placeholder="Task title..."
                 />
               </div>
 
-              <div className="w-px h-6 bg-zinc-200 mx-2"></div>
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                  Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={newTaskDescription}
+                  onChange={(e) => setNewTaskDescription(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 border border-zinc-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none"
+                  placeholder="Task details..."
+                />
+              </div>
 
-              <div className="flex items-center gap-1.5">
-                {COLORS.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setActiveColor(color)}
-                    className={`w-6 h-6 rounded-full border-2 transition-transform ${activeColor === color ? "scale-110 border-zinc-400 shadow-sm" : "border-transparent hover:scale-105"}`}
-                    style={{ backgroundColor: color }}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                    Priority
+                  </label>
+                  <select
+                    value={newTaskPriority}
+                    onChange={(e) =>
+                      setNewTaskPriority(e.target.value as TaskPriority)
+                    }
+                    className="w-full mt-1 px-3 py-2 border border-zinc-200 rounded-lg text-sm font-bold focus:outline-none bg-white"
+                  >
+                    {Object.keys(PRIORITIES).map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="relative">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                    Assignee
+                  </label>
+                  <input
+                    type="text"
+                    value={newTaskAssignee}
+                    onChange={(e) => setNewTaskAssignee(e.target.value)}
+                    onFocus={() => setShowAssigneeDropdown(true)}
+                    onBlur={() =>
+                      setTimeout(() => setShowAssigneeDropdown(false), 200)
+                    }
+                    className="w-full mt-1 px-3 py-2 border border-zinc-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                    placeholder="Search user..."
                   />
-                ))}
-              </div>
-            </div>
-          ) : activeTool === "eraser" ? (
-            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-200">
-              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                Eraser Size
-              </span>
-              <input
-                type="range"
-                min="1"
-                max="50"
-                value={strokeWidth}
-                onChange={(e) => setStrokeWidth(Number(e.target.value))}
-                className="w-24 accent-zinc-500"
-              />
-            </div>
-          ) : null}
-        </div>
+                  {showAssigneeDropdown && collaborators.length > 0 && (
+                    <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-zinc-200 shadow-xl rounded-xl overflow-hidden z-50 max-h-40 overflow-y-auto">
+                      {collaborators
+                        .filter((c) =>
+                          c.email
+                            .toLowerCase()
+                            .includes(newTaskAssignee.toLowerCase()),
+                        )
+                        .map((c, i) => (
+                          <div
+                            key={i}
+                            onClick={() => {
+                              setNewTaskAssignee(c.email.split("@")[0]);
+                              setShowAssigneeDropdown(false);
+                            }}
+                            className="px-3 py-2 hover:bg-zinc-100 cursor-pointer text-xs font-semibold text-zinc-700 flex justify-between items-center"
+                          >
+                            <span className="truncate">{c.email}</span>
+                            <span className="text-[9px] uppercase bg-zinc-200 px-1.5 py-0.5 rounded ml-2">
+                              {c.role}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
 
-        <div className="flex items-center gap-2 border-l border-zinc-200 pl-4">
-          <button
-            onClick={() => alert("Image module ready to implement.")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
-          >
-            <ImageIcon size={14} /> Image
-          </button>
-          <button
-            onClick={() => alert("Widget module ready to implement.")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
-          >
-            <Blocks size={14} /> Widget
-          </button>
-          <button
-            onClick={() => alert("Link module ready to implement.")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
-          >
-            <Link2 size={14} /> Link
-          </button>
-        </div>
-      </div>
-
-      <div
-        ref={containerRef}
-        className={`flex-1 relative w-full h-full ${activeTool === "hand" ? "cursor-default" : activeTool === "text" ? "cursor-text" : "cursor-crosshair"}`}
-        style={{ touchAction: "none" }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-      >
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 z-10 w-full h-full pointer-events-none"
-        />
-
-        <div className="absolute top-6 left-6 z-30">
-          <input
-            type="text"
-            value={title}
-            onChange={handleTitleChange}
-            placeholder="TITLE..."
-            className="text-4xl font-black tracking-tighter text-zinc-900 bg-transparent border-none outline-none placeholder:text-zinc-300 w-[500px]"
-            style={{ pointerEvents: "auto" }}
-          />
-        </div>
-
-        <div className="absolute inset-0 z-20 pointer-events-none">
-          {texts.map((text) => (
-            <div
-              key={text.id}
-              id={`text-node-${text.id}`}
-              tabIndex={0}
-              className="absolute text-block-wrapper flex flex-col group outline-none rounded-md"
-              style={{
-                left: text.x,
-                top: text.y,
-                pointerEvents: "auto",
-                zIndex: draggingTextId === text.id ? 50 : 20,
-              }}
-              onKeyDown={(e) => {
-                if (
-                  (e.key === "Delete" || e.key === "Backspace") &&
-                  document.activeElement === e.currentTarget
-                ) {
-                  e.preventDefault();
-                  handleDeleteText(text.id);
-                }
-              }}
-            >
-              <div
-                onPointerDown={(e) => startTextDrag(e, text)}
-                className={`absolute -top-4 left-1/2 -translate-x-1/2 bg-white border border-zinc-200 shadow-sm rounded-md p-1 cursor-grab active:cursor-grabbing transition-opacity z-10 text-zinc-500 hover:text-zinc-900 ${
-                  activeTool === "hand"
-                    ? "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
-                    : "opacity-0 pointer-events-none"
-                }`}
-                title="Drag to move"
-              >
-                <Move size={14} />
+                {editingTaskId && (
+                  <div className="col-span-1 md:col-span-2 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                    <label className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                      Commit Code (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={newTaskCommit}
+                      onChange={(e) => setNewTaskCommit(e.target.value)}
+                      className="w-full mt-1 px-3 py-2 border border-blue-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      placeholder="e.g. 0560MK8"
+                    />
+                  </div>
+                )}
               </div>
 
-              <textarea
-                value={text.content}
-                onChange={(e) => handleTextChange(text.id, e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Backspace" && text.content === "") {
-                    e.preventDefault();
-                    handleDeleteText(text.id);
-                  }
-                  if (e.key === "Escape") {
-                    e.currentTarget.blur();
-                  }
-                }}
-                autoFocus={text.content === ""}
-                className="bg-transparent border border-transparent hover:border-zinc-200/60 focus:border-blue-400/50 rounded outline-none resize-none overflow-hidden p-1 transition-colors select-text"
-                style={{
-                  color: text.color,
-                  fontSize: `${text.size}px`,
-                  fontFamily: text.font,
-                  lineHeight: "1.2",
-                  minWidth: "120px",
-                  minHeight: "40px",
-                }}
-                placeholder="Type..."
-              />
-            </div>
-          ))}
+              <div className="grid grid-cols-2 gap-4 border-t border-zinc-100 pt-4">
+                <div className="relative">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">
+                    Start (Optional)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowStartCalendar(!showStartCalendar);
+                      setShowDeadlineCalendar(false);
+                    }}
+                    className="w-full mt-1 px-3 py-2 border border-zinc-200 rounded-lg text-xs font-semibold text-left bg-zinc-50 hover:bg-zinc-100 flex justify-between items-center"
+                  >
+                    <span>
+                      {startDateObj
+                        ? startDateObj.toLocaleDateString("en-GB")
+                        : "Date"}
+                    </span>
+                    {startDateObj && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStartDateObj(undefined);
+                        }}
+                        className="text-zinc-400 hover:text-red-500"
+                      >
+                        ✖
+                      </span>
+                    )}
+                  </button>
+                  {showStartCalendar && (
+                    <div className="absolute bottom-full mb-2 left-0 sm:left-auto bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 z-50">
+                      <Calendar
+                        mode="single"
+                        selected={startDateObj}
+                        onSelect={(date) => {
+                          setStartDateObj(date);
+                          setShowStartCalendar(false);
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">
+                    Deadline (Optional)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDeadlineCalendar(!showDeadlineCalendar);
+                      setShowStartCalendar(false);
+                    }}
+                    className="w-full mt-1 px-3 py-2 border border-zinc-200 rounded-lg text-xs font-semibold text-left bg-zinc-50 hover:bg-zinc-100 flex justify-between items-center"
+                  >
+                    <span>
+                      {deadlineObj
+                        ? deadlineObj.toLocaleDateString("en-GB")
+                        : "Date"}
+                    </span>
+                    {deadlineObj && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeadlineObj(undefined);
+                        }}
+                        className="text-zinc-400 hover:text-red-500"
+                      >
+                        ✖
+                      </span>
+                    )}
+                  </button>
+                  {showDeadlineCalendar && (
+                    <div className="absolute bottom-full mb-2 right-0 bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 z-50">
+                      <Calendar
+                        mode="single"
+                        selected={deadlineObj}
+                        onSelect={(date) => {
+                          setDeadlineObj(date);
+                          setShowDeadlineCalendar(false);
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-5 py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-zinc-900 text-white text-sm font-bold rounded-xl hover:bg-zinc-800 shadow-md"
+                >
+                  {editingTaskId ? "Save" : "Create"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

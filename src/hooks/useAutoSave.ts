@@ -15,6 +15,10 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstRender = useRef(true);
 
+  const notepadStrokes = metadata?.notepadStrokes;
+  const notepadTexts = metadata?.notepadTexts;
+  const notepadTitle = metadata?.notepadTitle;
+
   useEffect(() => {
     if (!recordId) return;
 
@@ -41,7 +45,9 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
     saveProject,
     tenantId,
     recordId,
-    metadata, 
+    notepadStrokes,
+    notepadTexts,
+    notepadTitle,
   ]);
 
   useEffect(() => {

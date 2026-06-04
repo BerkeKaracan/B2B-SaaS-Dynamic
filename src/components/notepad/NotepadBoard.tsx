@@ -71,6 +71,15 @@ export default function NotepadBoard({
     (metadata.notepadTitle as string) || "Untitled Note",
   );
 
+  useEffect(() => {
+    if (metadata.notepadStrokes)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStrokes(metadata.notepadStrokes as Stroke[]);
+    if (metadata.notepadTexts)
+      setTexts(metadata.notepadTexts as FloatingText[]);
+    if (metadata.notepadTitle) setTitle(metadata.notepadTitle as string);
+  }, [metadata.notepadStrokes, metadata.notepadTexts, metadata.notepadTitle]);
+
   const [draggingTextId, setDraggingTextId] = useState<string | null>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
   const draggedPosRef = useRef<{ x: number; y: number } | null>(null);
@@ -158,11 +167,11 @@ export default function NotepadBoard({
             ctx.lineWidth = stroke.width * currentPressure;
             ctx.beginPath();
             ctx.moveTo(stroke.points[i - 1].x, stroke.points[i - 1].y);
-            ctx.lineTo(p.x, p.y);
           }
-          ctx.stroke();
-          ctx.globalAlpha = 1.0;
+          ctx.lineTo(p.x, p.y);
         }
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
       }
     });
   }, []);
@@ -302,6 +311,8 @@ export default function NotepadBoard({
     const coords = getCoordinates(e);
     const lastPoint =
       currentStroke.current.points[currentStroke.current.points.length - 1];
+
+    // Performans Optimizasyonu (RAM ve DB yükünü düşürür)
     const dx = coords.x - lastPoint.x;
     const dy = coords.y - lastPoint.y;
     if (dx * dx + dy * dy < 4) return;
@@ -601,8 +612,15 @@ export default function NotepadBoard({
               <textarea
                 value={text.content}
                 onChange={(e) => handleTextChange(text.id, e.target.value)}
+                onInput={(e) => {
+                  e.currentTarget.style.height = "auto";
+                  e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === "Backspace" && text.content === "") {
+                  if (
+                    (e.key === "Backspace" || e.key === "Delete") &&
+                    text.content === ""
+                  ) {
                     e.preventDefault();
                     handleDeleteText(text.id);
                   }
@@ -610,8 +628,14 @@ export default function NotepadBoard({
                     e.currentTarget.blur();
                   }
                 }}
+                ref={(el) => {
+                  if (el) {
+                    el.style.height = "auto";
+                    el.style.height = `${el.scrollHeight}px`;
+                  }
+                }}
                 autoFocus={text.content === ""}
-                className="bg-transparent border border-transparent hover:border-zinc-300 border-dashed focus:border-blue-500 focus:border-solid rounded outline-none resize-none overflow-hidden p-2 transition-all select-text"
+                className="bg-transparent border border-transparent hover:border-zinc-200/60 focus:border-blue-400/50 rounded outline-none resize-none overflow-hidden p-1 transition-colors select-text"
                 style={{
                   color: text.color,
                   fontSize: `${text.size}px`,
