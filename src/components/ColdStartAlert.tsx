@@ -5,7 +5,6 @@ export default function ColdStartAlert() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Sadece oturumun ilk açılışında göstermek için sessionStorage kontrolü yapıyoruz
     const hasSeenAlert = sessionStorage.getItem("hasSeenColdStartAlert");
 
     if (!hasSeenAlert) {

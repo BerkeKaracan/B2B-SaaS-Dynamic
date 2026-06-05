@@ -395,6 +395,7 @@ export default function ProjectCardsGrid({
                       </span>
                       {isAdmin && (
                         <div className="relative">
+                          {/* MOBİL GÖRÜNÜM İÇİN DÜZELTME BURADA */}
                           <button
                             type="button"
                             onClick={(e) => {
@@ -404,7 +405,7 @@ export default function ProjectCardsGrid({
                                 openMenuId === project.id ? null : project.id,
                               );
                             }}
-                            className={`p-1 rounded-lg transition-all duration-200 ${showArchived ? "text-zinc-500 bg-zinc-100 hover:bg-zinc-200" : "text-zinc-400 hover:text-zinc-800 opacity-0 group-hover:opacity-100"}`}
+                            className={`p-1 rounded-lg transition-all duration-200 ${showArchived ? "text-zinc-500 bg-zinc-100 hover:bg-zinc-200" : "text-zinc-400 hover:text-zinc-800 opacity-100 md:opacity-0 group-hover:opacity-100"}`}
                           >
                             <svg
                               width="18"
