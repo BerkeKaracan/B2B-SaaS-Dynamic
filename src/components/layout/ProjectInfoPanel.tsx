@@ -30,19 +30,19 @@ export default function ProjectInfoPanel() {
   const dateValue = date ? new Date(date) : undefined;
 
   return (
-    <aside className="w-[280px] h-full flex flex-col border-l border-zinc-200/80 bg-[#FAFAFA] shrink-0 z-30">
-      <div className="h-12 flex items-center justify-between px-4 border-b border-zinc-200/50 shrink-0">
+    <aside className="absolute right-0 md:relative w-[85vw] md:w-[280px] h-full flex flex-col border-l border-zinc-200/80 bg-[#FAFAFA] shrink-0 z-50 md:z-30 shadow-2xl md:shadow-none transition-all duration-300">
+      <div className="h-12 md:h-14 flex items-center justify-between px-4 border-b border-zinc-200/50 shrink-0 bg-white">
         <div className="flex items-center gap-3">
-          <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
+          <span className="text-[10px] md:text-xs font-bold text-zinc-700 uppercase tracking-wider">
             Project Settings
           </span>
           {isSaving && (
-            <span className="text-[10px] font-medium text-blue-500 animate-pulse">
+            <span className="text-[9px] md:text-[10px] font-medium text-blue-500 animate-pulse">
               Saving...
             </span>
           )}
           {showSaved && !isSaving && (
-            <span className="text-[10px] font-medium text-emerald-500">
+            <span className="text-[9px] md:text-[10px] font-medium text-emerald-500">
               Saved
             </span>
           )}
@@ -50,7 +50,7 @@ export default function ProjectInfoPanel() {
         <button
           type="button"
           onClick={toggleSecondarySidebar}
-          className="p-1 text-zinc-400 hover:text-zinc-800 hover:bg-zinc-200/50 rounded-md transition-all"
+          className="p-1.5 text-zinc-400 hover:text-zinc-800 hover:bg-zinc-200/50 rounded-md transition-all active:scale-95"
           aria-label="Close project info"
         >
           <svg
@@ -59,7 +59,7 @@ export default function ProjectInfoPanel() {
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           >
@@ -78,7 +78,7 @@ export default function ProjectInfoPanel() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Project name"
-                className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-zinc-400 font-medium text-zinc-800"
+                className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-zinc-400 font-medium text-zinc-800 shadow-sm"
               />
             </Field>
 
@@ -88,7 +88,7 @@ export default function ProjectInfoPanel() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Short description"
                 rows={4}
-                className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white resize-none focus:outline-none focus:ring-1 focus:ring-zinc-400 font-medium text-zinc-800"
+                className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white resize-none focus:outline-none focus:ring-1 focus:ring-zinc-400 font-medium text-zinc-800 shadow-sm"
               />
             </Field>
 
@@ -100,14 +100,14 @@ export default function ProjectInfoPanel() {
                 <Popover.Trigger asChild>
                   <button
                     type="button"
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white text-left hover:bg-zinc-50 transition-colors focus:outline-none focus:ring-1 focus:ring-zinc-400"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white text-left hover:bg-zinc-50 transition-colors focus:outline-none focus:ring-1 focus:ring-zinc-400 shadow-sm"
                   >
                     <CalendarIcon className="w-4 h-4 text-zinc-400 shrink-0" />
                     <span
                       className={
                         !date
                           ? "text-zinc-400 font-normal"
-                          : "text-zinc-800 font-medium"
+                          : "text-zinc-800 font-medium truncate"
                       }
                     >
                       {dateValue
@@ -136,7 +136,7 @@ export default function ProjectInfoPanel() {
                             .split("T")[0];
 
                           setDate(localDate);
-                          setIsCalendarOpen(false); 
+                          setIsCalendarOpen(false);
                         }
                       }}
                     />

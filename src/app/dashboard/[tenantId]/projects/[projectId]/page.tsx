@@ -196,9 +196,9 @@ export default function ProjectDesignPage() {
 
   return (
     <div className="flex flex-col h-full w-full min-w-0 bg-[#fafafb] relative selection:bg-zinc-200">
-      <div className="h-14 border-b border-zinc-200/80 bg-white px-6 flex items-center justify-between shrink-0 shadow-xs relative z-10">
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-100 px-2.5 py-1 rounded-md border border-zinc-200/50">
+      <div className="h-12 md:h-14 border-b border-zinc-200/80 bg-white px-3 md:px-6 flex items-center justify-between shrink-0 shadow-xs relative z-10">
+        <div className="flex items-center gap-2 md:gap-3">
+          <span className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-100 px-2 md:px-2.5 py-1 rounded-md border border-zinc-200/50">
             {projectTemplate === "kanban"
               ? "Kanban Mode"
               : projectTemplate === "notepad"
@@ -209,10 +209,10 @@ export default function ProjectDesignPage() {
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <button
             onClick={openShareModal}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-300 bg-zinc-950 text-white hover:bg-zinc-800 shadow-sm active:scale-95"
+            className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 rounded-lg text-[10px] md:text-[11px] font-bold transition-all duration-300 bg-zinc-950 text-white hover:bg-zinc-800 shadow-sm active:scale-95"
           >
             <svg
               width="14"
@@ -230,7 +230,8 @@ export default function ProjectDesignPage() {
               <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
             </svg>
-            Web Share Options
+            <span className="hidden sm:inline">Web Share Options</span>
+            <span className="sm:hidden">Share</span>
           </button>
         </div>
       </div>
@@ -254,12 +255,12 @@ export default function ProjectDesignPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-zinc-950/20 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+            <div className="p-4 md:p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
               <div>
-                <h3 className="text-lg font-black text-zinc-950 tracking-tight">
+                <h3 className="text-base md:text-lg font-black text-zinc-950 tracking-tight">
                   Access & Sharing
                 </h3>
-                <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1">
+                <p className="text-[9px] md:text-[10px] font-bold text-zinc-400 uppercase mt-1">
                   Manage Workspace Visibility
                 </p>
               </div>
@@ -286,21 +287,21 @@ export default function ProjectDesignPage() {
                 <div className="w-6 h-6 border-2 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
               </div>
             ) : (
-              <div className="p-6 space-y-8 bg-white max-h-[70vh] overflow-y-auto">
+              <div className="p-4 md:p-6 space-y-6 md:space-y-8 bg-white max-h-[70vh] overflow-y-auto">
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <h4 className="text-sm font-bold text-zinc-950 mb-1">
+                      <h4 className="text-xs md:text-sm font-bold text-zinc-950 mb-1">
                         Publish to Global Gallery
                       </h4>
-                      <p className="text-[11px] font-medium text-zinc-500 leading-relaxed max-w-[250px]">
+                      <p className="text-[10px] md:text-[11px] font-medium text-zinc-500 leading-relaxed max-w-[250px]">
                         Feature your workspace in the SaaS Engine community.
                       </p>
                     </div>
                     <button
                       onClick={handleGlobalToggle}
                       disabled={isUpdating}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors mt-1 ${isGlobal ? "bg-zinc-950" : "bg-zinc-200"}`}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors mt-1 ${isGlobal ? "bg-zinc-950" : "bg-zinc-200"}`}
                     >
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isGlobal ? "translate-x-6" : "translate-x-1"}`}
@@ -311,18 +312,18 @@ export default function ProjectDesignPage() {
                   <div
                     className={`transition-opacity ${!isGlobal ? "hidden" : "block"}`}
                   >
-                    <div className="flex items-center gap-2 mt-3">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3">
                       <input
                         type="text"
                         readOnly
                         value={`${typeof window !== "undefined" ? window.location.origin : ""}/share/${projectId}`}
-                        className="flex-1 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium text-zinc-600 focus:outline-none"
+                        className="flex-1 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-[10px] md:text-xs font-medium text-zinc-600 focus:outline-none"
                       />
                       <button
                         onClick={handleCopy}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${isCopied ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-zinc-950 text-white hover:bg-zinc-800"}`}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${isCopied ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-zinc-950 text-white hover:bg-zinc-800"}`}
                       >
-                        {isCopied ? "Copied!" : "Copy"}
+                        {isCopied ? "Copied!" : "Copy Link"}
                       </button>
                     </div>
                   </div>
@@ -332,16 +333,19 @@ export default function ProjectDesignPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-sm font-bold text-zinc-950 mb-1">
+                    <h4 className="text-xs md:text-sm font-bold text-zinc-950 mb-1">
                       Project-Specific Access
                     </h4>
-                    <p className="text-[11px] font-medium text-zinc-500 leading-relaxed">
+                    <p className="text-[10px] md:text-[11px] font-medium text-zinc-500 leading-relaxed">
                       Invite teammates to view or edit this specific project,
                       regardless of their global workspace role.
                     </p>
                   </div>
 
-                  <form onSubmit={handleAddCollaborator} className="flex gap-2">
+                  <form
+                    onSubmit={handleAddCollaborator}
+                    className="flex flex-col sm:flex-row gap-2"
+                  >
                     <input
                       type="email"
                       required
@@ -350,21 +354,23 @@ export default function ProjectDesignPage() {
                       onChange={(e) => setInviteEmail(e.target.value)}
                       className="flex-1 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
                     />
-                    <select
-                      value={inviteRole}
-                      onChange={(e) => setInviteRole(e.target.value)}
-                      className="px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-700 focus:outline-none cursor-pointer"
-                    >
-                      <option value="viewer">Viewer</option>
-                      <option value="editor">Editor</option>
-                    </select>
-                    <button
-                      type="submit"
-                      disabled={isUpdating || !inviteEmail}
-                      className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold hover:bg-zinc-800 transition-colors disabled:opacity-50"
-                    >
-                      Invite
-                    </button>
+                    <div className="flex gap-2">
+                      <select
+                        value={inviteRole}
+                        onChange={(e) => setInviteRole(e.target.value)}
+                        className="flex-1 sm:flex-none px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-700 focus:outline-none cursor-pointer"
+                      >
+                        <option value="viewer">Viewer</option>
+                        <option value="editor">Editor</option>
+                      </select>
+                      <button
+                        type="submit"
+                        disabled={isUpdating || !inviteEmail}
+                        className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold hover:bg-zinc-800 transition-colors disabled:opacity-50 whitespace-nowrap"
+                      >
+                        Invite
+                      </button>
+                    </div>
                   </form>
 
                   {collaborators.length > 0 && (
@@ -374,17 +380,17 @@ export default function ProjectDesignPage() {
                           key={index}
                           className="flex items-center justify-between p-3 bg-zinc-50/50 hover:bg-zinc-50 transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 rounded-md bg-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-600 uppercase">
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="w-6 h-6 shrink-0 rounded-md bg-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-600 uppercase">
                               {collab.email.charAt(0)}
                             </div>
-                            <span className="text-xs font-semibold text-zinc-900">
+                            <span className="text-[10px] md:text-xs font-semibold text-zinc-900 truncate">
                               {collab.email}
                             </span>
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 md:gap-3 shrink-0">
                             <span
-                              className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${collab.role === "editor" ? "bg-indigo-50 text-indigo-600" : "bg-zinc-100 text-zinc-500"}`}
+                              className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${collab.role === "editor" ? "bg-indigo-50 text-indigo-600" : "bg-zinc-100 text-zinc-500"}`}
                             >
                               {collab.role}
                             </span>
