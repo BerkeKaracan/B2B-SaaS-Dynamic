@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import toast from "react-hot-toast";
 import {
   Hand,
   Pen,
@@ -70,15 +71,6 @@ export default function NotepadBoard({
   const [title, setTitle] = useState<string>(
     (metadata.notepadTitle as string) || "Untitled Note",
   );
-
-  useEffect(() => {
-    if (metadata.notepadStrokes)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStrokes(metadata.notepadStrokes as Stroke[]);
-    if (metadata.notepadTexts)
-      setTexts(metadata.notepadTexts as FloatingText[]);
-    if (metadata.notepadTitle) setTitle(metadata.notepadTitle as string);
-  }, [metadata.notepadStrokes, metadata.notepadTexts, metadata.notepadTitle]);
 
   const [draggingTextId, setDraggingTextId] = useState<string | null>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -167,11 +159,11 @@ export default function NotepadBoard({
             ctx.lineWidth = stroke.width * currentPressure;
             ctx.beginPath();
             ctx.moveTo(stroke.points[i - 1].x, stroke.points[i - 1].y);
+            ctx.lineTo(p.x, p.y);
           }
-          ctx.lineTo(p.x, p.y);
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
         }
-        ctx.stroke();
-        ctx.globalAlpha = 1.0;
       }
     });
   }, []);
@@ -311,7 +303,6 @@ export default function NotepadBoard({
     const coords = getCoordinates(e);
     const lastPoint =
       currentStroke.current.points[currentStroke.current.points.length - 1];
-
     const dx = coords.x - lastPoint.x;
     const dy = coords.y - lastPoint.y;
     if (dx * dx + dy * dy < 4) return;
@@ -508,19 +499,21 @@ export default function NotepadBoard({
 
         <div className="flex items-center gap-2 border-l border-zinc-200 pl-4">
           <button
-            onClick={() => alert("Image module ready to implement.")}
+            onClick={() => toast.success("Image module ready to implement.")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
           >
             <ImageIcon size={14} /> Image
           </button>
           <button
-            onClick={() => alert("Widget module ready to implement.")}
+            onClick={() =>
+              toast("Widget module ready to implement.", { icon: "🧩" })
+            }
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
           >
             <Blocks size={14} /> Widget
           </button>
           <button
-            onClick={() => alert("Link module ready to implement.")}
+            onClick={() => toast.error("Link module is under construction.")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors"
           >
             <Link2 size={14} /> Link
@@ -611,15 +604,8 @@ export default function NotepadBoard({
               <textarea
                 value={text.content}
                 onChange={(e) => handleTextChange(text.id, e.target.value)}
-                onInput={(e) => {
-                  e.currentTarget.style.height = "auto";
-                  e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-                }}
                 onKeyDown={(e) => {
-                  if (
-                    (e.key === "Backspace" || e.key === "Delete") &&
-                    text.content === ""
-                  ) {
+                  if (e.key === "Backspace" && text.content === "") {
                     e.preventDefault();
                     handleDeleteText(text.id);
                   }
@@ -627,14 +613,8 @@ export default function NotepadBoard({
                     e.currentTarget.blur();
                   }
                 }}
-                ref={(el) => {
-                  if (el) {
-                    el.style.height = "auto";
-                    el.style.height = `${el.scrollHeight}px`;
-                  }
-                }}
                 autoFocus={text.content === ""}
-                className="bg-transparent border border-transparent hover:border-zinc-200/60 focus:border-blue-400/50 rounded outline-none resize-none overflow-hidden p-1 transition-colors select-text"
+                className="bg-transparent border border-transparent hover:border-zinc-300 border-dashed focus:border-blue-500 focus:border-solid rounded outline-none resize-none overflow-hidden p-2 transition-all select-text"
                 style={{
                   color: text.color,
                   fontSize: `${text.size}px`,

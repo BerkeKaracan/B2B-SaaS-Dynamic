@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Calendar } from "@/components/ui/calendar";
+import toast from "react-hot-toast";
 import {
   DragDropContext,
   Droppable,
@@ -163,6 +164,7 @@ export default function StaticKanbanBoard({
             }
           : task,
       );
+      toast.success("Task updated successfully!");
     } else {
       const taskToSave: Task = {
         id: "t-" + Date.now(),
@@ -178,6 +180,7 @@ export default function StaticKanbanBoard({
         status: newTaskStatus,
       };
       updatedTasks.push(taskToSave);
+      toast.success("New task created!");
     }
 
     updateTasks(updatedTasks);
@@ -225,7 +228,6 @@ export default function StaticKanbanBoard({
 
   return (
     <div className="absolute inset-0 flex flex-col bg-zinc-50 overflow-hidden">
-      {/* ÜST BAR */}
       <div className="flex items-center justify-between p-4 md:px-6 py-4 bg-white border-b border-zinc-200 shrink-0 z-10 shadow-xs">
         <div className="flex items-center gap-3 md:gap-4">
           <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 tracking-tight">
@@ -253,9 +255,7 @@ export default function StaticKanbanBoard({
         </div>
       </div>
 
-      {/* ANA ALAN VE DRAWER */}
       <div className="flex-1 flex overflow-hidden relative w-full">
-        {/* KANBAN PANOSU */}
         <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar h-full">
           <DragDropContext onDragEnd={handleDragEnd}>
             <div className="flex gap-4 md:gap-6 p-4 md:p-6 items-start h-full w-max">
@@ -265,7 +265,6 @@ export default function StaticKanbanBoard({
                 return (
                   <div
                     key={col.id}
-                    /* SON ÇÖZÜM: w-max konteyner içinde sabit 340px, asla esnemez (flex-1 yook) ve ezilmez (shrink-0 var). Mobilde ekranın %85'i olur. */
                     className="w-[85vw] sm:w-[340px] shrink-0 flex flex-col max-h-full bg-zinc-100/50 rounded-xl border border-zinc-200"
                   >
                     <div
@@ -417,7 +416,6 @@ export default function StaticKanbanBoard({
           </DragDropContext>
         </div>
 
-        {/* DRAWER */}
         {isDrawerOpen && (
           <div className="w-[85vw] sm:w-80 shrink-0 bg-white border-l border-zinc-200 shadow-2xl flex flex-col h-full absolute md:relative right-0 z-40 animate-in slide-in-from-right duration-300">
             <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50 shrink-0">
@@ -508,7 +506,6 @@ export default function StaticKanbanBoard({
         )}
       </div>
 
-      {/* GÖREV EKLEME/DÜZENLEME MODALI */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-full">
