@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Calendar } from "@/components/ui/calendar";
@@ -506,251 +507,254 @@ export default function StaticKanbanBoard({
         )}
       </div>
 
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-[999] flex items-end sm:items-center justify-center bg-zinc-950/60 backdrop-blur-sm sm:p-4">
-          <div className="bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
-            <div className="p-5 md:p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50 shrink-0">
-              <h2 className="text-lg md:text-xl font-extrabold text-zinc-900">
-                {editingTaskId ? "Edit Task" : "Add New Task"}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-zinc-400 hover:text-zinc-950 bg-white hover:bg-zinc-200 border border-zinc-200 rounded-full transition-colors p-1.5 shadow-sm"
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleTaskSubmit}
-              className="p-4 md:p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar pb-8 sm:pb-6"
-            >
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                  Title
-                </label>
-                <input
-                  required
-                  type="text"
-                  autoFocus
-                  value={newTaskTitle}
-                  onChange={(e) => setNewTaskTitle(e.target.value)}
-                  className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none"
-                  placeholder="Task title..."
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                  Description
-                </label>
-                <textarea
-                  rows={2}
-                  value={newTaskDescription}
-                  onChange={(e) => setNewTaskDescription(e.target.value)}
-                  className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none"
-                  placeholder="Task details..."
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
-                <div>
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                    Priority
-                  </label>
-                  <select
-                    value={newTaskPriority}
-                    onChange={(e) =>
-                      setNewTaskPriority(e.target.value as TaskPriority)
-                    }
-                    className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-bold focus:outline-none bg-white"
+      {isAddModalOpen && isClient && typeof document !== "undefined"
+        ? createPortal(
+            <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-zinc-950/60 backdrop-blur-sm sm:p-4">
+              <div className="bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+                <div className="p-5 md:p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50 shrink-0">
+                  <h2 className="text-lg md:text-xl font-extrabold text-zinc-900">
+                    {editingTaskId ? "Edit Task" : "Add New Task"}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="text-zinc-400 hover:text-zinc-950 bg-white hover:bg-zinc-200 border border-zinc-200 rounded-full transition-colors p-1.5 shadow-sm"
                   >
-                    {Object.keys(PRIORITIES).map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
                 </div>
 
-                <div className="relative">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                    Assignee
-                  </label>
-                  <input
-                    type="text"
-                    value={newTaskAssignee}
-                    onChange={(e) => setNewTaskAssignee(e.target.value)}
-                    onFocus={() => setShowAssigneeDropdown(true)}
-                    onBlur={() =>
-                      setTimeout(() => setShowAssigneeDropdown(false), 200)
-                    }
-                    className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                    placeholder="Search user..."
-                  />
-                  {showAssigneeDropdown && collaborators.length > 0 && (
-                    <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-zinc-200 shadow-xl rounded-xl overflow-hidden z-50 max-h-40 overflow-y-auto">
-                      {collaborators
-                        .filter((c) =>
-                          c.email
-                            .toLowerCase()
-                            .includes(newTaskAssignee.toLowerCase()),
-                        )
-                        .map((c, i) => (
-                          <div
-                            key={i}
-                            onClick={() => {
-                              setNewTaskAssignee(c.email.split("@")[0]);
-                              setShowAssigneeDropdown(false);
-                            }}
-                            className="px-3 py-3 sm:py-2 hover:bg-zinc-100 cursor-pointer text-xs font-semibold text-zinc-700 flex justify-between items-center"
-                          >
-                            <span className="truncate">{c.email}</span>
-                            <span className="text-[9px] uppercase bg-zinc-200 px-1.5 py-0.5 rounded ml-2">
-                              {c.role}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                </div>
-
-                {editingTaskId && (
-                  <div className="col-span-1 md:col-span-2 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
-                    <label className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
-                      Commit Code (Optional)
+                <form
+                  onSubmit={handleTaskSubmit}
+                  className="p-4 md:p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar pb-8 sm:pb-6"
+                >
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                      Title
                     </label>
                     <input
+                      required
                       type="text"
-                      value={newTaskCommit}
-                      onChange={(e) => setNewTaskCommit(e.target.value)}
-                      className="w-full mt-1 px-3 py-3 sm:py-2 border border-blue-200 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                      placeholder="e.g. 0560MK8"
+                      autoFocus
+                      value={newTaskTitle}
+                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none"
+                      placeholder="Task title..."
                     />
                   </div>
-                )}
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-100 pt-4">
-                <div className="relative">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">
-                    Start (Optional)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowStartCalendar(!showStartCalendar);
-                      setShowDeadlineCalendar(false);
-                    }}
-                    className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-xs font-semibold text-left bg-zinc-50 hover:bg-zinc-100 flex justify-between items-center"
-                  >
-                    <span>
-                      {startDateObj
-                        ? startDateObj.toLocaleDateString("en-GB")
-                        : "Date"}
-                    </span>
-                    {startDateObj && (
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setStartDateObj(undefined);
-                        }}
-                        className="text-zinc-400 hover:text-red-500 p-1"
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                      Description
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={newTaskDescription}
+                      onChange={(e) => setNewTaskDescription(e.target.value)}
+                      className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none"
+                      placeholder="Task details..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                        Priority
+                      </label>
+                      <select
+                        value={newTaskPriority}
+                        onChange={(e) =>
+                          setNewTaskPriority(e.target.value as TaskPriority)
+                        }
+                        className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-bold focus:outline-none bg-white"
                       >
-                        ✖
-                      </span>
-                    )}
-                  </button>
-                  {showStartCalendar && (
-                    <div className="mt-2 bg-white border border-zinc-200 shadow-sm rounded-2xl p-2 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
-                      <Calendar
-                        mode="single"
-                        selected={startDateObj}
-                        onSelect={(date) => {
-                          setStartDateObj(date);
-                          setShowStartCalendar(false);
-                        }}
-                      />
+                        {Object.keys(PRIORITIES).map((p) => (
+                          <option key={p} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                  )}
-                </div>
 
-                <div className="relative">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">
-                    Deadline (Optional)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowDeadlineCalendar(!showDeadlineCalendar);
-                      setShowStartCalendar(false);
-                    }}
-                    className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-xs font-semibold text-left bg-zinc-50 hover:bg-zinc-100 flex justify-between items-center"
-                  >
-                    <span>
-                      {deadlineObj
-                        ? deadlineObj.toLocaleDateString("en-GB")
-                        : "Date"}
-                    </span>
-                    {deadlineObj && (
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeadlineObj(undefined);
-                        }}
-                        className="text-zinc-400 hover:text-red-500 p-1"
-                      >
-                        ✖
-                      </span>
+                    <div className="relative">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                        Assignee
+                      </label>
+                      <input
+                        type="text"
+                        value={newTaskAssignee}
+                        onChange={(e) => setNewTaskAssignee(e.target.value)}
+                        onFocus={() => setShowAssigneeDropdown(true)}
+                        onBlur={() =>
+                          setTimeout(() => setShowAssigneeDropdown(false), 200)
+                        }
+                        className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                        placeholder="Search user..."
+                      />
+                      {showAssigneeDropdown && collaborators.length > 0 && (
+                        <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-zinc-200 shadow-xl rounded-xl overflow-hidden z-50 max-h-40 overflow-y-auto">
+                          {collaborators
+                            .filter((c) =>
+                              c.email
+                                .toLowerCase()
+                                .includes(newTaskAssignee.toLowerCase()),
+                            )
+                            .map((c, i) => (
+                              <div
+                                key={i}
+                                onClick={() => {
+                                  setNewTaskAssignee(c.email.split("@")[0]);
+                                  setShowAssigneeDropdown(false);
+                                }}
+                                className="px-3 py-3 sm:py-2 hover:bg-zinc-100 cursor-pointer text-xs font-semibold text-zinc-700 flex justify-between items-center"
+                              >
+                                <span className="truncate">{c.email}</span>
+                                <span className="text-[9px] uppercase bg-zinc-200 px-1.5 py-0.5 rounded ml-2">
+                                  {c.role}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {editingTaskId && (
+                      <div className="col-span-1 md:col-span-2 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                        <label className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                          Commit Code (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={newTaskCommit}
+                          onChange={(e) => setNewTaskCommit(e.target.value)}
+                          className="w-full mt-1 px-3 py-3 sm:py-2 border border-blue-200 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          placeholder="e.g. 0560MK8"
+                        />
+                      </div>
                     )}
-                  </button>
-                  {showDeadlineCalendar && (
-                    <div className="mt-2 bg-white border border-zinc-200 shadow-sm rounded-2xl p-2 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
-                      <Calendar
-                        mode="single"
-                        selected={deadlineObj}
-                        onSelect={(date) => {
-                          setDeadlineObj(date);
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-100 pt-4">
+                    <div className="relative">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        Start (Optional)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowStartCalendar(!showStartCalendar);
                           setShowDeadlineCalendar(false);
                         }}
-                      />
+                        className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-xs font-semibold text-left bg-zinc-50 hover:bg-zinc-100 flex justify-between items-center"
+                      >
+                        <span>
+                          {startDateObj
+                            ? startDateObj.toLocaleDateString("en-GB")
+                            : "Date"}
+                        </span>
+                        {startDateObj && (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setStartDateObj(undefined);
+                            }}
+                            className="text-zinc-400 hover:text-red-500 p-1"
+                          >
+                            ✖
+                          </span>
+                        )}
+                      </button>
+                      {showStartCalendar && (
+                        <div className="mt-2 bg-white border border-zinc-200 shadow-sm rounded-2xl p-2 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
+                          <Calendar
+                            mode="single"
+                            selected={startDateObj}
+                            onSelect={(date) => {
+                              setStartDateObj(date);
+                              setShowStartCalendar(false);
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
 
-              <div className="pt-4 mt-4 border-t border-zinc-100 flex justify-end gap-3 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-5 py-3 sm:py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-8 sm:px-6 py-3 sm:py-2 bg-zinc-900 text-white text-sm font-bold rounded-xl hover:bg-zinc-800 shadow-md flex-1 sm:flex-none"
-                >
-                  {editingTaskId ? "Save" : "Create"}
-                </button>
+                    <div className="relative">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        Deadline (Optional)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowDeadlineCalendar(!showDeadlineCalendar);
+                          setShowStartCalendar(false);
+                        }}
+                        className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-xs font-semibold text-left bg-zinc-50 hover:bg-zinc-100 flex justify-between items-center"
+                      >
+                        <span>
+                          {deadlineObj
+                            ? deadlineObj.toLocaleDateString("en-GB")
+                            : "Date"}
+                        </span>
+                        {deadlineObj && (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeadlineObj(undefined);
+                            }}
+                            className="text-zinc-400 hover:text-red-500 p-1"
+                          >
+                            ✖
+                          </span>
+                        )}
+                      </button>
+                      {showDeadlineCalendar && (
+                        <div className="mt-2 bg-white border border-zinc-200 shadow-sm rounded-2xl p-2 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
+                          <Calendar
+                            mode="single"
+                            selected={deadlineObj}
+                            onSelect={(date) => {
+                              setDeadlineObj(date);
+                              setShowDeadlineCalendar(false);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-zinc-100 flex justify-end gap-3 shrink-0 sticky bottom-0 bg-white">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddModalOpen(false)}
+                      className="px-5 py-3 sm:py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-8 sm:px-6 py-3 sm:py-2 bg-zinc-900 text-white text-sm font-bold rounded-xl hover:bg-zinc-800 shadow-md flex-1 sm:flex-none"
+                    >
+                      {editingTaskId ? "Save" : "Create"}
+                    </button>
+                  </div>
+                </form>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
