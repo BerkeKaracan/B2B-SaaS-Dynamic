@@ -508,12 +508,13 @@ export default function StaticKanbanBoard({
 
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-full">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[90dvh] animate-in zoom-in-95 duration-200">
             <div className="p-4 md:p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50 shrink-0">
               <h2 className="text-lg md:text-xl font-extrabold text-zinc-900">
                 {editingTaskId ? "Edit Task" : "Add New Task"}
               </h2>
               <button
+                type="button"
                 onClick={() => setIsAddModalOpen(false)}
                 className="text-zinc-400 hover:text-zinc-900 p-1.5 hover:bg-zinc-200/80 rounded-lg transition-colors flex items-center justify-center"
               >
@@ -643,7 +644,7 @@ export default function StaticKanbanBoard({
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4 border-t border-zinc-100 pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-100 pt-4 pb-4">
                 <div className="relative">
                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">
                     Start (Optional)
@@ -674,7 +675,7 @@ export default function StaticKanbanBoard({
                     )}
                   </button>
                   {showStartCalendar && (
-                    <div className="absolute bottom-full mb-2 left-0 sm:left-auto bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 z-50">
+                    <div className="mt-2 bg-white border border-zinc-200 shadow-sm rounded-2xl p-2 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
                       <Calendar
                         mode="single"
                         selected={startDateObj}
@@ -717,7 +718,7 @@ export default function StaticKanbanBoard({
                     )}
                   </button>
                   {showDeadlineCalendar && (
-                    <div className="absolute bottom-full mb-2 right-0 bg-white border border-zinc-200 shadow-xl rounded-2xl p-2 z-50">
+                    <div className="mt-2 bg-white border border-zinc-200 shadow-sm rounded-2xl p-2 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
                       <Calendar
                         mode="single"
                         selected={deadlineObj}
@@ -731,7 +732,7 @@ export default function StaticKanbanBoard({
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3 shrink-0">
+              <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3 shrink-0 sticky bottom-0 bg-white">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}

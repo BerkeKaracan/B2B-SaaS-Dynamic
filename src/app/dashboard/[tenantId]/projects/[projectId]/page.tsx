@@ -253,9 +253,9 @@ export default function ProjectDesignPage() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-zinc-950/20 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-4 md:p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-zinc-950/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-4 md:p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50 shrink-0">
               <div>
                 <h3 className="text-base md:text-lg font-black text-zinc-950 tracking-tight">
                   Access & Sharing
@@ -283,11 +283,11 @@ export default function ProjectDesignPage() {
             </div>
 
             {isLoadingRecord ? (
-              <div className="p-10 flex justify-center">
+              <div className="p-10 flex justify-center shrink-0">
                 <div className="w-6 h-6 border-2 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
               </div>
             ) : (
-              <div className="p-4 md:p-6 space-y-6 md:space-y-8 bg-white max-h-[70vh] overflow-y-auto">
+              <div className="p-4 md:p-6 space-y-6 md:space-y-8 bg-white flex-1 overflow-y-auto custom-scrollbar">
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
