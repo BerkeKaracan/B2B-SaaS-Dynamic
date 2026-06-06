@@ -254,30 +254,30 @@ export default function ProjectCardsGrid({
   });
 
   return (
-    <div className="flex-1 p-6 md:p-10 overflow-y-auto relative bg-zinc-50/50 min-h-[700px]">
+    <div className="flex-1 p-4 md:p-10 overflow-y-auto relative bg-zinc-50/50 min-h-[700px]">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-end mb-8 border-b border-zinc-200/60 pb-4">
+        <div className="flex justify-between items-end mb-6 md:mb-8 border-b border-zinc-200/60 pb-4">
           <div>
-            <h2 className="text-2xl font-extrabold text-zinc-950 tracking-tight">
+            <h2 className="text-xl md:text-2xl font-extrabold text-zinc-950 tracking-tight">
               {showArchived ? "Archived Projects" : "Projects"}
             </h2>
-            <p className="text-sm text-zinc-500 mt-1 font-medium">
+            <p className="text-xs md:text-sm text-zinc-500 mt-1 font-medium">
               {showArchived
-                ? "Hidden from the main view. You can restore or delete them permanently."
+                ? "Hidden from the main view."
                 : "Manage your workspaces and canvases."}
             </p>
           </div>
           {isAdmin && (
             <button
               onClick={() => setShowArchived(!showArchived)}
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${showArchived ? "bg-zinc-950 text-white hover:bg-zinc-800" : "bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm"}`}
+              className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl text-xs md:text-sm font-bold transition-all ${showArchived ? "bg-zinc-950 text-white hover:bg-zinc-800" : "bg-white border border-zinc-200 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm"}`}
             >
-              {showArchived ? "Active Projects" : "Archived"}
+              {showArchived ? "Active" : "Archived"}
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {!showArchived && (
             <button
               type="button"
@@ -325,15 +325,8 @@ export default function ProjectCardsGrid({
                     strokeWidth="2"
                     className="mb-3"
                   >
-                    <rect
-                      x="3"
-                      y="11"
-                      width="18"
-                      height="11"
-                      rx="2"
-                      ry="2"
-                    ></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                   <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">
                     Admin Only
@@ -367,35 +360,27 @@ export default function ProjectCardsGrid({
                 <div className="flex-1 w-full rounded-t-[23px] bg-linear-to-br from-zinc-100 to-zinc-50 border-b border-zinc-100/50 flex items-center justify-center group-hover:from-zinc-200 group-hover:to-zinc-100 transition-all duration-500 relative">
                   <div className="absolute top-4 left-4">
                     <span className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-md bg-white/80 backdrop-blur-sm border border-zinc-200 text-zinc-600 shadow-sm">
-                      {isKanban
-                        ? "Kanban"
-                        : isNote
-                          ? "Notepad"
-                          : isKanban
-                            ? "Timeline"
-                            : "Canvas"}
+                      {isKanban ? "Kanban" : isNote ? "Notepad" : "Design"}
                     </span>
                   </div>
-
                   <span className="text-6xl font-black text-white group-hover:text-zinc-200 transition-colors duration-300 animate-pulse">
                     {initial}
                   </span>
                 </div>
 
-                <div className="px-6 py-5 flex flex-col gap-3 border-t border-zinc-50">
+                <div className="px-5 py-4 md:px-6 md:py-5 flex flex-col gap-2 md:gap-3 border-t border-zinc-50">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-base font-extrabold text-zinc-950 leading-tight truncate flex-1 tracking-tight">
+                    <span className="text-sm md:text-base font-extrabold text-zinc-950 leading-tight truncate flex-1 tracking-tight">
                       {displayName}
                     </span>
                     <div className="flex items-center gap-2 shrink-0">
                       <span
-                        className={`px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-widest rounded-full border ${isJustAdmin ? "bg-zinc-950 text-white border-zinc-950" : "bg-white text-zinc-600 border-zinc-200 shadow-sm"}`}
+                        className={`px-2 py-0.5 md:px-2.5 md:py-1 text-[9px] md:text-[10px] font-extrabold uppercase tracking-widest rounded-full border ${isJustAdmin ? "bg-zinc-950 text-white border-zinc-950" : "bg-white text-zinc-600 border-zinc-200 shadow-sm"}`}
                       >
                         {isJustAdmin ? "Admin" : "Public"}
                       </span>
                       {isAdmin && (
                         <div className="relative">
-                          {/* MOBİL GÖRÜNÜM İÇİN DÜZELTME BURADA */}
                           <button
                             type="button"
                             onClick={(e) => {
@@ -496,8 +481,8 @@ export default function ProjectCardsGrid({
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-zinc-400 text-[10px] font-semibold">
-                    <span className="w-4 h-4 rounded-full bg-zinc-200 flex items-center justify-center text-zinc-700 text-[8px] uppercase">
+                  <div className="flex items-center gap-2 text-zinc-400 text-[9px] md:text-[10px] font-semibold">
+                    <span className="w-3.5 h-3.5 md:w-4 md:h-4 rounded-full bg-zinc-200 flex items-center justify-center text-zinc-700 text-[7px] md:text-[8px] uppercase">
                       {updatedBy.charAt(0)}
                     </span>
                     <span>
@@ -532,25 +517,25 @@ export default function ProjectCardsGrid({
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-zinc-950/20 backdrop-blur-sm">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col md:flex-row h-[600px]">
-            <div className="w-full md:w-1/2 flex flex-col border-r border-zinc-100 bg-zinc-50/50">
-              <div className="p-8 border-b border-zinc-100">
-                <h2 className="text-3xl font-extrabold text-zinc-950 tracking-tighter">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-zinc-950/40 backdrop-blur-sm sm:px-4">
+          <div className="bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl w-full max-w-4xl overflow-hidden animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 flex flex-col md:flex-row h-[85vh] sm:h-[600px]">
+            <div className="w-full md:w-1/2 flex flex-col border-b md:border-b-0 md:border-r border-zinc-100 bg-zinc-50/50 h-[45%] md:h-full shrink-0">
+              <div className="p-5 md:p-8 border-b border-zinc-100 shrink-0">
+                <h2 className="text-xl md:text-3xl font-extrabold text-zinc-950 tracking-tighter">
                   Select Template
                 </h2>
-                <p className="text-sm text-zinc-500 mt-2 font-medium">
+                <p className="text-xs md:text-sm text-zinc-500 mt-1 md:mt-2 font-medium">
                   Choose a layout that fits your workflow.
                 </p>
               </div>
 
-              <div className="flex-1 p-8 overflow-y-auto space-y-4">
+              <div className="flex-1 p-4 md:p-8 overflow-y-auto space-y-3 md:space-y-4 custom-scrollbar">
                 <button
                   type="button"
                   onClick={() => setSelectedTemplate("blank")}
-                  className={`w-full flex items-start rounded-2xl border-2 p-5 text-left transition-all ${selectedTemplate === "blank" ? "border-zinc-900 bg-white shadow-md" : "border-zinc-200/80 bg-white hover:border-zinc-400"}`}
+                  className={`w-full flex items-start rounded-2xl border-2 p-3 sm:p-5 text-left transition-all ${selectedTemplate === "blank" ? "border-zinc-900 bg-white shadow-md" : "border-zinc-200/80 bg-white hover:border-zinc-400"}`}
                 >
-                  <div className="mr-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600">
+                  <div className="mr-4 sm:mr-5 flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600">
                     <svg
                       width="24"
                       height="24"
@@ -570,10 +555,10 @@ export default function ProjectCardsGrid({
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-zinc-950">
+                    <h4 className="font-extrabold text-zinc-950 text-sm sm:text-base">
                       Blank Canvas
                     </h4>
-                    <p className="mt-1.5 text-xs text-zinc-500 font-medium leading-relaxed">
+                    <p className="mt-1 sm:mt-1.5 text-[10px] sm:text-xs text-zinc-500 font-medium leading-relaxed hidden sm:block">
                       Start from scratch with an infinite workspace layout for
                       total freedom.
                     </p>
@@ -583,9 +568,9 @@ export default function ProjectCardsGrid({
                 <button
                   type="button"
                   onClick={() => setSelectedTemplate("kanban")}
-                  className={`w-full flex items-start rounded-2xl border-2 p-5 text-left transition-all ${selectedTemplate === "kanban" ? "border-zinc-900 bg-white shadow-md" : "border-zinc-200/80 bg-white hover:border-zinc-400"}`}
+                  className={`w-full flex items-start rounded-2xl border-2 p-3 sm:p-5 text-left transition-all ${selectedTemplate === "kanban" ? "border-zinc-900 bg-white shadow-md" : "border-zinc-200/80 bg-white hover:border-zinc-400"}`}
                 >
-                  <div className="mr-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-950">
+                  <div className="mr-4 sm:mr-5 flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-950">
                     <svg
                       width="24"
                       height="24"
@@ -607,10 +592,10 @@ export default function ProjectCardsGrid({
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-zinc-950">
+                    <h4 className="font-extrabold text-zinc-950 text-sm sm:text-base">
                       Static Kanban Board
                     </h4>
-                    <p className="mt-1.5 text-xs text-zinc-500 font-medium leading-relaxed">
+                    <p className="mt-1 sm:mt-1.5 text-[10px] sm:text-xs text-zinc-500 font-medium leading-relaxed hidden sm:block">
                       Manage tasks dynamically with a traditional, static board
                       interface.
                     </p>
@@ -620,9 +605,9 @@ export default function ProjectCardsGrid({
                 <button
                   type="button"
                   onClick={() => setSelectedTemplate("notepad")}
-                  className={`w-full flex items-start rounded-2xl border-2 p-5 text-left transition-all ${selectedTemplate === "notepad" ? "border-zinc-900 bg-white shadow-md" : "border-zinc-200/80 bg-white hover:border-zinc-400"}`}
+                  className={`w-full flex items-start rounded-2xl border-2 p-3 sm:p-5 text-left transition-all ${selectedTemplate === "notepad" ? "border-zinc-900 bg-white shadow-md" : "border-zinc-200/80 bg-white hover:border-zinc-400"}`}
                 >
-                  <div className="mr-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-950">
+                  <div className="mr-4 sm:mr-5 flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-950">
                     <svg
                       width="24"
                       height="24"
@@ -636,10 +621,10 @@ export default function ProjectCardsGrid({
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-zinc-950">
+                    <h4 className="font-extrabold text-zinc-950 text-sm sm:text-base">
                       Notepad (Whiteboard)
                     </h4>
-                    <p className="mt-1.5 text-xs text-zinc-500 font-medium leading-relaxed">
+                    <p className="mt-1 sm:mt-1.5 text-[10px] sm:text-xs text-zinc-500 font-medium leading-relaxed hidden sm:block">
                       Optimize for tablet and stylus. Take freeform notes and
                       sketches.
                     </p>
@@ -649,9 +634,9 @@ export default function ProjectCardsGrid({
                 <button
                   type="button"
                   onClick={() => setSelectedTemplate("timeline")}
-                  className={`w-full flex items-start rounded-2xl border-2 p-5 text-left transition-all ${selectedTemplate === "timeline" ? "border-zinc-900 bg-white shadow-md" : "border-zinc-200/80 bg-white hover:border-zinc-400"}`}
+                  className={`w-full flex items-start rounded-2xl border-2 p-3 sm:p-5 text-left transition-all ${selectedTemplate === "timeline" ? "border-zinc-900 bg-white shadow-md" : "border-zinc-200/80 bg-white hover:border-zinc-400"}`}
                 >
-                  <div className="mr-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-950">
+                  <div className="mr-4 sm:mr-5 flex h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-950">
                     <svg
                       width="24"
                       height="24"
@@ -674,10 +659,10 @@ export default function ProjectCardsGrid({
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-zinc-950">
+                    <h4 className="font-extrabold text-zinc-950 text-sm sm:text-base">
                       Timeline (Calendar)
                     </h4>
-                    <p className="mt-1.5 text-xs text-zinc-500 font-medium leading-relaxed">
+                    <p className="mt-1 sm:mt-1.5 text-[10px] sm:text-xs text-zinc-500 font-medium leading-relaxed hidden sm:block">
                       Plan events visually across months. Use simple blocks or
                       detailed cards.
                     </p>
@@ -686,39 +671,39 @@ export default function ProjectCardsGrid({
               </div>
             </div>
 
-            <div className="w-full md:w-1/2 flex flex-col bg-white relative">
+            <div className="w-full md:w-1/2 flex flex-col bg-white relative flex-1 h-[55%] md:h-full">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="absolute top-6 right-6 p-2 text-zinc-400 hover:text-zinc-900 rounded-full hover:bg-zinc-100 transition"
+                className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 text-zinc-400 hover:text-zinc-900 rounded-full hover:bg-zinc-100 transition z-10"
               >
                 <svg
-                  width="24"
-                  height="24"
+                  width="20"
+                  height="20"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="2.5"
                 >
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               </button>
 
-              <div className="p-8 border-b border-zinc-100 mt-12 md:mt-0 md:pt-14">
-                <h3 className="text-xl font-extrabold text-zinc-950 tracking-tight">
+              <div className="p-5 md:p-8 border-b border-zinc-100 shrink-0 pr-12">
+                <h3 className="text-lg md:text-xl font-extrabold text-zinc-950 tracking-tight">
                   Project Details
                 </h3>
-                <p className="text-sm text-zinc-500 mt-1 font-medium">
+                <p className="text-[10px] md:text-sm text-zinc-500 mt-1 font-medium">
                   Define name and visibility rules.
                 </p>
               </div>
 
               <form
                 onSubmit={handleCreateSubmit}
-                className="flex-1 flex flex-col justify-between p-8"
+                className="flex-1 flex flex-col justify-between p-5 md:p-8 overflow-y-auto"
               >
-                <div className="space-y-8">
-                  <div className="space-y-2.5">
-                    <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest pl-1">
+                <div className="space-y-6 md:space-y-8">
+                  <div className="space-y-2 md:space-y-2.5">
+                    <label className="text-[10px] md:text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest pl-1">
                       Project Name
                     </label>
                     <input
@@ -727,19 +712,19 @@ export default function ProjectCardsGrid({
                       value={newProjectName}
                       onChange={(e) => setNewProjectName(e.target.value)}
                       placeholder="e.g. Q3 Financial Planning"
-                      className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all shadow-inner placeholder:text-zinc-300"
+                      className="w-full px-4 py-3 md:px-5 md:py-4 bg-white border border-zinc-200 rounded-xl md:rounded-2xl text-xs md:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all shadow-inner placeholder:text-zinc-300"
                       required
                     />
                   </div>
 
-                  <div className="space-y-2.5">
-                    <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest pl-1">
+                  <div className="space-y-2 md:space-y-2.5">
+                    <label className="text-[10px] md:text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest pl-1">
                       Initial Visibility
                     </label>
                     <select
                       value={newProjectVisibility}
                       onChange={(e) => setNewProjectVisibility(e.target.value)}
-                      className="w-full px-5 py-4 bg-white border border-zinc-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all shadow-inner appearance-none bg-[url('/down-arrow.svg')] bg-size-[16px] bg-no-repeat bg-position-[right_1rem_center]"
+                      className="w-full px-4 py-3 md:px-5 md:py-4 bg-white border border-zinc-200 rounded-xl md:rounded-2xl text-xs md:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950 transition-all shadow-inner appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg-no-repeat bg-[position:right_1rem_center]"
                     >
                       <option value="public">Public (All Employees)</option>
                       <option value="just_admin">
@@ -749,18 +734,18 @@ export default function ProjectCardsGrid({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-8 border-t border-zinc-100 mt-8">
+                <div className="flex items-center justify-end gap-3 pt-6 md:pt-8 border-t border-zinc-100 mt-6 md:mt-8 shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-6 py-3 text-sm font-bold text-zinc-500 hover:text-zinc-950 rounded-xl transition-colors"
+                    className="px-4 py-2.5 md:px-6 md:py-3 text-xs md:text-sm font-bold text-zinc-500 hover:text-zinc-950 rounded-xl transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isCreating}
-                    className="bg-zinc-950 text-white px-8 py-3 rounded-2xl text-sm font-bold hover:bg-zinc-800 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-150 w-full sm:w-auto"
+                    className="bg-zinc-950 text-white px-6 py-2.5 md:px-8 md:py-3 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold hover:bg-zinc-800 shadow-md hover:shadow-lg transition-all duration-150 w-full sm:w-auto flex-1 sm:flex-none"
                   >
                     {isCreating ? "Creating..." : "Create Project"}
                   </button>
