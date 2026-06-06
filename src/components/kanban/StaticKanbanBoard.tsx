@@ -507,16 +507,16 @@ export default function StaticKanbanBoard({
       </div>
 
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[90dvh] animate-in zoom-in-95 duration-200">
-            <div className="p-4 md:p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50 shrink-0">
+        <div className="fixed inset-0 z-[999] flex items-end sm:items-center justify-center bg-zinc-950/60 backdrop-blur-sm sm:p-4">
+          <div className="bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            <div className="p-5 md:p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50 shrink-0">
               <h2 className="text-lg md:text-xl font-extrabold text-zinc-900">
                 {editingTaskId ? "Edit Task" : "Add New Task"}
               </h2>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-zinc-400 hover:text-zinc-900 p-1.5 hover:bg-zinc-200/80 rounded-lg transition-colors flex items-center justify-center"
+                className="text-zinc-400 hover:text-zinc-950 bg-white hover:bg-zinc-200 border border-zinc-200 rounded-full transition-colors p-1.5 shadow-sm"
               >
                 <svg
                   width="18"
@@ -536,7 +536,7 @@ export default function StaticKanbanBoard({
 
             <form
               onSubmit={handleTaskSubmit}
-              className="p-4 md:p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar"
+              className="p-4 md:p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar pb-8 sm:pb-6"
             >
               <div>
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
@@ -548,7 +548,7 @@ export default function StaticKanbanBoard({
                   autoFocus
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border border-zinc-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none"
+                  className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none"
                   placeholder="Task title..."
                 />
               </div>
@@ -561,7 +561,7 @@ export default function StaticKanbanBoard({
                   rows={2}
                   value={newTaskDescription}
                   onChange={(e) => setNewTaskDescription(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border border-zinc-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none"
+                  className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none"
                   placeholder="Task details..."
                 />
               </div>
@@ -576,7 +576,7 @@ export default function StaticKanbanBoard({
                     onChange={(e) =>
                       setNewTaskPriority(e.target.value as TaskPriority)
                     }
-                    className="w-full mt-1 px-3 py-2 border border-zinc-200 rounded-lg text-sm font-bold focus:outline-none bg-white"
+                    className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-bold focus:outline-none bg-white"
                   >
                     {Object.keys(PRIORITIES).map((p) => (
                       <option key={p} value={p}>
@@ -598,7 +598,7 @@ export default function StaticKanbanBoard({
                     onBlur={() =>
                       setTimeout(() => setShowAssigneeDropdown(false), 200)
                     }
-                    className="w-full mt-1 px-3 py-2 border border-zinc-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                    className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900"
                     placeholder="Search user..."
                   />
                   {showAssigneeDropdown && collaborators.length > 0 && (
@@ -616,7 +616,7 @@ export default function StaticKanbanBoard({
                               setNewTaskAssignee(c.email.split("@")[0]);
                               setShowAssigneeDropdown(false);
                             }}
-                            className="px-3 py-2 hover:bg-zinc-100 cursor-pointer text-xs font-semibold text-zinc-700 flex justify-between items-center"
+                            className="px-3 py-3 sm:py-2 hover:bg-zinc-100 cursor-pointer text-xs font-semibold text-zinc-700 flex justify-between items-center"
                           >
                             <span className="truncate">{c.email}</span>
                             <span className="text-[9px] uppercase bg-zinc-200 px-1.5 py-0.5 rounded ml-2">
@@ -637,14 +637,14 @@ export default function StaticKanbanBoard({
                       type="text"
                       value={newTaskCommit}
                       onChange={(e) => setNewTaskCommit(e.target.value)}
-                      className="w-full mt-1 px-3 py-2 border border-blue-200 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      className="w-full mt-1 px-3 py-3 sm:py-2 border border-blue-200 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       placeholder="e.g. 0560MK8"
                     />
                   </div>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-100 pt-4 pb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-100 pt-4">
                 <div className="relative">
                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">
                     Start (Optional)
@@ -655,7 +655,7 @@ export default function StaticKanbanBoard({
                       setShowStartCalendar(!showStartCalendar);
                       setShowDeadlineCalendar(false);
                     }}
-                    className="w-full mt-1 px-3 py-2 border border-zinc-200 rounded-lg text-xs font-semibold text-left bg-zinc-50 hover:bg-zinc-100 flex justify-between items-center"
+                    className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-xs font-semibold text-left bg-zinc-50 hover:bg-zinc-100 flex justify-between items-center"
                   >
                     <span>
                       {startDateObj
@@ -668,7 +668,7 @@ export default function StaticKanbanBoard({
                           e.stopPropagation();
                           setStartDateObj(undefined);
                         }}
-                        className="text-zinc-400 hover:text-red-500"
+                        className="text-zinc-400 hover:text-red-500 p-1"
                       >
                         ✖
                       </span>
@@ -698,7 +698,7 @@ export default function StaticKanbanBoard({
                       setShowDeadlineCalendar(!showDeadlineCalendar);
                       setShowStartCalendar(false);
                     }}
-                    className="w-full mt-1 px-3 py-2 border border-zinc-200 rounded-lg text-xs font-semibold text-left bg-zinc-50 hover:bg-zinc-100 flex justify-between items-center"
+                    className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-xs font-semibold text-left bg-zinc-50 hover:bg-zinc-100 flex justify-between items-center"
                   >
                     <span>
                       {deadlineObj
@@ -711,7 +711,7 @@ export default function StaticKanbanBoard({
                           e.stopPropagation();
                           setDeadlineObj(undefined);
                         }}
-                        className="text-zinc-400 hover:text-red-500"
+                        className="text-zinc-400 hover:text-red-500 p-1"
                       >
                         ✖
                       </span>
@@ -732,17 +732,17 @@ export default function StaticKanbanBoard({
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3 shrink-0 sticky bottom-0 bg-white">
+              <div className="pt-4 mt-4 border-t border-zinc-100 flex justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-5 py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
+                  className="px-5 py-3 sm:py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-zinc-900 text-white text-sm font-bold rounded-xl hover:bg-zinc-800 shadow-md"
+                  className="px-8 sm:px-6 py-3 sm:py-2 bg-zinc-900 text-white text-sm font-bold rounded-xl hover:bg-zinc-800 shadow-md flex-1 sm:flex-none"
                 >
                   {editingTaskId ? "Save" : "Create"}
                 </button>

@@ -191,7 +191,6 @@ export default function ProjectDesignPage() {
 
   const isGlobal = String(recordData?.is_global_public) === "true";
   const collaborators = recordData?.collaborators || [];
-
   const projectTemplate = recordData?.template || "blank";
 
   return (
@@ -253,9 +252,9 @@ export default function ProjectDesignPage() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-zinc-950/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-4 md:p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50 shrink-0">
+        <div className="fixed inset-0 z-[999] flex items-end sm:items-center justify-center bg-zinc-950/40 backdrop-blur-sm sm:p-4">
+          <div className="bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            <div className="p-5 md:p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50 shrink-0">
               <div>
                 <h3 className="text-base md:text-lg font-black text-zinc-950 tracking-tight">
                   Access & Sharing
@@ -266,11 +265,11 @@ export default function ProjectDesignPage() {
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-zinc-400 hover:text-zinc-950 transition-colors p-1"
+                className="text-zinc-400 hover:text-zinc-950 bg-white hover:bg-zinc-200 border border-zinc-200 rounded-full transition-colors p-1.5 shadow-sm"
               >
                 <svg
-                  width="20"
-                  height="20"
+                  width="18"
+                  height="18"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -287,7 +286,7 @@ export default function ProjectDesignPage() {
                 <div className="w-6 h-6 border-2 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
               </div>
             ) : (
-              <div className="p-4 md:p-6 space-y-6 md:space-y-8 bg-white flex-1 overflow-y-auto custom-scrollbar">
+              <div className="p-4 md:p-6 space-y-6 md:space-y-8 bg-white flex-1 overflow-y-auto custom-scrollbar pb-8">
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -317,11 +316,11 @@ export default function ProjectDesignPage() {
                         type="text"
                         readOnly
                         value={`${typeof window !== "undefined" ? window.location.origin : ""}/share/${projectId}`}
-                        className="flex-1 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-[10px] md:text-xs font-medium text-zinc-600 focus:outline-none"
+                        className="flex-1 px-3 py-3 sm:py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] md:text-xs font-medium text-zinc-600 focus:outline-none"
                       />
                       <button
                         onClick={handleCopy}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${isCopied ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-zinc-950 text-white hover:bg-zinc-800"}`}
+                        className={`px-4 py-3 sm:py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${isCopied ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-zinc-950 text-white hover:bg-zinc-800"}`}
                       >
                         {isCopied ? "Copied!" : "Copy Link"}
                       </button>
@@ -337,8 +336,7 @@ export default function ProjectDesignPage() {
                       Project-Specific Access
                     </h4>
                     <p className="text-[10px] md:text-[11px] font-medium text-zinc-500 leading-relaxed">
-                      Invite teammates to view or edit this specific project,
-                      regardless of their global workspace role.
+                      Invite teammates to view or edit this specific project.
                     </p>
                   </div>
 
@@ -352,13 +350,13 @@ export default function ProjectDesignPage() {
                       placeholder="Email address"
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+                      className="flex-1 px-3 py-3 sm:py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
                     />
                     <div className="flex gap-2">
                       <select
                         value={inviteRole}
                         onChange={(e) => setInviteRole(e.target.value)}
-                        className="flex-1 sm:flex-none px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-700 focus:outline-none cursor-pointer"
+                        className="flex-1 sm:flex-none px-3 py-3 sm:py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-700 focus:outline-none cursor-pointer"
                       >
                         <option value="viewer">Viewer</option>
                         <option value="editor">Editor</option>
@@ -366,7 +364,7 @@ export default function ProjectDesignPage() {
                       <button
                         type="submit"
                         disabled={isUpdating || !inviteEmail}
-                        className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold hover:bg-zinc-800 transition-colors disabled:opacity-50 whitespace-nowrap"
+                        className="px-6 sm:px-4 py-3 sm:py-2 bg-zinc-900 text-white rounded-xl text-xs font-bold hover:bg-zinc-800 transition-colors disabled:opacity-50 whitespace-nowrap"
                       >
                         Invite
                       </button>
