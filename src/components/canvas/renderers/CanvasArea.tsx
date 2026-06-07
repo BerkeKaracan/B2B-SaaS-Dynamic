@@ -97,6 +97,7 @@ export default function CanvasArea() {
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [isSpacePanning, setIsSpacePanning] = useState(false);
   const [spacePanStart, setSpacePanStart] = useState({ x: 0, y: 0 });
+
   const activePointers = useRef<
     Map<number, { clientX: number; clientY: number }>
   >(new Map());
@@ -347,17 +348,44 @@ export default function CanvasArea() {
 
     const handleGlobalPointerCancel = (e: globalThis.PointerEvent) => {
       activePointers.current.delete(e.pointerId);
+      if (activePointers.current.size < 2) {
+        prevTouchDistance.current = null;
+      }
+    };
+
+    const handleTouchEndSync = (e: globalThis.TouchEvent) => {
+      if (e.touches.length < activePointers.current.size) {
+        activePointers.current.clear();
+        prevTouchDistance.current = null;
+        setIsSpacePanning(false);
+      }
+    };
+
+    const handleEmergencyCleanup = () => {
+      activePointers.current.clear();
       prevTouchDistance.current = null;
+      setIsSpacePanning(false);
+      setDraggedPageId(null);
+      setDraggedBlockInfo(null);
     };
 
     window.addEventListener("pointermove", handleGlobalPointerMove);
     window.addEventListener("pointerup", handleGlobalPointerUp);
     window.addEventListener("pointercancel", handleGlobalPointerCancel);
 
+    window.addEventListener("touchend", handleTouchEndSync);
+    window.addEventListener("touchcancel", handleTouchEndSync);
+    window.addEventListener("blur", handleEmergencyCleanup);
+    window.addEventListener("contextmenu", handleEmergencyCleanup);
+
     return () => {
       window.removeEventListener("pointermove", handleGlobalPointerMove);
       window.removeEventListener("pointerup", handleGlobalPointerUp);
       window.removeEventListener("pointercancel", handleGlobalPointerCancel);
+      window.removeEventListener("touchend", handleTouchEndSync);
+      window.removeEventListener("touchcancel", handleTouchEndSync);
+      window.removeEventListener("blur", handleEmergencyCleanup);
+      window.removeEventListener("contextmenu", handleEmergencyCleanup);
     };
   }, [
     draggedPageId,
@@ -399,12 +427,23 @@ export default function CanvasArea() {
   }
 
   const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const isCanvasBackground =
+      target === containerRef.current ||
+      target.classList.contains("canvas-bg") ||
+      target.classList.contains("infinite-grid-layer");
+
+    if (isCanvasBackground && e.currentTarget.setPointerCapture) {
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch (err) {}
+    }
+
     activePointers.current.set(e.pointerId, {
       clientX: e.clientX,
       clientY: e.clientY,
     });
 
-    const target = e.target as HTMLElement;
     const isTouch = e.pointerType === "touch";
     const activeEl = document.activeElement as HTMLElement;
     if (
