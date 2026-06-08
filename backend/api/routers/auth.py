@@ -56,6 +56,7 @@ def register_workspace(request: Request, request_data: RegisterRequest) -> Regis
 @router.post("/login", response_model=LoginResponse)
 @limiter.limit("5/minute")
 def login_workspace(request: Request, request_data: LoginRequest) -> LoginResponse:
+    print(f"DEBUG: Rate limiting test - Client IP: {request.client.host}")
     try:
         auth_res = supabase.auth.sign_in_with_password({
             "email": request_data.email,
