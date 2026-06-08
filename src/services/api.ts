@@ -1,6 +1,7 @@
 import { RecordResponse, RecordBase } from "@/types/record";
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const headers: Record<string, string> = {
@@ -23,6 +24,16 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
 
   if (response.status === 401) {
     console.warn("Token expired or unauthorized request!");
+  }
+
+  if (response.status === 429) {
+    console.error(
+      "Too many requests were sent. System crashing was prevented.",
+    );
+    if (typeof window !== "undefined") {
+      alert("You've tried too many times. Please wait a minute and try again.");
+    }
+    throw new Error("Rate limit exceeded");
   }
 
   return response;
@@ -50,7 +61,7 @@ export const recordService = {
   },
 
   async createRecord(data: RecordBase): Promise<RecordResponse> {
-    const response = await fetchAPI(`/api/records/`, {
+    const response = await fetchAPI("/api/records/", {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -60,5 +71,31 @@ export const recordService = {
     }
 
     return response.json();
+  },
+
+  async updateRecord(
+    id: string,
+    data: Partial<RecordBase>,
+  ): Promise<RecordResponse> {
+    const response = await fetchAPI(`/api/records/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update record: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  async deleteRecord(id: string): Promise<void> {
+    const response = await fetchAPI(`/api/records/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete record: ${response.statusText}`);
+    }
   },
 };
