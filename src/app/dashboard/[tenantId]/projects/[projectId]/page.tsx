@@ -9,6 +9,7 @@ import { useLayoutStore } from "@/store/useLayoutStore";
 import StaticKanbanBoard from "@/components/kanban/StaticKanbanBoard";
 import NotepadBoard from "@/components/notepad/NotepadBoard";
 import TimelineBoard from "@/components/timeline/TimelineBoard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 type Collaborator = {
   email: string;
@@ -236,19 +237,21 @@ export default function ProjectDesignPage() {
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden relative z-0">
-        {isLoadingPage ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="w-8 h-8 border-4 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
-          </div>
-        ) : projectTemplate === "kanban" ? (
-          <StaticKanbanBoard projectId={projectId} />
-        ) : projectTemplate === "notepad" ? (
-          <NotepadBoard projectId={projectId} />
-        ) : projectTemplate === "timeline" ? (
-          <TimelineBoard projectId={projectId} />
-        ) : (
-          <CanvasArea />
-        )}
+        <ErrorBoundary moduleName="Workspace">
+          {isLoadingPage ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="w-8 h-8 border-4 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
+            </div>
+          ) : projectTemplate === "kanban" ? (
+            <StaticKanbanBoard projectId={projectId} />
+          ) : projectTemplate === "notepad" ? (
+            <NotepadBoard projectId={projectId} />
+          ) : projectTemplate === "timeline" ? (
+            <TimelineBoard projectId={projectId} />
+          ) : (
+            <CanvasArea />
+          )}
+        </ErrorBoundary>
       </div>
 
       {isModalOpen && (
