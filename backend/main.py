@@ -1,9 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from core.limiter import limiter
+
+import time
+import logging
 
 from api.routers import records, auth, tenants, public, notifications
 
@@ -13,6 +16,32 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# --- LOGGING SETUP ---
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("saas_engine")
+
+# --- MONITORING MIDDLEWARE ---
+@app.middleware("http")
+async def monitor_requests(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    
+    log_data = {
+        "method": request.method,
+        "path": request.url.path,
+        "status": response.status_code,
+        "duration_ms": round(process_time * 1000, 2),
+        "ip": request.client.host if request.client else "unknown"
+    }
+    
+    if request.url.path.startswith("/api/"):
+        if response.status_code >= 400:
+            logger.error(f"API Error: {log_data}")
+        else:
+            logger.info(f"API Success: {log_data}")
+            
+    return response
 
 origins = [
     "http://localhost:3000",

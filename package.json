@@ -12,6 +12,8 @@
     "@hello-pangea/dnd": "^18.0.1",
     "@radix-ui/react-popover": "^1.1.15",
     "@supabase/supabase-js": "^2.106.1",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "date-fns": "^3.6.0",
     "email-validator": "^2.0.4",
     "lucide-react": "^1.16.0",
