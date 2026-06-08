@@ -159,11 +159,11 @@ export default function NotepadBoard({
             ctx.lineWidth = stroke.width * currentPressure;
             ctx.beginPath();
             ctx.moveTo(stroke.points[i - 1].x, stroke.points[i - 1].y);
-            ctx.lineTo(p.x, p.y);
           }
-          ctx.stroke();
-          ctx.globalAlpha = 1.0;
+          ctx.lineTo(p.x, p.y);
         }
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
       }
     });
   }, []);
@@ -204,6 +204,8 @@ export default function NotepadBoard({
     e.preventDefault();
     e.stopPropagation();
 
+    if (!e.isPrimary) return;
+
     const startX = e.clientX;
     const startY = e.clientY;
     const initialX = textItem.x;
@@ -215,6 +217,7 @@ export default function NotepadBoard({
     const el = document.getElementById(`text-node-${textItem.id}`);
 
     const onPointerMove = (moveEvent: PointerEvent) => {
+      if (!moveEvent.isPrimary) return;
       const dx = moveEvent.clientX - startX;
       const dy = moveEvent.clientY - startY;
       currentX = initialX + dx;
@@ -227,9 +230,11 @@ export default function NotepadBoard({
       draggedPosRef.current = { x: currentX, y: currentY };
     };
 
-    const onPointerUp = () => {
+    const onPointerUpOrCancel = (upEvent: PointerEvent) => {
+      if (!upEvent.isPrimary) return;
       window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointerup", onPointerUpOrCancel);
+      window.removeEventListener("pointercancel", onPointerUpOrCancel);
 
       if (draggedPosRef.current) {
         const newTexts = texts.map((t) =>
@@ -243,11 +248,17 @@ export default function NotepadBoard({
     };
 
     window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointerup", onPointerUpOrCancel);
+    window.addEventListener("pointercancel", onPointerUpOrCancel);
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (!e.isPrimary) return;
     if (activeTool === "hand") return;
+
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch (err) {}
 
     if (activeTool === "text") {
       if ((e.target as HTMLElement).closest(".text-block-wrapper")) return;
@@ -288,6 +299,8 @@ export default function NotepadBoard({
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    if (!e.isPrimary) return;
+
     if (
       !isDrawing.current ||
       !currentStroke.current ||
@@ -329,13 +342,37 @@ export default function NotepadBoard({
     ctx.globalAlpha = 1.0;
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!e.isPrimary) return;
+
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch (err) {}
+
     if (!isDrawing.current || !currentStroke.current) return;
-    isDrawing.current = false;
 
     const updatedStrokes = [...strokes, currentStroke.current];
     setStrokes(updatedStrokes);
     updateMetadata({ notepadStrokes: updatedStrokes });
+
+    isDrawing.current = false;
+    currentStroke.current = null;
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent) => {
+    if (!e.isPrimary) return;
+
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch (err) {}
+
+    if (!isDrawing.current || !currentStroke.current) return;
+
+    const updatedStrokes = [...strokes, currentStroke.current];
+    setStrokes(updatedStrokes);
+    updateMetadata({ notepadStrokes: updatedStrokes });
+
+    isDrawing.current = false;
     currentStroke.current = null;
   };
 
@@ -528,6 +565,7 @@ export default function NotepadBoard({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
       >
         <canvas
           ref={canvasRef}
@@ -569,11 +607,13 @@ export default function NotepadBoard({
               }}
             >
               <div
-                className={`absolute -top-12 left-0 bg-white border border-zinc-200 shadow-md rounded-full flex items-center gap-1 px-1.5 py-1 transition-all duration-200 z-50 ${
-                  activeTool === "hand" || activeTool === "text"
-                    ? "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 focus-within:opacity-100 focus-within:translate-y-0"
-                    : "opacity-0 pointer-events-none"
-                }`}
+                className={`absolute -top-12 left-0 bg-white border border-zinc-200 shadow-md rounded-full flex items-center gap-1 px-1.5 py-1 transition-all duration-200 z-50 
+        after:absolute after:content-[''] after:w-full after:h-8 after:-bottom-8 after:left-0
+        ${
+          activeTool === "hand" || activeTool === "text"
+            ? "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 focus-within:opacity-100 focus-within:translate-y-0"
+            : "opacity-0 pointer-events-none"
+        }`}
               >
                 <div
                   onPointerDown={(e) => startTextDrag(e, text)}
@@ -600,12 +640,15 @@ export default function NotepadBoard({
                   <Trash2 size={14} />
                 </button>
               </div>
-
               <textarea
                 value={text.content}
-                onChange={(e) => handleTextChange(text.id, e.target.value)}
+                onChange={(e) => {
+                  handleTextChange(text.id, e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === "Backspace" && text.content === "") {
+                  if (e.key === "Delete" && text.content === "") {
                     e.preventDefault();
                     handleDeleteText(text.id);
                   }
@@ -614,13 +657,17 @@ export default function NotepadBoard({
                   }
                 }}
                 autoFocus={text.content === ""}
-                className="bg-transparent border border-transparent hover:border-zinc-300 border-dashed focus:border-blue-500 focus:border-solid rounded outline-none resize-none overflow-hidden p-2 transition-all select-text"
+                onFocus={(e) => {
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                className="bg-transparent border border-transparent hover:border-zinc-300 border-dashed focus:border-blue-200 focus:border-solid rounded-3xl outline-none resize-none overflow-hidden p-3 transition-all select-text"
                 style={{
                   color: text.color,
                   fontSize: `${text.size}px`,
                   fontFamily: text.font,
                   lineHeight: "1.2",
-                  minWidth: "120px",
+                  minWidth: "100px",
                   minHeight: "40px",
                 }}
                 placeholder="Type..."
