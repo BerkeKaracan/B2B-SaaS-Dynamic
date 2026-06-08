@@ -51,6 +51,18 @@ def get_tenant_members(tenant_id: UUID):
         response = supabase.table("tenant_users").select(
             "id, tenant_id, user_id, role, email, created_at"
         ).eq("tenant_id", str(tenant_id)).execute()
+        missing_email_uids = [str(row.get("user_id")) for row in response.data if not row.get("email")]
+        user_email_map = {}
+        
+        if missing_email_uids:
+            try:
+                users_list = supabase_admin.auth.admin.list_users()
+                users = getattr(users_list, 'users', users_list)
+                for u in users:
+                    if u.id in missing_email_uids:
+                        user_email_map[u.id] = u.email
+            except Exception as e:
+                print(f"List users error: {e}")
 
         members = []
         for row in response.data:
@@ -58,13 +70,7 @@ def get_tenant_members(tenant_id: UUID):
             email = row.get("email")
             
             if not email:
-                email = "Pending..."
-                try:
-                    user_data = supabase_admin.auth.admin.get_user_by_id(uid)
-                    if user_data and user_data.user and user_data.user.email:
-                        email = user_data.user.email
-                except Exception:
-                    pass
+                email = user_email_map.get(uid, "Pending...")
             
             members.append({
                 "id": str(row.get("id")),

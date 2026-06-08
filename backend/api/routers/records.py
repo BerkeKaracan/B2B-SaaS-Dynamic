@@ -94,7 +94,13 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
 
 
 @router.get("/", response_model=List[RecordResponse])
-def get_records(tenant_id: UUID = Query(...), module_name: Optional[str] = Query(None), user: dict = Depends(get_user_role)):
+def get_records(
+    tenant_id: UUID = Query(...), 
+    module_name: Optional[str] = Query(None), 
+    limit: int = Query(100, ge=1, le=1000), 
+    offset: int = Query(0, ge=0),
+    user: dict = Depends(get_user_role)
+):
     try:
         tenant_str = str(tenant_id)
         
@@ -110,6 +116,7 @@ def get_records(tenant_id: UUID = Query(...), module_name: Optional[str] = Query
         response = query.execute()
         records = response.data
 
+        final_records = records
         if user_role not in ["admin", "owner"]:
             filtered_records = []
             for record in records:
@@ -122,8 +129,8 @@ def get_records(tenant_id: UUID = Query(...), module_name: Optional[str] = Query
 
                 if visibility != "just_admin" or is_collab or owner_email == user["email"]:
                     filtered_records.append(record)
-            return filtered_records
-        return records
+            final_records = filtered_records
+        return final_records[offset : offset + limit]
     except HTTPException:
         raise
     except Exception as e:
