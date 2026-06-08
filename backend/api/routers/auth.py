@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Request
 from core.database import supabase
 from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse
+from core.limiter import limiter
 
 router = APIRouter(
     prefix="/api/auth",
@@ -8,7 +9,8 @@ router = APIRouter(
 )
 
 @router.post("/register", response_model=RegisterResponse)
-def register_workspace(request: RegisterRequest) -> RegisterResponse:
+@limiter.limit("3/minute")
+def register_workspace(request: Request, request_data: RegisterRequest) -> RegisterResponse:
     try:
         auth_res = supabase.auth.sign_up({
             "email": request.email,
@@ -52,7 +54,8 @@ def register_workspace(request: RegisterRequest) -> RegisterResponse:
 
 
 @router.post("/login", response_model=LoginResponse)
-def login_workspace(request: LoginRequest) -> LoginResponse:
+@limiter.limit("5/minute")
+def login_workspace(request: Request, request_data: LoginRequest) -> LoginResponse:
     try:
         auth_res = supabase.auth.sign_in_with_password({
             "email": request.email,
