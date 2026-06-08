@@ -5,10 +5,8 @@ class Settings(BaseSettings):
     supabase_key: str
     supabase_service_role_key: str
 
-    REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
-    REDIS_PORT: int = int(os.getenv("REDIS_PORT", 6379))
-    REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD", "")
-
+    REDIS_URL: str
+    
     class Config:
         env_file = ".env"
         extra = "ignore"
