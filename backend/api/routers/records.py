@@ -31,6 +31,8 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         AUTH_CACHE.clear()
 
     try:
+        from core.database import supabase, get_auth_client  
+        
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="Invalid session")
@@ -39,7 +41,7 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         email = str(user_res.user.email).lower().strip()
         full_name = email.split("@")[0]
         
-        role_res = user["client"].table("tenant_users").select("role, tenant_id").eq("user_id", user_id).execute()
+        role_res = supabase.table("tenant_users").select("role, tenant_id").eq("user_id", user_id).execute()
         
         tenant_roles = {}
         if role_res.data:
@@ -49,16 +51,14 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         if not tenant_roles:
             raise HTTPException(status_code=403, detail="User does not belong to any workspace")
             
-        from core.database import get_auth_client
-        
-        user_client = get_auth_client(token) 
-        
+        user_client = get_auth_client(token)
+            
         result = {
             "user_id": user_id, 
             "full_name": full_name, 
             "email": email, 
             "tenant_roles": tenant_roles,
-            "client": user_client 
+            "client": user_client  
         }
         
         AUTH_CACHE[token] = (result, current_time)
@@ -69,7 +69,6 @@ def get_user_role(authorization: str = Header(None)) -> dict:
     except Exception as e:
         print(f"Auth Error: {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid token or session expired")
-
 
 @router.post("/", response_model=RecordResponse)
 def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
