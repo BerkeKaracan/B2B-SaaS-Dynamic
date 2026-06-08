@@ -25,13 +25,16 @@ def get_user_role(authorization: str = Header(None)) -> dict:
     if token in AUTH_CACHE:
         cached_data, timestamp = AUTH_CACHE[token]
         if current_time - timestamp < CACHE_TTL_SECONDS:
-            return cached_data
+            from core.database import get_auth_client
+            result_copy = cached_data.copy()
+            result_copy["client"] = get_auth_client(token)
+            return result_copy
             
     if len(AUTH_CACHE) > 1000:
         AUTH_CACHE.clear()
 
     try:
-        from core.database import supabase, get_auth_client  
+        from core.database import supabase, get_auth_client
         
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
@@ -40,7 +43,7 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         user_id = user_res.user.id
         email = str(user_res.user.email).lower().strip()
         full_name = email.split("@")[0]
-    
+        
         user_client = get_auth_client(token)
         role_res = user_client.table("tenant_users").select("role, tenant_id").eq("user_id", user_id).execute()
         
@@ -52,18 +55,17 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         if not tenant_roles:
             raise HTTPException(status_code=403, detail="User does not belong to any workspace")
             
-        user_client = get_auth_client(token)
-            
         result = {
             "user_id": user_id, 
             "full_name": full_name, 
             "email": email, 
             "tenant_roles": tenant_roles,
-            "client": user_client  
         }
         
         AUTH_CACHE[token] = (result, current_time)
-        return result
+        result_copy = result.copy()
+        result_copy["client"] = user_client
+        return result_copy
         
     except HTTPException:
         raise
