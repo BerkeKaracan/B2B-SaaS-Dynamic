@@ -40,8 +40,9 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         user_id = user_res.user.id
         email = str(user_res.user.email).lower().strip()
         full_name = email.split("@")[0]
-        
-        role_res = supabase.table("tenant_users").select("role, tenant_id").eq("user_id", user_id).execute()
+    
+        user_client = get_auth_client(token)
+        role_res = user_client.table("tenant_users").select("role, tenant_id").eq("user_id", user_id).execute()
         
         tenant_roles = {}
         if role_res.data:

@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
 
-from core.database import supabase, supabase_admin 
+from core.database import supabase, supabase_admin, get_auth_client
+from api.routers.records import get_user_role
 
 router = APIRouter(
     prefix="/api/tenants",
@@ -23,9 +24,11 @@ class UpdateRoleRequest(BaseModel):
     role: str
 
 @router.get("/{tenant_id}")
-def get_tenant(tenant_id: UUID):
+def get_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
     try:
-        response = supabase.table("tenants").select("id, name, tier, created_at").eq("id", str(tenant_id)).execute()
+        if str(tenant_id) not in user["tenant_roles"]:
+            raise HTTPException(status_code=403, detail="Workspace access denied")
+        response = user["client"].table("tenants").select("id, name, tier, created_at").eq("id", str(tenant_id)).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="Workspace not found")
         return response.data[0]
@@ -35,22 +38,29 @@ def get_tenant(tenant_id: UUID):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/{tenant_id}/tier")
-def update_tenant_tier(tenant_id: UUID, request: UpdateTierRequest):
+def update_tenant_tier(tenant_id: UUID, request: UpdateTierRequest, user: dict = Depends(get_user_role)):
     try:
+        if user["tenant_roles"].get(str(tenant_id)) not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Unauthorized")
+            
         valid_tiers = ["basic", "advanced", "pro"]
         if request.tier not in valid_tiers:
             raise HTTPException(status_code=400, detail="Invalid tier")
-        supabase.table("tenants").update({"tier": request.tier}).eq("id", str(tenant_id)).execute()
+            
+        user["client"].table("tenants").update({"tier": request.tier}).eq("id", str(tenant_id)).execute()
         return {"message": f"Plan upgraded to {request.tier.upper()}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{tenant_id}/team")
-def get_tenant_members(tenant_id: UUID):
+def get_tenant_members(tenant_id: UUID, user: dict = Depends(get_user_role)):
     try:
-        response = supabase.table("tenant_users").select(
+        if str(tenant_id) not in user["tenant_roles"]:
+            raise HTTPException(status_code=403, detail="Workspace access denied")
+        response = supabase_admin.table("tenant_users").select(
             "id, tenant_id, user_id, role, email, created_at"
         ).eq("tenant_id", str(tenant_id)).execute()
+
         missing_email_uids = [str(row.get("user_id")) for row in response.data if not row.get("email")]
         user_email_map = {}
         
@@ -86,9 +96,12 @@ def get_tenant_members(tenant_id: UUID):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{tenant_id}/team")
-def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
+def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict = Depends(get_user_role)):
     try:
-        tenant_res = supabase.table("tenants").select("tier").eq("id", str(tenant_id)).execute()
+        if user["tenant_roles"].get(str(tenant_id)) not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Only admins can invite members")
+
+        tenant_res = user["client"].table("tenants").select("tier").eq("id", str(tenant_id)).execute()
         if not tenant_res.data:
             raise HTTPException(status_code=404, detail="Workspace not found")
             
@@ -97,13 +110,13 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
         if current_tier == "free":
             current_tier = "basic"
             
-        team_res = supabase.table("tenant_users").select("id, user_id", count="exact").eq("tenant_id", str(tenant_id)).execute()
+        team_res = supabase_admin.table("tenant_users").select("id, user_id", count="exact").eq("tenant_id", str(tenant_id)).execute()
         current_seat_count = team_res.count if team_res.count is not None else len(team_res.data)
         
         limits = {"basic": 3, "advanced": 50, "pro": float('inf')}
         limit = limits.get(current_tier, 3)
         
-        existing_member = supabase.table("tenant_users").select("id").eq("tenant_id", str(tenant_id)).eq("email", request.email).execute()
+        existing_member = supabase_admin.table("tenant_users").select("id").eq("tenant_id", str(tenant_id)).eq("email", request.email).execute()
         if existing_member.data:
             return {"message": "User is already in this workspace."}
             
@@ -140,17 +153,17 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
             "email": request.email,
             "role": request.role
         }
-        supabase.table("tenant_users").insert(new_member).execute()
+        supabase_admin.table("tenant_users").insert(new_member).execute()
         
         try:
             notification_payload = {
                 "target_email": request.email,
                 "type": "role_update",
                 "title": "New Workspace Access",
-                "message": "You have been added to a new workspace. Check your dashboard.",
+                "message": f"You have been added to a new workspace by {user['full_name']}.",
                 "link": f"/dashboard/{tenant_id}"
             }
-            supabase.table("notifications").insert(notification_payload).execute()
+            supabase_admin.table("notifications").insert(notification_payload).execute()
         except Exception as notif_err:
             print(f"Notification error: {notif_err}")
         
@@ -164,34 +177,35 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest):
 def set_password(request: SetPasswordRequest, authorization: str = Header(...)):
     try:
         token = authorization.replace("Bearer ", "")
-        
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="Geçersiz veya süresi dolmuş davet linki.")
 
         uid = user_res.user.id
-        
         response = supabase_admin.auth.admin.update_user_by_id(
             uid,
             {"password": request.password, "email_confirm": True}
         )
-        
         return {"message": "Password set successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{tenant_id}/team/{member_id}")
-def remove_member(tenant_id: UUID, member_id: UUID):
+def remove_member(tenant_id: UUID, member_id: UUID, user: dict = Depends(get_user_role)):
     try:
-        supabase.table("tenant_users").delete().eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
+        if user["tenant_roles"].get(str(tenant_id)) not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Unauthorized")
+        supabase_admin.table("tenant_users").delete().eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
         return {"message": "Member removed successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.patch("/{tenant_id}/team/{member_id}")
-def update_member_role(tenant_id: UUID, member_id: UUID, request: UpdateRoleRequest):
+def update_member_role(tenant_id: UUID, member_id: UUID, request: UpdateRoleRequest, user: dict = Depends(get_user_role)):
     try:
-        supabase.table("tenant_users").update({"role": request.role}).eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
+        if user["tenant_roles"].get(str(tenant_id)) not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Unauthorized")
+        supabase_admin.table("tenant_users").update({"role": request.role}).eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
         return {"message": "Role updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
