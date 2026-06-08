@@ -13,10 +13,10 @@ router = APIRouter(
 def register_workspace(request: Request, request_data: RegisterRequest) -> RegisterResponse:
     try:
         auth_res = supabase.auth.sign_up({
-            "email": request.email,
-            "password": request.password,
+            "email": request_data.email,
+            "password": request_data.password,
             "options": {
-                "data": {"full_name": request.full_name}
+                "data": {"full_name": request_data.full_name}
             }
         })
         
@@ -25,7 +25,7 @@ def register_workspace(request: Request, request_data: RegisterRequest) -> Regis
              raise HTTPException(status_code=400, detail="Failed to create user.")
 
         tenant_res = supabase.table("tenants").insert({
-            "name": request.workspace_name
+            "name": request_data.workspace_name
         }).execute()
         
         tenant_id = tenant_res.data[0]["id"]
@@ -58,8 +58,8 @@ def register_workspace(request: Request, request_data: RegisterRequest) -> Regis
 def login_workspace(request: Request, request_data: LoginRequest) -> LoginResponse:
     try:
         auth_res = supabase.auth.sign_in_with_password({
-            "email": request.email,
-            "password": request.password
+            "email": request_data.email,
+            "password": request_data.password
         })
         
         user_id = auth_res.user.id if auth_res.user else None
