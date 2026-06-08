@@ -39,7 +39,7 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         email = str(user_res.user.email).lower().strip()
         full_name = email.split("@")[0]
         
-        role_res = supabase.table("tenant_users").select("role, tenant_id").eq("user_id", user_id).execute()
+        role_res = user["client"].table("tenant_users").select("role, tenant_id").eq("user_id", user_id).execute()
         
         tenant_roles = {}
         if role_res.data:
@@ -49,11 +49,16 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         if not tenant_roles:
             raise HTTPException(status_code=403, detail="User does not belong to any workspace")
             
+        from core.database import get_auth_client
+        
+        user_client = get_auth_client(token) 
+        
         result = {
             "user_id": user_id, 
             "full_name": full_name, 
             "email": email, 
-            "tenant_roles": tenant_roles 
+            "tenant_roles": tenant_roles,
+            "client": user_client 
         }
         
         AUTH_CACHE[token] = (result, current_time)
@@ -83,7 +88,7 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
         data["record_data"]["owner_email"] = user["email"]
         data["record_data"]["collaborators"] = [{"email": user["email"], "role": "editor"}]
 
-        response = supabase.table("custom_records").insert(data).execute()
+        response = user["client"].table("custom_records").insert(data).execute()
         if not response.data:
             raise HTTPException(status_code=400, detail="Failed to create record")
         return response.data[0]
@@ -109,7 +114,7 @@ def get_records(
             
         user_role = user["tenant_roles"][tenant_str]
         
-        query = supabase.table("custom_records").select("*").eq("tenant_id", tenant_str)
+        query = user["client"].table("custom_records").select("*").eq("tenant_id", tenant_str)
         if module_name:
             query = query.eq("module_name", module_name)
             
@@ -140,7 +145,7 @@ def get_records(
 @router.get("/{record_id}", response_model=RecordResponse)
 def get_record(record_id: UUID, user: dict = Depends(get_user_role)):
     try:
-        response = supabase.table("custom_records").select("*").eq("id", str(record_id)).execute()
+        response = user["client"].table("custom_records").select("*").eq("id", str(record_id)).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="Record not found")
             
@@ -171,7 +176,7 @@ def get_record(record_id: UUID, user: dict = Depends(get_user_role)):
 @router.patch("/{record_id}", response_model=RecordResponse)
 def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(get_user_role)):
     try:
-        existing_res = supabase.table("custom_records").select("record_data, tenant_id").eq("id", str(record_id)).execute()
+        existing_res = user["client"].table("custom_records").select("record_data, tenant_id").eq("id", str(record_id)).execute()
         if not existing_res.data:
             raise HTTPException(status_code=404, detail="Record not found")
             
@@ -214,14 +219,14 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
                     "message": f"{inviter} invited you to collaborate on '{project_name}'.",
                     "link": f"/dashboard/{rec_tenant}/projects/{str(record_id)}"
                 }
-                supabase.table("notifications").insert(notification_payload).execute()
+                user["client"].table("notifications").insert(notification_payload).execute()
         except Exception as notif_err:
             print(f"Notification processing error: {notif_err}") 
         
         payload_data["updated_at"] = datetime.now(timezone.utc).isoformat()
         payload_data["updated_by"] = user["full_name"]
 
-        response = (supabase.table("custom_records").update({"record_data": payload_data}).eq("id", str(record_id)).execute())
+        response = (user["client"].table("custom_records").update({"record_data": payload_data}).eq("id", str(record_id)).execute())
         if not response.data:
             raise HTTPException(status_code=404, detail="Record not found")
         return response.data[0]
@@ -234,7 +239,7 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
 @router.delete("/{record_id}")
 def delete_record(record_id: UUID, user: dict = Depends(get_user_role)):
     try:
-        res = supabase.table("custom_records").select("tenant_id").eq("id", str(record_id)).execute()
+        res = user["client"].table("custom_records").select("tenant_id").eq("id", str(record_id)).execute()
         if not res.data:
             raise HTTPException(status_code=404, detail="Record not found")
             
@@ -245,7 +250,7 @@ def delete_record(record_id: UUID, user: dict = Depends(get_user_role)):
         if user["tenant_roles"][rec_tenant] not in ["admin", "owner"]:
             raise HTTPException(status_code=403, detail="Only admins can permanently delete records.")
             
-        response = supabase.table("custom_records").delete().eq("id", str(record_id)).execute()
+        response = user["client"].table("custom_records").delete().eq("id", str(record_id)).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="Record not found")
         return {"message": "Record permanently deleted"}
