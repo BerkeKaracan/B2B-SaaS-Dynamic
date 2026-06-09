@@ -18,19 +18,31 @@ function AcceptInviteContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
+  const [tokenInfo, setTokenInfo] = useState<{
+    token: string;
+    type: string;
+  } | null>(null);
 
   useEffect(() => {
     const hash = window.location.hash;
-    let accessToken: string | null = null;
+    let extractedToken = null;
+    let extractedType = "access_token";
 
     if (hash && hash.includes("access_token=")) {
       const cleanHash = hash.startsWith("#") ? hash.substring(1) : hash;
       const params = new URLSearchParams(cleanHash);
-      accessToken = params.get("access_token");
+      extractedToken = params.get("access_token");
     } else {
       const urlParams = new URLSearchParams(window.location.search);
-      accessToken = urlParams.get("access_token");
+      if (urlParams.get("code")) {
+        extractedToken = urlParams.get("code");
+        extractedType = "code";
+      } else if (urlParams.get("token_hash")) {
+        extractedToken = urlParams.get("token_hash");
+        extractedType = "token_hash";
+      } else if (urlParams.get("access_token")) {
+        extractedToken = urlParams.get("access_token");
+      }
     }
 
     const errorMsg = new URLSearchParams(hash.replace("#", "?")).get(
@@ -38,12 +50,12 @@ function AcceptInviteContent() {
     );
     if (errorMsg) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setError(`Supabase Auth Error: ${errorMsg}`);
+      setError(`Supabase Auth Error: ${errorMsg.replace(/\+/g, " ")}`);
       return;
     }
 
-    if (accessToken) {
-      setToken(accessToken);
+    if (extractedToken) {
+      setTokenInfo({ token: extractedToken, type: extractedType });
       window.history.replaceState(
         null,
         "",
@@ -56,7 +68,7 @@ function AcceptInviteContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token)
+    if (!tokenInfo)
       return setError("Session expired. Please click the invite link again.");
     if (password.length < 6)
       return setError("Password must be at least 6 characters long.");
@@ -72,9 +84,13 @@ function AcceptInviteContent() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${tokenInfo.token}`,
         },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({
+          password,
+          token: tokenInfo.token,
+          type: tokenInfo.type,
+        }),
       });
 
       if (!res.ok) {
@@ -82,8 +98,14 @@ function AcceptInviteContent() {
         throw new Error(errData.detail || "Failed to set password.");
       }
 
+      const data = await res.json();
+      if (data.access_token) {
+        localStorage.setItem("token", data.access_token);
+      } else {
+        localStorage.setItem("token", tokenInfo.token);
+      }
+
       setSuccess(true);
-      localStorage.setItem("token", token);
 
       setTimeout(() => {
         if (tenantId) {
@@ -164,7 +186,7 @@ function AcceptInviteContent() {
 
         <button
           type="submit"
-          disabled={isLoading || !token}
+          disabled={isLoading || !tokenInfo}
           className="w-full bg-zinc-900 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-zinc-800 transition-all active:scale-[0.98] disabled:opacity-50"
         >
           {isLoading ? (

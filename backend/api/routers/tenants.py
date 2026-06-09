@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
+from typing import Optional
 
 from core.database import supabase, supabase_admin, get_auth_client
 from api.routers.records import get_user_role
@@ -12,6 +13,8 @@ router = APIRouter(
 
 class SetPasswordRequest(BaseModel):
     password: str
+    token: Optional[str] = None
+    type: Optional[str] = "access_token"
 
 class UpdateTierRequest(BaseModel):
     tier: str
@@ -174,21 +177,37 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.post("/set-password")
-def set_password(request: SetPasswordRequest, authorization: str = Header(...)):
+def set_password(request: SetPasswordRequest, authorization: str = Header(None)):
     try:
-        token = authorization.replace("Bearer ", "")
-        user_res = supabase.auth.get_user(token)
-        if not user_res or not user_res.user:
-            raise HTTPException(status_code=401, detail="Geçersiz veya süresi dolmuş davet linki.")
+        extracted_token = request.token
+        if not extracted_token and authorization:
+            extracted_token = authorization.replace("Bearer ", "")
+            
+        if not extracted_token:
+            raise HTTPException(status_code=400, detail="Token is missing")
 
-        uid = user_res.user.id
-        response = supabase_admin.auth.admin.update_user_by_id(
-            uid,
-            {"password": request.password, "email_confirm": True}
-        )
-        return {"message": "Password set successfully"}
+        session_token = extracted_token
+
+        if request.type == "code":
+            auth_res = supabase.auth.exchange_code_for_session(extracted_token)
+            if auth_res and auth_res.session:
+                session_token = auth_res.session.access_token
+        elif request.type == "token_hash":
+            auth_res = supabase.auth.verify_otp({"token_hash": extracted_token, "type": "invite"})
+            if auth_res and auth_res.session:
+                session_token = auth_res.session.access_token
+
+        user_client = get_auth_client(session_token)
+        update_res = user_client.auth.update_user({"password": request.password})
+        
+        if not update_res.user:
+            raise Exception("Failed to update user password")
+
+        return {"message": "Password set successfully", "access_token": session_token}
+
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        print(f"Set password error: {e}")
+        raise HTTPException(status_code=401, detail="Geçersiz veya süresi dolmuş davet linki. Lütfen yeni bir davet isteyin.")
 
 @router.delete("/{tenant_id}/team/{member_id}")
 def remove_member(tenant_id: UUID, member_id: UUID, user: dict = Depends(get_user_role)):
