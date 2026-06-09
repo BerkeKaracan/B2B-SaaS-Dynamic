@@ -10,6 +10,7 @@ import StaticKanbanBoard from "@/components/kanban/StaticKanbanBoard";
 import NotepadBoard from "@/components/notepad/NotepadBoard";
 import TimelineBoard from "@/components/timeline/TimelineBoard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LoadingSpinner } from "@/components/ui/loading";
 
 type Collaborator = {
   email: string;

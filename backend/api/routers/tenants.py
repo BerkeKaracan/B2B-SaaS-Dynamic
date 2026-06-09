@@ -43,7 +43,8 @@ def get_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
 @router.put("/{tenant_id}/tier")
 def update_tenant_tier(tenant_id: UUID, request: UpdateTierRequest, user: dict = Depends(get_user_role)):
     try:
-        if user["tenant_roles"].get(str(tenant_id)) not in ["admin", "owner"]:
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role not in ["admin", "owner"]:
             raise HTTPException(status_code=403, detail="Unauthorized")
             
         valid_tiers = ["basic", "advanced", "pro"]
@@ -101,8 +102,9 @@ def get_tenant_members(tenant_id: UUID, user: dict = Depends(get_user_role)):
 @router.post("/{tenant_id}/team")
 def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict = Depends(get_user_role)):
     try:
-        if user["tenant_roles"].get(str(tenant_id)) not in ["admin", "owner"]:
-            raise HTTPException(status_code=403, detail="Only admins can invite members")
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Only admins and owners can invite members")
 
         tenant_res = user["client"].table("tenants").select("tier").eq("id", str(tenant_id)).execute()
         if not tenant_res.data:
@@ -212,8 +214,10 @@ def set_password(request: SetPasswordRequest, authorization: str = Header(None))
 @router.delete("/{tenant_id}/team/{member_id}")
 def remove_member(tenant_id: UUID, member_id: UUID, user: dict = Depends(get_user_role)):
     try:
-        if user["tenant_roles"].get(str(tenant_id)) not in ["admin", "owner"]:
-            raise HTTPException(status_code=403, detail="Unauthorized")
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Unauthorized: Only admins and owners can remove members")
+            
         supabase_admin.table("tenant_users").delete().eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
         return {"message": "Member removed successfully"}
     except Exception as e:
@@ -222,8 +226,10 @@ def remove_member(tenant_id: UUID, member_id: UUID, user: dict = Depends(get_use
 @router.patch("/{tenant_id}/team/{member_id}")
 def update_member_role(tenant_id: UUID, member_id: UUID, request: UpdateRoleRequest, user: dict = Depends(get_user_role)):
     try:
-        if user["tenant_roles"].get(str(tenant_id)) not in ["admin", "owner"]:
-            raise HTTPException(status_code=403, detail="Unauthorized")
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Unauthorized: Only admins and owners can update roles")
+            
         supabase_admin.table("tenant_users").update({"role": request.role}).eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
         return {"message": "Role updated successfully"}
     except Exception as e:
