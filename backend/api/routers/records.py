@@ -203,23 +203,30 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
         payload_data = payload.record_data
         
         try:
-            new_collabs = payload_data.get("collaborators", [])
-            old_collabs = current_record_data.get("collaborators", [])
+            raw_new_collabs = payload_data.get("collaborators", [])
+            raw_old_collabs = current_record_data.get("collaborators", [])
             
-            old_emails = {str(c.get("email", "")).lower().strip() for c in old_collabs if isinstance(c, dict) and c.get("email")}
-            added_collabs = [c for c in new_collabs if isinstance(c, dict) and c.get("email") and str(c.get("email", "")).lower().strip() not in old_emails]
+            if not isinstance(raw_new_collabs, list): raw_new_collabs = []
+            if not isinstance(raw_old_collabs, list): raw_old_collabs = []
+            
+            old_emails = {str(c.get("email", "")).lower().strip() for c in raw_old_collabs if isinstance(c, dict) and c.get("email")}
+            added_collabs = [c for c in raw_new_collabs if isinstance(c, dict) and c.get("email") and str(c.get("email", "")).lower().strip() not in old_emails]
             
             for collab in added_collabs:
                 target_email = str(collab.get("email")).lower().strip()
+                
+                if target_email == user["email"]:
+                    continue
+                    
                 project_name = payload_data.get('name', payload_data.get('title', 'Untitled Canvas'))
                 inviter = user['full_name']
                 
                 notification_payload = {
                     "target_email": target_email,
-                    "type": "project_invite",
+                    "type": "invite",
                     "title": "Project Invitation",
                     "message": f"{inviter} invited you to collaborate on '{project_name}'.",
-                    "link": f"/dashboard/{rec_tenant}/projects/{str(record_id)}"
+                    "action_url": f"/dashboard/{rec_tenant}/projects/{str(record_id)}"
                 }
                 from core.database import supabase_admin
                 supabase_admin.table("notifications").insert(notification_payload).execute()

@@ -121,7 +121,12 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
         limits = {"basic": 3, "advanced": 50, "pro": float('inf')}
         limit = limits.get(current_tier, 3)
         
-        existing_member = supabase_admin.table("tenant_users").select("id").eq("tenant_id", str(tenant_id)).eq("email", request.email).execute()
+        request_email = request.email.lower().strip()
+        
+        if request_email == user["email"]:
+            return {"message": "You are already a member of this workspace."}
+            
+        existing_member = supabase_admin.table("tenant_users").select("id").eq("tenant_id", str(tenant_id)).eq("email", request_email).execute()
         if existing_member.data:
             return {"message": "User is already in this workspace."}
             
@@ -133,7 +138,7 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
             users_list = supabase_admin.auth.admin.list_users()
             users = getattr(users_list, 'users', users_list) 
             for u in users:
-                if u.email == request.email:
+                if u.email == request_email:
                     real_user_id = u.id
                     break
         except Exception as e:
@@ -145,7 +150,7 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
             FRONTEND_URL = "https://b2-b-saa-s-dynamic.vercel.app"
             redirect_url = f"{FRONTEND_URL}/accept-invite?tenant_id={tenant_id}"
             auth_res = supabase_admin.auth.admin.invite_user_by_email(
-                request.email,
+                request_email,
                 options={"redirect_to": redirect_url}
             )
             if not auth_res.user:
@@ -155,14 +160,14 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
         new_member = {
             "tenant_id": str(tenant_id),
             "user_id": real_user_id,
-            "email": request.email,
+            "email": request_email,
             "role": request.role
         }
         supabase_admin.table("tenant_users").insert(new_member).execute()
         
         try:
             notification_payload = {
-                "target_email": request.email,
+                "target_email": request_email,
                 "type": "invite", 
                 "title": "New Workspace Access",
                 "message": f"You have been added to a new workspace by {user['full_name']}.",
