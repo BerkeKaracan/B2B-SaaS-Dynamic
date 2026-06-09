@@ -35,3 +35,7 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+
+# Supabase local development defaults
+.supabase/
+supabase/.branches/
