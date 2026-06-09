@@ -1,3 +1,4 @@
+import re
 from fastapi import APIRouter, HTTPException, Header, Request
 from core.database import supabase, supabase_admin
 from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse
@@ -51,7 +52,6 @@ def register_workspace(request: Request, request_data: RegisterRequest) -> Regis
             raise HTTPException(status_code=400, detail=e.message)
         raise HTTPException(status_code=500, detail=error_msg)
 
-
 @router.post("/login", response_model=LoginResponse)
 @limiter.limit("5/minute")
 def login_workspace(request: Request, request_data: LoginRequest) -> LoginResponse:
@@ -70,6 +70,7 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
         tenant_user_res = supabase_admin.table("tenant_users")\
             .select("tenant_id")\
             .eq("user_id", user_id)\
+            .order("created_at")\
             .execute()
             
         if not tenant_user_res.data:
@@ -90,7 +91,7 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
             raise HTTPException(status_code=400, detail="Invalid email or password.")
         raise HTTPException(status_code=500, detail=error_msg)
 
-def get_current_user_role(authorization: str = Header(...)) -> dict:
+def get_current_user_role(request: Request, authorization: str = Header(...)) -> dict:
     try:
         token = authorization.replace("Bearer ", "")
         user_res = supabase.auth.get_user(token)
@@ -100,9 +101,20 @@ def get_current_user_role(authorization: str = Header(...)) -> dict:
             
         user_id = user_res.user.id
 
+        current_tenant_id = request.headers.get("x-tenant-id") or request.headers.get("tenant-id")
+        if not current_tenant_id:
+            referer = request.headers.get("referer", "")
+            match = re.search(r"/(?:dashboard|share)/([0-9a-fA-F\-]{36})", referer)
+            if match:
+                current_tenant_id = match.group(1)
+
         role = "employee" 
         try:
-            role_res = supabase_admin.table("tenant_users").select("role").eq("user_id", user_id).execute()
+            query = supabase_admin.table("tenant_users").select("role").eq("user_id", user_id)
+            if current_tenant_id:
+                query = query.eq("tenant_id", current_tenant_id)
+                
+            role_res = query.execute()
             if role_res.data:
                 role = role_res.data[0].get("role", "employee")
         except Exception:
@@ -116,7 +128,7 @@ def get_current_user_role(authorization: str = Header(...)) -> dict:
         raise HTTPException(status_code=401, detail=str(e))
   
 @router.get("/me")
-def get_current_user(authorization: str = Header(...)) -> dict:
+def get_current_user(request: Request, authorization: str = Header(...)) -> dict:
     try:
         token = authorization.replace("Bearer ", "")
         user_res = supabase.auth.get_user(token)
@@ -128,9 +140,21 @@ def get_current_user(authorization: str = Header(...)) -> dict:
         words = full_name.split()
         initials = "".join([word[0] for word in words]).upper()[:2]
 
+        current_tenant_id = request.headers.get("x-tenant-id") or request.headers.get("tenant-id")
+        
+        if not current_tenant_id:
+            referer = request.headers.get("referer", "")
+            match = re.search(r"/(?:dashboard|share)/([0-9a-fA-F\-]{36})", referer)
+            if match:
+                current_tenant_id = match.group(1)
+
         role = "employee" 
         try:
-            role_res = supabase_admin.table("tenant_users").select("role").eq("user_id", user_res.user.id).execute()
+            query = supabase_admin.table("tenant_users").select("role").eq("user_id", user_res.user.id)
+            if current_tenant_id:
+                query = query.eq("tenant_id", current_tenant_id)
+                
+            role_res = query.execute()
             if role_res.data:
                 role = role_res.data[0].get("role", "employee")
         except Exception:
