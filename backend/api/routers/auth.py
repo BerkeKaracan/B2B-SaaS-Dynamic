@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Header, Request
-from core.database import supabase
+from core.database import supabase, supabase_admin
 from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse
 from core.limiter import limiter
 
@@ -24,13 +24,13 @@ def register_workspace(request: Request, request_data: RegisterRequest) -> Regis
         if not user_id:
              raise HTTPException(status_code=400, detail="Failed to create user.")
 
-        tenant_res = supabase.table("tenants").insert({
+        tenant_res = supabase_admin.table("tenants").insert({
             "name": request_data.workspace_name
         }).execute()
         
         tenant_id = tenant_res.data[0]["id"]
 
-        supabase.table("tenant_users").insert({
+        supabase_admin.table("tenant_users").insert({
             "tenant_id": tenant_id,
             "user_id": user_id,
             "role": "owner"
