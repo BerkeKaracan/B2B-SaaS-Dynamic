@@ -15,6 +15,17 @@ type Notification = {
   actionUrl?: string;
 };
 
+type BackendNotification = {
+  id: string;
+  target_email: string;
+  type: "mention" | "system" | "invite" | "update";
+  title: string;
+  message: string;
+  is_read: boolean;
+  action_url?: string;
+  created_at: string;
+};
+
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -24,11 +35,22 @@ export default function NotificationBell() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const res = await fetchAPI("/api/notifications/");
+        const res = await fetchAPI("/api/notifications");
         if (res.ok) {
-          const data = await res.json();
-          setNotifications(data);
-          setUnreadCount(data.filter((n: Notification) => !n.isRead).length);
+          const data = (await res.json()) as BackendNotification[];
+
+          const mappedData: Notification[] = data.map((n) => ({
+            id: n.id,
+            type: n.type,
+            title: n.title,
+            message: n.message,
+            isRead: n.is_read,
+            createdAt: n.created_at,
+            actionUrl: n.action_url,
+          }));
+
+          setNotifications(mappedData);
+          setUnreadCount(mappedData.filter((n) => !n.isRead).length);
         }
       } catch (err) {
         console.error("Failed to fetch notifications:", err);
