@@ -51,7 +51,7 @@ def update_tenant_tier(tenant_id: UUID, request: UpdateTierRequest, user: dict =
         if request.tier not in valid_tiers:
             raise HTTPException(status_code=400, detail="Invalid tier")
             
-        user["client"].table("tenants").update({"tier": request.tier}).eq("id", str(tenant_id)).execute()
+        supabase_admin.table("tenants").update({"tier": request.tier}).eq("id", str(tenant_id)).execute()
         return {"message": f"Plan upgraded to {request.tier.upper()}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

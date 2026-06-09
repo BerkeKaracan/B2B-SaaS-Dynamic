@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
-from core.database import supabase
+from core.database import supabase, supabase_admin 
 
 router = APIRouter(
     prefix="/api/notifications",
@@ -21,7 +21,7 @@ def get_current_user_email(authorization: str = Header(None)) -> str:
 @router.get("")
 def get_my_notifications(email: str = Depends(get_current_user_email)):
     try:
-        response = supabase.table("notifications").select("*") \
+        response = supabase_admin.table("notifications").select("*") \
             .eq("target_email", email) \
             .order("created_at", desc=True) \
             .limit(20) \
@@ -33,7 +33,7 @@ def get_my_notifications(email: str = Depends(get_current_user_email)):
 @router.patch("/{notification_id}/read")
 def mark_as_read(notification_id: str, email: str = Depends(get_current_user_email)):
     try:
-        supabase.table("notifications").update({"is_read": True}) \
+        supabase_admin.table("notifications").update({"is_read": True}) \
             .eq("id", notification_id) \
             .eq("target_email", email) \
             .execute()
@@ -44,7 +44,7 @@ def mark_as_read(notification_id: str, email: str = Depends(get_current_user_ema
 @router.patch("/read-all")
 def mark_all_as_read(email: str = Depends(get_current_user_email)):
     try:
-        supabase.table("notifications").update({"is_read": True}) \
+        supabase_admin.table("notifications").update({"is_read": True}) \
             .eq("target_email", email) \
             .eq("is_read", False) \
             .execute()

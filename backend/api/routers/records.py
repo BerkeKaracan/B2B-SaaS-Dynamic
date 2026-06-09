@@ -221,7 +221,8 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
                     "message": f"{inviter} invited you to collaborate on '{project_name}'.",
                     "link": f"/dashboard/{rec_tenant}/projects/{str(record_id)}"
                 }
-                user["client"].table("notifications").insert(notification_payload).execute()
+                from core.database import supabase_admin
+                supabase_admin.table("notifications").insert(notification_payload).execute()
         except Exception as notif_err:
             print(f"Notification processing error: {notif_err}") 
         
