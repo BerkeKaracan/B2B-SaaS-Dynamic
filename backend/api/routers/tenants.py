@@ -158,10 +158,10 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
         try:
             notification_payload = {
                 "target_email": request.email,
-                "type": "role_update",
+                "type": "invite", 
                 "title": "New Workspace Access",
                 "message": f"You have been added to a new workspace by {user['full_name']}.",
-                "link": f"/dashboard/{tenant_id}"
+                "action_url": f"/dashboard/{tenant_id}"
             }
             supabase_admin.table("notifications").insert(notification_payload).execute()
         except Exception as notif_err:
