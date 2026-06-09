@@ -52,7 +52,6 @@ def register_workspace(request: Request, request_data: RegisterRequest) -> Regis
         raise HTTPException(status_code=500, detail=error_msg)
 
 
-
 @router.post("/login", response_model=LoginResponse)
 @limiter.limit("5/minute")
 def login_workspace(request: Request, request_data: LoginRequest) -> LoginResponse:
@@ -67,7 +66,8 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
         
         if not user_id or not session:
             raise HTTPException(status_code=400, detail="Invalid email or password.")
-        tenant_user_res = supabase.table("tenant_users")\
+            
+        tenant_user_res = supabase_admin.table("tenant_users")\
             .select("tenant_id")\
             .eq("user_id", user_id)\
             .execute()
@@ -102,7 +102,7 @@ def get_current_user_role(authorization: str = Header(...)) -> dict:
 
         role = "employee" 
         try:
-            role_res = supabase.table("tenant_users").select("role").eq("user_id", user_id).execute()
+            role_res = supabase_admin.table("tenant_users").select("role").eq("user_id", user_id).execute()
             if role_res.data:
                 role = role_res.data[0].get("role", "employee")
         except Exception:
@@ -130,7 +130,7 @@ def get_current_user(authorization: str = Header(...)) -> dict:
 
         role = "employee" 
         try:
-            role_res = supabase.table("tenant_users").select("role").eq("user_id", user_res.user.id).execute()
+            role_res = supabase_admin.table("tenant_users").select("role").eq("user_id", user_res.user.id).execute()
             if role_res.data:
                 role = role_res.data[0].get("role", "employee")
         except Exception:
