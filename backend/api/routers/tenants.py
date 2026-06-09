@@ -134,15 +134,19 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
             raise HTTPException(status_code=403, detail=f"Seat limit reached for {current_tier.upper()} plan.")
 
         real_user_id = None
-        try:
-            users_list = supabase_admin.auth.admin.list_users()
-            users = getattr(users_list, 'users', users_list) 
-            for u in users:
-                if u.email == request_email:
-                    real_user_id = u.id
-                    break
-        except Exception as e:
-            print(f"List users error: {e}")
+        existing_user_query = supabase_admin.table("tenant_users").select("user_id").eq("email", request_email).limit(1).execute()
+        if existing_user_query.data:
+            real_user_id = existing_user_query.data[0]["user_id"]
+        else:
+            try:
+                users_list = supabase_admin.auth.admin.list_users()
+                users = getattr(users_list, 'users', users_list) 
+                for u in users:
+                    if u.email == request_email:
+                        real_user_id = u.id
+                        break
+            except Exception as e:
+                print(f"List users error: {e}")
 
         if real_user_id:
             pass

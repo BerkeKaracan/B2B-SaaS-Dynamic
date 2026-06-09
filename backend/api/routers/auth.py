@@ -34,7 +34,8 @@ def register_workspace(request: Request, request_data: RegisterRequest) -> Regis
         supabase_admin.table("tenant_users").insert({
             "tenant_id": tenant_id,
             "user_id": user_id,
-            "role": "owner"
+            "role": "owner",
+            "email": request_data.email.lower().strip() 
         }).execute()
 
         return RegisterResponse(
@@ -52,6 +53,7 @@ def register_workspace(request: Request, request_data: RegisterRequest) -> Regis
             raise HTTPException(status_code=400, detail=e.message)
         raise HTTPException(status_code=500, detail=error_msg)
 
+
 @router.post("/login", response_model=LoginResponse)
 @limiter.limit("5/minute")
 def login_workspace(request: Request, request_data: LoginRequest) -> LoginResponse:
@@ -68,7 +70,7 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
             raise HTTPException(status_code=400, detail="Invalid email or password.")
             
         tenant_user_res = supabase_admin.table("tenant_users")\
-            .select("tenant_id")\
+            .select("tenant_id, role")\
             .eq("user_id", user_id)\
             .order("created_at")\
             .execute()
@@ -76,12 +78,19 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
         if not tenant_user_res.data:
             raise HTTPException(status_code=404, detail="No workspace found for this user.")
             
-        tenant_id = tenant_user_res.data[0]["tenant_id"]
+        target_tenant_id = None
+        for row in tenant_user_res.data:
+            if row.get("role") == "owner":
+                target_tenant_id = row["tenant_id"]
+                break
+                
+        if not target_tenant_id:
+            target_tenant_id = tenant_user_res.data[0]["tenant_id"]
         
         return LoginResponse(
             message="Login successful.",
             access_token=session.access_token,
-            tenant_id=str(tenant_id),
+            tenant_id=str(target_tenant_id),
             user_id=str(user_id)
         )
         
