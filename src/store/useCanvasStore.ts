@@ -580,8 +580,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   saveProject: async (tenantId) => {
-    const { recordId, title, description, date, pages, connections, metadata } =
-      get();
+    const { recordId, title, description, date, pages, connections } = get();
     if (!recordId) return;
 
     set({ isSaving: true, showSaved: false });
@@ -591,7 +590,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         method: "PATCH",
         body: JSON.stringify({
           record_data: {
-            ...metadata,
             title,
             description,
             date,

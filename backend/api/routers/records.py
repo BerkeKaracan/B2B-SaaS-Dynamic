@@ -202,6 +202,18 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
 
         payload_data = payload.record_data
         
+        if "collaborators" not in payload_data:
+            payload_data["collaborators"] = current_record_data.get("collaborators", [])
+            
+        if "name" not in payload_data and "name" in current_record_data:
+            payload_data["name"] = current_record_data["name"]
+        if "visibility" not in payload_data and "visibility" in current_record_data:
+            payload_data["visibility"] = current_record_data["visibility"]
+        if "status" not in payload_data and "status" in current_record_data:
+            payload_data["status"] = current_record_data["status"]
+        if "owner_email" not in payload_data and "owner_email" in current_record_data:
+            payload_data["owner_email"] = current_record_data["owner_email"]
+
         try:
             raw_new_collabs = payload_data.get("collaborators", [])
             raw_old_collabs = current_record_data.get("collaborators", [])
