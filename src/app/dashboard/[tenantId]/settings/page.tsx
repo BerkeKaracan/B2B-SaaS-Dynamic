@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, use } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -40,6 +41,13 @@ export default function TeamBillingPage({
   );
   const [tier, setTier] = useState<string>("Basic Plan");
   const [members, setMembers] = useState<TeamMember[]>([]);
+
+  const [logoUrl, setLogoUrl] = useState<string>("");
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const [timezone, setTimezone] = useState<string>("UTC");
+  const [dateFormat, setDateFormat] = useState<string>("YYYY-MM-DD");
 
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState("employee");
@@ -110,6 +118,9 @@ export default function TeamBillingPage({
         if (tenantRes.ok) {
           const tenantData = await tenantRes.json();
           setWorkspaceName(tenantData.name || "");
+          if (tenantData.logo_url) setLogoUrl(tenantData.logo_url);
+          if (tenantData.timezone) setTimezone(tenantData.timezone);
+          if (tenantData.date_format) setDateFormat(tenantData.date_format);
           if (tenantData.tier === "pro") setTier("Pro Plan");
           else if (tenantData.tier === "advanced") setTier("Advanced Plan");
           else setTier("Basic Plan");
@@ -130,6 +141,34 @@ export default function TeamBillingPage({
     setTimeout(() => setNotification(null), 4000);
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingLogo(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/logo`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Failed to upload logo.");
+
+      const data = await res.json();
+      setLogoUrl(data.logo_url);
+      showNotification("success", "Workspace logo updated!");
+    } catch (err) {
+      showNotification("error", "Error uploading logo.");
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
   const handleRenameWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!workspaceName.trim()) return;
@@ -143,7 +182,11 @@ export default function TeamBillingPage({
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: workspaceName }),
+        body: JSON.stringify({
+          name: workspaceName,
+          timezone: timezone,
+          date_format: dateFormat,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to rename workspace.");
@@ -601,37 +644,123 @@ export default function TeamBillingPage({
 
         {activeTab === "advanced" && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
-            {/* Rename Workspace Section */}
             <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
               <h3 className="text-base font-bold text-zinc-900 mb-1">
-                Rename Workspace
+                Workspace Identity
               </h3>
-              <p className="text-sm text-zinc-500 mb-4">
-                Change the visible name of this workspace across your
-                organization.
+              <p className="text-sm text-zinc-500 mb-6">
+                Manage your workspace brand assets and naming.
               </p>
-              <form
-                onSubmit={handleRenameWorkspace}
-                className="flex flex-col sm:flex-row gap-3 max-w-xl"
-              >
-                <input
-                  type="text"
-                  value={workspaceName}
-                  onChange={(e) => setWorkspaceName(e.target.value)}
-                  className="flex-1 px-4 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={isSavingName}
-                  className="bg-zinc-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all active:scale-95 disabled:opacity-50 shrink-0"
+
+              <div className="flex flex-col md:flex-row gap-8 items-start">
+                <div className="flex flex-col items-center gap-3 shrink-0">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleLogoUpload}
+                  />
+
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`relative w-24 h-24 rounded-2xl bg-zinc-100 border border-zinc-200 border-dashed flex items-center justify-center text-3xl font-black text-zinc-400 overflow-hidden group cursor-pointer hover:bg-zinc-200 transition-all ${isUploadingLogo ? "opacity-50 animate-pulse" : ""}`}
+                  >
+                    {logoUrl ? (
+                      <Image
+                        src={logoUrl}
+                        alt="Workspace Logo"
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      workspaceName.charAt(0).toUpperCase() || "?"
+                    )}
+                  </div>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingLogo}
+                    className="text-xs font-bold text-zinc-600 hover:text-zinc-900 transition-colors"
+                  >
+                    {isUploadingLogo ? "Uploading..." : "Upload Logo"}
+                  </button>
+                </div>
+
+                <form
+                  onSubmit={handleRenameWorkspace}
+                  className="flex-1 w-full space-y-3"
                 >
-                  {isSavingName ? "Saving..." : "Rename"}
-                </button>
-              </form>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                    Workspace Name
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <input
+                      type="text"
+                      value={workspaceName}
+                      onChange={(e) => setWorkspaceName(e.target.value)}
+                      className="flex-1 px-4 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800"
+                      required
+                    />
+                    {/* Timezone & Date Format Dropdowns */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                          Timezone
+                        </label>
+                        <select
+                          value={timezone}
+                          onChange={(e) => setTimezone(e.target.value)}
+                          className="w-full px-4 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg-no-repeat bg-[position:right_1rem_center]"
+                        >
+                          <option value="UTC">
+                            UTC (Coordinated Universal Time)
+                          </option>
+                          <option value="Europe/Istanbul">
+                            GMT+3 (Europe/Istanbul)
+                          </option>
+                          <option value="America/New_York">
+                            EST (America/New_York)
+                          </option>
+                          <option value="Europe/London">
+                            GMT+0 (Europe/London)
+                          </option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                          Date Format
+                        </label>
+                        <select
+                          value={dateFormat}
+                          onChange={(e) => setDateFormat(e.target.value)}
+                          className="w-full px-4 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg-no-repeat bg-[position:right_1rem_center]"
+                        >
+                          <option value="YYYY-MM-DD">
+                            YYYY-MM-DD (2026-06-10)
+                          </option>
+                          <option value="DD/MM/YYYY">
+                            DD/MM/YYYY (10/06/2026)
+                          </option>
+                          <option value="MM/DD/YYYY">
+                            MM/DD/YYYY (06/10/2026)
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isSavingName}
+                      className="bg-zinc-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all active:scale-95 disabled:opacity-50 shrink-0"
+                    >
+                      {isSavingName ? "Saving..." : "Save Name"}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
 
-            {/* Danger Zone Section */}
+            {/* Danger Zone Card */}
             <div className="border border-red-200 bg-red-50/30 rounded-2xl p-6">
               <h3 className="text-base font-bold text-red-600 flex items-center gap-2 mb-2">
                 <ShieldAlert className="w-5 h-5" /> Danger Zone
@@ -652,7 +781,7 @@ export default function TeamBillingPage({
                 </div>
                 <button
                   onClick={handleDeleteWorkspace}
-                  className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-600 hover:text-white transition-all shrink-0"
+                  className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-600 hover:text-white transition-all shrink-0 active:scale-95"
                 >
                   Delete Workspace
                 </button>

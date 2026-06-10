@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Header, Depends
+from fastapi import APIRouter, HTTPException, Header, Depends, UploadFile, File
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
+import uuid
 from typing import Optional
 
 from core.database import supabase, supabase_admin, get_auth_client
@@ -28,13 +29,15 @@ class UpdateRoleRequest(BaseModel):
 
 class UpdateTenantRequest(BaseModel):
     name: str
+    timezone: Optional[str] = "UTC"
+    date_format: Optional[str] = "YYYY-MM-DD"
 
 @router.get("/{tenant_id}")
 def get_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
     try:
         if str(tenant_id) not in user["tenant_roles"]:
             raise HTTPException(status_code=403, detail="Workspace access denied")
-        response = user["client"].table("tenants").select("id, name, tier, created_at").eq("id", str(tenant_id)).execute()
+        response = user["client"].table("tenants").select("id, name, tier, logo_url, timezone, date_format, created_at").eq("id", str(tenant_id)).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="Workspace not found")
         return response.data[0]
@@ -56,6 +59,30 @@ def update_tenant_tier(tenant_id: UUID, request: UpdateTierRequest, user: dict =
             
         supabase_admin.table("tenants").update({"tier": request.tier}).eq("id", str(tenant_id)).execute()
         return {"message": f"Plan upgraded to {request.tier.upper()}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{tenant_id}/logo")
+async def upload_workspace_logo(tenant_id: UUID, file: UploadFile = File(...), user: dict = Depends(get_user_role)):
+    try:
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Unauthorized to upload logo")
+        
+        file_ext = file.filename.split(".")[-1]
+        file_name = f"{tenant_id}_{uuid.uuid4().hex}.{file_ext}"
+        file_bytes = await file.read()
+        
+        supabase_admin.storage.from_("workspace_assets").upload(
+            path=file_name,
+            file=file_bytes,
+            file_options={"content-type": file.content_type}
+        )
+        
+        public_url = supabase_admin.storage.from_("workspace_assets").get_public_url(file_name)
+        supabase_admin.table("tenants").update({"logo_url": public_url}).eq("id", str(tenant_id)).execute()
+        
+        return {"logo_url": public_url}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -254,7 +281,11 @@ def update_tenant(tenant_id: UUID, request: UpdateTenantRequest, user: dict = De
         if current_role not in ["admin", "owner"]:
             raise HTTPException(status_code=403, detail="Unauthorized: Only admins and owners can rename workspace")
             
-        supabase_admin.table("tenants").update({"name": request.name}).eq("id", str(tenant_id)).execute()
+        supabase_admin.table("tenants").update({
+            "name": request.name,
+            "timezone": request.timezone,
+            "date_format": request.date_format
+        }).eq("id", str(tenant_id)).execute()
         return {"message": "Workspace renamed successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
