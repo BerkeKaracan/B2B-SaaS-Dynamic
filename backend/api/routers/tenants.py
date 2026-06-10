@@ -26,6 +26,9 @@ class InviteUserRequest(BaseModel):
 class UpdateRoleRequest(BaseModel):
     role: str
 
+class UpdateTenantRequest(BaseModel):
+    name: str
+
 @router.get("/{tenant_id}")
 def get_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
     try:
@@ -241,5 +244,29 @@ def update_member_role(tenant_id: UUID, member_id: UUID, request: UpdateRoleRequ
             
         supabase_admin.table("tenant_users").update({"role": request.role}).eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
         return {"message": "Role updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.patch("/{tenant_id}")
+def update_tenant(tenant_id: UUID, request: UpdateTenantRequest, user: dict = Depends(get_user_role)):
+    try:
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Unauthorized: Only admins and owners can rename workspace")
+            
+        supabase_admin.table("tenants").update({"name": request.name}).eq("id", str(tenant_id)).execute()
+        return {"message": "Workspace renamed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{tenant_id}")
+def delete_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
+    try:
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role != "owner":
+            raise HTTPException(status_code=403, detail="Unauthorized: Only the owner can delete the workspace")
+            
+        supabase_admin.table("tenants").delete().eq("id", str(tenant_id)).execute()
+        return {"message": "Workspace deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

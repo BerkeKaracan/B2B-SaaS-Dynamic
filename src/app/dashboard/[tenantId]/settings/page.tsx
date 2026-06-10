@@ -48,6 +48,9 @@ export default function TeamBillingPage({
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [isInviting, setIsInviting] = useState(false);
 
+  const [workspaceName, setWorkspaceName] = useState<string>("");
+  const [isSavingName, setIsSavingName] = useState(false);
+
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -106,6 +109,7 @@ export default function TeamBillingPage({
 
         if (tenantRes.ok) {
           const tenantData = await tenantRes.json();
+          setWorkspaceName(tenantData.name || "");
           if (tenantData.tier === "pro") setTier("Pro Plan");
           else if (tenantData.tier === "advanced") setTier("Advanced Plan");
           else setTier("Basic Plan");
@@ -124,6 +128,58 @@ export default function TeamBillingPage({
   const showNotification = (type: "error" | "success", msg: string) => {
     setNotification({ type, msg });
     setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleRenameWorkspace = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workspaceName.trim()) return;
+    setIsSavingName(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: workspaceName }),
+      });
+
+      if (!res.ok) throw new Error("Failed to rename workspace.");
+      showNotification("success", "Workspace renamed successfully!");
+    } catch (err: unknown) {
+      showNotification("error", "Error renaming workspace.");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const handleDeleteWorkspace = async () => {
+    const confirmName = prompt(
+      `To confirm deletion, please type the workspace name: "${workspaceName}"`,
+    );
+    if (confirmName !== workspaceName) {
+      if (confirmName !== null)
+        showNotification("error", "Workspace name did not match.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("Failed to delete workspace.");
+      router.push("/login");
+    } catch (err: unknown) {
+      showNotification(
+        "error",
+        "Failed to delete workspace. Ensure you are the owner.",
+      );
+    }
   };
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -544,7 +600,38 @@ export default function TeamBillingPage({
         )}
 
         {activeTab === "advanced" && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
+            {/* Rename Workspace Section */}
+            <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
+              <h3 className="text-base font-bold text-zinc-900 mb-1">
+                Rename Workspace
+              </h3>
+              <p className="text-sm text-zinc-500 mb-4">
+                Change the visible name of this workspace across your
+                organization.
+              </p>
+              <form
+                onSubmit={handleRenameWorkspace}
+                className="flex flex-col sm:flex-row gap-3 max-w-xl"
+              >
+                <input
+                  type="text"
+                  value={workspaceName}
+                  onChange={(e) => setWorkspaceName(e.target.value)}
+                  className="flex-1 px-4 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={isSavingName}
+                  className="bg-zinc-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all active:scale-95 disabled:opacity-50 shrink-0"
+                >
+                  {isSavingName ? "Saving..." : "Rename"}
+                </button>
+              </form>
+            </div>
+
+            {/* Danger Zone Section */}
             <div className="border border-red-200 bg-red-50/30 rounded-2xl p-6">
               <h3 className="text-base font-bold text-red-600 flex items-center gap-2 mb-2">
                 <ShieldAlert className="w-5 h-5" /> Danger Zone
@@ -563,7 +650,10 @@ export default function TeamBillingPage({
                     action cannot be undone.
                   </p>
                 </div>
-                <button className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-600 hover:text-white transition-all shrink-0">
+                <button
+                  onClick={handleDeleteWorkspace}
+                  className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-600 hover:text-white transition-all shrink-0"
+                >
                   Delete Workspace
                 </button>
               </div>

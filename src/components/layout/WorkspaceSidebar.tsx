@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Plus, X, LayoutDashboard } from "lucide-react";
+import { Plus, X, LayoutDashboard, Settings } from "lucide-react";
 
 type TenantInfo = {
   id: string;
@@ -162,14 +162,14 @@ export default function WorkspaceSidebar() {
           <div className="pt-4 mt-4 border-t border-zinc-200/50">
             {isAdmin && (
               <Link
-                href={`/dashboard/${tenantId}/team`}
-                className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  pathname.endsWith("/team")
+                href={`/dashboard/${tenantId}/settings`}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  pathname.includes("/settings") || pathname.includes("/team")
                     ? "bg-white border border-zinc-200/80 text-zinc-900 shadow-sm"
                     : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100/60"
                 }`}
               >
-                Team & Billing
+                <Settings className="w-4 h-4" /> Workspace Settings
               </Link>
             )}
           </div>
