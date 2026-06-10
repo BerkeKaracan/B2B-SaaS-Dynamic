@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+.github
+
+# Node.js
+node_modules
+npm-debug.log
+yarn-error.log
+.next
+out
+build
+dist
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+
+.env
+.env.local
+.env.*
+
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+k8s/
+docker-compose.yml
