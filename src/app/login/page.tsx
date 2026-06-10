@@ -15,8 +15,56 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isChecking, setIsChecking] = useState(true);
 
+  const redirectUser = async (tenantId: string, token: string) => {
+    const host = window.location.hostname;
+    const isLocal = host.includes("localhost");
+    const baseDomain = isLocal ? "localhost" : "b2-b-saa-s-dynamic.vercel.app";
+
+    if (host !== baseDomain && host !== `www.${baseDomain}`) {
+      window.location.href = "/";
+      return;
+    }
+
+    try {
+      const API_BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.slug) {
+          const protocol = window.location.protocol;
+          const port =
+            window.location.port && isLocal ? `:${window.location.port}` : "";
+
+          window.location.href = `${protocol}//${data.slug}.${baseDomain}${port}/login#access_token=${token}&tenant_id=${tenantId}`;
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Subdomain yönlendirme hatası:", error);
+    }
+
+    router.push(`/dashboard/${tenantId}`);
+  };
+
   useEffect(() => {
     const verifyToken = async () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes("access_token=")) {
+        const params = new URLSearchParams(hash.replace("#", "?"));
+        const accessToken = params.get("access_token");
+        const urlTenant = params.get("tenant_id");
+
+        if (accessToken) {
+          localStorage.setItem("token", accessToken);
+          if (urlTenant) localStorage.setItem("tenant_id", urlTenant);
+          window.history.replaceState(null, "", window.location.pathname);
+        }
+      }
+
       const token = localStorage.getItem("token");
       if (!token) {
         setIsChecking(false);
@@ -38,16 +86,12 @@ export default function LoginPage() {
             localStorage.getItem("tenant_id");
 
           if (tenantId && tenantId !== "undefined") {
-            router.replace(`/dashboard/${tenantId}`);
+            await redirectUser(tenantId, token);
           } else {
-            localStorage.removeItem("token");
-            localStorage.removeItem("tenant_id");
-            setIsChecking(false);
+            throw new Error("No tenant");
           }
         } else {
-          localStorage.removeItem("token");
-          localStorage.removeItem("tenant_id");
-          setIsChecking(false);
+          throw new Error("Invalid token");
         }
       } catch {
         localStorage.removeItem("token");
@@ -57,6 +101,7 @@ export default function LoginPage() {
     };
 
     verifyToken();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,13 +115,8 @@ export default function LoginPage() {
 
       const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
@@ -100,7 +140,7 @@ export default function LoginPage() {
         await fetchUser();
       }
 
-      router.push(`/dashboard/${tenantId}`);
+      await redirectUser(tenantId, data.access_token);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);

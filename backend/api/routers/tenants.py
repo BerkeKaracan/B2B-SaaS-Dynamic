@@ -37,9 +37,23 @@ def get_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
     try:
         if str(tenant_id) not in user["tenant_roles"]:
             raise HTTPException(status_code=403, detail="Workspace access denied")
-        response = user["client"].table("tenants").select("id, name, tier, logo_url, timezone, date_format, created_at").eq("id", str(tenant_id)).execute()
+        response = user["client"].table("tenants").select("id, name, tier, logo_url, timezone, date_format, slug, created_at").eq("id", str(tenant_id)).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="Workspace not found")
+        return response.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/by-slug/{slug}")
+def get_tenant_by_slug(slug: str):
+    try:
+        response = supabase_admin.table("tenants").select("id").eq("slug", slug).execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Workspace not found for this slug")
+            
         return response.data[0]
     except HTTPException:
         raise
