@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
   const hostname = request.headers.get("host") || "";
 
@@ -64,7 +64,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url);
       }
     } catch (error) {
-      console.error("Middleware fetch error:", error);
+      console.error("Proxy fetch error:", error);
       return NextResponse.next();
     }
   }
