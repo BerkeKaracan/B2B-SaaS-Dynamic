@@ -32,6 +32,9 @@ class UpdateTenantRequest(BaseModel):
     timezone: Optional[str] = "UTC"
     date_format: Optional[str] = "YYYY-MM-DD"
 
+class TransferOwnershipRequest(BaseModel):
+    new_owner_member_id: UUID
+
 @router.get("/{tenant_id}")
 def get_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
     try:
@@ -271,8 +274,14 @@ def remove_member(tenant_id: UUID, member_id: UUID, user: dict = Depends(get_use
         if current_role not in ["admin", "owner"]:
             raise HTTPException(status_code=403, detail="Unauthorized: Only admins and owners can remove members")
             
+        target_user = supabase_admin.table("tenant_users").select("role").eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
+        if target_user.data and target_user.data[0].get("role", "").lower() == "owner":
+            raise HTTPException(status_code=403, detail="Cannot remove the workspace owner. Transfer ownership first.")
+            
         supabase_admin.table("tenant_users").delete().eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
         return {"message": "Member removed successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -283,8 +292,17 @@ def update_member_role(tenant_id: UUID, member_id: UUID, request: UpdateRoleRequ
         if current_role not in ["admin", "owner"]:
             raise HTTPException(status_code=403, detail="Unauthorized: Only admins and owners can update roles")
             
+        if request.role.lower() == "owner":
+            raise HTTPException(status_code=400, detail="Cannot assign 'owner' role directly. Use transfer ownership instead.")
+
+        target_user = supabase_admin.table("tenant_users").select("role").eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
+        if target_user.data and target_user.data[0].get("role", "").lower() == "owner":
+            raise HTTPException(status_code=403, detail="Cannot modify the role of the workspace owner.")
+            
         supabase_admin.table("tenant_users").update({"role": request.role}).eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
         return {"message": "Role updated successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -301,6 +319,30 @@ def update_tenant(tenant_id: UUID, request: UpdateTenantRequest, user: dict = De
             "date_format": request.date_format
         }).eq("id", str(tenant_id)).execute()
         return {"message": "Workspace renamed successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{tenant_id}/transfer-ownership")
+def transfer_ownership(tenant_id: UUID, request: TransferOwnershipRequest, user: dict = Depends(get_user_role)):
+    try:
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role != "owner":
+            raise HTTPException(status_code=403, detail="Unauthorized: Only the current owner can transfer ownership")
+            
+        target_member = supabase_admin.table("tenant_users").select("id, role").eq("id", str(request.new_owner_member_id)).eq("tenant_id", str(tenant_id)).execute()
+        
+        if not target_member.data:
+            raise HTTPException(status_code=404, detail="Target member not found in this workspace")
+            
+        if target_member.data[0].get("role", "").lower() == "owner":
+            raise HTTPException(status_code=400, detail="Target user is already the owner")
+
+        supabase_admin.table("tenant_users").update({"role": "owner"}).eq("id", str(request.new_owner_member_id)).eq("tenant_id", str(tenant_id)).execute()
+        supabase_admin.table("tenant_users").update({"role": "admin"}).eq("tenant_id", str(tenant_id)).eq("role", "owner").neq("id", str(request.new_owner_member_id)).execute()
+
+        return {"message": "Ownership transferred successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
