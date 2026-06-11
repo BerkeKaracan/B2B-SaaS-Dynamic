@@ -37,10 +37,11 @@ export default function TeamBillingPage({
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<"team" | "billing" | "advanced">(
-    "team",
+    "advanced",
   );
   const [tier, setTier] = useState<string>("Basic Plan");
   const [members, setMembers] = useState<TeamMember[]>([]);
+  const [usageType, setUsageType] = useState<string>("team");
 
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -96,18 +97,6 @@ export default function TeamBillingPage({
           return;
         }
 
-        const res2 = await fetch(
-          `${API_BASE_URL}/api/tenants/${tenantId}/team`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-
-        if (res2.ok) {
-          const membersData = await res2.json();
-          setMembers(membersData);
-        }
-
         const tenantRes = await fetch(
           `${API_BASE_URL}/api/tenants/${tenantId}`,
           {
@@ -118,12 +107,34 @@ export default function TeamBillingPage({
         if (tenantRes.ok) {
           const tenantData = await tenantRes.json();
           setWorkspaceName(tenantData.name || "");
+
+          const currentUsageType = tenantData.usage_type || "team";
+          setUsageType(currentUsageType);
+
+          if (currentUsageType === "team") {
+            setActiveTab("team");
+          } else {
+            setActiveTab("advanced");
+          }
+
           if (tenantData.logo_url) setLogoUrl(tenantData.logo_url);
           if (tenantData.timezone) setTimezone(tenantData.timezone);
           if (tenantData.date_format) setDateFormat(tenantData.date_format);
           if (tenantData.tier === "pro") setTier("Pro Plan");
           else if (tenantData.tier === "advanced") setTier("Advanced Plan");
           else setTier("Basic Plan");
+        }
+
+        const res2 = await fetch(
+          `${API_BASE_URL}/api/tenants/${tenantId}/team`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+
+        if (res2.ok) {
+          const membersData = await res2.json();
+          setMembers(membersData);
         }
       } catch (err: unknown) {
         console.error("Auth Error:", err);
@@ -357,17 +368,21 @@ export default function TeamBillingPage({
             Workspace Settings
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
-            Manage your team members, billing plan, and workspace preferences.
+            Manage your{" "}
+            {usageType === "individual" ? "personal workspace" : "team members"}
+            , billing plan, and workspace preferences.
           </p>
         </div>
 
         <div className="flex items-center gap-6 border-b border-zinc-200 mb-8 overflow-x-auto select-none">
-          <TabButton
-            active={activeTab === "team"}
-            onClick={() => setActiveTab("team")}
-            icon={<Users className="w-4 h-4" />}
-            label="Team Members"
-          />
+          {usageType === "team" && (
+            <TabButton
+              active={activeTab === "team"}
+              onClick={() => setActiveTab("team")}
+              icon={<Users className="w-4 h-4" />}
+              label="Team Members"
+            />
+          )}
           <TabButton
             active={activeTab === "billing"}
             onClick={() => setActiveTab("billing")}
@@ -399,7 +414,7 @@ export default function TeamBillingPage({
           </div>
         )}
 
-        {activeTab === "team" && (
+        {usageType === "team" && activeTab === "team" && (
           <div className="animate-in fade-in duration-300">
             <div className="bg-white border border-zinc-200 rounded-2xl p-6 mb-6 shadow-sm">
               <h2 className="text-base font-bold text-zinc-900 flex items-center gap-2 mb-1">
@@ -466,7 +481,9 @@ export default function TeamBillingPage({
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-tr ${getAvatarGradient(emailStr)} shadow-sm shrink-0`}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-tr ${getAvatarGradient(
+                            emailStr,
+                          )} shadow-sm shrink-0`}
                         >
                           {initial}
                         </div>
@@ -500,7 +517,13 @@ export default function TeamBillingPage({
                             <option value="employee">Employee</option>
                           </select>
                           <svg
-                            className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60 ${m.role === "admin" ? "text-indigo-700" : m.role === "owner" ? "text-white" : "text-zinc-600"}`}
+                            className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60 ${
+                              m.role === "admin"
+                                ? "text-indigo-700"
+                                : m.role === "owner"
+                                  ? "text-white"
+                                  : "text-zinc-600"
+                            }`}
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -560,7 +583,7 @@ export default function TeamBillingPage({
                 </div>
                 <p className="text-sm text-zinc-500 mt-2">
                   You are currently on the {tier}. Upgrade for unlimited
-                  projects and team members.
+                  projects and features.
                 </p>
               </div>
               <button
@@ -617,26 +640,28 @@ export default function TeamBillingPage({
                     ></div>
                   </div>
                 </div>
-                <div>
-                  <div className="flex justify-between text-sm font-medium mb-2">
-                    <span className="text-zinc-600">Team Members</span>
-                    <span className="text-zinc-900 font-bold">
-                      {members.length} /{" "}
-                      {tier === "Pro Plan" ? "Unlimited" : "10"}
-                    </span>
+                {usageType === "team" && (
+                  <div>
+                    <div className="flex justify-between text-sm font-medium mb-2">
+                      <span className="text-zinc-600">Team Members</span>
+                      <span className="text-zinc-900 font-bold">
+                        {members.length} /{" "}
+                        {tier === "Pro Plan" ? "Unlimited" : "10"}
+                      </span>
+                    </div>
+                    <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-emerald-500 h-2 rounded-full"
+                        style={{
+                          width:
+                            tier === "Pro Plan"
+                              ? "10%"
+                              : `${(members.length / 10) * 100}%`,
+                        }}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-emerald-500 h-2 rounded-full"
-                      style={{
-                        width:
-                          tier === "Pro Plan"
-                            ? "10%"
-                            : `${(members.length / 10) * 100}%`,
-                      }}
-                    ></div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -664,7 +689,9 @@ export default function TeamBillingPage({
 
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className={`relative w-24 h-24 rounded-2xl bg-zinc-100 border border-zinc-200 border-dashed flex items-center justify-center text-3xl font-black text-zinc-400 overflow-hidden group cursor-pointer hover:bg-zinc-200 transition-all ${isUploadingLogo ? "opacity-50 animate-pulse" : ""}`}
+                    className={`relative w-24 h-24 rounded-2xl bg-zinc-100 border border-zinc-200 border-dashed flex items-center justify-center text-3xl font-black text-zinc-400 overflow-hidden group cursor-pointer hover:bg-zinc-200 transition-all ${
+                      isUploadingLogo ? "opacity-50 animate-pulse" : ""
+                    }`}
                   >
                     {logoUrl ? (
                       <Image
@@ -701,7 +728,6 @@ export default function TeamBillingPage({
                       className="flex-1 px-4 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800"
                       required
                     />
-                    {/* Timezone & Date Format Dropdowns */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
@@ -760,7 +786,6 @@ export default function TeamBillingPage({
               </div>
             </div>
 
-            {/* Danger Zone Card */}
             <div className="border border-red-200 bg-red-50/30 rounded-2xl p-6">
               <h3 className="text-base font-bold text-red-600 flex items-center gap-2 mb-2">
                 <ShieldAlert className="w-5 h-5" /> Danger Zone

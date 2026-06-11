@@ -69,7 +69,8 @@ def complete_onboarding(request: Request, request_data: OnboardingRequest, autho
             raise HTTPException(status_code=400, detail="Invalid usage_type. Must be 'individual' or 'team'.")
 
         tenant_res = supabase_admin.table("tenants").insert({
-            "name": final_workspace_name
+            "name": final_workspace_name,
+            "usage_type": request_data.usage_type
         }).execute()
         
         tenant_id = tenant_res.data[0]["id"]
