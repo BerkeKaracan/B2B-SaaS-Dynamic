@@ -43,6 +43,8 @@ export default function TeamBillingPage({
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [usageType, setUsageType] = useState<string>("team");
 
+  const [currentUserRole, setCurrentUserRole] = useState<string>("employee");
+
   const [projectsCount, setProjectsCount] = useState<number>(0);
 
   const [logoUrl, setLogoUrl] = useState<string>("");
@@ -93,6 +95,8 @@ export default function TeamBillingPage({
 
         const data = await res.json();
         const roleStr = data.role || "employee";
+
+        setCurrentUserRole(roleStr);
 
         if (roleStr !== "owner" && roleStr !== "admin") {
           router.push(`/dashboard/${tenantId}`);
@@ -359,6 +363,49 @@ export default function TeamBillingPage({
     }
   };
 
+  const handleTransferOwnership = async (
+    memberId: string,
+    memberEmail: string,
+  ) => {
+    if (
+      !window.confirm(
+        `WARNING: Are you sure you want to transfer ownership of this workspace to ${memberEmail}? \n\nYou will lose owner privileges and be downgraded to an Admin.`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${API_BASE_URL}/api/tenants/${tenantId}/transfer-ownership`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ new_owner_member_id: memberId }),
+        },
+      );
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || "Failed to transfer ownership.");
+      }
+
+      showNotification("success", "Ownership transferred successfully!");
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred.";
+      showNotification("error", errorMessage);
+    }
+  };
+
   const getAvatarGradient = (email: string) => {
     const colors = [
       "from-blue-500 to-indigo-500",
@@ -473,7 +520,6 @@ export default function TeamBillingPage({
                     >
                       <option value="employee">Employee</option>
                       <option value="admin">Admin</option>
-                      <option value="owner">Owner</option>
                     </select>
                   </div>
                 </div>
@@ -499,6 +545,8 @@ export default function TeamBillingPage({
                   const emailStr = m.email || "Pending Invite...";
                   const initial = emailStr.charAt(0).toUpperCase();
 
+                  const isCurrentOwnerRow = m.role === "owner";
+
                   return (
                     <div
                       key={m.id}
@@ -513,8 +561,13 @@ export default function TeamBillingPage({
                           {initial}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-bold text-sm text-zinc-900">
+                          <span className="font-bold text-sm text-zinc-900 flex items-center gap-2">
                             {emailStr}
+                            {isCurrentOwnerRow && (
+                              <span className="px-1.5 py-0.5 bg-zinc-900 text-white text-[10px] uppercase font-black rounded">
+                                Owner
+                              </span>
+                            )}
                           </span>
                           <span className="text-xs text-zinc-500 font-medium">
                             Workspace Access
@@ -526,27 +579,46 @@ export default function TeamBillingPage({
                         <div className="relative">
                           <select
                             value={m.role}
-                            onChange={(e) =>
-                              handleRoleChange(m.id, e.target.value)
-                            }
-                            className={`appearance-none pr-8 pl-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border cursor-pointer focus:outline-none focus:ring-2 transition-all ${
+                            disabled={isCurrentOwnerRow}
+                            onChange={(e) => {
+                              if (e.target.value === "transfer_owner") {
+                                handleTransferOwnership(m.id, emailStr);
+                              } else {
+                                handleRoleChange(m.id, e.target.value);
+                              }
+                            }}
+                            className={`appearance-none pr-8 pl-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border focus:outline-none focus:ring-2 transition-all ${
                               m.role === "admin"
-                                ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 focus:ring-indigo-500/20"
+                                ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 focus:ring-indigo-500/20 cursor-pointer"
                                 : m.role === "owner"
-                                  ? "bg-zinc-900 text-white border-zinc-800 hover:bg-zinc-800"
-                                  : "bg-zinc-100 text-zinc-600 border-zinc-200 hover:bg-zinc-200 focus:ring-zinc-900/20"
+                                  ? "bg-zinc-900 text-white border-zinc-800 cursor-not-allowed opacity-90"
+                                  : "bg-zinc-100 text-zinc-600 border-zinc-200 hover:bg-zinc-200 focus:ring-zinc-900/20 cursor-pointer"
                             }`}
                           >
-                            <option value="owner">Owner</option>
-                            <option value="admin">Admin</option>
-                            <option value="employee">Employee</option>
+                            {isCurrentOwnerRow && (
+                              <option value="owner">Owner</option>
+                            )}
+
+                            {!isCurrentOwnerRow &&
+                              currentUserRole === "owner" && (
+                                <option value="transfer_owner">
+                                  Make Owner (Transfer)
+                                </option>
+                              )}
+
+                            {!isCurrentOwnerRow && (
+                              <option value="admin">Admin</option>
+                            )}
+                            {!isCurrentOwnerRow && (
+                              <option value="employee">Employee</option>
+                            )}
                           </select>
                           <svg
                             className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60 ${
                               m.role === "admin"
                                 ? "text-indigo-700"
                                 : m.role === "owner"
-                                  ? "text-white"
+                                  ? "text-white hidden"
                                   : "text-zinc-600"
                             }`}
                             viewBox="0 0 24 24"
@@ -560,25 +632,29 @@ export default function TeamBillingPage({
                           </svg>
                         </div>
 
-                        <button
-                          onClick={() => removeMember(m.id)}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100"
-                          title="Remove Member"
-                        >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
+                        {!isCurrentOwnerRow ? (
+                          <button
+                            onClick={() => removeMember(m.id)}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100"
+                            title="Remove Member"
                           >
-                            <path d="M18 6 6 18" />
-                            <path d="m6 6 12 12" />
-                          </svg>
-                        </button>
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M18 6 6 18" />
+                              <path d="m6 6 12 12" />
+                            </svg>
+                          </button>
+                        ) : (
+                          <div className="w-8 h-8"></div>
+                        )}
                       </div>
                     </div>
                   );
