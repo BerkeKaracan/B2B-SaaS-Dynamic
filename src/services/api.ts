@@ -99,3 +99,24 @@ export const recordService = {
     }
   },
 };
+
+export const authService = {
+  async completeOnboarding(data: {
+    usage_type: string;
+    workspace_name?: string;
+  }) {
+    const response = await fetchAPI("/api/auth/onboarding", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(
+        errData.detail || `Onboarding failed: ${response.statusText}`,
+      );
+    }
+
+    return response.json();
+  },
+};

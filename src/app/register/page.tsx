@@ -9,7 +9,6 @@ export default function RegisterPage() {
   const router = useRouter();
   const fetchUser = useAuthStore((state) => state.fetchUser);
 
-  const [workspaceName, setWorkspaceName] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +25,11 @@ export default function RegisterPage() {
     const token = localStorage.getItem("token");
     if (token) {
       const savedTenant = localStorage.getItem("tenant_id");
-      router.replace(`/dashboard/${savedTenant || ""}/projects`);
+      if (savedTenant) {
+        router.replace(`/dashboard/${savedTenant}/projects`);
+      } else {
+        router.replace("/onboarding");
+      }
     } else {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsChecking(false);
@@ -51,7 +54,6 @@ export default function RegisterPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          workspace_name: workspaceName,
           full_name: fullName,
           email: email,
           password: password,
@@ -66,10 +68,7 @@ export default function RegisterPage() {
         );
       }
 
-      if (data.tenant_id) {
-        localStorage.setItem("tenant_id", data.tenant_id);
-      }
-
+      // Registration is successful, redirect to login to get token
       router.push("/login?registered=true");
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -167,10 +166,10 @@ export default function RegisterPage() {
           <ColdStartAlert />
           <div className="mb-10 text-center lg:text-left">
             <h2 className="text-3xl font-extrabold text-zinc-900 mb-2.5 tracking-tight">
-              Create Workspace
+              Create Account
             </h2>
             <p className="text-sm text-zinc-500 max-w-xs mx-auto lg:mx-0 leading-relaxed">
-              Set up your account and company space in minutes.
+              Set up your account in seconds.
             </p>
           </div>
 
@@ -195,38 +194,6 @@ export default function RegisterPage() {
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-1.5 group">
-              <label className="text-xs font-semibold text-zinc-700 pl-1">
-                Workspace Name
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-zinc-900 transition-colors z-20">
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 21h18"></path>
-                    <path d="M5 21V7l8-4 8 4v14"></path>
-                    <path d="M9 10a6.3 6.3 0 0 1 6 0"></path>
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  value={workspaceName}
-                  onChange={(e) => setWorkspaceName(e.target.value)}
-                  placeholder="Acme Corp."
-                  className="relative z-10 w-full pl-11 pr-4 py-3 bg-white border border-zinc-200/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-all shadow-inner"
-                  required
-                />
-              </div>
-            </div>
-
             <div className="space-y-1.5 group">
               <label className="text-xs font-semibold text-zinc-700 pl-1">
                 Full Name
@@ -396,7 +363,7 @@ export default function RegisterPage() {
                 </>
               ) : (
                 <>
-                  Create Workspace
+                  Create Account
                   <svg
                     width="18"
                     height="18"

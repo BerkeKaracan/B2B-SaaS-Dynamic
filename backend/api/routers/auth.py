@@ -1,7 +1,7 @@
 import re
 from fastapi import APIRouter, HTTPException, Header, Request
 from core.database import supabase, supabase_admin
-from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse
+from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, OnboardingRequest, OnboardingResponse
 from core.limiter import limiter
 
 router = APIRouter(
@@ -11,7 +11,7 @@ router = APIRouter(
 
 @router.post("/register", response_model=RegisterResponse)
 @limiter.limit("3/minute")
-def register_workspace(request: Request, request_data: RegisterRequest) -> RegisterResponse:
+def register_user(request: Request, request_data: RegisterRequest) -> RegisterResponse:
     try:
         auth_res = supabase.auth.sign_up({
             "email": request_data.email,
@@ -25,22 +25,8 @@ def register_workspace(request: Request, request_data: RegisterRequest) -> Regis
         if not user_id:
              raise HTTPException(status_code=400, detail="Failed to create user.")
 
-        tenant_res = supabase_admin.table("tenants").insert({
-            "name": request_data.workspace_name
-        }).execute()
-        
-        tenant_id = tenant_res.data[0]["id"]
-
-        supabase_admin.table("tenant_users").insert({
-            "tenant_id": tenant_id,
-            "user_id": user_id,
-            "role": "owner",
-            "email": request_data.email.lower().strip() 
-        }).execute()
-
         return RegisterResponse(
-            message="Workspace created successfully.",
-            tenant_id=str(tenant_id),
+            message="User registered successfully. Please proceed to onboarding.",
             user_id=str(user_id)
         )
 
@@ -52,6 +38,59 @@ def register_workspace(request: Request, request_data: RegisterRequest) -> Regis
         if hasattr(e, 'message'):
             raise HTTPException(status_code=400, detail=e.message)
         raise HTTPException(status_code=500, detail=error_msg)
+
+
+@router.post("/onboarding", response_model=OnboardingResponse)
+@limiter.limit("3/minute")
+def complete_onboarding(request: Request, request_data: OnboardingRequest, authorization: str = Header(...)) -> OnboardingResponse:
+    try:
+        token = authorization.replace("Bearer ", "")
+        user_res = supabase.auth.get_user(token)
+        
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="Invalid or expired session.")
+            
+        user_id = user_res.user.id
+        full_name = user_res.user.user_metadata.get("full_name", "User")
+        email = user_res.user.email
+
+        existing_user = supabase_admin.table("tenant_users").select("id").eq("user_id", user_id).limit(1).execute()
+        if existing_user.data:
+            raise HTTPException(status_code=400, detail="User already completed onboarding.")
+
+        final_workspace_name = request_data.workspace_name
+        
+        if request_data.usage_type == "individual":
+            final_workspace_name = f"{full_name}'s Workspace"
+        elif request_data.usage_type == "team":
+            if not final_workspace_name or not final_workspace_name.strip():
+                raise HTTPException(status_code=400, detail="Workspace name is required for team usage.")
+        else:
+            raise HTTPException(status_code=400, detail="Invalid usage_type. Must be 'individual' or 'team'.")
+
+        tenant_res = supabase_admin.table("tenants").insert({
+            "name": final_workspace_name
+        }).execute()
+        
+        tenant_id = tenant_res.data[0]["id"]
+
+        supabase_admin.table("tenant_users").insert({
+            "tenant_id": tenant_id,
+            "user_id": user_id,
+            "role": "owner",
+            "email": email.lower().strip() if email else ""
+        }).execute()
+
+        return OnboardingResponse(
+            message="Onboarding completed and workspace created successfully.",
+            tenant_id=str(tenant_id),
+            user_id=str(user_id)
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -75,17 +114,16 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
             .order("created_at")\
             .execute()
             
-        if not tenant_user_res.data:
-            raise HTTPException(status_code=404, detail="No workspace found for this user.")
-            
-        target_tenant_id = None
-        for row in tenant_user_res.data:
-            if row.get("role") == "owner":
-                target_tenant_id = row["tenant_id"]
-                break
-                
-        if not target_tenant_id:
-            target_tenant_id = tenant_user_res.data[0]["tenant_id"]
+        target_tenant_id = ""
+        
+        if tenant_user_res.data:
+            for row in tenant_user_res.data:
+                if row.get("role") == "owner":
+                    target_tenant_id = row["tenant_id"]
+                    break
+                    
+            if not target_tenant_id and len(tenant_user_res.data) > 0:
+                target_tenant_id = tenant_user_res.data[0]["tenant_id"]
         
         return LoginResponse(
             message="Login successful.",

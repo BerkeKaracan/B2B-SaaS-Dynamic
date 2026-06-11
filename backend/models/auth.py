@@ -2,14 +2,12 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 
 class RegisterRequest(BaseModel):
-    workspace_name: str
     full_name: str
     email: EmailStr
     password: str
 
 class RegisterResponse(BaseModel):
     message: str
-    tenant_id: str
     user_id: str
 
 class LoginRequest(BaseModel):
@@ -19,5 +17,14 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     message: str
     access_token: str
+    tenant_id: str
+    user_id: str
+
+class OnboardingRequest(BaseModel):
+    usage_type: str 
+    workspace_name: Optional[str] = None
+
+class OnboardingResponse(BaseModel):
+    message: str
     tenant_id: str
     user_id: str

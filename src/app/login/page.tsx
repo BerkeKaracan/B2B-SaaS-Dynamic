@@ -44,7 +44,7 @@ export default function LoginPage() {
         }
       }
     } catch (error) {
-      console.error("Subdomain yönlendirme hatası:", error);
+      console.error("Subdomain redirection error:", error);
     }
 
     router.push(`/dashboard/${tenantId}`);
@@ -88,7 +88,8 @@ export default function LoginPage() {
           if (tenantId && tenantId !== "undefined") {
             await redirectUser(tenantId, token);
           } else {
-            throw new Error("No tenant");
+            // User has a valid token but no workspace -> Onboarding
+            router.replace("/onboarding");
           }
         } else {
           throw new Error("Invalid token");
@@ -125,21 +126,21 @@ export default function LoginPage() {
         throw new Error(data.detail || "Authentication failed.");
       }
 
-      const tenantId = data.tenant_id || data.user?.tenant_id;
-
-      if (!tenantId) {
-        throw new Error(
-          "The login was successful, but the Tenant ID could not be retrieved from the backend.",
-        );
-      }
-
       localStorage.setItem("token", data.access_token);
-      localStorage.setItem("tenant_id", tenantId);
 
       if (fetchUser) {
         await fetchUser();
       }
 
+      const tenantId = data.tenant_id || data.user?.tenant_id;
+
+      if (!tenantId || tenantId === "") {
+        localStorage.removeItem("tenant_id");
+        router.push("/onboarding");
+        return;
+      }
+
+      localStorage.setItem("tenant_id", tenantId);
       await redirectUser(tenantId, data.access_token);
     } catch (err: unknown) {
       if (err instanceof Error) {
