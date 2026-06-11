@@ -43,6 +43,8 @@ export default function TeamBillingPage({
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [usageType, setUsageType] = useState<string>("team");
 
+  const [projectsCount, setProjectsCount] = useState<number>(0);
+
   const [logoUrl, setLogoUrl] = useState<string>("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -135,6 +137,29 @@ export default function TeamBillingPage({
         if (res2.ok) {
           const membersData = await res2.json();
           setMembers(membersData);
+        }
+
+        try {
+          const projRes = await fetch(
+            `${API_BASE_URL}/api/records/?tenant_id=${tenantId}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          if (projRes.ok) {
+            const projData = await projRes.json();
+            if (Array.isArray(projData)) {
+              const actualItems = projData.filter(
+                (item: { module_name?: string }) =>
+                  item.module_name !== "workspace_modules",
+              );
+              setProjectsCount(actualItems.length);
+            } else {
+              setProjectsCount(0);
+            }
+          }
+        } catch (e) {
+          console.warn("Could not fetch projects count for billing", e);
         }
       } catch (err: unknown) {
         console.error("Auth Error:", err);
@@ -623,20 +648,26 @@ export default function TeamBillingPage({
 
             <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
               <h3 className="text-base font-bold text-zinc-900 mb-4">
-                Workspace Usage
+                Active Items / Projects
               </h3>
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-sm font-medium mb-2">
                     <span className="text-zinc-600">Active Projects</span>
                     <span className="text-zinc-900 font-bold">
-                      3 / {tier === "Pro Plan" ? "Unlimited" : "5"}
+                      {projectsCount} /{" "}
+                      {tier === "Pro Plan" ? "Unlimited" : "5"}
                     </span>
                   </div>
                   <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
                     <div
-                      className="bg-blue-500 h-2 rounded-full"
-                      style={{ width: "60%" }}
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                      style={{
+                        width:
+                          tier === "Pro Plan"
+                            ? "10%"
+                            : `${Math.min((projectsCount / 5) * 100, 100)}%`,
+                      }}
                     ></div>
                   </div>
                 </div>
@@ -651,12 +682,12 @@ export default function TeamBillingPage({
                     </div>
                     <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
                       <div
-                        className="bg-emerald-500 h-2 rounded-full"
+                        className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
                         style={{
                           width:
                             tier === "Pro Plan"
                               ? "10%"
-                              : `${(members.length / 10) * 100}%`,
+                              : `${Math.min((members.length / 10) * 100, 100)}%`,
                         }}
                       ></div>
                     </div>
