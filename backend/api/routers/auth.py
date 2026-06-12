@@ -2,7 +2,7 @@ import re
 from fastapi import APIRouter, HTTPException, Header, Request, UploadFile, File
 import uuid
 from core.database import supabase, supabase_admin
-from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, OnboardingRequest, OnboardingResponse, UserProfileUpdate
+from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, OnboardingRequest, OnboardingResponse, UserProfileUpdate, UserPasswordUpdate
 from core.limiter import limiter
 
 router = APIRouter(
@@ -278,5 +278,23 @@ async def upload_avatar(file: UploadFile = File(...), authorization: str = Heade
         )
         
         return {"success": True, "avatar_url": public_url}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.put("/password")
+def update_password(request_data: UserPasswordUpdate, authorization: str = Header(...)):
+    try:
+        token = authorization.replace("Bearer ", "")
+        user_res = supabase.auth.get_user(token)
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="Invalid session")
+            
+        user_id = user_res.user.id
+        supabase_admin.auth.admin.update_user_by_id(
+            user_id,
+            {"password": request_data.password}
+        )
+        
+        return {"success": True, "message": "Password updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

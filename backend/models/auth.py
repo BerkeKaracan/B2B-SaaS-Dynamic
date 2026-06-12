@@ -31,3 +31,6 @@ class OnboardingResponse(BaseModel):
 
 class UserProfileUpdate(BaseModel):
     full_name: Optional[str] = None
+
+class UserPasswordUpdate(BaseModel):
+    password: str

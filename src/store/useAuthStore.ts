@@ -19,6 +19,7 @@ interface AuthState {
   logout: () => void;
   updateProfile: (data: { full_name: string }) => Promise<void>;
   uploadAvatar: (file: File) => Promise<string>;
+  updatePassword: (password: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -111,5 +112,26 @@ export const useAuthStore = create<AuthState>((set) => ({
     }));
 
     return data.avatar_url;
+  },
+  updatePassword: async (password) => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) throw new Error("No token found");
+
+    const API_BASE_URL =
+      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+    const res = await fetch(`${API_BASE_URL}/api/auth/password`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ password }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Failed to update password");
+    }
   },
 }));
