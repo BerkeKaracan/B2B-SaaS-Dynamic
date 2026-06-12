@@ -4,7 +4,7 @@ from uuid import UUID
 from datetime import datetime, timezone
 import time
 
-from core.database import supabase
+from core.database import supabase, supabase_admin
 from models.record import RecordCreate, RecordUpdate, RecordResponse
 
 router = APIRouter(
@@ -78,10 +78,30 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
     try:
         data = record.model_dump(mode='json')
         req_tenant = str(data.get("tenant_id"))
+        req_module = data.get("module_name", "projects") 
         
         if req_tenant not in user["tenant_roles"]:
             raise HTTPException(status_code=403, detail="You do not have permission to create records in this workspace.")
+
+        tenant_res = supabase_admin.table("tenants").select("tier").eq("id", req_tenant).execute()
+        if not tenant_res.data:
+            raise HTTPException(status_code=404, detail="Workspace not found")
             
+        current_tier = (tenant_res.data[0].get("tier") or "basic").lower()
+        if current_tier == "free": 
+            current_tier = "basic"
+            
+        projects_res = supabase_admin.table("custom_records").select("id", count="exact").eq("tenant_id", req_tenant).eq("module_name", req_module).execute()
+        current_project_count = projects_res.count if projects_res.count is not None else len(projects_res.data)
+        
+        project_limits = {"basic": 5, "advanced": 100, "pro": float('inf')}
+        limit = project_limits.get(current_tier, 5)
+        
+        if current_project_count >= limit:
+             raise HTTPException(
+                status_code=403, 
+                detail=f"Project limit reached! Your {current_tier.capitalize()} plan allows up to {limit} projects. Please upgrade your plan."
+            )
         if "record_data" not in data or not data["record_data"]:
             data["record_data"] = {}
             
