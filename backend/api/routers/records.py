@@ -83,26 +83,26 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
         if req_tenant not in user["tenant_roles"]:
             raise HTTPException(status_code=403, detail="You do not have permission to create records in this workspace.")
 
-        tenant_res = supabase_admin.table("tenants").select("tier").eq("id", req_tenant).execute()
-        if not tenant_res.data:
-            raise HTTPException(status_code=404, detail="Workspace not found")
+        if req_module != "workspace_modules":
+            tenant_res = supabase_admin.table("tenants").select("tier").eq("id", req_tenant).execute()
+            if not tenant_res.data:
+                raise HTTPException(status_code=404, detail="Workspace not found")
+                
+            current_tier = (tenant_res.data[0].get("tier") or "basic").lower()
+            if current_tier == "free": 
+                current_tier = "basic"
+                
+            records_res = supabase_admin.table("custom_records").select("id, module_name").eq("tenant_id", req_tenant).execute()
+            current_project_count = sum(1 for r in records_res.data if r.get("module_name") != "workspace_modules")
             
-        current_tier = (tenant_res.data[0].get("tier") or "basic").lower()
-        if current_tier == "free": 
-            current_tier = "basic"
+            project_limits = {"basic": 5, "advanced": 100, "pro": float('inf')}
+            limit = project_limits.get(current_tier, 5)
             
-        records_res = supabase_admin.table("custom_records").select("id, module_name").eq("tenant_id", req_tenant).execute()
-        valid_project_modules = ["projects", "project", None, ""]
-        current_project_count = sum(1 for r in records_res.data if r.get("module_name") in valid_project_modules)
-        
-        project_limits = {"basic": 5, "advanced": 100, "pro": float('inf')}
-        limit = project_limits.get(current_tier, 5)
-        
-        if current_project_count >= limit:
-             raise HTTPException(
-                status_code=403, 
-                detail=f"Project limit reached! Found {current_project_count} projects. Your {current_tier.capitalize()} plan allows up to {limit}."
-            )
+            if current_project_count >= limit:
+                 raise HTTPException(
+                    status_code=403, 
+                    detail=f"Project limit reached! Found {current_project_count} projects. Your {current_tier.capitalize()} plan allows up to {limit}."
+                )
         if "record_data" not in data or not data["record_data"]:
             data["record_data"] = {}
             
