@@ -5,6 +5,17 @@ export default function ColdStartAlert() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    const wakeUpServer = async () => {
+      const API_BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL ||
+        "https://saas-engine-backend.onrender.com";
+      try {
+        await fetch(`${API_BASE_URL}/health`);
+      } catch (error) {
+        console.error("Wake up call failed:", error);
+      }
+    };
+
     const hasSeenAlert = sessionStorage.getItem("hasSeenColdStartAlert");
 
     if (!hasSeenAlert) {
@@ -12,8 +23,12 @@ export default function ColdStartAlert() {
       setIsVisible(true);
       sessionStorage.setItem("hasSeenColdStartAlert", "true");
 
+      wakeUpServer();
+
       const timer = setTimeout(() => setIsVisible(false), 35000);
       return () => clearTimeout(timer);
+    } else {
+      wakeUpServer();
     }
   }, []);
 

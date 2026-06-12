@@ -28,3 +28,6 @@ class OnboardingResponse(BaseModel):
     message: str
     tenant_id: str
     user_id: str
+
+class UserProfileUpdate(BaseModel):
+    full_name: Optional[str] = None

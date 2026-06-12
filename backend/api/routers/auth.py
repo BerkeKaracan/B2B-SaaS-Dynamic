@@ -1,5 +1,6 @@
 import re
-from fastapi import APIRouter, HTTPException, Header, Request
+from fastapi import APIRouter, HTTPException, Header, Request, UploadFile, File
+import uuid
 from core.database import supabase, supabase_admin
 from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, OnboardingRequest, OnboardingResponse
 from core.limiter import limiter
@@ -185,6 +186,9 @@ def get_current_user(request: Request, authorization: str = Header(...)) -> dict
             raise HTTPException(status_code=401, detail="Invalid session")
             
         full_name = user_res.user.user_metadata.get("full_name", "User")
+        avatar_url = user_res.user.user_metadata.get("avatar_url", "") 
+        email = user_res.user.email 
+        
         words = full_name.split()
         initials = "".join([word[0] for word in words]).upper()[:2]
 
@@ -209,9 +213,70 @@ def get_current_user(request: Request, authorization: str = Header(...)) -> dict
             pass 
         
         return {
+            "user_id": user_res.user.id,
+            "email": email,
             "full_name": full_name,
             "initials": initials,
-            "role": role
+            "role": role,
+            "avatar_url": avatar_url 
         }
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
+
+@router.put("/me")
+def update_profile(request_data: UserProfileUpdate, authorization: str = Header(...)):
+    try:
+        token = authorization.replace("Bearer ", "")
+        user_res = supabase.auth.get_user(token)
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="Invalid session")
+            
+        user_id = user_res.user.id
+        current_metadata = user_res.user.user_metadata or {}
+        
+        if request_data.full_name is not None:
+            current_metadata["full_name"] = request_data.full_name
+
+        res = supabase_admin.auth.admin.update_user_by_id(
+            user_id,
+            {"user_metadata": current_metadata}
+        )
+        
+        return {"success": True, "message": "Profile updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/avatar")
+async def upload_avatar(file: UploadFile = File(...), authorization: str = Header(...)):
+    try:
+        token = authorization.replace("Bearer ", "")
+        user_res = supabase.auth.get_user(token)
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="Invalid session")
+            
+        user_id = user_res.user.id
+        
+        file_ext = file.filename.split(".")[-1]
+        file_name = f"{user_id}/{uuid.uuid4()}.{file_ext}"
+        
+        file_bytes = await file.read()
+        
+        supabase_admin.storage.from_("avatars").upload(
+            file_name,
+            file_bytes,
+            file_options={"content-type": file.content_type, "upsert": "true"}
+        )
+        
+        public_url = supabase_admin.storage.from_("avatars").get_public_url(file_name)
+        
+        current_metadata = user_res.user.user_metadata or {}
+        current_metadata["avatar_url"] = public_url
+
+        supabase_admin.auth.admin.update_user_by_id(
+            user_id,
+            {"user_metadata": current_metadata}
+        )
+        
+        return {"success": True, "avatar_url": public_url}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

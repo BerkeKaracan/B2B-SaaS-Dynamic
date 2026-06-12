@@ -68,6 +68,10 @@ app.include_router(tenants.router)
 app.include_router(public.router)
 app.include_router(notifications.router)
 
+@app.get("/", tags=["System"])
+async def root() -> dict[str, str]:
+    return {"status": "alive", "message": "SaaS Engine API is running"}
+
 @app.get("/health", tags=["System"])
 async def health_check() -> dict[str, str]:
     return {"status": "healthy", "service": "SaaS Engine API"}
