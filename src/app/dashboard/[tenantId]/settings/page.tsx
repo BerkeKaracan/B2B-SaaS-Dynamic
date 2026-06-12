@@ -126,6 +126,7 @@ export default function TeamBillingPage({
           if (tenantData.logo_url) setLogoUrl(tenantData.logo_url);
           if (tenantData.timezone) setTimezone(tenantData.timezone);
           if (tenantData.date_format) setDateFormat(tenantData.date_format);
+
           if (tenantData.tier === "pro") setTier("Pro Plan");
           else if (tenantData.tier === "advanced") setTier("Advanced Plan");
           else setTier("Basic Plan");
@@ -406,6 +407,32 @@ export default function TeamBillingPage({
     }
   };
 
+  const handleUpgradeTier = async (newTier: "advanced" | "pro") => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/tier`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ tier: newTier }),
+      });
+
+      if (res.ok) {
+        showNotification(
+          "success",
+          `Plan upgraded to ${newTier === "pro" ? "Pro" : "Advanced"} successfully!`,
+        );
+        setTier(newTier === "pro" ? "Pro Plan" : "Advanced Plan");
+      } else {
+        showNotification("error", "Failed to upgrade plan.");
+      }
+    } catch (e) {
+      showNotification("error", "Server connection error.");
+    }
+  };
+
   const getAvatarGradient = (email: string) => {
     const colors = [
       "from-blue-500 to-indigo-500",
@@ -415,6 +442,18 @@ export default function TeamBillingPage({
     ];
     const index = email.length % colors.length;
     return colors[index];
+  };
+
+  const getProjectLimit = () => {
+    if (tier === "Pro Plan") return "Unlimited";
+    if (tier === "Advanced Plan") return 50;
+    return 5;
+  };
+
+  const getMemberLimit = () => {
+    if (tier === "Pro Plan") return "Unlimited";
+    if (tier === "Advanced Plan") return 50;
+    return 3;
   };
 
   if (isCheckingAccess) {
@@ -683,43 +722,28 @@ export default function TeamBillingPage({
                   </span>
                 </div>
                 <p className="text-sm text-zinc-500 mt-2">
-                  You are currently on the {tier}. Upgrade for unlimited
-                  projects and features.
+                  You are currently on the {tier}. Upgrade for more projects and
+                  features.
                 </p>
               </div>
-              <button
-                onClick={async () => {
-                  try {
-                    const token = localStorage.getItem("token");
-                    const res = await fetch(
-                      `${API_BASE_URL}/api/tenants/${tenantId}/tier`,
-                      {
-                        method: "PUT",
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${token}`,
-                        },
-                        body: JSON.stringify({ tier: "pro" }),
-                      },
-                    );
-
-                    if (res.ok) {
-                      showNotification(
-                        "success",
-                        "Plan upgraded to Pro successfully!",
-                      );
-                      setTier("Pro Plan");
-                    } else {
-                      showNotification("error", "Failed to upgrade plan.");
-                    }
-                  } catch (e) {
-                    showNotification("error", "Server connection error.");
-                  }
-                }}
-                className="bg-zinc-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
-              >
-                Upgrade to Pro
-              </button>
+              <div className="flex gap-3">
+                {tier === "Basic Plan" && (
+                  <button
+                    onClick={() => handleUpgradeTier("advanced")}
+                    className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
+                  >
+                    Upgrade to Advanced
+                  </button>
+                )}
+                {tier !== "Pro Plan" && (
+                  <button
+                    onClick={() => handleUpgradeTier("pro")}
+                    className="bg-zinc-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
+                  >
+                    Upgrade to Pro
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
@@ -731,8 +755,7 @@ export default function TeamBillingPage({
                   <div className="flex justify-between text-sm font-medium mb-2">
                     <span className="text-zinc-600">Active Projects</span>
                     <span className="text-zinc-900 font-bold">
-                      {projectsCount} /{" "}
-                      {tier === "Pro Plan" ? "Unlimited" : "5"}
+                      {projectsCount} / {getProjectLimit()}
                     </span>
                   </div>
                   <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
@@ -742,7 +765,7 @@ export default function TeamBillingPage({
                         width:
                           tier === "Pro Plan"
                             ? "10%"
-                            : `${Math.min((projectsCount / 5) * 100, 100)}%`,
+                            : `${Math.min((projectsCount / (getProjectLimit() as number)) * 100, 100)}%`,
                       }}
                     ></div>
                   </div>
@@ -752,8 +775,7 @@ export default function TeamBillingPage({
                     <div className="flex justify-between text-sm font-medium mb-2">
                       <span className="text-zinc-600">Team Members</span>
                       <span className="text-zinc-900 font-bold">
-                        {members.length} /{" "}
-                        {tier === "Pro Plan" ? "Unlimited" : "10"}
+                        {members.length} / {getMemberLimit()}
                       </span>
                     </div>
                     <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
@@ -763,7 +785,7 @@ export default function TeamBillingPage({
                           width:
                             tier === "Pro Plan"
                               ? "10%"
-                              : `${Math.min((members.length / 10) * 100, 100)}%`,
+                              : `${Math.min((members.length / (getMemberLimit() as number)) * 100, 100)}%`,
                         }}
                       ></div>
                     </div>
