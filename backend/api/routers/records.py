@@ -91,8 +91,9 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
         if current_tier == "free": 
             current_tier = "basic"
             
-        projects_res = supabase_admin.table("custom_records").select("id", count="exact").eq("tenant_id", req_tenant).eq("module_name", req_module).execute()
-        current_project_count = projects_res.count if projects_res.count is not None else len(projects_res.data)
+        records_res = supabase_admin.table("custom_records").select("id, module_name").eq("tenant_id", req_tenant).execute()
+        valid_project_modules = ["projects", "project", None, ""]
+        current_project_count = sum(1 for r in records_res.data if r.get("module_name") in valid_project_modules)
         
         project_limits = {"basic": 5, "advanced": 100, "pro": float('inf')}
         limit = project_limits.get(current_tier, 5)
@@ -100,7 +101,7 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
         if current_project_count >= limit:
              raise HTTPException(
                 status_code=403, 
-                detail=f"Project limit reached! Your {current_tier.capitalize()} plan allows up to {limit} projects. Please upgrade your plan."
+                detail=f"Project limit reached! Found {current_project_count} projects. Your {current_tier.capitalize()} plan allows up to {limit}."
             )
         if "record_data" not in data or not data["record_data"]:
             data["record_data"] = {}
