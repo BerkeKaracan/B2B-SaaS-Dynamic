@@ -88,7 +88,6 @@ export default function LoginPage() {
           if (tenantId && tenantId !== "undefined") {
             await redirectUser(tenantId, token);
           } else {
-            // User has a valid token but no workspace -> Onboarding
             router.replace("/onboarding");
           }
         } else {
@@ -102,7 +101,6 @@ export default function LoginPage() {
     };
 
     verifyToken();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -151,6 +149,16 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl) {
+      setError("System configuration error: Missing Supabase URL.");
+      return;
+    }
+    const redirectTo = encodeURIComponent(`${window.location.origin}/login`);
+    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}`;
   };
 
   if (isChecking) {
@@ -251,6 +259,7 @@ export default function LoginPage() {
             <div className="flex gap-3 mb-6">
               <button
                 type="button"
+                onClick={handleGoogleLogin}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-zinc-200/80 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-700 transition-all shadow-sm"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
