@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export default function DashboardFooter() {
   return (
-    <footer className="h-10 shrink-0 border-t border-zinc-200/60 bg-white flex items-center justify-between px-4 text-[11px] text-zinc-400">
+    <footer className="hidden md:flex h-10 shrink-0 border-t border-zinc-200/60 bg-white items-center justify-between px-4 text-[11px] text-zinc-400">
       <span className="font-bold text-zinc-600 tracking-tight uppercase">
         SaaS Engine
       </span>

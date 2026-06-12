@@ -31,6 +31,7 @@ export default function RegisterPage() {
         router.replace("/onboarding");
       }
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsChecking(false);
     }
   }, [router]);
