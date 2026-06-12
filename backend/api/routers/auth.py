@@ -2,7 +2,7 @@ import re
 from fastapi import APIRouter, HTTPException, Header, Request, UploadFile, File
 import uuid
 from core.database import supabase, supabase_admin
-from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, OnboardingRequest, OnboardingResponse
+from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, OnboardingRequest, OnboardingResponse, UserProfileUpdate
 from core.limiter import limiter
 
 router = APIRouter(

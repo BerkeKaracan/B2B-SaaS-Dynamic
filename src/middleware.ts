@@ -46,10 +46,7 @@ export async function middleware(request: NextRequest) {
 
   if (!url.pathname.startsWith("/dashboard")) {
     try {
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://backend:8000";
-      if (apiUrl.includes("localhost")) {
-        apiUrl = "http://backend:8000";
-      }
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
       const res = await fetch(`${apiUrl}/api/tenants/by-slug/${subdomain}`);
 
