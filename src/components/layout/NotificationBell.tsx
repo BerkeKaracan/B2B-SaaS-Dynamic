@@ -33,11 +33,17 @@ export default function NotificationBell() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchNotifications = async () => {
       try {
         const res = await fetchAPI("/api/notifications");
+
+        if (!isMounted) return;
+
         if (res.ok) {
           const data = (await res.json()) as BackendNotification[];
+          if (!isMounted) return;
 
           const mappedData: Notification[] = data.map((n) => ({
             id: n.id,
@@ -59,7 +65,11 @@ export default function NotificationBell() {
 
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 60000);
-    return () => clearInterval(interval);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {

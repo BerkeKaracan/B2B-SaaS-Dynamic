@@ -4,6 +4,11 @@ import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { fetchAPI } from "@/services/api";
+import { useCanvasStore } from "@/store/useCanvasStore";
+
+import StaticKanbanBoard from "@/components/kanban/StaticKanbanBoard";
+import NotepadBoard from "@/components/notepad/NotepadBoard";
+import TimelineBoard from "@/components/timeline/TimelineBoard";
 
 type BlockContent = {
   id: string;
@@ -42,6 +47,12 @@ export default function PublicSharePage() {
   const [meta, setMeta] = useState<ProjectMetadata | null>(null);
   const [pages, setPages] = useState<PageContent[]>([]);
 
+  // 🚀 FIX 2: Template durumunu tutacak state
+  const [template, setTemplate] = useState<string>("blank");
+
+  // 🚀 FIX 3: Store'u çağırıyoruz
+  const updateMetadata = useCanvasStore((state) => state.updateMetadata);
+
   const [zoom, setZoom] = useState<number>(100);
   const [panX, setPanX] = useState<number>(0);
   const [panY, setPanY] = useState<number>(0);
@@ -74,6 +85,13 @@ export default function PublicSharePage() {
           updated_by: data.updated_by || rootData.updated_by || "System",
         });
 
+        // 🚀 FIX 4: Gelen verinin template türünü alıyoruz
+        const currentTemplate = rootData.template || "blank";
+        setTemplate(currentTemplate);
+
+        // 🚀 FIX 5: Tüm datayı global store'a aktarıyoruz (Kanban, vs. buradan okuyacak)
+        updateMetadata(rootData);
+
         // 🚀 FIX: pages alanı nerede olursa olsun (kök veya record_data içi) güvenli şekilde yakala!
         const fetchedPages = rootData.pages || data.pages || [];
         setPages(fetchedPages);
@@ -89,7 +107,7 @@ export default function PublicSharePage() {
     };
 
     if (projectId) fetchSharedWorkspace();
-  }, [projectId]);
+  }, [projectId, updateMetadata]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setIsPanning(true);
@@ -165,32 +183,32 @@ export default function PublicSharePage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#fafafb] text-zinc-900 font-sans selection:bg-zinc-200 flex flex-col overflow-hidden relative">
-      <header className="relative z-50 h-14 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md px-6 flex items-center justify-between shadow-xs shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="w-7 h-7 bg-zinc-950 rounded-lg flex items-center justify-center shadow-xs">
-            <span className="text-white text-[10px] font-black font-mono">
-              B2
-            </span>
-          </div>
-          <div className="h-4 w-px bg-zinc-200"></div>
-          <div className="flex flex-col">
-            <h1 className="text-xs font-black text-zinc-950 tracking-tight leading-none">
-              {meta?.name}
-            </h1>
-            {meta?.updated_at && (
-              <span className="text-[9px] font-bold text-zinc-400 mt-1">
-                Snapshot: {new Date(meta.updated_at).toLocaleDateString()}
-              </span>
-            )}
-          </div>
-          <span className="ml-2 px-2 py-0.5 bg-zinc-100 text-zinc-500 text-[9px] font-black uppercase tracking-widest rounded shadow-xs border border-zinc-200">
-            Read Only
-          </span>
+  // 🚀 FIX 6: Template'e göre doğru görünümü döndüren fonksiyon
+  const renderWorkspaceContent = () => {
+    if (template === "kanban") {
+      return (
+        <div className="relative flex-1 w-full h-full">
+          <StaticKanbanBoard projectId={projectId} />
         </div>
-      </header>
+      );
+    }
+    if (template === "notepad") {
+      return (
+        <div className="relative flex-1 w-full h-full">
+          <NotepadBoard projectId={projectId} />
+        </div>
+      );
+    }
+    if (template === "timeline") {
+      return (
+        <div className="relative flex-1 w-full h-full">
+          <TimelineBoard projectId={projectId} />
+        </div>
+      );
+    }
 
+    // Default Canvas / Koordinat Sistemi Render Mantığı
+    return (
       <main
         className={`flex-1 relative z-10 w-full h-full overflow-hidden ${isPanning ? "cursor-grabbing" : "cursor-grab"}`}
         onPointerDown={handlePointerDown}
@@ -270,54 +288,91 @@ export default function PublicSharePage() {
           )}
         </div>
       </main>
+    );
+  };
 
-      <div className="absolute bottom-6 right-6 z-50 flex items-center bg-white border border-zinc-200 shadow-sm rounded-xl p-1.5 gap-1 pointer-events-auto">
-        <button
-          onClick={() => setZoom(Math.max(20, zoom - 10))}
-          className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-950 hover:bg-zinc-50 rounded-lg transition-colors"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
+  return (
+    <div className="min-h-screen bg-[#fafafb] text-zinc-900 font-sans selection:bg-zinc-200 flex flex-col overflow-hidden relative">
+      <header className="relative z-50 h-14 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md px-6 flex items-center justify-between shadow-xs shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-7 h-7 bg-zinc-950 rounded-lg flex items-center justify-center shadow-xs">
+            <span className="text-white text-[10px] font-black font-mono">
+              B2
+            </span>
+          </div>
+          <div className="h-4 w-px bg-zinc-200"></div>
+          <div className="flex flex-col">
+            <h1 className="text-xs font-black text-zinc-950 tracking-tight leading-none">
+              {meta?.name}
+            </h1>
+            {meta?.updated_at && (
+              <span className="text-[9px] font-bold text-zinc-400 mt-1">
+                Snapshot: {new Date(meta.updated_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          <span className="ml-2 px-2 py-0.5 bg-zinc-100 text-zinc-500 text-[9px] font-black uppercase tracking-widest rounded shadow-xs border border-zinc-200">
+            Read Only
+          </span>
+          {template !== "blank" && (
+            <span className="ml-1 px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black uppercase tracking-widest rounded shadow-xs border border-blue-200">
+              {template}
+            </span>
+          )}
+        </div>
+      </header>
+
+      {renderWorkspaceContent()}
+
+      {template === "blank" && (
+        <div className="absolute bottom-6 right-6 z-50 flex items-center bg-white border border-zinc-200 shadow-sm rounded-xl p-1.5 gap-1 pointer-events-auto">
+          <button
+            onClick={() => setZoom(Math.max(20, zoom - 10))}
+            className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-950 hover:bg-zinc-50 rounded-lg transition-colors"
           >
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-        </button>
-        <span className="text-[10px] font-black text-zinc-600 px-2 w-12 text-center select-none">
-          {Math.round(zoom)}%
-        </span>
-        <button
-          onClick={() => setZoom(Math.min(300, zoom + 10))}
-          className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-950 hover:bg-zinc-50 rounded-lg transition-colors"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <span className="text-[10px] font-black text-zinc-600 px-2 w-12 text-center select-none">
+            {Math.round(zoom)}%
+          </span>
+          <button
+            onClick={() => setZoom(Math.min(300, zoom + 10))}
+            className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-950 hover:bg-zinc-50 rounded-lg transition-colors"
           >
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-        </button>
-        <div className="w-px h-4 bg-zinc-200 mx-1"></div>
-        <button
-          onClick={() => {
-            setPanX(0);
-            setPanY(0);
-            setZoom(100);
-          }}
-          className="px-3 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-950 hover:bg-zinc-50 rounded-lg text-[10px] font-bold transition-colors"
-        >
-          Reset
-        </button>
-      </div>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <div className="w-px h-4 bg-zinc-200 mx-1"></div>
+          <button
+            onClick={() => {
+              setPanX(0);
+              setPanY(0);
+              setZoom(100);
+            }}
+            className="px-3 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-950 hover:bg-zinc-50 rounded-lg text-[10px] font-bold transition-colors"
+          >
+            Reset
+          </button>
+        </div>
+      )}
     </div>
   );
 }

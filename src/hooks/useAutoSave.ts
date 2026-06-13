@@ -19,6 +19,9 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
   const notepadTexts = metadata?.notepadTexts;
   const notepadTitle = metadata?.notepadTitle;
 
+  const tasks = metadata?.tasks;
+  const timelineEvents = metadata?.timelineEvents;
+
   useEffect(() => {
     if (!recordId) return;
 
@@ -48,6 +51,8 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
     notepadStrokes,
     notepadTexts,
     notepadTitle,
+    tasks, 
+    timelineEvents, 
   ]);
 
   useEffect(() => {
