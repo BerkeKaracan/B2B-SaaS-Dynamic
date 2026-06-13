@@ -201,14 +201,20 @@ def get_current_user(request: Request, authorization: str = Header(...)) -> dict
                 current_tenant_id = match.group(1)
 
         role = "employee" 
+        resolved_tenant_id = current_tenant_id
+
         try:
-            query = supabase_admin.table("tenant_users").select("role").eq("user_id", user_res.user.id)
+            query = supabase_admin.table("tenant_users").select("tenant_id, role").eq("user_id", user_res.user.id)
             if current_tenant_id:
                 query = query.eq("tenant_id", current_tenant_id)
+            else:
+                query = query.order("created_at")
                 
             role_res = query.execute()
             if role_res.data:
                 role = role_res.data[0].get("role", "employee")
+                if not resolved_tenant_id:
+                    resolved_tenant_id = role_res.data[0].get("tenant_id")
         except Exception:
             pass 
         
@@ -218,7 +224,8 @@ def get_current_user(request: Request, authorization: str = Header(...)) -> dict
             "full_name": full_name,
             "initials": initials,
             "role": role,
-            "avatar_url": avatar_url 
+            "avatar_url": avatar_url,
+            "tenant_id": resolved_tenant_id
         }
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
