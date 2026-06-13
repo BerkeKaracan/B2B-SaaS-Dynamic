@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Plus, X, LayoutDashboard, Settings } from "lucide-react";
+import { Plus, X, LayoutDashboard, Settings, Globe } from "lucide-react";
 
 type TenantInfo = {
   id: string;
@@ -134,6 +134,17 @@ export default function WorkspaceSidebar() {
             }`}
           >
             <LayoutDashboard className="w-4 h-4" /> Projects
+          </Link>
+
+          <Link
+            href={`/dashboard/${tenantId}/community`}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              pathname.endsWith("/community")
+                ? "bg-white border border-zinc-200/80 text-zinc-900 shadow-sm"
+                : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100/60"
+            }`}
+          >
+            <Globe className="w-4 h-4" /> Community Hub
           </Link>
 
           {customModules.map((mod) => (
