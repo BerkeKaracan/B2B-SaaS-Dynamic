@@ -47,18 +47,18 @@ export default function LandingPage() {
       </div>
 
       <header className="fixed top-0 left-0 right-0 h-16 border-b border-zinc-200/50 bg-white/70 backdrop-blur-xl z-50 px-6 flex items-center justify-between">
-        <div className="flex items-center gap-3 shrink-0">
+        <Link href="/" className="flex items-center gap-3 shrink-0 group">
           <div className="w-8 h-8 bg-zinc-950 rounded-lg flex items-center justify-center shadow-sm border border-zinc-800">
             <span className="text-white text-xs font-black font-mono">B2</span>
           </div>
           <span className="text-sm font-extrabold text-zinc-900 tracking-tight uppercase">
             SaaS Engine
           </span>
-        </div>
+        </Link>
 
         <nav className="hidden md:flex items-center gap-2">
           <div className="relative group py-5">
-            <button className="text-sm font-bold text-zinc-500 hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-1.5 rounded-xl hover:bg-zinc-100/60">
+            <button className="text-sm font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-1.5 rounded-xl hover:bg-zinc-100/60">
               Product
               <svg
                 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
@@ -70,10 +70,9 @@ export default function LandingPage() {
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[520px] bg-white border border-zinc-200/80 shadow-2xl rounded-2xl p-4 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform origin-top scale-95 group-hover:scale-100 grid grid-cols-2 gap-2 z-50">
               <Link
-                href="#"
+                href="/docs?sec=canvas"
                 className="p-3 hover:bg-zinc-50 rounded-xl transition-all border border-transparent hover:border-zinc-100 block"
               >
                 <h4 className="text-sm font-extrabold text-zinc-950">
@@ -84,7 +83,7 @@ export default function LandingPage() {
                 </p>
               </Link>
               <Link
-                href="#"
+                href="/docs?sec=assets"
                 className="p-3 hover:bg-zinc-50 rounded-xl transition-all border border-transparent hover:border-zinc-100 block"
               >
                 <h4 className="text-sm font-extrabold text-zinc-950">
@@ -95,7 +94,7 @@ export default function LandingPage() {
                 </p>
               </Link>
               <Link
-                href="#"
+                href="/docs?sec=autosave"
                 className="p-3 hover:bg-zinc-50 rounded-xl transition-all border border-transparent hover:border-zinc-100 block"
               >
                 <h4 className="text-sm font-extrabold text-zinc-950">
@@ -106,7 +105,7 @@ export default function LandingPage() {
                 </p>
               </Link>
               <Link
-                href="#"
+                href="/docs?sec=rbac"
                 className="p-3 hover:bg-zinc-50 rounded-xl transition-all border border-transparent hover:border-zinc-100 block"
               >
                 <h4 className="text-sm font-extrabold text-zinc-950">
@@ -120,7 +119,7 @@ export default function LandingPage() {
           </div>
 
           <div className="relative group py-5">
-            <button className="text-sm font-bold text-zinc-500 hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-1.5 rounded-xl hover:bg-zinc-100/60">
+            <button className="text-sm font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-1.5 rounded-xl hover:bg-zinc-100/60">
               Templates
               <svg
                 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
@@ -132,49 +131,37 @@ export default function LandingPage() {
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[400px] bg-white border border-zinc-200/80 shadow-2xl rounded-2xl p-3 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform origin-top scale-95 group-hover:scale-100 flex flex-col gap-0.5 z-50">
               <div className="px-3 py-1.5 text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 mb-1">
-                Popular Community Templates
+                Popular Templates
               </div>
               <Link
-                href="#"
+                href="/login"
                 className="p-2.5 hover:bg-zinc-50 rounded-xl transition-colors flex items-center justify-between group/item"
               >
                 <span className="text-sm font-bold text-zinc-700 group-hover/item:text-zinc-950">
                   HR Processes Hub
                 </span>
                 <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">
-                  Free
+                  Free Blueprint
                 </span>
               </Link>
               <Link
-                href="#"
+                href="/login"
                 className="p-2.5 hover:bg-zinc-50 rounded-xl transition-colors flex items-center justify-between group/item"
               >
                 <span className="text-sm font-bold text-zinc-700 group-hover/item:text-zinc-950">
                   CRM Deal Pipeline
                 </span>
                 <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">
-                  Free
-                </span>
-              </Link>
-              <Link
-                href="#"
-                className="p-2.5 hover:bg-zinc-50 rounded-xl transition-colors flex items-center justify-between group/item"
-              >
-                <span className="text-sm font-bold text-zinc-700 group-hover/item:text-zinc-950">
-                  Invoice & Finance Tracker
-                </span>
-                <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-md">
-                  Free
+                  Free Blueprint
                 </span>
               </Link>
             </div>
           </div>
 
           <div className="relative group py-5">
-            <button className="text-sm font-bold text-zinc-500 hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-1.5 rounded-xl hover:bg-zinc-100/60">
+            <button className="text-sm font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-1.5 rounded-xl hover:bg-zinc-100/60">
               Resources
               <svg
                 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
@@ -186,22 +173,15 @@ export default function LandingPage() {
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-
             <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-zinc-200/80 shadow-2xl rounded-2xl p-1.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform origin-top scale-95 group-hover:scale-100 flex flex-col z-50">
               <Link
-                href="#"
+                href="/docs"
                 className="px-3.5 py-2 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-600 hover:text-zinc-950 transition-colors"
               >
                 Documentation
               </Link>
               <Link
-                href="#"
-                className="px-3.5 py-2 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-600 hover:text-zinc-950 transition-colors"
-              >
-                Community Hub
-              </Link>
-              <Link
-                href="#"
+                href="/changelog"
                 className="px-3.5 py-2 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-600 hover:text-zinc-950 transition-colors"
               >
                 Changelog
@@ -210,7 +190,7 @@ export default function LandingPage() {
           </div>
 
           <Link
-            href="#"
+            href="/pricing"
             className="text-sm font-bold text-zinc-500 hover:text-zinc-950 transition-colors px-3 py-1.5 rounded-xl hover:bg-zinc-100/60"
           >
             Pricing
@@ -226,7 +206,7 @@ export default function LandingPage() {
           </Link>
           <Link
             href="/register"
-            className="text-sm font-bold bg-zinc-950 text-white px-5 py-2.5 rounded-xl hover:bg-zinc-800 transition-all shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:-translate-y-0.5"
+            className="text-sm font-bold bg-zinc-950 text-white px-5 py-2.5 rounded-xl hover:bg-zinc-800 transition-all shadow-sm"
           >
             Start for Free
           </Link>
