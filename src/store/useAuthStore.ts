@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import Cookies from "js-cookie";
 
 interface User {
   id?: string;
@@ -29,8 +30,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   fetchUser: async () => {
     try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const token = Cookies.get("token");
 
       if (!token) {
         set({ user: null, isAuthenticated: false, isCheckingAuth: false });
@@ -47,7 +47,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         const userData = await res.json();
         set({ user: userData, isAuthenticated: true, isCheckingAuth: false });
       } else {
-        if (typeof window !== "undefined") localStorage.removeItem("token");
+        Cookies.remove("token");
         set({ user: null, isAuthenticated: false, isCheckingAuth: false });
       }
     } catch (error) {
@@ -57,14 +57,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
-    if (typeof window !== "undefined") localStorage.removeItem("token");
+    Cookies.remove("token");
+    Cookies.remove("tenant_id");
+
     set({ user: null, isAuthenticated: false, isCheckingAuth: false });
     if (typeof window !== "undefined") window.location.href = "/login";
   },
 
   updateProfile: async (data) => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = Cookies.get("token");
     if (!token) throw new Error("No token found");
 
     const API_BASE_URL =
@@ -86,8 +87,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   uploadAvatar: async (file) => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = Cookies.get("token");
     if (!token) throw new Error("No token found");
 
     const API_BASE_URL =
@@ -113,9 +113,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     return data.avatar_url;
   },
+
   updatePassword: async (password) => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = Cookies.get("token");
     if (!token) throw new Error("No token found");
 
     const API_BASE_URL =

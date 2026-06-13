@@ -1,3 +1,4 @@
+import Cookies from "js-cookie";
 import { RecordResponse, RecordBase } from "@/types/record";
 
 export const API_BASE_URL =
@@ -9,11 +10,17 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     ...(options.headers as Record<string, string>),
   };
 
+  let token: string | undefined;
   if (typeof window !== "undefined") {
-    const token = localStorage.getItem("token");
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
+    token = Cookies.get("token");
+  } else {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    token = cookieStore.get("token")?.value;
+  }
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
@@ -44,14 +51,10 @@ export const recordService = {
     tenantId: string,
     moduleName?: string,
   ): Promise<RecordResponse[]> {
-    const params = new URLSearchParams({ tenant_id: tenantId });
-    if (moduleName) {
-      params.append("module_name", moduleName);
-    }
-
-    const response = await fetchAPI(`/api/records/?${params.toString()}`, {
-      method: "GET",
-    });
+    const url = moduleName
+      ? `/api/records?tenant_id=${tenantId}&module_name=${moduleName}`
+      : `/api/records?tenant_id=${tenantId}`;
+    const response = await fetchAPI(url);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch records: ${response.statusText}`);
@@ -78,7 +81,7 @@ export const recordService = {
     data: Partial<RecordBase>,
   ): Promise<RecordResponse> {
     const response = await fetchAPI(`/api/records/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       body: JSON.stringify(data),
     });
 
@@ -109,14 +112,6 @@ export const authService = {
       method: "POST",
       body: JSON.stringify(data),
     });
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(
-        errData.detail || `Onboarding failed: ${response.statusText}`,
-      );
-    }
-
-    return response.json();
+    return response;
   },
 };

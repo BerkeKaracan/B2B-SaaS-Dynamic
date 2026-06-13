@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import ColdStartAlert from "@/components/ColdStartAlert";
+import Cookies from "js-cookie";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -59,13 +60,13 @@ export default function LoginPage() {
         const urlTenant = params.get("tenant_id");
 
         if (accessToken) {
-          localStorage.setItem("token", accessToken);
-          if (urlTenant) localStorage.setItem("tenant_id", urlTenant);
+          Cookies.set("token", accessToken, { expires: 7 });
+          if (urlTenant) Cookies.set("tenant_id", urlTenant, { expires: 7 });
           window.history.replaceState(null, "", window.location.pathname);
         }
       }
 
-      const token = localStorage.getItem("token");
+      const token = Cookies.get("token");
       if (!token) {
         setIsChecking(false);
         return;
@@ -81,9 +82,7 @@ export default function LoginPage() {
         if (res.ok) {
           const data = await res.json();
           const tenantId =
-            data.tenant_id ||
-            data.user?.tenant_id ||
-            localStorage.getItem("tenant_id");
+            data.tenant_id || data.user?.tenant_id || Cookies.get("tenant_id");
 
           if (tenantId && tenantId !== "undefined") {
             await redirectUser(tenantId, token);
@@ -94,8 +93,8 @@ export default function LoginPage() {
           throw new Error("Invalid token");
         }
       } catch {
-        localStorage.removeItem("token");
-        localStorage.removeItem("tenant_id");
+        Cookies.remove("token");
+        Cookies.remove("tenant_id");
         setIsChecking(false);
       }
     };
@@ -124,7 +123,7 @@ export default function LoginPage() {
         throw new Error(data.detail || "Authentication failed.");
       }
 
-      localStorage.setItem("token", data.access_token);
+      Cookies.set("token", data.access_token, { expires: 7 });
 
       if (fetchUser) {
         await fetchUser();
@@ -133,12 +132,12 @@ export default function LoginPage() {
       const tenantId = data.tenant_id || data.user?.tenant_id;
 
       if (!tenantId || tenantId === "") {
-        localStorage.removeItem("tenant_id");
+        Cookies.remove("tenant_id");
         router.push("/onboarding");
         return;
       }
 
-      localStorage.setItem("tenant_id", tenantId);
+      Cookies.set("tenant_id", tenantId, { expires: 7 });
       await redirectUser(tenantId, data.access_token);
     } catch (err: unknown) {
       if (err instanceof Error) {

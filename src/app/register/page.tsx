@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import ColdStartAlert from "@/components/ColdStartAlert";
+import Cookies from "js-cookie";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -22,9 +23,9 @@ export default function RegisterPage() {
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = Cookies.get("token");
     if (token) {
-      const savedTenant = localStorage.getItem("tenant_id");
+      const savedTenant = Cookies.get("tenant_id");
       if (savedTenant) {
         router.replace(`/dashboard/${savedTenant}/projects`);
       } else {
