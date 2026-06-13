@@ -98,7 +98,11 @@ export default function PublicSharePage() {
             );
             if (modRes.ok) {
               const modData = await modRes.json();
-              setMyModules(modData.map((m: any) => m.record_data));
+              setMyModules(
+                modData.map(
+                  (m: { record_data: CustomModule }) => m.record_data,
+                ),
+              );
             }
           }
         }
@@ -166,7 +170,7 @@ export default function PublicSharePage() {
       const payloadData = {
         ...rawRecordData,
         name: cloneName,
-        visibility: "just_admin", 
+        visibility: "just_admin",
         status: "active",
       };
 
