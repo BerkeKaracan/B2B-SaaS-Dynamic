@@ -31,7 +31,9 @@ def get_user_role(authorization: str = Header(None)) -> dict:
             return result_copy
             
     if len(AUTH_CACHE) > 1000:
-        AUTH_CACHE.clear()
+        oldest_keys = sorted(AUTH_CACHE.keys(), key=lambda k: AUTH_CACHE[k][1])[:200]
+        for k in oldest_keys:
+            del AUTH_CACHE[k]
 
     try:
         from core.database import supabase, get_auth_client
@@ -92,8 +94,9 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
             if current_tier == "free": 
                 current_tier = "basic"
                 
-            records_res = supabase_admin.table("custom_records").select("id, module_name").eq("tenant_id", req_tenant).execute()
-            current_project_count = sum(1 for r in records_res.data if r.get("module_name") != "workspace_modules")
+            count_res = supabase_admin.table("custom_records").select("id", count="exact").eq("tenant_id", req_tenant).neq("module_name", "workspace_modules").execute()
+            
+            current_project_count = count_res.count if count_res.count is not None else len(count_res.data)
             
             project_limits = {"basic": 5, "advanced": 100, "pro": float('inf')}
             limit = project_limits.get(current_tier, 5)
@@ -103,6 +106,7 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
                     status_code=403, 
                     detail=f"Project limit reached! Found {current_project_count} projects. Your {current_tier.capitalize()} plan allows up to {limit}."
                 )
+                 
         if "record_data" not in data or not data["record_data"]:
             data["record_data"] = {}
             
@@ -141,24 +145,26 @@ def get_records(
         if module_name:
             query = query.eq("module_name", module_name)
             
-        response = query.execute()
+        if user_role in ["admin", "owner"]:
+            response = query.range(offset, offset + limit - 1).order('created_at', desc=True).execute()
+            return response.data
+
+        response = query.limit(1000).order('created_at', desc=True).execute()
         records = response.data
 
-        final_records = records
-        if user_role not in ["admin", "owner"]:
-            filtered_records = []
-            for record in records:
-                record_data = record.get("record_data", {})
-                visibility = record_data.get("visibility", "public")
-                owner_email = str(record_data.get("owner_email", "")).lower().strip()
-                
-                collaborators = record_data.get("collaborators", [])
-                is_collab = any(isinstance(c, dict) and str(c.get("email", "")).lower().strip() == user["email"] for c in collaborators)
+        filtered_records = []
+        for record in records:
+            record_data = record.get("record_data", {})
+            visibility = record_data.get("visibility", "public")
+            owner_email = str(record_data.get("owner_email", "")).lower().strip()
+            
+            collaborators = record_data.get("collaborators", [])
+            is_collab = any(isinstance(c, dict) and str(c.get("email", "")).lower().strip() == user["email"] for c in collaborators)
 
-                if visibility != "just_admin" or is_collab or owner_email == user["email"]:
-                    filtered_records.append(record)
-            final_records = filtered_records
-        return final_records[offset : offset + limit]
+            if visibility != "just_admin" or is_collab or owner_email == user["email"]:
+                filtered_records.append(record)
+                
+        return filtered_records[offset : offset + limit]
     except HTTPException:
         raise
     except Exception as e:
@@ -245,6 +251,7 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
             old_emails = {str(c.get("email", "")).lower().strip() for c in raw_old_collabs if isinstance(c, dict) and c.get("email")}
             added_collabs = [c for c in raw_new_collabs if isinstance(c, dict) and c.get("email") and str(c.get("email", "")).lower().strip() not in old_emails]
             
+            notifications_to_insert = []
             for collab in added_collabs:
                 target_email = str(collab.get("email")).lower().strip()
                 
@@ -254,15 +261,18 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
                 project_name = payload_data.get('name', payload_data.get('title', 'Untitled Canvas'))
                 inviter = user['full_name']
                 
-                notification_payload = {
+                notifications_to_insert.append({
                     "target_email": target_email,
                     "type": "invite",
                     "title": "Project Invitation",
                     "message": f"{inviter} invited you to collaborate on '{project_name}'.",
                     "action_url": f"/dashboard/{rec_tenant}/projects/{str(record_id)}"
-                }
+                })
+            
+            if notifications_to_insert:
                 from core.database import supabase_admin
-                supabase_admin.table("notifications").insert(notification_payload).execute()
+                supabase_admin.table("notifications").insert(notifications_to_insert).execute()
+                
         except Exception as notif_err:
             print(f"Notification processing error: {notif_err}") 
         
