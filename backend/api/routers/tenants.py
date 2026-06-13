@@ -53,10 +53,8 @@ def get_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
 def get_tenant_by_slug(slug: str):
     try:
         response = supabase_admin.table("tenants").select("id").eq("slug", slug).execute()
-        
         if not response.data:
             raise HTTPException(status_code=404, detail="Workspace not found for this slug")
-            
         return response.data[0]
     except HTTPException:
         raise
@@ -86,9 +84,16 @@ async def upload_workspace_logo(tenant_id: UUID, file: UploadFile = File(...), u
         if current_role not in ["admin", "owner"]:
             raise HTTPException(status_code=403, detail="Unauthorized to upload logo")
         
-        file_ext = file.filename.split(".")[-1]
-        file_name = f"{tenant_id}_{uuid.uuid4().hex}.{file_ext}"
+        valid_content_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+        if file.content_type not in valid_content_types:
+            raise HTTPException(status_code=400, detail="Invalid file format. Only JPG, PNG, WEBP and GIF are allowed.")
+
         file_bytes = await file.read()
+        if len(file_bytes) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB.")
+            
+        file_ext = file.filename.split(".")[-1].lower() if "." in file.filename else "png"
+        file_name = f"{tenant_id}_{uuid.uuid4().hex}.{file_ext}"
         
         supabase_admin.storage.from_("workspace_assets").upload(
             path=file_name,
@@ -100,6 +105,8 @@ async def upload_workspace_logo(tenant_id: UUID, file: UploadFile = File(...), u
         supabase_admin.table("tenants").update({"logo_url": public_url}).eq("id", str(tenant_id)).execute()
         
         return {"logo_url": public_url}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -108,6 +115,7 @@ def get_tenant_members(tenant_id: UUID, user: dict = Depends(get_user_role)):
     try:
         if str(tenant_id) not in user["tenant_roles"]:
             raise HTTPException(status_code=403, detail="Workspace access denied")
+        
         response = supabase_admin.table("tenant_users").select(
             "id, tenant_id, user_id, role, email, created_at"
         ).eq("tenant_id", str(tenant_id)).execute()
@@ -116,14 +124,13 @@ def get_tenant_members(tenant_id: UUID, user: dict = Depends(get_user_role)):
         user_email_map = {}
         
         if missing_email_uids:
-            try:
-                users_list = supabase_admin.auth.admin.list_users()
-                users = getattr(users_list, 'users', users_list)
-                for u in users:
-                    if u.id in missing_email_uids:
-                        user_email_map[u.id] = u.email
-            except Exception as e:
-                print(f"List users error: {e}")
+            for uid in missing_email_uids:
+                try:
+                    user_data = supabase_admin.auth.admin.get_user_by_id(uid)
+                    if user_data and user_data.user:
+                        user_email_map[uid] = user_data.user.email
+                except Exception as e:
+                    print(f"Failed to fetch email for {uid}: {e}")
 
         members = []
         for row in response.data:
@@ -157,12 +164,11 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
         if not tenant_res.data:
             raise HTTPException(status_code=404, detail="Workspace not found")
             
-        raw_tier = tenant_res.data[0].get("tier")
-        current_tier = raw_tier.lower() if raw_tier else "basic"
+        current_tier = (tenant_res.data[0].get("tier") or "basic").lower()
         if current_tier == "free":
             current_tier = "basic"
             
-        team_res = supabase_admin.table("tenant_users").select("id, user_id", count="exact").eq("tenant_id", str(tenant_id)).execute()
+        team_res = supabase_admin.table("tenant_users").select("id", count="exact").eq("tenant_id", str(tenant_id)).execute()
         current_seat_count = team_res.count if team_res.count is not None else len(team_res.data)
         
         limits = {"basic": 3, "advanced": 50, "pro": float('inf')}
@@ -184,19 +190,6 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
         existing_user_query = supabase_admin.table("tenant_users").select("user_id").eq("email", request_email).limit(1).execute()
         if existing_user_query.data:
             real_user_id = existing_user_query.data[0]["user_id"]
-        else:
-            try:
-                users_list = supabase_admin.auth.admin.list_users()
-                users = getattr(users_list, 'users', users_list) 
-                for u in users:
-                    if u.email == request_email:
-                        real_user_id = u.id
-                        break
-            except Exception as e:
-                print(f"List users error: {e}")
-
-        if real_user_id:
-            pass
         else:
             FRONTEND_URL = "https://b2-b-saa-s-dynamic.vercel.app"
             redirect_url = f"{FRONTEND_URL}/accept-invite?tenant_id={tenant_id}"
@@ -265,7 +258,7 @@ def set_password(request: SetPasswordRequest, authorization: str = Header(None))
 
     except Exception as e:
         print(f"Set password error: {e}")
-        raise HTTPException(status_code=401, detail="Geçersiz veya süresi dolmuş davet linki. Lütfen yeni bir davet isteyin.")
+        raise HTTPException(status_code=401, detail="Invalid or expired invite link.")
 
 @router.delete("/{tenant_id}/team/{member_id}")
 def remove_member(tenant_id: UUID, member_id: UUID, user: dict = Depends(get_user_role)):
@@ -337,8 +330,8 @@ def transfer_ownership(tenant_id: UUID, request: TransferOwnershipRequest, user:
         if target_member.data[0].get("role", "").lower() == "owner":
             raise HTTPException(status_code=400, detail="Target user is already the owner")
 
+        supabase_admin.table("tenant_users").update({"role": "admin"}).eq("tenant_id", str(tenant_id)).eq("role", "owner").execute()
         supabase_admin.table("tenant_users").update({"role": "owner"}).eq("id", str(request.new_owner_member_id)).eq("tenant_id", str(tenant_id)).execute()
-        supabase_admin.table("tenant_users").update({"role": "admin"}).eq("tenant_id", str(tenant_id)).eq("role", "owner").neq("id", str(request.new_owner_member_id)).execute()
 
         return {"message": "Ownership transferred successfully"}
     except HTTPException:
