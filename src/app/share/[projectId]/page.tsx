@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { fetchAPI } from "@/services/api";
 import { useCanvasStore } from "@/store/useCanvasStore";
 
@@ -38,19 +38,35 @@ type ProjectMetadata = {
   updated_by?: string;
 };
 
+type CustomModule = {
+  name: string;
+  slug: string;
+};
+
 export default function PublicSharePage() {
   const params = useParams();
+  const router = useRouter();
   const projectId = params.projectId as string;
 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [meta, setMeta] = useState<ProjectMetadata | null>(null);
   const [pages, setPages] = useState<PageContent[]>([]);
-
-  // 🚀 FIX 2: Template durumunu tutacak state
   const [template, setTemplate] = useState<string>("blank");
 
-  // 🚀 FIX 3: Store'u çağırıyoruz
+  const [rawRecordData, setRawRecordData] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [myTenantId, setMyTenantId] = useState<string | null>(null);
+  const [myModules, setMyModules] = useState<CustomModule[]>([]);
+
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
+  const [cloneName, setCloneName] = useState("");
+  const [targetModule, setTargetModule] = useState("projects");
+  const [isCloning, setIsCloning] = useState(false);
+
   const updateMetadata = useCanvasStore((state) => state.updateMetadata);
 
   const [zoom, setZoom] = useState<number>(100);
@@ -60,6 +76,38 @@ export default function PublicSharePage() {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkAuthAndModules = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const meRes = await fetchAPI("/api/auth/me");
+        if (meRes.ok) {
+          const userData = await meRes.json();
+          const tenantId =
+            userData.tenant_id || localStorage.getItem("tenant_id");
+
+          if (tenantId) {
+            setIsLoggedIn(true);
+            setMyTenantId(tenantId);
+
+            const modRes = await fetchAPI(
+              `/api/records?tenant_id=${tenantId}&module_name=workspace_modules`,
+            );
+            if (modRes.ok) {
+              const modData = await modRes.json();
+              setMyModules(modData.map((m: any) => m.record_data));
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Auth check failed:", e);
+      }
+    };
+    checkAuthAndModules();
+  }, []);
 
   useEffect(() => {
     const fetchSharedWorkspace = async () => {
@@ -75,8 +123,6 @@ export default function PublicSharePage() {
         }
 
         const data = await res.json();
-
-        // 🚀 FIX: Veritabanı şemasındaki isimlendirme karmaşasını çözüyoruz
         const rootData = data.record_data || data || {};
 
         setMeta({
@@ -85,14 +131,16 @@ export default function PublicSharePage() {
           updated_by: data.updated_by || rootData.updated_by || "System",
         });
 
-        // 🚀 FIX 4: Gelen verinin template türünü alıyoruz
         const currentTemplate = rootData.template || "blank";
         setTemplate(currentTemplate);
 
-        // 🚀 FIX 5: Tüm datayı global store'a aktarıyoruz (Kanban, vs. buradan okuyacak)
+        setRawRecordData(rootData);
+        setCloneName(
+          `Copy of ${rootData.name || rootData.title || "Framework"}`,
+        );
+
         updateMetadata(rootData);
 
-        // 🚀 FIX: pages alanı nerede olursa olsun (kök veya record_data içi) güvenli şekilde yakala!
         const fetchedPages = rootData.pages || data.pages || [];
         setPages(fetchedPages);
       } catch (err: unknown) {
@@ -108,6 +156,44 @@ export default function PublicSharePage() {
 
     if (projectId) fetchSharedWorkspace();
   }, [projectId, updateMetadata]);
+
+  const handleCloneSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!myTenantId || !cloneName.trim() || !rawRecordData) return;
+    setIsCloning(true);
+
+    try {
+      const payloadData = {
+        ...rawRecordData,
+        name: cloneName,
+        visibility: "just_admin", 
+        status: "active",
+      };
+
+      const res = await fetchAPI("/api/records/", {
+        method: "POST",
+        body: JSON.stringify({
+          tenant_id: myTenantId,
+          module_name: targetModule,
+          record_data: payloadData,
+        }),
+      });
+
+      if (res.ok) {
+        const newRecord = await res.json();
+        setIsCloneModalOpen(false);
+        router.push(`/dashboard/${myTenantId}/projects/${newRecord.id}`);
+      } else {
+        const errorData = await res.json();
+        alert(`Failed to clone: ${errorData.detail}`);
+      }
+    } catch (error) {
+      console.error("Cloning error:", error);
+      alert("An error occurred while cloning the framework.");
+    } finally {
+      setIsCloning(false);
+    }
+  };
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setIsPanning(true);
@@ -183,31 +269,26 @@ export default function PublicSharePage() {
     );
   }
 
-  // 🚀 FIX 6: Template'e göre doğru görünümü döndüren fonksiyon
   const renderWorkspaceContent = () => {
-    if (template === "kanban") {
+    if (template === "kanban")
       return (
         <div className="relative flex-1 w-full h-full">
           <StaticKanbanBoard projectId={projectId} />
         </div>
       );
-    }
-    if (template === "notepad") {
+    if (template === "notepad")
       return (
         <div className="relative flex-1 w-full h-full">
           <NotepadBoard projectId={projectId} />
         </div>
       );
-    }
-    if (template === "timeline") {
+    if (template === "timeline")
       return (
         <div className="relative flex-1 w-full h-full">
           <TimelineBoard projectId={projectId} />
         </div>
       );
-    }
 
-    // Default Canvas / Koordinat Sistemi Render Mantığı
     return (
       <main
         className={`flex-1 relative z-10 w-full h-full overflow-hidden ${isPanning ? "cursor-grabbing" : "cursor-grab"}`}
@@ -320,9 +401,132 @@ export default function PublicSharePage() {
             </span>
           )}
         </div>
+
+        <div className="flex items-center gap-3">
+          {isLoggedIn ? (
+            <button
+              onClick={() => setIsCloneModalOpen(true)}
+              className="px-4 py-1.5 bg-zinc-950 text-white rounded-lg text-xs font-bold hover:bg-zinc-800 transition-colors shadow-sm flex items-center gap-1.5"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Clone Framework
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="px-4 py-1.5 bg-white border border-zinc-200 text-zinc-700 rounded-lg text-xs font-bold hover:bg-zinc-50 transition-colors shadow-sm"
+            >
+              Log in to Clone
+            </Link>
+          )}
+        </div>
       </header>
 
       {renderWorkspaceContent()}
+
+      {isCloneModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+              <div>
+                <h2 className="text-lg font-extrabold text-zinc-900 tracking-tight">
+                  Clone to Workspace
+                </h2>
+                <p className="text-xs text-zinc-500 font-medium mt-1">
+                  Make this framework your own.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsCloneModalOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-200/50 text-zinc-400 transition-colors"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCloneSubmit} className="p-6 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest pl-1">
+                  Project Name
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={cloneName}
+                  onChange={(e) => setCloneName(e.target.value)}
+                  className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:bg-white transition-all"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-widest pl-1">
+                  Destination Module
+                </label>
+                <select
+                  value={targetModule}
+                  onChange={(e) => setTargetModule(e.target.value)}
+                  className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:bg-white transition-all appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg-no-repeat bg-[position:right_1rem_center]"
+                >
+                  <option value="projects">Main Projects</option>
+                  {myModules.map((mod) => (
+                    <option key={mod.slug} value={mod.slug}>
+                      {mod.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCloneModalOpen(false)}
+                  className="px-5 py-2.5 text-xs font-bold text-zinc-500 hover:text-zinc-950 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCloning}
+                  className="bg-zinc-950 text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-zinc-800 shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isCloning ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>{" "}
+                      Cloning...
+                    </>
+                  ) : (
+                    "Clone Framework"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {template === "blank" && (
         <div className="absolute bottom-6 right-6 z-50 flex items-center bg-white border border-zinc-200 shadow-sm rounded-xl p-1.5 gap-1 pointer-events-auto">
