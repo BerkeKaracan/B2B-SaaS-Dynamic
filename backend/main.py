@@ -9,6 +9,17 @@ import time
 import logging
 
 from api.routers import records, auth, tenants, public, notifications, ai
+from core.config import settings
+
+import sentry_sdk
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
+    logging.info("Sentry started and watching system.")
 
 app = FastAPI(
     title="SaaS Engine API",
@@ -76,3 +87,7 @@ async def root() -> dict[str, str]:
 @app.get("/health", tags=["System"])
 async def health_check() -> dict[str, str]:
     return {"status": "healthy", "service": "SaaS Engine API"}
+
+@app.get("/sentry-debug", tags=["System"])
+async def trigger_error():
+    division_by_zero = 1 / 0

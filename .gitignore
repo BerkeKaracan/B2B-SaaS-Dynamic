@@ -39,3 +39,5 @@ desktop.ini
 # Supabase local development defaults
 .supabase/
 supabase/.branches/
+# Sentry Config File
+.env.sentry-build-plugin
