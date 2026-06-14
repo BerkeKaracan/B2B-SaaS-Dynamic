@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Plus, X, LayoutDashboard, Settings, Globe } from "lucide-react";
+import { fetchAPI } from "@/services/api";
 
 type TenantInfo = {
   id: string;
@@ -35,23 +36,11 @@ export default function WorkspaceSidebar() {
   useEffect(() => {
     const fetchTenantData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const API_BASE_URL =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-        const resTenant = await fetch(
-          `${API_BASE_URL}/api/tenants/${tenantId}`,
-          {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          },
-        );
+        const resTenant = await fetchAPI(`/api/tenants/${tenantId}`);
         if (resTenant.ok) setTenant(await resTenant.json());
 
-        const resModules = await fetch(
-          `${API_BASE_URL}/api/records?tenant_id=${tenantId}&module_name=workspace_modules`,
-          {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          },
+        const resModules = await fetchAPI(
+          `/api/records?tenant_id=${tenantId}&module_name=workspace_modules`,
         );
         if (resModules.ok) {
           const data = await resModules.json();
@@ -73,21 +62,13 @@ export default function WorkspaceSidebar() {
     setIsCreating(true);
 
     try {
-      const token = localStorage.getItem("token");
-      const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
       const slug = newModuleName
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9]+/g, "-");
 
-      const res = await fetch(`${API_BASE_URL}/api/records`, {
+      const res = await fetchAPI(`/api/records`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
         body: JSON.stringify({
           tenant_id: tenantId,
           module_name: "workspace_modules",
@@ -196,7 +177,6 @@ export default function WorkspaceSidebar() {
         </nav>
       </aside>
 
-      {/* NEW MODULE MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-zinc-200 overflow-hidden animate-in zoom-in-95 duration-200">
