@@ -2,6 +2,8 @@
 import React, { useState, useEffect, use } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { fetchAPI } from "@/services/api";
+import Cookies from "js-cookie";
 import {
   Users,
   CreditCard,
@@ -76,20 +78,19 @@ export default function TeamBillingPage({
           const accessToken = params.get("access_token");
 
           if (accessToken) {
+            Cookies.set("token", accessToken);
             localStorage.setItem("token", accessToken);
             window.history.replaceState(null, "", window.location.pathname);
           }
         }
 
-        const token = localStorage.getItem("token");
+        const token = Cookies.get("token") || localStorage.getItem("token");
         if (!token) {
           router.push("/login");
           return;
         }
 
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetchAPI("/api/auth/me");
 
         if (!res.ok) throw new Error("Not logged in or token expired");
 
@@ -103,12 +104,7 @@ export default function TeamBillingPage({
           return;
         }
 
-        const tenantRes = await fetch(
-          `${API_BASE_URL}/api/tenants/${tenantId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const tenantRes = await fetchAPI(`/api/tenants/${tenantId}`);
 
         if (tenantRes.ok) {
           const tenantData = await tenantRes.json();
@@ -132,12 +128,7 @@ export default function TeamBillingPage({
           else setTier("Basic Plan");
         }
 
-        const res2 = await fetch(
-          `${API_BASE_URL}/api/tenants/${tenantId}/team`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const res2 = await fetchAPI(`/api/tenants/${tenantId}/team`);
 
         if (res2.ok) {
           const membersData = await res2.json();
@@ -145,12 +136,7 @@ export default function TeamBillingPage({
         }
 
         try {
-          const projRes = await fetch(
-            `${API_BASE_URL}/api/records/?tenant_id=${tenantId}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            },
-          );
+          const projRes = await fetchAPI(`/api/records?tenant_id=${tenantId}`);
           if (projRes.ok) {
             const projData = await projRes.json();
             if (Array.isArray(projData)) {
@@ -191,7 +177,7 @@ export default function TeamBillingPage({
     formData.append("file", file);
 
     try {
-      const token = localStorage.getItem("token");
+      const token = Cookies.get("token") || localStorage.getItem("token");
       const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/logo`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -216,13 +202,8 @@ export default function TeamBillingPage({
     setIsSavingName(true);
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}`, {
+      const res = await fetchAPI(`/api/tenants/${tenantId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           name: workspaceName,
           timezone: timezone,
@@ -250,10 +231,8 @@ export default function TeamBillingPage({
     }
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}`, {
+      const res = await fetchAPI(`/api/tenants/${tenantId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) throw new Error("Failed to delete workspace.");
@@ -272,13 +251,8 @@ export default function TeamBillingPage({
     setIsInviting(true);
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/team`, {
+      const res = await fetchAPI(`/api/tenants/${tenantId}/team`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ email: newEmail, role: newRole }),
       });
 
@@ -291,9 +265,7 @@ export default function TeamBillingPage({
       setNewEmail("");
       setNewRole("employee");
 
-      const res2 = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/team`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res2 = await fetchAPI(`/api/tenants/${tenantId}/team`);
       if (res2.ok) setMembers(await res2.json());
     } catch (err: unknown) {
       const errorMessage =
@@ -308,14 +280,9 @@ export default function TeamBillingPage({
     if (!window.confirm("Are you sure you want to remove this member?")) return;
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${API_BASE_URL}/api/tenants/${tenantId}/team/${memberId}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const res = await fetchAPI(`/api/tenants/${tenantId}/team/${memberId}`, {
+        method: "DELETE",
+      });
 
       if (!res.ok) {
         const errData = await res.json();
@@ -333,18 +300,10 @@ export default function TeamBillingPage({
 
   const handleRoleChange = async (memberId: string, updatedRole: string) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${API_BASE_URL}/api/tenants/${tenantId}/team/${memberId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ role: updatedRole }),
-        },
-      );
+      const res = await fetchAPI(`/api/tenants/${tenantId}/team/${memberId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ role: updatedRole }),
+      });
 
       if (!res.ok) {
         const errData = await res.json();
@@ -377,15 +336,10 @@ export default function TeamBillingPage({
     }
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${API_BASE_URL}/api/tenants/${tenantId}/transfer-ownership`,
+      const res = await fetchAPI(
+        `/api/tenants/${tenantId}/transfer-ownership`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
           body: JSON.stringify({ new_owner_member_id: memberId }),
         },
       );
@@ -409,13 +363,8 @@ export default function TeamBillingPage({
 
   const handleUpgradeTier = async (newTier: "advanced" | "pro") => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/tier`, {
+      const res = await fetchAPI(`/api/tenants/${tenantId}/tier`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ tier: newTier }),
       });
 
