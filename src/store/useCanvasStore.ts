@@ -172,9 +172,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   saveHistory: () =>
     set((state) => {
-      const clonedPages = JSON.parse(
-        JSON.stringify(state.pages),
-      ) as PageWithSettings[];
+      const clonedPages = structuredClone(state.pages) as PageWithSettings[];
       const newPast = [...state.past, clonedPages].slice(-50);
       return { past: newPast, future: [] };
     }),
@@ -184,9 +182,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       if (state.past.length === 0) return state;
       const previous = state.past[state.past.length - 1];
       const newPast = state.past.slice(0, -1);
-      const clonedCurrent = JSON.parse(
-        JSON.stringify(state.pages),
-      ) as PageWithSettings[];
+
+      const clonedCurrent = structuredClone(state.pages) as PageWithSettings[];
       return {
         pages: previous,
         past: newPast,
@@ -200,9 +197,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       if (state.future.length === 0) return state;
       const next = state.future[0];
       const newFuture = state.future.slice(1);
-      const clonedCurrent = JSON.parse(
-        JSON.stringify(state.pages),
-      ) as PageWithSettings[];
+
+      const clonedCurrent = structuredClone(state.pages) as PageWithSettings[];
       return {
         pages: next,
         past: [...state.past, clonedCurrent],
