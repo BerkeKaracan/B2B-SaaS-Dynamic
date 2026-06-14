@@ -19,6 +19,14 @@ class GenerateCanvasRequest(BaseModel):
     x: float
     y: float
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+    canvas_context: str = ""
+
 @router.post("/magic-wand")
 async def magic_wand(req: MagicWandRequest):
     api_key = os.environ.get("GROQ_API_KEY")
@@ -117,3 +125,37 @@ async def generate_canvas(req: GenerateCanvasRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Canvas Error: {str(e)}")
+
+@router.post("/chat")
+async def chat_with_canvas(req: ChatRequest):
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing")
+
+    client = Groq(api_key=api_key)
+    
+    system_prompt = (
+        "You are an intelligent AI assistant integrated into a B2B SaaS Canvas workspace. "
+        "Your job is to answer user questions, brainstorm, and help them based on their current workspace context.\n\n"
+        "--- CURRENT WORKSPACE CONTEXT (Blocks & Texts) ---\n"
+        f"{req.canvas_context}\n"
+        "---------------------------------------------------\n\n"
+        "If the user asks about their notes, tasks, or workspace, ALWAYS base your answer on the context provided above. "
+        "If the context is empty, politely say that their canvas is currently empty. "
+        "Keep your answers helpful, concise, professional, and ALWAYS use Markdown format."
+    )
+    
+    groq_messages = [{"role": "system", "content": system_prompt}]
+    for msg in req.messages:
+        groq_messages.append({"role": msg.role, "content": msg.content})
+
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=groq_messages,
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
+            max_tokens=1024,
+        )
+        return {"reply": chat_completion.choices[0].message.content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI Chat Error: {str(e)}")

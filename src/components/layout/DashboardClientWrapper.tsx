@@ -10,6 +10,7 @@ import WorkspaceSidebar from "./WorkspaceSidebar";
 import ItemSidebar from "./ItemSidebar";
 import DashboardFooter from "./DashboardFooter";
 import ProjectInfoPanel from "./ProjectInfoPanel";
+import AiChatbot from "@/components/chat/AiChatbot";
 
 export default function DashboardClientWrapper({
   children,
@@ -84,6 +85,7 @@ export default function DashboardClientWrapper({
           <div className="flex-1 flex flex-col min-w-0 bg-white relative">
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-0">
               {children}
+              <AiChatbot />
             </main>
           </div>
           {isDesignView && <ProjectInfoPanel />}
