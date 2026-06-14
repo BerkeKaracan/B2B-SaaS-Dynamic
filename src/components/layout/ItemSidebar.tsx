@@ -73,39 +73,59 @@ export default function ItemSidebar() {
     let targetPageId = state.activePageId;
 
     if (!targetPageId) {
-      const rect = document
-        .querySelector(".canvas-bg")
-        ?.getBoundingClientRect() || { width: 1000, height: 800 };
+      const canvasContainer = document.querySelector(".canvas-bg");
+      const rect = canvasContainer
+        ? canvasContainer.getBoundingClientRect()
+        : { width: 1000, height: 800 };
       const currentZoom = (state.zoom ?? 100) / 100;
       const cx = (-(state.panX ?? 0) + rect.width / 2 - 200) / currentZoom;
       const cy = (-(state.panY ?? 0) + rect.height / 2 - 200) / currentZoom;
+
       state.addPage("empty", cx, cy);
 
-      await new Promise((r) => setTimeout(r, 100));
-      targetPageId = useCanvasStore.getState().activePageId;
+      const pages = useCanvasStore.getState().pages;
+      targetPageId = pages.length > 0 ? pages[pages.length - 1].id : null;
+    }
+
+    if (!targetPageId) {
+      alert("Error: Target page not found!");
+      setIsAiGenerating(false);
+      return;
     }
 
     try {
       const res = await fetchAPI("/api/ai/generate-canvas", {
         method: "POST",
-        body: JSON.stringify({ prompt: aiPrompt, x: 50, y: 50 }),
+        body: JSON.stringify({ prompt: aiPrompt, x: 40, y: 40 }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        if (
-          data.blocks &&
-          Array.isArray(data.blocks) &&
-          addGeneratedBlocks &&
-          targetPageId
-        ) {
-          addGeneratedBlocks(targetPageId, data.blocks);
-          setIsAiModalOpen(false);
-          setAiPrompt("");
+
+        if (data.blocks && Array.isArray(data.blocks)) {
+          const store = useCanvasStore.getState();
+          if (store.addGeneratedBlocks) {
+            store.addGeneratedBlocks(targetPageId, data.blocks);
+            setIsAiModalOpen(false);
+            setAiPrompt("");
+          } else {
+            alert(
+              "System Error: addGeneratedBlocks function not found in store!",
+            );
+          }
+        } else {
+          alert("AI could not generate blocks, invalid format returned.");
         }
+      } else {
+        const errorData = await res.json();
+        alert(`Server Error: ${errorData.detail}`);
       }
-    } catch (e) {
-      console.error("AI Generation failed", e);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        alert(`Connection lost: ${e.message}`);
+      } else {
+        alert("An unknown error occurred.");
+      }
     } finally {
       setIsAiGenerating(false);
     }

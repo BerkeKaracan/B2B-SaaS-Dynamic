@@ -1,8 +1,9 @@
 import os
+import json
+import re
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from groq import Groq
-import json
 
 router = APIRouter(
     prefix="/api/ai",
@@ -68,26 +69,21 @@ async def generate_canvas(req: GenerateCanvasRequest):
     client = Groq(api_key=api_key)
     
     system_prompt = f"""You are an expert AI Canvas Architect for a workspace app.
-    The user will give you a prompt to generate a visual layout (like a Kanban board, mind map, or brainstorming notes).
-    You MUST return ONLY a valid JSON object with a single key 'blocks', containing an array of block objects.
-    The user's starting mouse coordinates are X: {req.x}, Y: {req.y}. 
-    Space out the blocks logically (e.g., X + 350 for the next column).
-    
+    The user will give you a prompt. Return ONLY a valid JSON object.
+    It MUST have a single root key called 'blocks'.
+    'blocks' is an array of objects.
     EACH BLOCK MUST HAVE EXACTLY THIS STRUCTURE:
     {{
         "type": "text",
-        "value": "The text content. Use markdown (like ### or - [ ]).",
-        "x": float (calculated relative to base X),
-        "y": float (calculated relative to base Y),
+        "value": "Markdown text goes here.",
+        "x": {req.x},
+        "y": {req.y},
         "width": 300,
-        "height": 400,
-        "settings": {{
-            "color": "#1e1e1e",
-            "isBold": false
-        }}
+        "height": 120,
+        "settings": {{"color": "#1e1e1e", "isBold": false}}
     }}
-    
-    CRITICAL: Return ONLY raw JSON. Do not use ```json formatting blocks.
+    Space the blocks out by incrementing X or Y so they don't overlap!
+    CRITICAL: NO MARKDOWN TAGS. ONLY RAW JSON. Do not wrap in markdown json tags.
     """
     
     try:
@@ -102,8 +98,22 @@ async def generate_canvas(req: GenerateCanvasRequest):
             response_format={"type": "json_object"} 
         )
         
-        result_text = chat_completion.choices[0].message.content
-        return json.loads(result_text)
+        result_text = chat_completion.choices[0].message.content.strip()
+        
+        if result_text.startswith('`' * 3):
+            match = re.search(r'`{3}(?:json)?(.*?)`{3}', result_text, re.DOTALL)
+            if match:
+                result_text = match.group(1).strip()
+        
+        parsed_json = json.loads(result_text)
+        
+        if "blocks" not in parsed_json:
+            if isinstance(parsed_json, list):
+                parsed_json = {"blocks": parsed_json}
+            else:
+                parsed_json = {"blocks": []}
+                
+        return parsed_json
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI Canvas Generation Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI Canvas Error: {str(e)}")
