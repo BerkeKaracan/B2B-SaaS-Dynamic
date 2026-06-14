@@ -1,6 +1,7 @@
 import re
-from fastapi import APIRouter, HTTPException, Header, Request, UploadFile, File
 import uuid
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from core.database import supabase, supabase_admin
 from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, OnboardingRequest, OnboardingResponse, UserProfileUpdate, UserPasswordUpdate
 from core.limiter import limiter
@@ -9,6 +10,8 @@ router = APIRouter(
     prefix="/api/auth",
     tags=["Authentication"]
 )
+
+security = HTTPBearer()
 
 @router.post("/register", response_model=RegisterResponse)
 @limiter.limit("3/minute")
@@ -43,9 +46,9 @@ def register_user(request: Request, request_data: RegisterRequest) -> RegisterRe
 
 @router.post("/onboarding", response_model=OnboardingResponse)
 @limiter.limit("3/minute")
-def complete_onboarding(request: Request, request_data: OnboardingRequest, authorization: str = Header(...)) -> OnboardingResponse:
+def complete_onboarding(request: Request, request_data: OnboardingRequest, creds: HTTPAuthorizationCredentials = Depends(security)) -> OnboardingResponse:
     try:
-        token = authorization.replace("Bearer ", "")
+        token = creds.credentials
         user_res = supabase.auth.get_user(token)
         
         if not user_res or not user_res.user:
@@ -140,22 +143,16 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
             raise HTTPException(status_code=400, detail="Invalid email or password.")
         raise HTTPException(status_code=500, detail=error_msg)
 
-def get_current_user_role(request: Request, authorization: str = Header(...)) -> dict:
+def get_current_user_role(request: Request, creds: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     try:
-        token = authorization.replace("Bearer ", "")
+        token = creds.credentials
         user_res = supabase.auth.get_user(token)
         
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="Invalid session")
             
         user_id = user_res.user.id
-
         current_tenant_id = request.headers.get("x-tenant-id") or request.headers.get("tenant-id")
-        if not current_tenant_id:
-            referer = request.headers.get("referer", "")
-            match = re.search(r"/(?:dashboard|share)/([0-9a-fA-F\-]{36})", referer)
-            if match:
-                current_tenant_id = match.group(1)
 
         role = "employee" 
         try:
@@ -177,9 +174,9 @@ def get_current_user_role(request: Request, authorization: str = Header(...)) ->
         raise HTTPException(status_code=401, detail=str(e))
   
 @router.get("/me")
-def get_current_user(request: Request, authorization: str = Header(...)) -> dict:
+def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     try:
-        token = authorization.replace("Bearer ", "")
+        token = creds.credentials
         user_res = supabase.auth.get_user(token)
         
         if not user_res or not user_res.user:
@@ -194,12 +191,6 @@ def get_current_user(request: Request, authorization: str = Header(...)) -> dict
 
         current_tenant_id = request.headers.get("x-tenant-id") or request.headers.get("tenant-id")
         
-        if not current_tenant_id:
-            referer = request.headers.get("referer", "")
-            match = re.search(r"/(?:dashboard|share)/([0-9a-fA-F\-]{36})", referer)
-            if match:
-                current_tenant_id = match.group(1)
-
         role = "employee" 
         resolved_tenant_id = current_tenant_id
 
@@ -231,9 +222,9 @@ def get_current_user(request: Request, authorization: str = Header(...)) -> dict
         raise HTTPException(status_code=401, detail=str(e))
 
 @router.put("/me")
-def update_profile(request_data: UserProfileUpdate, authorization: str = Header(...)):
+def update_profile(request_data: UserProfileUpdate, creds: HTTPAuthorizationCredentials = Depends(security)):
     try:
-        token = authorization.replace("Bearer ", "")
+        token = creds.credentials
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="Invalid session")
@@ -254,15 +245,26 @@ def update_profile(request_data: UserProfileUpdate, authorization: str = Header(
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/avatar")
-async def upload_avatar(file: UploadFile = File(...), authorization: str = Header(...)):
+async def upload_avatar(file: UploadFile = File(...), creds: HTTPAuthorizationCredentials = Depends(security)):
     try:
-        token = authorization.replace("Bearer ", "")
+        allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
+        if file.content_type not in allowed_mime_types:
+            raise HTTPException(status_code=400, detail="Geçersiz dosya türü. Sadece JPEG, PNG ve WEBP formatları desteklenir.")
+
+        file.file.seek(0, 2)
+        file_size = file.file.tell()  
+        file.file.seek(0)  
+
+        max_file_size = 5 * 1024 * 1024  
+        if file_size > max_file_size:
+            raise HTTPException(status_code=400, detail="Dosya çok büyük. Lütfen en fazla 5MB boyutunda bir resim yükleyin.")
+
+        token = creds.credentials
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="Invalid session")
             
         user_id = user_res.user.id
-        
         file_ext = file.filename.split(".")[-1]
         file_name = f"{user_id}/{uuid.uuid4()}.{file_ext}"
         
@@ -289,9 +291,9 @@ async def upload_avatar(file: UploadFile = File(...), authorization: str = Heade
         raise HTTPException(status_code=400, detail=str(e))
     
 @router.put("/password")
-def update_password(request_data: UserPasswordUpdate, authorization: str = Header(...)):
+def update_password(request_data: UserPasswordUpdate, creds: HTTPAuthorizationCredentials = Depends(security)):
     try:
-        token = authorization.replace("Bearer ", "")
+        token = creds.credentials
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="Invalid session")
