@@ -6,13 +6,21 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") || "";
 
   const allowedDomains = ["localhost:3000", "b2-b-saa-s-dynamic.vercel.app"];
-
   let subdomain = "";
   for (const domain of allowedDomains) {
     if (hostname.endsWith(domain) && hostname !== domain) {
       subdomain = hostname.replace(`.${domain}`, "");
       break;
     }
+  }
+
+  if (
+    url.pathname.startsWith("/_next") ||
+    url.pathname.startsWith("/api") ||
+    url.pathname.includes(".") ||
+    url.pathname === "/favicon.ico"
+  ) {
+    return NextResponse.next();
   }
 
   const publicPaths = [
@@ -22,32 +30,35 @@ export async function middleware(request: NextRequest) {
     "/accept-invite",
     "/demo",
   ];
-  if (publicPaths.some((path) => url.pathname.startsWith(path))) {
+  const isPublicPath = publicPaths.some((path) =>
+    url.pathname.startsWith(path),
+  );
+
+  if (isPublicPath) {
     return NextResponse.next();
   }
 
-  if (
-    !subdomain ||
-    subdomain === "www" ||
-    url.pathname.startsWith("/_next") ||
-    url.pathname.startsWith("/api") ||
-    url.pathname.includes(".")
-  ) {
+  const token = request.cookies.get("token")?.value;
+  if (!token) {
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (!subdomain || subdomain === "www") {
     return NextResponse.next();
   }
 
   const dashboardUuidRegex =
     /^\/dashboard\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
   if (dashboardUuidRegex.test(url.pathname)) {
     const cleanPath = url.pathname.replace(dashboardUuidRegex, "");
     url.pathname = cleanPath || "/";
     return NextResponse.redirect(url);
   }
-
   if (!url.pathname.startsWith("/dashboard")) {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-
       const res = await fetch(`${apiUrl}/api/tenants/by-slug/${subdomain}`);
 
       if (res.ok) {
