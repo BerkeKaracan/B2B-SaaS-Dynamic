@@ -1,6 +1,7 @@
 "use client";
 import React, { useRef, useEffect, useState, memo } from "react";
 import { BlockContent } from "@/types/record";
+import { fetchAPI } from "@/services/api";
 
 interface TextBlockProps {
   block: BlockContent;
@@ -13,6 +14,7 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
   const textValue = typeof block.value === "string" ? block.value : "";
 
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const isBold = block.settings?.isBold as boolean;
   const isItalic = block.settings?.isItalic as boolean;
@@ -41,10 +43,63 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
     }
   };
 
+  const handleAiAction = async (action: string) => {
+    if (!textValue.trim() || !action) return;
+
+    setIsAiLoading(true);
+    try {
+      const res = await fetchAPI("/api/ai/magic-wand", {
+        method: "POST",
+        body: JSON.stringify({ text: textValue, action }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.result) {
+          onUpdate(data.result);
+        }
+      } else {
+        console.error("AI Request Failed");
+      }
+    } catch (error) {
+      console.error("AI Action Error:", error);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
   return (
     <div className="relative w-full h-full flex flex-col group/block pb-4">
       {isToolbarOpen && onSettingsChange && (
         <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-zinc-950 text-white p-1.5 rounded-xl flex items-center gap-1 shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-150 whitespace-nowrap">
+          <select
+            value=""
+            onChange={(e) => {
+              handleAiAction(e.target.value);
+              e.target.value = "";
+            }}
+            disabled={isAiLoading}
+            className={`bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold rounded-lg px-2 py-1 focus:outline-none cursor-pointer hover:bg-indigo-500/30 transition-colors ${
+              isAiLoading ? "opacity-50 pointer-events-none animate-pulse" : ""
+            }`}
+            title="AI Assistant"
+          >
+            <option value="" disabled>
+              {isAiLoading ? "⏳ Thinking..." : "✨ Ask AI"}
+            </option>
+            <option value="improve" className="text-black">
+              ✨ Improve & Polish
+            </option>
+            <option value="summarize" className="text-black">
+              📝 Summarize
+            </option>
+            <option value="brainstorm" className="text-black">
+              💡 Brainstorm Ideas
+            </option>
+          </select>
+
+          <div className="w-px h-4 bg-zinc-800 mx-1" />
+
           <button
             type="button"
             onClick={() => toggleSetting("isBold", isBold)}

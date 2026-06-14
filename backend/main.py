@@ -8,7 +8,7 @@ from core.limiter import limiter
 import time
 import logging
 
-from api.routers import records, auth, tenants, public, notifications
+from api.routers import records, auth, tenants, public, notifications, ai
 
 app = FastAPI(
     title="SaaS Engine API",
@@ -67,6 +67,7 @@ app.include_router(auth.router)
 app.include_router(tenants.router)
 app.include_router(public.router)
 app.include_router(notifications.router)
+app.include_router(ai.router)
 
 @app.get("/", tags=["System"])
 async def root() -> dict[str, str]:
