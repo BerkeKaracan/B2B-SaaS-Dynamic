@@ -18,7 +18,7 @@ export default function Navbar({
   showProjectInfo?: boolean;
 }) {
   const router = useRouter();
-  const { toggleSecondarySidebar } = useLayoutStore();
+  const { toggleSecondarySidebar, isSecondarySidebarOpen } = useLayoutStore();
   const { isSaving, showSaved } = useCanvasStore();
   const { user } = useAuthStore();
 
@@ -100,27 +100,30 @@ export default function Navbar({
         {showProjectInfo && (
           <button
             onClick={toggleSecondarySidebar}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-extrabold text-zinc-600 bg-zinc-50 border border-zinc-200/80 hover:bg-zinc-100 hover:text-zinc-950 rounded-xl transition-all"
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-extrabold text-zinc-600 bg-zinc-50 border hover:bg-zinc-100 rounded-xl transition-all group ${
+              isSecondarySidebarOpen
+                ? "border-zinc-300 text-zinc-950"
+                : "border-zinc-200/80 hover:text-zinc-950"
+            }`}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
+            <div className="relative w-3.5 h-3.5 rounded-full border-[2px] border-current flex items-center justify-center shrink-0">
+              <div
+                className={`absolute inset-0 flex items-start justify-center transition-all duration-300 ${
+                  isSecondarySidebarOpen
+                    ? "animate-[spin_2s_linear_infinite]"
+                    : ""
+                }`}
+              >
+                <div className="w-1 h-1 bg-current rounded-full -mt-[1px]"></div>
+              </div>
+            </div>
+
             <span className="hidden sm:inline tracking-wider">
               PROJECT INFO
             </span>
           </button>
         )}
 
-        {/* --- İŞTE BURASI YENİ PROFİL VE MENÜ ALANI --- */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
