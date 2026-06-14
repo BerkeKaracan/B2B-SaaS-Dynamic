@@ -11,12 +11,17 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   };
 
   let token: string | undefined;
+
   if (typeof window !== "undefined") {
     token = Cookies.get("token");
   } else {
-    const { cookies } = await import("next/headers");
-    const cookieStore = await cookies();
-    token = cookieStore.get("token")?.value;
+    try {
+      const { cookies } = await import("next/headers");
+      const cookieStore = await cookies();
+      token = cookieStore.get("token")?.value;
+    } catch (error) {
+      console.warn("fetchAPI: Could not read cookies in this server context.");
+    }
   }
 
   if (token) {
