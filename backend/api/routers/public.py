@@ -27,7 +27,6 @@ def get_public_records(limit: int = Query(8, ge=1, le=20)):
         response = supabase_admin.table("custom_records")\
             .select("id, tenant_id, module_name, record_data, created_at")\
             .eq("record_data->>visibility", "public")\
-            .neq("record_data->>template", "blank")\
             .order("created_at", desc=True)\
             .limit(limit)\
             .execute()
