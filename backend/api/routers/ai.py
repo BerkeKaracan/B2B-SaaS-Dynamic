@@ -2,6 +2,7 @@ import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from groq import Groq
+import json
 
 router = APIRouter(
     prefix="/api/ai",
@@ -11,6 +12,11 @@ router = APIRouter(
 class MagicWandRequest(BaseModel):
     text: str
     action: str 
+
+class GenerateCanvasRequest(BaseModel):
+    prompt: str
+    x: float
+    y: float
 
 @router.post("/magic-wand")
 async def magic_wand(req: MagicWandRequest):
@@ -51,3 +57,53 @@ async def magic_wand(req: MagicWandRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Engine Error: {str(e)}")
+
+
+@router.post("/generate-canvas")
+async def generate_canvas(req: GenerateCanvasRequest):
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing")
+
+    client = Groq(api_key=api_key)
+    
+    system_prompt = f"""You are an expert AI Canvas Architect for a workspace app.
+    The user will give you a prompt to generate a visual layout (like a Kanban board, mind map, or brainstorming notes).
+    You MUST return ONLY a valid JSON object with a single key 'blocks', containing an array of block objects.
+    The user's starting mouse coordinates are X: {req.x}, Y: {req.y}. 
+    Space out the blocks logically (e.g., X + 350 for the next column).
+    
+    EACH BLOCK MUST HAVE EXACTLY THIS STRUCTURE:
+    {{
+        "type": "text",
+        "value": "The text content. Use markdown (like ### or - [ ]).",
+        "x": float (calculated relative to base X),
+        "y": float (calculated relative to base Y),
+        "width": 300,
+        "height": 400,
+        "settings": {{
+            "color": "#1e1e1e",
+            "isBold": false
+        }}
+    }}
+    
+    CRITICAL: Return ONLY raw JSON. Do not use ```json formatting blocks.
+    """
+    
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": req.prompt}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
+            max_tokens=2048,
+            response_format={"type": "json_object"} 
+        )
+        
+        result_text = chat_completion.choices[0].message.content
+        return json.loads(result_text)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI Canvas Generation Error: {str(e)}")

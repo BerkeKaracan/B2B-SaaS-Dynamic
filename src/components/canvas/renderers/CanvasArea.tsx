@@ -10,6 +10,7 @@ import { useCanvasStore, PageWithSettings } from "@/store/useCanvasStore";
 import { BlockContent, BlockType, PageContent } from "@/types/record";
 import { ConnectionLayer } from "./ConnectionLayer";
 import { LassoLayer } from "./LassoLayer";
+import { fetchAPI } from "@/services/api";
 
 import TextBlock from "./TextBlock";
 import FormBlock from "./FormBlock";
@@ -22,6 +23,7 @@ import BlockResizer from "./BlockResizer";
 
 export default function CanvasArea() {
   const store = useCanvasStore();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const pages = (store.pages as PageWithSettings[]) ?? [];
   const connections = store.connections ?? [];
   const activePageId = store.activePageId ?? null;
@@ -57,9 +59,25 @@ export default function CanvasArea() {
     saveHistory,
     duplicateBlock,
     transferBlockToPage,
+    addGeneratedBlocks,
   } = store;
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    canvasX: number;
+    canvasY: number;
+  } | null>(null);
+  const [aiMenu, setAiMenu] = useState<{
+    x: number;
+    y: number;
+    canvasX: number;
+    canvasY: number;
+  } | null>(null);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   const [clipboardBlock, setClipboardBlock] = useState<{
     pageId: string;
@@ -103,6 +121,35 @@ export default function CanvasArea() {
   >(new Map());
   const prevTouchDistance = useRef<number | null>(null);
 
+  const handleAiGenerate = async () => {
+    if (!activePageId || !aiMenu || !aiPrompt.trim()) return;
+    setIsAiGenerating(true);
+
+    try {
+      const res = await fetchAPI("/api/ai/generate-canvas", {
+        method: "POST",
+        body: JSON.stringify({
+          prompt: aiPrompt,
+          x: aiMenu.canvasX,
+          y: aiMenu.canvasY,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.blocks && Array.isArray(data.blocks) && addGeneratedBlocks) {
+          addGeneratedBlocks(activePageId, data.blocks);
+        }
+      }
+    } catch (e) {
+      console.error("AI Generation failed", e);
+    } finally {
+      setIsAiGenerating(false);
+      setAiMenu(null);
+      setAiPrompt("");
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeElement = document.activeElement as HTMLElement;
@@ -137,7 +184,11 @@ export default function CanvasArea() {
         if (e.ctrlKey || e.metaKey) {
           if (e.key.toLowerCase() === "z") {
             e.preventDefault();
-            e.shiftKey ? redo() : undo();
+            if (e.shiftKey) {
+              redo();
+            } else {
+              undo();
+            }
           } else if (e.key.toLowerCase() === "y") {
             e.preventDefault();
             redo();
@@ -158,7 +209,11 @@ export default function CanvasArea() {
           }
         }
 
-        if (e.key === "Escape") setConnectingFrom(null);
+        if (e.key === "Escape") {
+          setConnectingFrom(null);
+          setContextMenu(null);
+          setAiMenu(null);
+        }
       }
     };
 
@@ -367,6 +422,8 @@ export default function CanvasArea() {
       setIsSpacePanning(false);
       setDraggedPageId(null);
       setDraggedBlockInfo(null);
+      setContextMenu(null);
+      setAiMenu(null);
     };
 
     window.addEventListener("pointermove", handleGlobalPointerMove);
@@ -404,6 +461,7 @@ export default function CanvasArea() {
     isSpacePanning,
     spacePanStart,
     transferBlockToPage,
+    setZoom,
   ]);
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -433,10 +491,15 @@ export default function CanvasArea() {
       target.classList.contains("canvas-bg") ||
       target.classList.contains("infinite-grid-layer");
 
+    if (isCanvasBackground) {
+      setContextMenu(null);
+      setAiMenu(null);
+    }
+
     if (isCanvasBackground && e.currentTarget.setPointerCapture) {
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
-      } catch (err) {}
+      } catch {}
     }
 
     activePointers.current.set(e.pointerId, {
@@ -720,13 +783,81 @@ export default function CanvasArea() {
         }}
       />
 
-      <div className="absolute top-4 left-4 z-50 bg-zinc-900/95 text-white backdrop-blur px-3 py-1.5 rounded-xl border border-zinc-800 text-[10px] font-mono shadow-md pointer-events-none flex items-center gap-3 hidden sm:flex">
+      <div className="absolute top-4 left-4 z-50 bg-zinc-900/95 text-white backdrop-blur px-3 py-1.5 rounded-xl border border-zinc-800 text-[10px] font-mono shadow-md pointer-events-none hidden sm:flex items-center gap-3">
         <span className="text-zinc-500 font-bold uppercase tracking-wider">
           Radar:
         </span>
         <span>X: {Math.round(panX)}</span>
         <span>Y: {Math.round(panY)}</span>
       </div>
+
+      {contextMenu && (
+        <div
+          className="absolute z-50 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl py-1 min-w-[160px] animate-in fade-in zoom-in-95"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          {activePageId ? (
+            <button
+              type="button"
+              onClick={() => {
+                setAiMenu(contextMenu);
+                setContextMenu(null);
+              }}
+              className="w-full text-left px-3 py-2 text-sm font-bold text-indigo-400 hover:bg-indigo-500/20 flex items-center gap-2 transition-colors"
+            >
+              ✨ Generate with AI
+            </button>
+          ) : (
+            <div className="px-3 py-2 text-xs font-medium text-zinc-500">
+              Select a frame first to generate AI blocks.
+            </div>
+          )}
+        </div>
+      )}
+
+      {aiMenu && (
+        <div
+          className="absolute z-50 bg-zinc-950 border border-indigo-500/30 p-3 rounded-2xl shadow-2xl flex flex-col gap-2 w-72 animate-in zoom-in-95"
+          style={{ left: aiMenu.x, top: aiMenu.y }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider px-1">
+            ✨ AI Architect
+          </div>
+          <textarea
+            autoFocus
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            placeholder="e.g. Create a Kanban board for a product launch..."
+            className="w-full bg-zinc-900 text-white border border-zinc-800 rounded-xl p-2 text-sm resize-none focus:outline-none focus:border-indigo-500/50"
+            rows={3}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleAiGenerate();
+              }
+            }}
+          />
+          <div className="flex justify-between items-center mt-1">
+            <button
+              onClick={() => setAiMenu(null)}
+              className="text-xs font-medium text-zinc-500 hover:text-white px-2"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAiGenerate}
+              disabled={isAiGenerating || !aiPrompt.trim()}
+              className="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white text-xs font-bold py-1.5 px-4 rounded-lg transition-colors"
+            >
+              {isAiGenerating ? "Building..." : "Generate"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div
         className="absolute inset-0 pointer-events-none"

@@ -55,6 +55,10 @@ interface CanvasState {
     x: number,
     y: number,
   ) => void;
+  addGeneratedBlocks: (
+    pageId: string,
+    blocks: Omit<BlockContent, "id">[],
+  ) => void;
   removeBlockFromPage: (pageId: string, blockId: string) => void;
   setActivePage: (id: string | null) => void;
   setActiveBlock: (id: string | null) => void;
@@ -374,6 +378,25 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             ...p.blocks,
             { id: crypto.randomUUID(), type, value: "", x, y, settings: {} },
           ],
+        };
+      }),
+    }));
+  },
+
+  addGeneratedBlocks: (pageId, newBlocks) => {
+    get().saveHistory();
+    set((state) => ({
+      pages: state.pages.map((p) => {
+        if (p.id !== pageId) return p;
+
+        const blocksWithIds = newBlocks.map((b) => ({
+          ...b,
+          id: crypto.randomUUID(),
+        })) as BlockContent[];
+
+        return {
+          ...p,
+          blocks: [...p.blocks, ...blocksWithIds],
         };
       }),
     }));

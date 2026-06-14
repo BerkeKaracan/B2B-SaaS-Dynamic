@@ -1,13 +1,15 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { BlockType, PageContent } from "@/types/record";
+import { fetchAPI } from "@/services/api";
 import {
   Search,
   ChevronDown,
   ChevronUp,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 
 interface SidebarItem {
@@ -25,11 +27,23 @@ interface TemplateItem {
 }
 
 export default function ItemSidebar() {
-  const { addPage, addBlockToPage, setActivePage } = useCanvasStore();
+  const {
+    addPage,
+    addBlockToPage,
+    setActivePage,
+    activePageId,
+    addGeneratedBlocks,
+  } = useCanvasStore();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [isBlocksOpen, setIsBlocksOpen] = useState(true);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(true);
+  const [isAiOpen, setIsAiOpen] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   const [activeDrag, setActiveDrag] = useState<{
     itemType: string;
@@ -39,6 +53,63 @@ export default function ItemSidebar() {
     x: number;
     y: number;
   } | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        setIsAiModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const handleAiGenerate = async () => {
+    if (!aiPrompt.trim()) return;
+    setIsAiGenerating(true);
+
+    const state = useCanvasStore.getState();
+    let targetPageId = state.activePageId;
+
+    if (!targetPageId) {
+      const rect = document
+        .querySelector(".canvas-bg")
+        ?.getBoundingClientRect() || { width: 1000, height: 800 };
+      const currentZoom = (state.zoom ?? 100) / 100;
+      const cx = (-(state.panX ?? 0) + rect.width / 2 - 200) / currentZoom;
+      const cy = (-(state.panY ?? 0) + rect.height / 2 - 200) / currentZoom;
+      state.addPage("empty", cx, cy);
+
+      await new Promise((r) => setTimeout(r, 100));
+      targetPageId = useCanvasStore.getState().activePageId;
+    }
+
+    try {
+      const res = await fetchAPI("/api/ai/generate-canvas", {
+        method: "POST",
+        body: JSON.stringify({ prompt: aiPrompt, x: 50, y: 50 }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (
+          data.blocks &&
+          Array.isArray(data.blocks) &&
+          addGeneratedBlocks &&
+          targetPageId
+        ) {
+          addGeneratedBlocks(targetPageId, data.blocks);
+          setIsAiModalOpen(false);
+          setAiPrompt("");
+        }
+      }
+    } catch (e) {
+      console.error("AI Generation failed", e);
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
 
   const menuItems: SidebarItem[] = [
     {
@@ -544,6 +615,60 @@ export default function ItemSidebar() {
             {!isCollapsed ? (
               <button
                 type="button"
+                onClick={() => setIsAiOpen(!isAiOpen)}
+                className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
+              >
+                <span className="text-[10px] font-extrabold text-indigo-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3" /> Intelligence
+                </span>
+                {isAiOpen ? (
+                  <ChevronUp className="w-3 h-3 text-indigo-400 shrink-0" />
+                ) : (
+                  <ChevronDown className="w-3 h-3 text-indigo-400 shrink-0" />
+                )}
+              </button>
+            ) : (
+              <div className="h-px bg-zinc-200/50 w-6 mx-auto my-2" />
+            )}
+
+            {(isAiOpen || isCollapsed) && (
+              <div className="space-y-0.5">
+                <div
+                  title={
+                    isCollapsed ? "Generate with AI (Cmd/Ctrl + J)" : undefined
+                  }
+                  onClick={() => setIsAiModalOpen(true)}
+                  className={`w-full flex items-center ${isCollapsed ? "justify-center p-2" : "justify-start gap-3 p-2"} rounded-xl text-left hover:bg-indigo-50 border border-indigo-100/50 transition-all group shrink-0 cursor-pointer`}
+                >
+                  <div className="p-1.5 bg-indigo-100/50 border border-indigo-200 rounded-lg text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all shrink-0">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  {!isCollapsed && (
+                    <div className="space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap animate-in fade-in duration-200 flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[12px] font-bold text-indigo-700 tracking-tight group-hover:text-indigo-900">
+                          AI Generator
+                        </p>
+                        <span className="text-[9px] font-mono font-bold text-indigo-400/70 bg-indigo-100/50 px-1.5 py-0.5 rounded">
+                          ⌘J
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-indigo-500/80 leading-tight truncate">
+                        Generate blocks via prompt
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {!isCollapsed && <div className="h-px bg-zinc-100/80 my-1 mx-2" />}
+
+          <div className="space-y-1">
+            {!isCollapsed ? (
+              <button
+                type="button"
                 onClick={() => setIsBlocksOpen(!isBlocksOpen)}
                 className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
               >
@@ -639,6 +764,53 @@ export default function ItemSidebar() {
           </div>
         </div>
       </div>
+
+      {isAiModalOpen && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center pointer-events-auto bg-black/20 backdrop-blur-sm">
+          <div className="bg-zinc-950 border border-indigo-500/30 p-4 rounded-2xl shadow-2xl flex flex-col gap-3 w-96 animate-in zoom-in-95 fade-in">
+            <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider px-1">
+              <Sparkles className="w-4 h-4" /> AI Architect
+            </div>
+            <textarea
+              autoFocus
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              placeholder="e.g. Create a Kanban board for a product launch..."
+              className="w-full bg-zinc-900 text-white border border-zinc-800 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-indigo-500/50 shadow-inner"
+              rows={4}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAiGenerate();
+                }
+                if (e.key === "Escape") {
+                  setIsAiModalOpen(false);
+                }
+              }}
+            />
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-[10px] text-zinc-500 font-mono pl-1">
+                Press Enter to send, Esc to cancel
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsAiModalOpen(false)}
+                  className="text-xs font-medium text-zinc-400 hover:text-white px-3 py-2 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAiGenerate}
+                  disabled={isAiGenerating || !aiPrompt.trim()}
+                  className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white text-xs font-bold py-2 px-5 rounded-lg transition-all shadow-lg flex items-center gap-2"
+                >
+                  {isAiGenerating ? "Building..." : "Generate"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {activeDrag && (
         <div
