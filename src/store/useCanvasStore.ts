@@ -443,9 +443,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((state) => {
       const sourcePage = state.pages.find((p) => p.id === pageId);
       const sourceBlock = sourcePage?.blocks.find((b) => b.id === blockId);
+
       if (!sourcePage || !sourceBlock) return state;
+
       const dx = x - sourceBlock.x;
       const dy = y - sourceBlock.y;
+
+      if (dx === 0 && dy === 0) return state;
 
       const isMultiDrag =
         state.selectedBlocks.includes(blockId) &&
