@@ -3,6 +3,12 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/api";
 import Link from "next/link";
+import Cookies from "js-cookie";
+
+interface OnboardingResponseData {
+  tenant_id?: string;
+  detail?: string;
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -15,20 +21,22 @@ export default function OnboardingPage() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = Cookies.get("token") || localStorage.getItem("token");
+
     if (!token) {
-      router.replace("/login");
+      window.location.href = "/login";
     } else {
-      // If user already has a workspace, redirect them to dashboard
-      const tenant = localStorage.getItem("tenant_id");
-      if (tenant) {
-        router.replace(`/dashboard/${tenant}/projects`);
+      const tenant =
+        Cookies.get("tenant_id") || localStorage.getItem("tenant_id");
+
+      if (tenant && tenant !== "undefined" && tenant !== "null") {
+        window.location.href = `/dashboard/${tenant}/projects`;
       } else {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsChecking(false);
       }
     }
-  }, [router]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,9 +58,19 @@ export default function OnboardingPage() {
         workspace_name: usageType === "team" ? workspaceName : undefined,
       });
 
-      if (res.tenant_id) {
-        localStorage.setItem("tenant_id", res.tenant_id);
-        router.push(`/dashboard/${res.tenant_id}/projects`);
+      const data = (await res.json()) as OnboardingResponseData;
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Onboarding failed. Please try again.");
+      }
+
+      if (data.tenant_id) {
+        localStorage.setItem("tenant_id", data.tenant_id);
+        Cookies.set("tenant_id", data.tenant_id);
+
+        window.location.href = `/dashboard/${data.tenant_id}/projects`;
+      } else {
+        throw new Error("Invalid response from server: Missing tenant ID.");
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -68,7 +86,12 @@ export default function OnboardingPage() {
   if (isChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fafafb]">
-        <span className="w-10 h-10 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"></span>
+        <div className="flex flex-col items-center">
+          <span className="w-10 h-10 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"></span>
+          <span className="mt-4 text-sm text-zinc-500 font-mono">
+            Checking session...
+          </span>
+        </div>
       </div>
     );
   }
@@ -76,7 +99,6 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafafb] font-sans text-zinc-900 px-4">
       <div className="w-full max-w-lg">
-        {/* Brand Header */}
         <div className="flex justify-center mb-8">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
@@ -118,9 +140,7 @@ export default function OnboardingPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Selection Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Individual Option */}
               <button
                 type="button"
                 onClick={() => setUsageType("individual")}
@@ -155,7 +175,6 @@ export default function OnboardingPage() {
                 </p>
               </button>
 
-              {/* Team Option */}
               <button
                 type="button"
                 onClick={() => setUsageType("team")}
@@ -193,7 +212,6 @@ export default function OnboardingPage() {
               </button>
             </div>
 
-            {/* Dynamic Workspace Name Input for Teams */}
             <div
               className={`transition-all duration-300 overflow-hidden ${usageType === "team" ? "max-h-24 opacity-100" : "max-h-0 opacity-0"}`}
             >

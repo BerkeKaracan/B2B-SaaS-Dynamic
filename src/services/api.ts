@@ -107,11 +107,10 @@ export const authService = {
   async completeOnboarding(data: {
     usage_type: string;
     workspace_name?: string;
-  }) {
-    const response = await fetchAPI("/api/auth/onboarding", {
+  }): Promise<Response> {
+    return await fetchAPI("/api/auth/onboarding", {
       method: "POST",
       body: JSON.stringify(data),
     });
-    return response;
   },
 };
