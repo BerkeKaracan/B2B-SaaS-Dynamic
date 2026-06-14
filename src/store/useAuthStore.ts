@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import Cookies from "js-cookie";
+import { fetchAPI } from "@/services/api";
 
 interface User {
   id?: string;
@@ -37,11 +38,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         return;
       }
 
-      const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-      const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchAPI("/api/auth/me");
 
       if (res.ok) {
         const userData = await res.json();
@@ -59,23 +56,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     Cookies.remove("token");
     Cookies.remove("tenant_id");
+    localStorage.removeItem("tenant_id");
 
     set({ user: null, isAuthenticated: false, isCheckingAuth: false });
     if (typeof window !== "undefined") window.location.href = "/login";
   },
 
   updateProfile: async (data) => {
-    const token = Cookies.get("token");
-    if (!token) throw new Error("No token found");
-
-    const API_BASE_URL =
-      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    const res = await fetchAPI("/api/auth/me", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
       body: JSON.stringify(data),
     });
 
@@ -115,17 +104,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   updatePassword: async (password) => {
-    const token = Cookies.get("token");
-    if (!token) throw new Error("No token found");
-
-    const API_BASE_URL =
-      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-    const res = await fetch(`${API_BASE_URL}/api/auth/password`, {
+    const res = await fetchAPI("/api/auth/password", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
       body: JSON.stringify({ password }),
     });
 
