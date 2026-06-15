@@ -31,6 +31,10 @@ export async function middleware(request: NextRequest) {
     "/accept-invite",
     "/demo",
     "/share",
+    "/pricing",
+    "/docs",
+    "/changelog",
+    "/solutions",
   ];
   const isPublicPath = publicPaths.some((path) =>
     url.pathname.startsWith(path),
