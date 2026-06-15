@@ -93,7 +93,7 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
             current_tier = (tenant_res.data[0].get("tier") or "basic").lower()
             if current_tier == "free": 
                 current_tier = "basic"
-                
+                        
             count_res = supabase_admin.table("custom_records").select("id", count="exact").eq("tenant_id", req_tenant).neq("module_name", "workspace_modules").execute()
             
             current_project_count = count_res.count if count_res.count is not None else len(count_res.data)
@@ -106,7 +106,7 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
                     status_code=403, 
                     detail=f"Project limit reached! Found {current_project_count} projects. Your {current_tier.capitalize()} plan allows up to {limit}."
                 )
-                 
+                         
         if "record_data" not in data or not data["record_data"]:
             data["record_data"] = {}
             
@@ -161,7 +161,7 @@ def get_records(
             collaborators = record_data.get("collaborators", [])
             is_collab = any(isinstance(c, dict) and str(c.get("email", "")).lower().strip() == user["email"] for c in collaborators)
 
-            if visibility != "just_admin" or is_collab or owner_email == user["email"]:
+            if owner_email == user["email"] or is_collab or visibility == "public":
                 filtered_records.append(record)
                 
         return filtered_records[offset : offset + limit]
@@ -192,8 +192,9 @@ def get_record(record_id: UUID, user: dict = Depends(get_user_role)):
         collaborators = record_data.get("collaborators", [])
         is_collab = any(isinstance(c, dict) and str(c.get("email", "")).lower().strip() == user["email"] for c in collaborators)
         
-        if user_role not in ["admin", "owner"] and owner_email != user["email"] and visibility == "just_admin" and not is_collab:
-            raise HTTPException(status_code=403, detail="Forbidden: Admin only record")
+        if user_role not in ["admin", "owner"] and owner_email != user["email"] and not is_collab:
+            if visibility != "public":
+                raise HTTPException(status_code=403, detail="Forbidden: You do not have access to this record.")
             
         return record
     except HTTPException:
@@ -217,15 +218,14 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
         user_role = user["tenant_roles"][rec_tenant]
         current_record_data = existing_res.data[0].get("record_data", {})
         
-        visibility = current_record_data.get("visibility", "public")
         collaborators = current_record_data.get("collaborators", [])
         owner_email = str(current_record_data.get("owner_email", "")).lower().strip()
        
-        is_editor = any(isinstance(c, dict) and str(c.get("email", "")).lower().strip() == user["email"] and c.get("role") == "editor" for c in collaborators)
+        is_editor = any(isinstance(c, dict) and str(c.get("email", "")).lower().strip() == user["email"] and c.get("role") in ["editor", "owner", "admin"] for c in collaborators)
 
         if user_role not in ["admin", "owner"] and owner_email != user["email"]:
-            if visibility == "just_admin" and not is_editor:
-                raise HTTPException(status_code=403, detail="You do not have permission to modify this record.")
+            if not is_editor:
+                raise HTTPException(status_code=403, detail="You do not have permission to modify this record. Edit access is required.")
 
         payload_data = payload.record_data
         

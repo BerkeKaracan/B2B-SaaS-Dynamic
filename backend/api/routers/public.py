@@ -26,7 +26,7 @@ def get_public_records(limit: int = Query(8, ge=1, le=20)):
     try:
         response = supabase_admin.table("custom_records")\
             .select("id, tenant_id, module_name, record_data, created_at")\
-            .eq("record_data->>visibility", "public")\
+            .eq("record_data->>is_global_shared", "true")\
             .order("created_at", desc=True)\
             .limit(limit)\
             .execute()
@@ -54,7 +54,9 @@ def get_public_record_by_id(record_id: UUID):
         record = response.data[0]
         record_data = record.get("record_data", {})
         
-        if record_data.get("visibility") != "public":
+        is_global = str(record_data.get("is_global_shared", "false")).lower()
+        
+        if is_global != "true":
             raise HTTPException(status_code=403, detail="This framework is private or restricted.")
             
         return sanitize_public_record(record)

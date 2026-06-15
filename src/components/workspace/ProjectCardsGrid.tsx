@@ -33,6 +33,7 @@ type ProjectRecord = {
     updated_at?: string;
     updated_by?: string;
     template?: string;
+    is_global_shared?: string;
   };
 };
 
@@ -77,7 +78,6 @@ export default function ProjectCardsGrid({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // YENİ: Modern Onay (Confirm) Modalı State'i
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -187,8 +187,7 @@ export default function ProjectCardsGrid({
     }
   };
 
-  // YENİLENDİ: İlkel alert yerine Modern Modal kullanılıyor
-  const archiveProject = (
+  const toggleGlobalShare = (
     e: React.MouseEvent,
     projectId: string,
     currentData: RecordData,
@@ -197,6 +196,57 @@ export default function ProjectCardsGrid({
     e.stopPropagation();
     setOpenMenuId(null);
 
+    const isCurrentlyGlobal = currentData.is_global_shared === "true";
+    const newStatus = isCurrentlyGlobal ? "false" : "true";
+
+    setConfirmDialog({
+      isOpen: true,
+      title: isCurrentlyGlobal
+        ? "Remove from Community Hub"
+        : "Publish to Community Hub",
+      message: isCurrentlyGlobal
+        ? "This will remove your workspace from the public Community Hub. Other companies will no longer see it."
+        : "WARNING: This will make your workspace visible to everyone on the internet. Make sure you don't have any sensitive company data inside. Proceed?",
+      confirmText: isCurrentlyGlobal ? "Unpublish" : "Publish to World",
+      type: isCurrentlyGlobal ? "danger" : "warning",
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  record_data: {
+                    ...p.record_data,
+                    is_global_shared: newStatus,
+                  },
+                }
+              : p,
+          ),
+        );
+        try {
+          const res = await fetchAPI(`/api/records/${projectId}`, {
+            method: "PATCH",
+            body: JSON.stringify({
+              record_data: { ...currentData, is_global_shared: newStatus },
+            }),
+          });
+          if (!res.ok) fetchProjects();
+        } catch (error) {
+          fetchProjects();
+        }
+      },
+    });
+  };
+
+  const archiveProject = (
+    e: React.MouseEvent,
+    projectId: string,
+    currentData: RecordData,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpenMenuId(null);
     setConfirmDialog({
       isOpen: true,
       title: "Archive Workspace",
@@ -256,12 +306,10 @@ export default function ProjectCardsGrid({
     }
   };
 
-  // YENİLENDİ: İlkel alert yerine Kırmızı Tehlike Modalı kullanılıyor
   const deletePermanently = (e: React.MouseEvent, projectId: string) => {
     e.preventDefault();
     e.stopPropagation();
     setOpenMenuId(null);
-
     setConfirmDialog({
       isOpen: true,
       title: "Delete Permanently",
@@ -284,7 +332,6 @@ export default function ProjectCardsGrid({
     });
   };
 
-  // REACT OPTİMİZASYONU (USEMEMO)
   const { displayedProjects, activeCount, privateCount, archivedCount } =
     useMemo(() => {
       const active = projects.filter(
@@ -321,7 +368,6 @@ export default function ProjectCardsGrid({
 
   return (
     <div className="flex-1 w-full relative">
-      {/* 1. ÜST METRİKLER */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="bg-white p-5 rounded-xl border border-zinc-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center gap-2 text-zinc-500 mb-2">
@@ -354,7 +400,6 @@ export default function ProjectCardsGrid({
         </div>
       </div>
 
-      {/* 2. ARAÇ ÇUBUĞU */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -389,7 +434,6 @@ export default function ProjectCardsGrid({
         </div>
       </div>
 
-      {/* 3. PROJE KARTLARI GRID'İ */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {isLoading ? (
           <div className="col-span-full py-20 flex justify-center items-center">
@@ -400,6 +444,8 @@ export default function ProjectCardsGrid({
             {displayedProjects.map((project) => {
               const isJustAdmin =
                 project.record_data?.visibility === "just_admin";
+              const isGlobalShared =
+                project.record_data?.is_global_shared === "true";
               const displayName = getProjectDisplayName(
                 project.record_data ?? {},
                 project.id,
@@ -446,7 +492,7 @@ export default function ProjectCardsGrid({
                             <MoreVertical className="w-4 h-4" />
                           </button>
                           {isOpen && (
-                            <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-zinc-200 shadow-lg rounded-lg py-1.5 z-[100] transform-gpu">
+                            <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-zinc-200 shadow-lg rounded-lg py-1.5 z-[100] transform-gpu">
                               {!showArchived ? (
                                 <>
                                   <button
@@ -460,7 +506,7 @@ export default function ProjectCardsGrid({
                                     }
                                     className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                                   >
-                                    Make Public
+                                    Make Workspace Public
                                   </button>
                                   <button
                                     onClick={(e) =>
@@ -475,7 +521,27 @@ export default function ProjectCardsGrid({
                                   >
                                     Make Admin Only
                                   </button>
+
                                   <div className="h-px bg-zinc-100 my-1" />
+
+                                  <button
+                                    onClick={(e) =>
+                                      toggleGlobalShare(
+                                        e,
+                                        project.id,
+                                        project.record_data,
+                                      )
+                                    }
+                                    className={`w-full px-4 py-2 text-xs font-medium flex items-center justify-between ${isGlobalShared ? "text-rose-600 hover:bg-rose-50" : "text-blue-600 hover:bg-blue-50"}`}
+                                  >
+                                    {isGlobalShared
+                                      ? "Remove from Hub"
+                                      : "Publish to Hub"}
+                                    <Globe className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <div className="h-px bg-zinc-100 my-1" />
+
                                   <button
                                     onClick={(e) =>
                                       archiveProject(
@@ -526,17 +592,24 @@ export default function ProjectCardsGrid({
                       <Clock className="w-3.5 h-3.5 text-zinc-400" />
                       {timeAgo}
                     </div>
-                    {isJustAdmin ? (
-                      <div className="flex items-center gap-1 text-zinc-700">
-                        <Shield className="w-3 h-3" />
-                        Private
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1 text-emerald-600">
-                        <Globe className="w-3 h-3" />
-                        Public
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {isGlobalShared && (
+                        <div className="flex items-center gap-1 text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                          <Globe className="w-3 h-3" />
+                          HUB
+                        </div>
+                      )}
+                      {isJustAdmin ? (
+                        <div className="flex items-center gap-1 text-zinc-700">
+                          <Shield className="w-3 h-3" />
+                          Private
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-emerald-600">
+                          Team
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </>
               );
@@ -573,7 +646,6 @@ export default function ProjectCardsGrid({
         )}
       </div>
 
-      {/* CREATE MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/20 backdrop-blur-sm p-4 transform-gpu">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md border border-zinc-200 transform-gpu will-change-transform">
@@ -641,7 +713,6 @@ export default function ProjectCardsGrid({
         </div>
       )}
 
-      {/* YENİ: MODERN ONAY (CONFIRM) MODALI */}
       {confirmDialog?.isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-zinc-900/20 backdrop-blur-sm p-4 transform-gpu">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm border border-zinc-200 transform-gpu will-change-transform overflow-hidden flex flex-col">
