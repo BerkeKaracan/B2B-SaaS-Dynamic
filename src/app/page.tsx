@@ -392,22 +392,103 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-10 border-y border-zinc-200/60 bg-white/60 backdrop-blur-md">
-          <p className="text-center text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-6">
+        <section className="py-10 border-y border-zinc-200/60 bg-white/60 backdrop-blur-md overflow-hidden flex flex-col relative">
+          <p className="text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-8 relative z-20">
             Trusted by Industry Leaders
           </p>
-          <div className="flex flex-wrap justify-center items-center gap-12 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-            <span className="text-xl font-black font-serif">
-              Lethal Company IC.
-            </span>
-            <span className="text-xl font-bold tracking-tighter">
-              ACME Corp.
-            </span>
-            <span className="text-xl font-black uppercase tracking-widest">
-              Stark Ind.
-            </span>
-            <span className="text-xl font-bold italic">Globex</span>
+          <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
+
+          <div className="flex whitespace-nowrap overflow-hidden group">
+            <div className="flex items-center gap-16 animate-marquee group-hover:[animation-play-state:paused] px-8">
+              {[
+                { name: "Lethal Company IC.", style: "font-serif font-black" },
+                { name: "ACME Corp.", style: "tracking-tighter font-bold" },
+                {
+                  name: "Stark Ind.",
+                  style: "uppercase tracking-widest font-black",
+                },
+                { name: "Globex", style: "italic font-bold" },
+                { name: "InGen", style: "font-mono tracking-tight font-bold" },
+                { name: "Wayne Ent.", style: "font-serif italic font-bold" },
+                {
+                  name: "Massive Dynamic",
+                  style: "uppercase font-medium tracking-[0.2em]",
+                },
+                {
+                  name: "Cyberdyne Systems",
+                  style: "font-black tracking-tighter",
+                },
+                { name: "Umbrella Corp.", style: "uppercase font-bold" },
+                { name: "Hooli", style: "lowercase font-black text-2xl" },
+                {
+                  name: "Vandelay Ind.",
+                  style: "font-serif font-bold text-xl",
+                },
+                { name: "Pied Piper", style: "font-mono font-bold" },
+              ].map((company, i) => (
+                <span
+                  key={i}
+                  className={`text-xl text-zinc-400 hover:text-zinc-900 transition-colors cursor-default ${company.style}`}
+                >
+                  {company.name}
+                </span>
+              ))}
+            </div>
+
+            <div
+              className="flex items-center gap-16 animate-marquee group-hover:[animation-play-state:paused] px-8"
+              aria-hidden="true"
+            >
+              {[
+                { name: "Lethal Company IC.", style: "font-serif font-black" },
+                { name: "ACME Corp.", style: "tracking-tighter font-bold" },
+                {
+                  name: "Stark Ind.",
+                  style: "uppercase tracking-widest font-black",
+                },
+                { name: "Globex", style: "italic font-bold" },
+                { name: "InGen", style: "font-mono tracking-tight font-bold" },
+                { name: "Wayne Ent.", style: "font-serif italic font-bold" },
+                {
+                  name: "Massive Dynamic",
+                  style: "uppercase font-medium tracking-[0.2em]",
+                },
+                {
+                  name: "Cyberdyne Systems",
+                  style: "font-black tracking-tighter",
+                },
+                { name: "Umbrella Corp.", style: "uppercase font-bold" },
+                { name: "Hooli", style: "lowercase font-black text-2xl" },
+                {
+                  name: "Vandelay Ind.",
+                  style: "font-serif font-bold text-xl",
+                },
+                { name: "Pied Piper", style: "font-mono font-bold" },
+              ].map((company, i) => (
+                <span
+                  key={`copy-${i}`}
+                  className={`text-xl text-zinc-400 hover:text-zinc-900 transition-colors cursor-default ${company.style}`}
+                >
+                  {company.name}
+                </span>
+              ))}
+            </div>
           </div>
+
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+            @keyframes marquee {
+              0% { transform: translateX(0%); }
+              100% { transform: translateX(-100%); }
+            }
+            .animate-marquee {
+              animation: marquee 35s linear infinite;
+            }
+          `,
+            }}
+          />
         </section>
 
         <section className="py-24 px-6 max-w-6xl mx-auto">
