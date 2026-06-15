@@ -59,7 +59,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem("tenant_id");
 
     set({ user: null, isAuthenticated: false, isCheckingAuth: false });
-    if (typeof window !== "undefined") window.location.href = "/login";
+    if (typeof window !== "undefined") window.location.href = "/";
   },
 
   updateProfile: async (data) => {

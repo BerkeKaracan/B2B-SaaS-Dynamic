@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
     url.pathname.startsWith(path),
   );
 
-  if (isPublicPath) {
+  if (isPublicPath || url.pathname === "/") {
     return NextResponse.next();
   }
 

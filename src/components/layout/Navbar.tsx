@@ -20,7 +20,7 @@ export default function Navbar({
   const router = useRouter();
   const { toggleSecondarySidebar, isSecondarySidebarOpen } = useLayoutStore();
   const { isSaving, showSaved } = useCanvasStore();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -42,9 +42,7 @@ export default function Navbar({
   }, []);
 
   const handleSignOut = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("tenant_id");
-    router.push("/");
+    logout();
   };
 
   return (
