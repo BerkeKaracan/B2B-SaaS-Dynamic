@@ -631,6 +631,169 @@ export default function LandingPage() {
         </section>
 
         <section className="py-24 px-6 max-w-6xl mx-auto border-t border-zinc-200/60 mt-10">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">
+              Enterprise-grade architecture. <br className="hidden sm:block" />
+              <span className="text-zinc-400">Zero compromises.</span>
+            </h2>
+            <p className="text-zinc-500 mt-4 max-w-2xl mx-auto text-lg leading-relaxed">
+              SaaS Engine isn&lsquo;t just another wrapper. It&lsquo;s built
+              from the ground up using a modern, scalable, and secure technology
+              stack designed for real-world performance.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
+              <div className="w-12 h-12 bg-zinc-950 text-white rounded-2xl flex items-center justify-center mb-5 group-hover:-translate-y-1 transition-transform">
+                <svg
+                  className="w-6 h-6"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M11.987 22c5.523 0 10-4.477 10-10s-4.477-10-10-10-10 4.477-10 10 4.477 10 10 10zm-3.66-6.42l-1.32.96v-9.08l1.32-.96v9.08zm4.98 0l-1.32.96V11.2l-3.32 4.42-1.32-.96 4.64-5.38v7.3zm1.66 0l1.32.96V7.46l-1.32-.96v9.08z" />
+                </svg>
+              </div>
+              <h4 className="text-lg font-bold text-zinc-900 mb-2">
+                Next.js 16 & Zustand
+              </h4>
+              <p className="text-sm text-zinc-500 leading-relaxed">
+                Lightning-fast React rendering on the edge, combined with
+                Zustand for zero-lag synchronous state management across your
+                canvas.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-5 group-hover:-translate-y-1 transition-transform">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+              </div>
+              <h4 className="text-lg font-bold text-zinc-900 mb-2">
+                FastAPI & Python Engine
+              </h4>
+              <p className="text-sm text-zinc-500 leading-relaxed">
+                High-performance asynchronous backend architecture to handle
+                complex RAG pipelines and heavy data processing instantly.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
+              <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-5 group-hover:-translate-y-1 transition-transform">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
+                </svg>
+              </div>
+              <h4 className="text-lg font-bold text-zinc-900 mb-2">
+                Llama 3.3 (Groq RAG)
+              </h4>
+              <p className="text-sm text-zinc-500 leading-relaxed">
+                State-of-the-art open-weight AI models providing real-time,
+                context-aware generations directly inside your workspace.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
+              <div className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-5 group-hover:-translate-y-1 transition-transform">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                  />
+                </svg>
+              </div>
+              <h4 className="text-lg font-bold text-zinc-900 mb-2">
+                Supabase & PostgreSQL
+              </h4>
+              <p className="text-sm text-zinc-500 leading-relaxed">
+                Dynamic canvas data stored seamlessly in JSONB structures,
+                backed by Row Level Security (RLS) for strict multi-tenant
+                isolation.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
+              <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-5 group-hover:-translate-y-1 transition-transform">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
+                </svg>
+              </div>
+              <h4 className="text-lg font-bold text-zinc-900 mb-2">
+                Sentry APM
+              </h4>
+              <p className="text-sm text-zinc-500 leading-relaxed">
+                Enterprise-grade application performance monitoring and error
+                tracking ensuring 99.99% uptime and immediate bug resolution.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-5 group-hover:-translate-y-1 transition-transform">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                  />
+                </svg>
+              </div>
+              <h4 className="text-lg font-bold text-zinc-900 mb-2">
+                Docker Containerized
+              </h4>
+              <p className="text-sm text-zinc-500 leading-relaxed">
+                Fully containerized infrastructure allowing consistent
+                deployments and extreme scalability across any cloud
+                environment.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-24 px-6 max-w-6xl mx-auto border-t border-zinc-200/60 mt-10">
           <div className="flex flex-col md:flex-row gap-16 items-center">
             <div className="flex-1 space-y-6">
               <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight leading-[1.1]">
