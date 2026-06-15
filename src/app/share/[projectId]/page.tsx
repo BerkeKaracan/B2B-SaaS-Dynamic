@@ -136,7 +136,16 @@ export default function PublicSharePage() {
   useEffect(() => {
     const fetchSharedWorkspace = async () => {
       try {
-        const res = await fetchAPI(`/api/public/records/${projectId}`);
+        const res = await fetchAPI(
+          `/api/public/records/${projectId}?t=${new Date().getTime()}`,
+          {
+            cache: "no-store",
+            headers: {
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
+            },
+          },
+        );
 
         if (!res.ok) {
           if (res.status === 403)
