@@ -359,6 +359,118 @@ export default function LandingPage() {
         </section>
 
         <section className="py-24 px-6 max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center gap-16">
+            <div className="flex-1 space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-bold text-indigo-600 mb-2 shadow-sm">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+                Introducing Workspace AI
+              </div>
+              <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight leading-[1.1]">
+                Chat directly with <br className="hidden md:block" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-violet-600">
+                  your Canvas Data.
+                </span>
+              </h2>
+              <p className="text-lg text-zinc-500 leading-relaxed">
+                Meet your context-aware AI assistant. Our built-in RAG engine
+                reads your active blocks in real-time. Ask questions, summarize
+                projects, or use the Generative Wand to let AI structure your
+                thoughts instantly.
+              </p>
+
+              <ul className="space-y-4 mt-8">
+                <li className="flex items-center gap-4 text-zinc-700 font-bold text-sm">
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                    ✓
+                  </div>
+                  Context-Aware Chatbot (Llama 3.3)
+                </li>
+                <li className="flex items-center gap-4 text-zinc-700 font-bold text-sm">
+                  <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 shrink-0">
+                    ✓
+                  </div>
+                  Generative Magic Wand
+                </li>
+                <li className="flex items-center gap-4 text-zinc-700 font-bold text-sm">
+                  <div className="w-8 h-8 rounded-full bg-fuchsia-100 flex items-center justify-center text-fuchsia-600 shrink-0">
+                    ✓
+                  </div>
+                  Real-time Canvas Parsing
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex-1 w-full bg-zinc-950 rounded-[2rem] p-3 shadow-2xl rotate-1 hover:rotate-0 transition-transform duration-500 hover:shadow-indigo-500/20">
+              <div className="bg-zinc-900 rounded-[1.5rem] border border-zinc-800 p-5 md:p-6 flex flex-col h-[400px]">
+                <div className="flex items-center gap-2 mb-6 pb-4 border-b border-zinc-800/80">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="ml-2 text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                    RAG_Engine_Active
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-5 flex-1 overflow-hidden font-sans">
+                  <div className="self-end bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm text-[13px] shadow-sm max-w-[85%] font-medium">
+                    Summarize the Q3 Roadmap items on my canvas.
+                  </div>
+
+                  <div className="self-start flex gap-3 max-w-[90%]">
+                    <div className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-violet-600 shrink-0 flex items-center justify-center">
+                      <svg
+                        className="w-3.5 h-3.5 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13 10V3L4 14h7v7l9-11h-7z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-2xl rounded-tl-sm text-[13px] shadow-sm border border-zinc-700/50 leading-relaxed">
+                      Based on your current canvas, the Q3 Roadmap focuses on:
+                      <br />
+                      <br />
+                      <span className="text-white font-bold">
+                        1. Multi-tenant SSO
+                      </span>
+                      <br />
+                      <span className="text-white font-bold">
+                        2. New Block Types
+                      </span>
+                      <br />
+                      <span className="text-white font-bold">
+                        3. Database Sharding
+                      </span>
+                      <br />
+                      <br />
+                      Should I generate a timeline block for these?
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-24 px-6 max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-zinc-900 tracking-tight">
               Everything you need, out of the box.
