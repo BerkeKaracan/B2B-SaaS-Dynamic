@@ -127,7 +127,10 @@ export default function PublicSharePage() {
           }
         }
       } catch (e) {
-        console.error("Auth check failed:", e);
+        console.warn(
+          "User is not logged in, but that's okay for public share:",
+          e,
+        );
       }
     };
     checkAuthAndModules();
