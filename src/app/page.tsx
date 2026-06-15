@@ -2,6 +2,19 @@
 import React from "react";
 import Link from "next/link";
 import Footer from "@/components/layout/Footer";
+import {
+  Layers,
+  Database,
+  Lock,
+  Cloud,
+  Users,
+  Briefcase,
+  TrendingUp,
+  GitMerge,
+  FileText,
+  Activity,
+  Rocket,
+} from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -46,21 +59,25 @@ export default function LandingPage() {
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-white rounded-full blur-[100px] opacity-80 transform-gpu will-change-transform"></div>
       </div>
 
-      <header className="fixed top-0 left-0 right-0 h-16 border-b border-zinc-200/60 bg-white/80 backdrop-blur-xl z-50 px-6 lg:px-10 flex items-center justify-between transition-all">
-        <Link href="/" className="flex items-center gap-3 shrink-0 group">
-          <div className="w-8 h-8 bg-zinc-950 rounded-lg flex items-center justify-center shadow-sm border border-zinc-800 group-hover:bg-zinc-900 transition-colors">
+      <header className="fixed top-0 left-0 right-0 h-16 border-b border-zinc-200/50 bg-white/70 backdrop-blur-xl z-50 px-6 lg:px-10 flex items-center justify-between transition-all">
+        <Link
+          href="/"
+          className="flex items-center gap-3 shrink-0 group transform-gpu active:scale-95 transition-transform"
+        >
+          <div className="w-8 h-8 bg-zinc-950 rounded-xl flex items-center justify-center shadow-[0_2px_10px_rgba(0,0,0,0.1)] border border-zinc-800 group-hover:bg-zinc-800 transition-colors relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <span className="text-white text-xs font-black font-mono tracking-tighter">
               B2
             </span>
           </div>
-          <span className="text-sm font-extrabold text-zinc-950 tracking-tight uppercase">
+          <span className="text-sm font-black text-zinc-950 tracking-tight uppercase">
             SaaS Engine
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1">
-          <div className="relative group py-5 px-2">
-            <button className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-zinc-100/50">
+        <nav className="hidden md:flex items-center gap-2 h-full">
+          <div className="relative group h-full flex items-center">
+            <button className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-zinc-100/80">
               Platform
               <svg
                 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
@@ -72,80 +89,94 @@ export default function LandingPage() {
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-            <div className="absolute top-[60px] left-1/2 -translate-x-1/2 w-[600px] bg-white border border-zinc-200/80 shadow-2xl rounded-2xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 transform origin-top scale-95 group-hover:scale-100 z-50 overflow-hidden flex">
-              <div className="w-2/3 p-5 grid grid-cols-1 gap-1">
-                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 px-3">
+
+            <div className="absolute top-[calc(100%-10px)] left-0 w-full h-[20px] bg-transparent z-40"></div>
+
+            <div className="absolute top-[calc(100%+5px)] left-1/2 -translate-x-1/2 w-[650px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-[2rem] opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 z-50 overflow-hidden flex">
+              <div className="w-2/3 p-6 grid grid-cols-1 gap-3 bg-white">
+                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">
                   Core Capabilities
                 </span>
+
                 <Link
                   href="/docs?sec=canvas"
-                  className="p-3 hover:bg-zinc-50 rounded-xl transition-all border border-transparent block"
+                  className="group/feature relative p-4 bg-white hover:bg-zinc-50/80 rounded-2xl border border-zinc-100 hover:border-indigo-200 transition-all block overflow-hidden transform-gpu hover:-translate-y-0.5 shadow-sm hover:shadow-md"
                 >
-                  <h4 className="text-sm font-extrabold text-zinc-950 flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4 text-indigo-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                    </svg>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl -z-10 group-hover/feature:bg-indigo-500/10 transition-colors"></div>
+                  <h4 className="text-sm font-black text-zinc-900 flex items-center gap-3 mb-1.5">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-inner group-hover/feature:scale-110 transition-transform transform-gpu">
+                      <Layers className="w-4 h-4" />
+                    </div>
                     Spatial Canvas Engine
                   </h4>
-                  <p className="text-xs text-zinc-500 font-medium mt-1 leading-relaxed">
+                  <p className="text-[11px] text-zinc-500 font-medium leading-relaxed pl-11">
                     Infinite vector grids for dynamic block orchestration and
-                    workflow mapping.
+                    infinite workflow mapping.
                   </p>
                 </Link>
+
                 <Link
                   href="/docs?sec=autosave"
-                  className="p-3 hover:bg-zinc-50 rounded-xl transition-all border border-transparent block"
+                  className="group/feature relative p-4 bg-white hover:bg-zinc-50/80 rounded-2xl border border-zinc-100 hover:border-emerald-200 transition-all block overflow-hidden transform-gpu hover:-translate-y-0.5 shadow-sm hover:shadow-md"
                 >
-                  <h4 className="text-sm font-extrabold text-zinc-950 flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4 text-emerald-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                    </svg>
-                    Real-Time Synchronization
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl -z-10 group-hover/feature:bg-emerald-500/10 transition-colors"></div>
+                  <h4 className="text-sm font-black text-zinc-900 flex items-center gap-3 mb-1.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner group-hover/feature:scale-110 transition-transform transform-gpu">
+                      <Database className="w-4 h-4" />
+                    </div>
+                    Real-Time Sync (JSONB)
                   </h4>
-                  <p className="text-xs text-zinc-500 font-medium mt-1 leading-relaxed">
-                    Zero-latency background data streaming utilizing JSONB
-                    database primitives.
+                  <p className="text-[11px] text-zinc-500 font-medium leading-relaxed pl-11">
+                    Zero-latency background data streaming utilizing advanced
+                    PostgreSQL primitives.
                   </p>
                 </Link>
               </div>
-              <div className="w-1/3 bg-zinc-50/80 p-5 border-l border-zinc-100 flex flex-col gap-4">
+
+              <div className="w-1/3 bg-zinc-50/50 p-6 border-l border-zinc-100 flex flex-col gap-5">
                 <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
                   Security & Data
                 </span>
-                <Link href="/docs?sec=rbac" className="group/item">
-                  <h4 className="text-[13px] font-bold text-zinc-900 group-hover/item:text-blue-600 transition-colors">
-                    Enterprise RBAC
-                  </h4>
-                  <p className="text-[11px] text-zinc-500 mt-1">
-                    Granular Row-Level Security.
-                  </p>
+
+                <Link
+                  href="/docs?sec=rbac"
+                  className="group/item flex items-start gap-3"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-zinc-200/50 flex items-center justify-center text-zinc-600 group-hover/item:bg-blue-100 group-hover/item:text-blue-600 transition-colors">
+                    <Lock className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-[13px] font-bold text-zinc-900 group-hover/item:text-blue-600 transition-colors">
+                      Enterprise RBAC
+                    </h4>
+                    <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
+                      Granular Row-Level Security.
+                    </p>
+                  </div>
                 </Link>
-                <Link href="/docs?sec=assets" className="group/item">
-                  <h4 className="text-[13px] font-bold text-zinc-900 group-hover/item:text-blue-600 transition-colors">
-                    Cloud Storage
-                  </h4>
-                  <p className="text-[11px] text-zinc-500 mt-1">
-                    Protected Supabase buckets.
-                  </p>
+
+                <Link
+                  href="/docs?sec=assets"
+                  className="group/item flex items-start gap-3"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-zinc-200/50 flex items-center justify-center text-zinc-600 group-hover/item:bg-purple-100 group-hover/item:text-purple-600 transition-colors">
+                    <Cloud className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-[13px] font-bold text-zinc-900 group-hover/item:text-purple-600 transition-colors">
+                      Cloud Storage
+                    </h4>
+                    <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
+                      Protected Supabase buckets.
+                    </p>
+                  </div>
                 </Link>
               </div>
             </div>
           </div>
 
-          <div className="relative group py-5 px-2">
-            <button className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-zinc-100/50">
+          <div className="relative group h-full flex items-center">
+            <button className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-zinc-100/80">
               Solutions
               <svg
                 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
@@ -157,60 +188,70 @@ export default function LandingPage() {
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-            <div className="absolute top-[60px] left-1/2 -translate-x-1/2 w-[480px] bg-white border border-zinc-200/80 shadow-2xl rounded-2xl p-4 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 transform origin-top scale-95 group-hover:scale-100 grid grid-cols-2 gap-x-2 gap-y-1 z-50">
-              <div className="col-span-2 px-3 py-1.5 text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 mb-2">
+
+            <div className="absolute top-[calc(100%-10px)] left-0 w-full h-[20px] bg-transparent z-40"></div>
+
+            <div className="absolute top-[calc(100%+5px)] left-1/2 -translate-x-1/2 w-[520px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-[2rem] p-5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 grid grid-cols-2 gap-x-4 gap-y-2 z-50">
+              <div className="col-span-2 px-3 py-2 text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 mb-2">
                 Industry Use Cases
               </div>
 
               <Link
                 href="/solutions/engineering"
-                className="p-3 hover:bg-zinc-50 rounded-xl transition-colors block"
+                className="p-3 hover:bg-zinc-50 rounded-2xl transition-colors block border border-transparent hover:border-zinc-200/60 hover:shadow-sm group/sol"
               >
-                <h4 className="text-[13px] font-extrabold text-zinc-900">
+                <h4 className="text-xs font-black text-zinc-900 flex items-center gap-2">
+                  <GitMerge className="w-3.5 h-3.5 text-zinc-400 group-hover/sol:text-indigo-600" />
                   Engineering & Product
                 </h4>
-                <p className="text-[11px] text-zinc-500 font-medium mt-1">
-                  Sprint planning & bug tracking layouts.
+                <p className="text-[11px] text-zinc-500 font-medium mt-1 pl-5.5">
+                  Sprint planning & bug tracking.
                 </p>
               </Link>
+
               <Link
                 href="/solutions/hr"
-                className="p-3 hover:bg-zinc-50 rounded-xl transition-colors block"
+                className="p-3 hover:bg-zinc-50 rounded-2xl transition-colors block border border-transparent hover:border-zinc-200/60 hover:shadow-sm group/sol"
               >
-                <h4 className="text-[13px] font-extrabold text-zinc-900">
+                <h4 className="text-xs font-black text-zinc-900 flex items-center gap-2">
+                  <Users className="w-3.5 h-3.5 text-zinc-400 group-hover/sol:text-rose-600" />
                   Human Resources
                 </h4>
-                <p className="text-[11px] text-zinc-500 font-medium mt-1">
-                  Onboarding workflows & policy maps.
+                <p className="text-[11px] text-zinc-500 font-medium mt-1 pl-5.5">
+                  Onboarding workflows & policies.
                 </p>
               </Link>
+
               <Link
                 href="/solutions/sales"
-                className="p-3 hover:bg-zinc-50 rounded-xl transition-colors block"
+                className="p-3 hover:bg-zinc-50 rounded-2xl transition-colors block border border-transparent hover:border-zinc-200/60 hover:shadow-sm group/sol"
               >
-                <h4 className="text-[13px] font-extrabold text-zinc-900">
+                <h4 className="text-xs font-black text-zinc-900 flex items-center gap-2">
+                  <TrendingUp className="w-3.5 h-3.5 text-zinc-400 group-hover/sol:text-emerald-600" />
                   Sales & CRM
                 </h4>
-                <p className="text-[11px] text-zinc-500 font-medium mt-1">
+                <p className="text-[11px] text-zinc-500 font-medium mt-1 pl-5.5">
                   Deal pipelines & conversion grids.
                 </p>
               </Link>
+
               <Link
                 href="/solutions/operations"
-                className="p-3 hover:bg-zinc-50 rounded-xl transition-colors block"
+                className="p-3 hover:bg-zinc-50 rounded-2xl transition-colors block border border-transparent hover:border-zinc-200/60 hover:shadow-sm group/sol"
               >
-                <h4 className="text-[13px] font-extrabold text-zinc-900">
+                <h4 className="text-xs font-black text-zinc-900 flex items-center gap-2">
+                  <Briefcase className="w-3.5 h-3.5 text-zinc-400 group-hover/sol:text-amber-600" />
                   Strategy & Ops
                 </h4>
-                <p className="text-[11px] text-zinc-500 font-medium mt-1">
+                <p className="text-[11px] text-zinc-500 font-medium mt-1 pl-5.5">
                   OKRs and executive timelines.
                 </p>
               </Link>
             </div>
           </div>
 
-          <div className="relative group py-5 px-2">
-            <button className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-zinc-100/50">
+          <div className="relative group h-full flex items-center">
+            <button className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-zinc-100/80">
               Developers
               <svg
                 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
@@ -222,31 +263,42 @@ export default function LandingPage() {
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-            <div className="absolute top-[60px] left-0 w-[240px] bg-white border border-zinc-200/80 shadow-2xl rounded-2xl p-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 transform origin-top scale-95 group-hover:scale-100 flex flex-col z-50">
+
+            <div className="absolute top-[calc(100%-10px)] left-0 w-full h-[20px] bg-transparent z-40"></div>
+
+            <div className="absolute top-[calc(100%+5px)] left-0 w-[260px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-[1.5rem] p-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 flex flex-col z-50">
               <Link
                 href="/docs"
-                className="px-4 py-2.5 hover:bg-zinc-50 rounded-xl flex items-center justify-between group/link transition-colors"
+                className="px-4 py-3 hover:bg-zinc-50 rounded-xl flex items-center gap-3 group/link transition-colors"
               >
+                <FileText className="w-4 h-4 text-zinc-400 group-hover/link:text-zinc-900" />
                 <span className="text-[13px] font-bold text-zinc-700 group-hover/link:text-zinc-950">
                   Documentation
                 </span>
               </Link>
+
               <Link
                 href="/changelog"
-                className="px-4 py-2.5 hover:bg-zinc-50 rounded-xl flex items-center justify-between group/link transition-colors"
+                className="px-4 py-3 hover:bg-zinc-50 rounded-xl flex items-center justify-between group/link transition-colors"
               >
-                <span className="text-[13px] font-bold text-zinc-700 group-hover/link:text-zinc-950">
-                  Changelog
-                </span>
-                <span className="text-[9px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded uppercase tracking-widest">
+                <div className="flex items-center gap-3">
+                  <Activity className="w-4 h-4 text-zinc-400 group-hover/link:text-zinc-900" />
+                  <span className="text-[13px] font-bold text-zinc-700 group-hover/link:text-zinc-950">
+                    Changelog
+                  </span>
+                </div>
+                <span className="text-[9px] font-black bg-blue-50 border border-blue-100 text-blue-600 px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">
                   New
                 </span>
               </Link>
-              <div className="h-px bg-zinc-100 my-1 mx-2"></div>
+
+              <div className="h-px bg-zinc-100 my-1 mx-3"></div>
+
               <Link
                 href="/demo"
-                className="px-4 py-2.5 hover:bg-zinc-50 rounded-xl flex items-center justify-between group/link transition-colors"
+                className="px-4 py-3 hover:bg-zinc-50 rounded-xl flex items-center gap-3 group/link transition-colors"
               >
+                <Rocket className="w-4 h-4 text-zinc-400 group-hover/link:text-zinc-900" />
                 <span className="text-[13px] font-bold text-zinc-700 group-hover/link:text-zinc-950">
                   Community Hub
                 </span>
@@ -256,7 +308,7 @@ export default function LandingPage() {
 
           <Link
             href="/pricing"
-            className="text-[13px] font-bold text-zinc-500 hover:text-zinc-950 transition-colors px-4 py-1.5 rounded-lg hover:bg-zinc-100/50"
+            className="text-[13px] font-bold text-zinc-500 hover:text-zinc-950 transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-100/80"
           >
             Pricing
           </Link>
@@ -272,7 +324,7 @@ export default function LandingPage() {
           <div className="h-4 w-px bg-zinc-200 hidden md:block"></div>
           <Link
             href="/register"
-            className="text-[13px] font-extrabold bg-zinc-950 text-white px-5 py-2 rounded-xl hover:bg-zinc-800 transition-all shadow-md shadow-zinc-900/10 hover:shadow-lg flex items-center gap-2"
+            className="text-[13px] font-extrabold bg-zinc-950 text-white px-5 py-2.5 rounded-xl hover:bg-zinc-800 transition-all shadow-[0_4px_14px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] flex items-center gap-2 transform-gpu hover:-translate-y-0.5 active:scale-95"
           >
             Deploy Workspace
             <svg
