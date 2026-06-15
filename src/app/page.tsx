@@ -630,6 +630,104 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section className="py-24 px-6 max-w-6xl mx-auto border-t border-zinc-200/60 mt-10">
+          <div className="flex flex-col md:flex-row gap-16 items-center">
+            <div className="flex-1 space-y-6">
+              <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight leading-[1.1]">
+                Not just for teams. <br className="hidden md:block" />
+                <span className="text-zinc-400">Built for your life.</span>
+              </h2>
+              <p className="text-lg text-zinc-500 leading-relaxed max-w-md">
+                You don&apos;t need a company to harness the power of our
+                platform. Turn your workspace into a{" "}
+                <strong>Personal Second Brain</strong>. Organize your studies,
+                plan your freelance projects, or track your daily life with the
+                same enterprise-grade tools.
+              </p>
+            </div>
+
+            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1">
+                <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mb-5">
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-bold text-zinc-900 mb-2">
+                  Students & Research
+                </h4>
+                <p className="text-sm text-zinc-500 leading-relaxed">
+                  Drop your notes onto the canvas and let our AI instantly quiz
+                  you or summarize complex chapters.
+                </p>
+              </div>
+
+              <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1">
+                <div className="w-12 h-12 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center mb-5">
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-bold text-zinc-900 mb-2">
+                  Freelancers
+                </h4>
+                <p className="text-sm text-zinc-500 leading-relaxed">
+                  Manage multiple clients, project timelines, and workflows in
+                  beautifully isolated personal workspaces.
+                </p>
+              </div>
+
+              <div className="bg-zinc-950 p-6 rounded-3xl border border-zinc-800 shadow-sm sm:col-span-2 hover:shadow-xl transition-all">
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="w-12 h-12 bg-zinc-800 text-pink-400 rounded-2xl flex items-center justify-center shrink-0">
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-bold text-white">
+                    Life & Habit Organization
+                  </h4>
+                </div>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  Build your custom habit trackers, fitness logs, and travel
+                  itineraries with dynamic check-blocks and date widgets. Make
+                  it yours.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="py-24 px-6 max-w-5xl mx-auto mb-10">
           <div className="bg-zinc-900 rounded-3xl p-12 text-center relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
