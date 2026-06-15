@@ -793,6 +793,126 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section className="py-24 px-6 max-w-7xl mx-auto border-t border-zinc-200/60 mt-10">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight mb-4">
+              Anatomy of a{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                Smart Workspace.
+              </span>
+            </h2>
+            <p className="text-lg text-zinc-500 max-w-2xl mx-auto">
+              Everything is exactly where you need it. No clutter, just pure
+              productivity mapped out on an infinite canvas.
+            </p>
+          </div>
+
+          <div className="relative w-full aspect-square md:aspect-[16/9] bg-zinc-900 rounded-[2rem] border-[8px] border-zinc-100 shadow-2xl p-4 flex items-center justify-center overflow-hidden group">
+            <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center opacity-80">
+              <span className="text-zinc-700 font-bold text-xl tracking-widest uppercase">
+                [ YOUR WORKSPACE SCREENSHOT HERE ]
+              </span>
+            </div>
+
+            <div className="absolute top-10 left-10 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-zinc-200/50 max-w-[200px] animate-bounce-slow">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                <h4 className="font-bold text-zinc-900 text-sm">
+                  Dynamic Sidebar
+                </h4>
+              </div>
+              <p className="text-[11px] text-zinc-600 font-medium">
+                Switch between projects, views, and settings instantly.
+              </p>
+            </div>
+
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-indigo-500 max-w-[240px] hidden md:block">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                <h4 className="font-bold text-white text-sm">
+                  Infinite JSONB Canvas
+                </h4>
+              </div>
+              <p className="text-[11px] text-indigo-100 font-medium">
+                Drag & drop any block type. Data synchronizes in real-time.
+              </p>
+            </div>
+
+            <div className="absolute bottom-10 right-10 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-zinc-200/50 max-w-[220px]">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                <h4 className="font-bold text-zinc-900 text-sm">
+                  Context-Aware AI
+                </h4>
+              </div>
+              <p className="text-[11px] text-zinc-600 font-medium">
+                The RAG engine sits right here, reading your canvas live.
+              </p>
+            </div>
+
+            <div className="absolute top-10 right-10 bg-zinc-800/90 backdrop-blur-md px-4 py-2 rounded-full shadow-xl border border-zinc-700 flex items-center gap-3">
+              <div className="flex -space-x-2">
+                <div className="w-6 h-6 rounded-full bg-red-400 border-2 border-zinc-800"></div>
+                <div className="w-6 h-6 rounded-full bg-green-400 border-2 border-zinc-800"></div>
+              </div>
+              <span className="text-xs font-bold text-white">
+                Multiplayer Ready
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-8 px-6 max-w-5xl mx-auto mt-10">
+          <div className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-fuchsia-600 rounded-3xl p-1 relative overflow-hidden shadow-2xl hover:shadow-indigo-500/20 transition-all">
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 mix-blend-overlay"></div>
+
+            <div className="bg-zinc-950/40 backdrop-blur-sm w-full h-full rounded-[1.4rem] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="text-left z-10 flex-1">
+                <div className="inline-block px-3 py-1 bg-white/10 rounded-full text-[10px] font-black text-white uppercase tracking-widest mb-3 backdrop-blur-md border border-white/20">
+                  Early Adopter Special
+                </div>
+                <h3 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-2">
+                  Unlock the{" "}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500">
+                    Pro Edition
+                  </span>{" "}
+                  today.
+                </h3>
+                <p className="text-indigo-100/80 text-sm font-medium max-w-md leading-relaxed">
+                  Join the beta now and get lifetime access to the Llama 3.3 RAG
+                  engine, unlimited dynamic blocks, and priority support. No
+                  credit card required for the first 14 days.
+                </p>
+              </div>
+
+              <div className="z-10 shrink-0 w-full md:w-auto">
+                <a
+                  href="/register"
+                  className="w-full md:w-auto px-8 py-4 bg-white text-indigo-950 font-black rounded-xl hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg"
+                >
+                  Claim Your Offer
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M17 8l4 4m0 0l-4 4m4-4H3"
+                    />
+                  </svg>
+                </a>
+                <p className="text-center text-[10px] text-white/50 mt-3 uppercase tracking-widest font-bold">
+                  Limited spots available
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="py-24 px-6 max-w-6xl mx-auto border-t border-zinc-200/60 mt-10">
           <div className="flex flex-col md:flex-row gap-16 items-center">
             <div className="flex-1 space-y-6">
