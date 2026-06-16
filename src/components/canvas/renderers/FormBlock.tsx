@@ -18,22 +18,20 @@ export default function FormBlock({
 }: FormBlockProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Blok inaktif olduğunda ayarlar panelini otomatik kapat
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!isActive) setIsSettingsOpen(false);
   }, [isActive]);
 
-  // Varsayılan veriler ve mevcut ayarlar (Asla silinmez)
   const label = (block.settings?.label as string) ?? "Field Label";
   const jsonKey = (block.settings?.jsonKey as string) ?? "field_key";
   const placeholder =
     (block.settings?.placeholder as string) ?? "Enter value...";
-  const inputType = (block.settings?.inputType as string) ?? "text"; // text, number, email, password vb.
+  const inputType = (block.settings?.inputType as string) ?? "text"; 
   const currentValue = (block.value as string) || "";
 
   return (
     <div className="relative w-full h-full flex flex-col justify-center group/block">
-      {/* AYARLAR BUTONU: Sadece aktifken sağ üstte görünür */}
       {onSettingsChange && (
         <button
           type="button"
@@ -50,7 +48,6 @@ export default function FormBlock({
         </button>
       )}
 
-      {/* YANDAN AÇILAN AYARLAR PANELİ (Side Panel) */}
       {isSettingsOpen && isActive && onSettingsChange && (
         <div
           className="absolute top-0 -right-4 translate-x-full w-[260px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] p-4 flex flex-col gap-4 z-[100] animate-in slide-in-from-left-2 fade-in duration-200 cursor-default"
@@ -142,7 +139,6 @@ export default function FormBlock({
         </div>
       )}
 
-      {/* GERÇEK FORM (INPUT) ALANI */}
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
           <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest px-1">
