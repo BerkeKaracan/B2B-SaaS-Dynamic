@@ -12,6 +12,7 @@ import {
   Database,
   CheckCircle2,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
   role: "user" | "assistant";
@@ -235,9 +236,30 @@ export default function AiChatbot() {
                       ? "bg-indigo-600 text-white rounded-br-sm"
                       : "bg-white border border-zinc-200 text-zinc-800 rounded-bl-sm shadow-sm"
                   }`}
-                  style={{ whiteSpace: "pre-wrap" }}
                 >
-                  {msg.content}
+                  <div className="space-y-1">
+                    <ReactMarkdown
+                      components={{
+                        strong: ({ node, ...props }) => (
+                          <span className="font-bold" {...props} />
+                        ),
+                        ul: ({ node, ...props }) => (
+                          <ul className="list-disc ml-4 mt-1" {...props} />
+                        ),
+                        ol: ({ node, ...props }) => (
+                          <ol className="list-decimal ml-4 mt-1" {...props} />
+                        ),
+                        li: ({ node, ...props }) => (
+                          <li className="mt-0.5" {...props} />
+                        ),
+                        p: ({ node, ...props }) => (
+                          <p className="mb-2 last:mb-0" {...props} />
+                        ),
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </div>
             ))}
