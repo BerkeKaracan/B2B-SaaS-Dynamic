@@ -90,11 +90,11 @@ export default function TeamBillingPage({
           return;
         }
 
-        const res = await fetchAPI("/api/auth/me");
-        if (!res.ok) throw new Error("Not logged in or token expired");
+        const authRes = await fetchAPI("/api/auth/me");
+        if (!authRes.ok) throw new Error("Not logged in or token expired");
 
-        const data = await res.json();
-        const roleStr = data.role || "employee";
+        const authData = await authRes.json();
+        const roleStr = authData.role || "employee";
         setCurrentUserRole(roleStr);
 
         if (roleStr !== "owner" && roleStr !== "admin") {
@@ -102,7 +102,12 @@ export default function TeamBillingPage({
           return;
         }
 
-        const tenantRes = await fetchAPI(`/api/tenants/${tenantId}`);
+        const [tenantRes, teamRes, projRes] = await Promise.all([
+          fetchAPI(`/api/tenants/${tenantId}`),
+          fetchAPI(`/api/tenants/${tenantId}/team`),
+          fetchAPI(`/api/records?tenant_id=${tenantId}`),
+        ]);
+
         if (tenantRes.ok) {
           const tenantData = await tenantRes.json();
           setWorkspaceName(tenantData.name || "");
@@ -118,28 +123,25 @@ export default function TeamBillingPage({
 
           if (tenantData.tier === "pro") setTier("Pro Plan");
           else if (tenantData.tier === "advanced") setTier("Advanced Plan");
-          else setTier("Basic Plan");
+          else setTier("Free Plan");
         }
 
-        const res2 = await fetchAPI(`/api/tenants/${tenantId}/team`);
-        if (res2.ok) setMembers(await res2.json());
+        if (teamRes.ok) {
+          const membersData = await teamRes.json();
+          setMembers(membersData);
+        }
 
-        try {
-          const projRes = await fetchAPI(`/api/records?tenant_id=${tenantId}`);
-          if (projRes.ok) {
-            const projData = await projRes.json();
-            if (Array.isArray(projData)) {
-              const actualItems = projData.filter(
-                (item: { module_name?: string }) =>
-                  item.module_name !== "workspace_modules",
-              );
-              setProjectsCount(actualItems.length);
-            } else {
-              setProjectsCount(0);
-            }
+        if (projRes.ok) {
+          const projData = await projRes.json();
+          if (Array.isArray(projData)) {
+            const actualItems = projData.filter(
+              (item: { module_name?: string }) =>
+                item.module_name !== "workspace_modules",
+            );
+            setProjectsCount(actualItems.length);
+          } else {
+            setProjectsCount(0);
           }
-        } catch (e) {
-          console.warn("Could not fetch projects count for billing", e);
         }
       } catch (err: unknown) {
         console.error("Auth Error:", err);
