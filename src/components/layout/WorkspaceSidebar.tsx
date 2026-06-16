@@ -9,7 +9,7 @@ import { fetchAPI } from "@/services/api";
 type TenantInfo = {
   id: string;
   name: string;
-  tier?: string; 
+  tier?: string;
 };
 
 type CustomModule = {
@@ -38,23 +38,31 @@ export default function WorkspaceSidebar() {
   useEffect(() => {
     const fetchWorkspaceData = async () => {
       try {
-        const resTenant = await fetchAPI(`/api/tenants/${tenantId}`);
-        if (resTenant.ok) setTenant(await resTenant.json());
+        const [tenantRes, modulesRes, projectsRes] = await Promise.all([
+          fetchAPI(`/api/tenants/${tenantId}`),
+          fetchAPI(
+            `/api/records?tenant_id=${tenantId}&module_name=workspace_modules`,
+          ),
+          fetchAPI(`/api/records?tenant_id=${tenantId}`),
+        ]);
 
-        const resModules = await fetchAPI(
-          `/api/records?tenant_id=${tenantId}&module_name=workspace_modules`,
-        );
-        if (resModules.ok) {
-          const data = await resModules.json();
-          setCustomModules(
-            data.map((item: { record_data: CustomModule }) => item.record_data),
-          );
+        if (tenantRes.ok) {
+          setTenant(await tenantRes.json());
         }
-        const resProjects = await fetchAPI(
-          `/api/records?tenant_id=${tenantId}`,
-        );
-        if (resProjects.ok) {
-          const projData = await resProjects.json();
+
+        if (modulesRes.ok) {
+          const data = await modulesRes.json();
+          if (Array.isArray(data)) {
+            setCustomModules(
+              data.map(
+                (item: { record_data: CustomModule }) => item.record_data,
+              ),
+            );
+          }
+        }
+
+        if (projectsRes.ok) {
+          const projData = await projectsRes.json();
           if (Array.isArray(projData)) {
             const actualProjects = projData.filter(
               (item: { module_name: string }) =>

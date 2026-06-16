@@ -76,6 +76,12 @@ export default function AiChatbot() {
       if (res.ok) {
         const data = await res.json();
 
+        if (!Array.isArray(data)) {
+          console.warn("API did not return an array for projects.");
+          setIsLoadingAccess(false);
+          return;
+        }
+
         type ProjectItem = {
           module_name: string;
           record_data?: {
