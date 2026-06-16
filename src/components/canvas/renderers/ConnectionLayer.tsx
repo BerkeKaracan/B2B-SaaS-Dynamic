@@ -1,156 +1,153 @@
-import React from "react";
-import { Connection, PageWithSettings } from "@/store/useCanvasStore";
+import React, { useMemo } from "react";
+import { PageWithSettings } from "@/store/useCanvasStore";
+import { X } from "lucide-react";
 
 interface ConnectionLayerProps {
-  connections: Connection[];
+  connections: Array<{
+    id: string;
+    fromPage: string;
+    fromBlock: string;
+    toPage: string;
+    toBlock: string;
+  }>;
   pages: PageWithSettings[];
   connectingFrom: { pageId: string; blockId: string } | null;
   mousePos: { x: number; y: number };
-  onRemoveConnection: (connId: string) => void;
+  onRemoveConnection: (id: string) => void;
 }
 
-export const ConnectionLayer = ({
+function createBezierPath(x1: number, y1: number, x2: number, y2: number) {
+  const dx = Math.abs(x2 - x1);
+  const dy = Math.abs(y2 - y1);
+
+  const curvature = Math.max(dx * 0.4, dy * 0.4, 40);
+
+  const controlPointX1 = x1 + (x2 > x1 ? curvature : -curvature);
+  const controlPointX2 = x2 - (x2 > x1 ? curvature : -curvature);
+
+  return `M ${x1} ${y1} C ${controlPointX1} ${y1}, ${controlPointX2} ${y2}, ${x2} ${y2}`;
+}
+
+export function ConnectionLayer({
   connections,
   pages,
   connectingFrom,
   mousePos,
   onRemoveConnection,
-}: ConnectionLayerProps) => {
-  const getBlockCenter = (pageId: string, blockId: string) => {
-    const page = pages.find((p) => p.id === pageId);
-    const block = page?.blocks.find((b) => b.id === blockId);
-
-    if (!page || !block) return null;
-
-    return {
-      x: page.x + block.x + 160,
-      y: page.y + block.y + 60,
-    };
-  };
+}: ConnectionLayerProps) {
+  const blockPositions = useMemo(() => {
+    const pos = new Map<string, { x: number; y: number }>();
+    pages.forEach((p) => {
+      p.blocks.forEach((b) => {
+        const absX = (p.x ?? 150) + (b.x ?? 20) + (b.width ?? 320) / 2;
+        const absY = (p.y ?? 150) + (b.y ?? 20) + (b.height ?? 120) / 2;
+        pos.set(`${p.id}_${b.id}`, { x: absX, y: absY });
+      });
+    });
+    return pos;
+  }, [pages]);
 
   return (
-    <svg className="absolute inset-0 pointer-events-none z-40 overflow-visible w-full h-full">
+    <svg
+      className="absolute inset-0 pointer-events-none w-full h-full"
+      style={{ zIndex: connectingFrom ? 50 : 0, overflow: "visible" }}
+    >
       <defs>
         <marker
           id="arrowhead"
-          markerWidth="10"
-          markerHeight="7"
-          refX="9"
-          refY="3.5"
+          markerWidth="8"
+          markerHeight="8"
+          refX="7"
+          refY="4"
           orient="auto"
         >
-          <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" opacity="0.4" />
-        </marker>
-        <marker
-          id="arrowhead-hover"
-          markerWidth="10"
-          markerHeight="7"
-          refX="9"
-          refY="3.5"
-          orient="auto"
-        >
-          <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" />{" "}
+          <polygon points="0 0, 8 4, 0 8" fill="#818CF8" />
         </marker>
         <marker
           id="arrowhead-active"
-          markerWidth="10"
-          markerHeight="7"
-          refX="9"
-          refY="3.5"
+          markerWidth="8"
+          markerHeight="8"
+          refX="7"
+          refY="4"
           orient="auto"
         >
-          <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" opacity="0.6" />
+          <polygon points="0 0, 8 4, 0 8" fill="#4F46E5" />
         </marker>
       </defs>
 
       {connections.map((conn) => {
-        const start = getBlockCenter(conn.fromPage, conn.fromBlock);
-        const end = getBlockCenter(conn.toPage, conn.toBlock);
+        const from = blockPositions.get(`${conn.fromPage}_${conn.fromBlock}`);
+        const to = blockPositions.get(`${conn.toPage}_${conn.toBlock}`);
+        if (!from || !to) return null;
 
-        if (!start || !end) return null;
-
-        const midX = (start.x + end.x) / 2;
-        const midY = (start.y + end.y) / 2;
+        const pathData = createBezierPath(from.x, from.y, to.x, to.y);
+        const midX = (from.x + to.x) / 2;
+        const midY = (from.y + to.y) / 2;
 
         return (
-          <g
-            key={conn.id}
-            className="group pointer-events-auto cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemoveConnection(conn.id);
-            }}
-          >
-            <title>Click and delete connection</title>
-
-            <line
-              x1={start.x}
-              y1={start.y}
-              x2={end.x}
-              y2={end.y}
+          <g key={conn.id} className="group pointer-events-auto">
+            <path
+              d={pathData}
               stroke="transparent"
               strokeWidth="24"
+              fill="none"
+              className="cursor-pointer"
             />
-
-            <line
-              x1={start.x}
-              y1={start.y}
-              x2={end.x}
-              y2={end.y}
-              stroke="#64748b"
-              strokeWidth="3"
+            <path
+              d={pathData}
+              stroke="#818CF8"
+              strokeWidth="2.5"
+              fill="none"
               markerEnd="url(#arrowhead)"
-              className="transition-all duration-150 opacity-40 group-hover:stroke-red-500 group-hover:opacity-100"
-              style={{ markerEnd: "url(#arrowhead)" }}
+              className="transition-all duration-300 group-hover:stroke-[#4F46E5] group-hover:stroke-[3.5px] opacity-80 group-hover:opacity-100"
             />
-
-            <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 scale-90 group-hover:scale-100 origin-center">
-              <circle cx={midX} cy={midY} r="12" fill="#ef4444" />
-              <line
-                x1={midX - 4}
-                y1={midY - 4}
-                x2={midX + 4}
-                y2={midY + 4}
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-              <line
-                x1={midX + 4}
-                y1={midY - 4}
-                x2={midX - 4}
-                y2={midY + 4}
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </g>
+            <foreignObject
+              x={midX - 12}
+              y={midY - 12}
+              width="24"
+              height="24"
+              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveConnection(conn.id);
+                }}
+                className="w-6 h-6 flex items-center justify-center bg-white/90 backdrop-blur-sm border border-indigo-200 rounded-full text-indigo-500 hover:text-white hover:bg-red-500 hover:border-red-500 shadow-sm transition-all"
+                title="Remove Connection"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </foreignObject>
           </g>
         );
       })}
 
       {connectingFrom &&
         (() => {
-          const start = getBlockCenter(
-            connectingFrom.pageId,
-            connectingFrom.blockId,
+          const from = blockPositions.get(
+            `${connectingFrom.pageId}_${connectingFrom.blockId}`,
           );
-          if (!start) return null;
+          if (!from) return null;
+          const pathData = createBezierPath(
+            from.x,
+            from.y,
+            mousePos.x,
+            mousePos.y,
+          );
 
           return (
-            <line
-              x1={start.x}
-              y1={start.y}
-              x2={mousePos.x}
-              y2={mousePos.y}
-              stroke="#3b82f6"
-              strokeWidth="3"
-              opacity="0.6"
-              strokeDasharray="5,5"
+            <path
+              d={pathData}
+              stroke="#6366F1"
+              strokeWidth="2.5"
+              strokeDasharray="6, 6"
+              fill="none"
+              className="opacity-70 animate-[dash_1s_linear_infinite]"
               markerEnd="url(#arrowhead-active)"
             />
           );
         })()}
     </svg>
   );
-};
+}

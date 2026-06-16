@@ -23,7 +23,6 @@ import BlockResizer from "./BlockResizer";
 import { Sparkles, Minus, Plus, Maximize, MousePointer2 } from "lucide-react";
 
 export default function CanvasArea() {
-  // 1. PERFORMANS İYİLEŞTİRMESİ: Zustand Atomic Selectors (Re-render'ları engeller)
   const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
   const connections = useCanvasStore((s) => s.connections);
   const activePageId = useCanvasStore((s) => s.activePageId);
@@ -34,7 +33,6 @@ export default function CanvasArea() {
   const panY = useCanvasStore((s) => s.panY);
   const isLoading = useCanvasStore((s) => s.isLoading);
 
-  // Actions (Referansları değişmez, destruct edebiliriz)
   const addBlockToPage = useCanvasStore((s) => s.addBlockToPage);
   const updateBlockValue = useCanvasStore((s) => s.updateBlockValue);
   const updateBlockSettings = useCanvasStore((s) => s.updateBlockSettings);
