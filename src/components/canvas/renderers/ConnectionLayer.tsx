@@ -50,7 +50,7 @@ export function ConnectionLayer({
   return (
     <svg
       className="absolute inset-0 pointer-events-none w-full h-full"
-      style={{ zIndex: connectingFrom ? 50 : 0, overflow: "visible" }}
+      style={{ zIndex: 30, overflow: "visible" }}
     >
       <defs>
         <marker
