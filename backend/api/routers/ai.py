@@ -25,7 +25,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
-    canvas_context: str = ""
+    workspace_context: str = ""
 
 @router.post("/magic-wand")
 async def magic_wand(req: MagicWandRequest):
@@ -135,13 +135,12 @@ async def chat_with_canvas(req: ChatRequest):
     client = Groq(api_key=api_key)
     
     system_prompt = (
-        "You are an intelligent AI assistant integrated into a B2B SaaS Canvas workspace. "
-        "Your job is to answer user questions, brainstorm, and help them based on their current workspace context.\n\n"
-        "--- CURRENT WORKSPACE CONTEXT (Blocks & Texts) ---\n"
-        f"{req.canvas_context}\n"
+        "You are an intelligent AI assistant integrated into a B2B SaaS Workspace. "
+        "Your job is to answer user questions based on their active canvas AND their allowed workspace projects.\n\n"
+        "--- CURRENT WORKSPACE CONTEXT (Canvas & Projects) ---\n"
+        f"{req.workspace_context}\n"
         "---------------------------------------------------\n\n"
-        "If the user asks about their notes, tasks, or workspace, ALWAYS base your answer on the context provided above. "
-        "If the context is empty, politely say that their canvas is currently empty. "
+        "ALWAYS base your answers on the context provided above. If a user asks about their projects, list them from the context. "
         "Keep your answers helpful, concise, professional, and ALWAYS use Markdown format."
     )
     
