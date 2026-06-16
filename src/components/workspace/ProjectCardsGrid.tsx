@@ -401,14 +401,28 @@ export default function ProjectCardsGrid({
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <div className="relative group w-full max-w-md">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4 h-4 text-zinc-400 group-focus-within:text-zinc-900 transition-colors duration-300"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </div>
           <input
             type="text"
-            placeholder="Search workspaces..."
+            placeholder="Search projects..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-medium focus:outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 transition-all placeholder:text-zinc-400 shadow-sm transform-gpu"
+            className="relative z-0 w-full pl-10 pr-4 py-2.5 bg-zinc-50/60 backdrop-blur-sm border border-zinc-200/60 rounded-xl text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-300 transition-all shadow-sm"
           />
         </div>
 
