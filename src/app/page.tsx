@@ -15,6 +15,24 @@ import {
   Activity,
   Rocket,
 } from "lucide-react";
+import LandingChatbot from "@/components/chat/LandingChatbot";
+
+const parseMarkdown = (text: string) => {
+  if (!text) return null;
+
+  let parsedText = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+  parsedText = parsedText.replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+  parsedText = parsedText.replace(/\n/g, "<br />");
+
+  parsedText = parsedText.replace(
+    /^- (.*)$/gm,
+    "<li class='ml-4 list-disc'>$1</li>",
+  );
+
+  return <span dangerouslySetInnerHTML={{ __html: parsedText }} />;
+};
 
 export default function LandingPage() {
   return (
@@ -602,6 +620,8 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        <LandingChatbot />
 
         <section className="py-24 px-6 max-w-6xl mx-auto">
           <div className="text-center mb-16">
