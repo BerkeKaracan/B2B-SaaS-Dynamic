@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { BlockContent } from "@/types/record";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -40,62 +40,54 @@ export default function AssetStreamBlock({
   const jsonKey = (block.settings?.jsonKey as string) ?? "custom_asset";
   const currentAsset = (block.value as string) || "";
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const uploadFile = async (file: File) => {
+    if (!file) return;
     setIsUploading(true);
+
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
       if (!supabaseUrl || !supabaseKey) {
-        console.error("Supabase credentials missing.");
+        alert("Supabase Error: URL or Key is missing in .env files.");
+        setIsUploading(false);
         return;
       }
 
       const supabase = createClient(supabaseUrl, supabaseKey);
-      const fileName = `${Date.now()}_${file.name}`;
-      const filePath = `${fileName}`;
+
+      const fileExtension = file.name.split(".").pop();
+      const randomText = Math.random().toString(36).substring(2, 10);
+      const safeFileName = `${Date.now()}_${randomText}.${fileExtension}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("canvas_assets")
-        .upload(filePath, file);
+        .from("assets")
+        .upload(safeFileName, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Supabase upload error:", uploadError);
+        alert(`Upload failed: ${uploadError.message}`);
+        setIsUploading(false);
+        return;
+      }
 
       const { data } = supabase.storage
-        .from("canvas_assets")
-        .getPublicUrl(filePath);
+        .from("assets")
+        .getPublicUrl(safeFileName);
 
       onUpdate(data.publicUrl);
     } catch (error) {
-      console.error("Upload failed:", error);
-      alert("Failed to upload asset.");
+      console.error("Upload exception:", error);
+      alert("An unexpected error occurred during upload.");
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) uploadFile(file);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && !isUploading) uploadFile(file);
+    e.target.value = "";
   };
 
   const isImage =
@@ -103,13 +95,6 @@ export default function AssetStreamBlock({
 
   return (
     <div className="relative w-full h-full flex flex-col justify-center group/block">
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        className="hidden"
-      />
-
       <button
         type="button"
         onClick={(e) => {
@@ -184,22 +169,19 @@ export default function AssetStreamBlock({
         )}
 
         <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => {
-            if (!currentAsset && !isUploading) fileInputRef.current?.click();
-          }}
           className={`relative flex-1 w-full flex flex-col items-center justify-center rounded-xl transition-all overflow-hidden bg-zinc-50 border-2 ${
             isDragging
               ? "border-indigo-500 border-dashed bg-indigo-50/50"
               : isActive
                 ? "border-indigo-500 border-solid ring-4 ring-indigo-500/10 shadow-sm"
-                : "border-zinc-200 border-dashed hover:border-zinc-300 hover:bg-zinc-100/50 cursor-pointer"
+                : "border-zinc-200 border-dashed hover:border-zinc-300 hover:bg-zinc-100/50"
           }`}
+          onDragEnter={() => setIsDragging(true)}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={() => setIsDragging(false)}
         >
           {isUploading ? (
-            <div className="flex flex-col items-center gap-2 text-indigo-500">
+            <div className="flex flex-col items-center gap-2 text-indigo-500 z-10 pointer-events-none">
               <Loader2 className="w-6 h-6 animate-spin" />
               <span className="text-[10px] font-bold uppercase tracking-widest">
                 Uploading...
@@ -207,7 +189,7 @@ export default function AssetStreamBlock({
             </div>
           ) : currentAsset ? (
             isImage ? (
-              <div className="w-full h-full relative group/img">
+              <div className="w-full h-full relative group/img z-10">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={currentAsset}
@@ -242,7 +224,7 @@ export default function AssetStreamBlock({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center w-full h-full p-4 group/doc relative">
+              <div className="flex flex-col items-center justify-center w-full h-full p-4 group/doc relative z-10">
                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-zinc-200 mb-2 group-hover/doc:scale-110 transition-transform">
                   <FileBox className="w-6 h-6 text-indigo-500" />
                 </div>
@@ -250,7 +232,7 @@ export default function AssetStreamBlock({
                   Attached Document
                 </span>
 
-                <div className="absolute inset-0 bg-white/90 opacity-0 group-hover/doc:opacity-100 flex items-center justify-center gap-4 transition-opacity backdrop-blur-sm">
+                <div className="absolute inset-0 bg-white/95 opacity-0 group-hover/doc:opacity-100 flex items-center justify-center gap-4 transition-opacity backdrop-blur-sm">
                   <a
                     href={currentAsset}
                     target="_blank"
@@ -275,19 +257,28 @@ export default function AssetStreamBlock({
               </div>
             )
           ) : (
-            <div className="flex flex-col items-center gap-2 p-4 text-center pointer-events-none opacity-60">
-              <UploadCloud
-                className={`w-8 h-8 ${isDragging ? "text-indigo-500 animate-bounce" : "text-zinc-400"}`}
+            <>
+              <input
+                type="file"
+                onChange={handleFileChange}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                title="Click or Drag to Upload"
               />
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-zinc-600">
-                  Click or drop file
-                </span>
-                <span className="text-[10px] text-zinc-400 max-w-[150px]">
-                  Supabase Storage Ready
-                </span>
+              <div className="flex flex-col items-center gap-2 p-4 text-center pointer-events-none opacity-60 z-10">
+                <UploadCloud
+                  className={`w-8 h-8 ${isDragging ? "text-indigo-500 animate-bounce" : "text-zinc-400"}`}
+                />
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-zinc-600">
+                    Click or drop file
+                  </span>
+                  <span className="text-[10px] text-zinc-400 max-w-[150px]">
+                    Supabase Storage Ready
+                  </span>
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>
