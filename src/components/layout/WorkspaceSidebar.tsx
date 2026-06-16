@@ -9,6 +9,7 @@ import { fetchAPI } from "@/services/api";
 type TenantInfo = {
   id: string;
   name: string;
+  tier?: string; 
 };
 
 type CustomModule = {
@@ -27,6 +28,7 @@ export default function WorkspaceSidebar() {
   const isAdmin = user?.role === "admin" || user?.role === "owner";
 
   const [tenant, setTenant] = useState<TenantInfo | null>(null);
+  const [projectsCount, setProjectsCount] = useState<number>(0);
 
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,7 +36,7 @@ export default function WorkspaceSidebar() {
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
-    const fetchTenantData = async () => {
+    const fetchWorkspaceData = async () => {
       try {
         const resTenant = await fetchAPI(`/api/tenants/${tenantId}`);
         if (resTenant.ok) setTenant(await resTenant.json());
@@ -48,12 +50,25 @@ export default function WorkspaceSidebar() {
             data.map((item: { record_data: CustomModule }) => item.record_data),
           );
         }
+        const resProjects = await fetchAPI(
+          `/api/records?tenant_id=${tenantId}`,
+        );
+        if (resProjects.ok) {
+          const projData = await resProjects.json();
+          if (Array.isArray(projData)) {
+            const actualProjects = projData.filter(
+              (item: { module_name: string }) =>
+                item.module_name !== "workspace_modules",
+            );
+            setProjectsCount(actualProjects.length);
+          }
+        }
       } catch (error) {
         console.error("Failed to fetch workspace data:", error);
       }
     };
 
-    if (tenantId) fetchTenantData();
+    if (tenantId) fetchWorkspaceData();
   }, [tenantId]);
 
   const handleCreateModule = async (e: React.FormEvent) => {
@@ -93,7 +108,6 @@ export default function WorkspaceSidebar() {
     }
   };
 
-  // Aktif linkler için özel Vercel/Linear stili
   const getLinkStyle = (isActive: boolean) => {
     if (isActive) {
       return "relative bg-white text-indigo-600 font-bold shadow-[0_1px_3px_rgba(0,0,0,0.04)] ring-1 ring-zinc-200/50 z-10";
@@ -101,17 +115,29 @@ export default function WorkspaceSidebar() {
     return "text-zinc-500 font-medium hover:text-zinc-900 hover:bg-zinc-100/80";
   };
 
-  // Aktif ikon rengi
   const getIconStyle = (isActive: boolean) => {
     return isActive ? "text-indigo-600" : "text-zinc-400";
   };
+
+  const currentTier = tenant?.tier || "basic";
+  const tierName =
+    currentTier === "pro"
+      ? "Pro Plan"
+      : currentTier === "advanced"
+        ? "Advanced Plan"
+        : "Free Plan";
+  const projectLimit =
+    currentTier === "pro" ? "Unlimited" : currentTier === "advanced" ? 50 : 3;
+  const percentage =
+    projectLimit === "Unlimited"
+      ? 10
+      : Math.min((projectsCount / (projectLimit as number)) * 100, 100);
 
   return (
     <>
       <aside className="w-[240px] h-full flex flex-col bg-[#F8F9FA] border-r border-zinc-200/60 shrink-0 selection:bg-indigo-100">
         {/* WORKSPACE HEADER */}
         <div className="px-5 py-6 border-b border-zinc-200/50 shrink-0 relative overflow-hidden">
-          {/* Hafif arka plan parlaması */}
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none"></div>
 
           <div className="flex items-center gap-3 relative z-10">
@@ -166,7 +192,7 @@ export default function WorkspaceSidebar() {
             className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith("/projects") && !isOnProject)}`}
           >
             {pathname.endsWith("/projects") && !isOnProject && (
-              <div className="absolute left-[-1px] top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
+              <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
             )}
             <LayoutDashboard
               className={`w-4 h-4 ${getIconStyle(pathname.endsWith("/projects") && !isOnProject)} group-hover:text-zinc-900 transition-colors`}
@@ -179,7 +205,7 @@ export default function WorkspaceSidebar() {
             className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith("/community"))}`}
           >
             {pathname.endsWith("/community") && (
-              <div className="absolute left-[-1px] top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
+              <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
             )}
             <Globe
               className={`w-4 h-4 ${getIconStyle(pathname.endsWith("/community"))} group-hover:text-zinc-900 transition-colors`}
@@ -204,7 +230,7 @@ export default function WorkspaceSidebar() {
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(isActive)}`}
               >
                 {isActive && (
-                  <div className="absolute left-[-1px] top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
+                  <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
                 )}
                 <div
                   className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" : "bg-zinc-300 group-hover:bg-zinc-400"} transition-colors`}
@@ -226,21 +252,26 @@ export default function WorkspaceSidebar() {
 
         {/* BOTTOM SECTION: STORAGE & SETTINGS */}
         <div className="p-3 shrink-0 flex flex-col gap-2">
-          {/* SAAS PREMIUM DETAY: Plan/Storage Göstergesi */}
           {!isOnProject && (
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-white to-zinc-50 border border-zinc-200/60 shadow-sm relative overflow-hidden mb-2 group cursor-pointer hover:border-indigo-200 hover:shadow-md transition-all">
+            <div className="p-4 rounded-2xl bg-linear-to-br from-white to-zinc-50 border border-zinc-200/60 shadow-sm relative overflow-hidden mb-2 group cursor-pointer hover:border-indigo-200 hover:shadow-md transition-all">
               <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all"></div>
+
               <div className="flex items-center justify-between mb-1.5 relative z-10">
                 <h3 className="text-[10px] font-black text-zinc-800 uppercase tracking-wider flex items-center gap-1">
-                  <Zap className="w-3 h-3 text-amber-500" /> Free Plan
+                  <Zap className="w-3 h-3 text-amber-500" /> {tierName}
                 </h3>
               </div>
+
               <p className="text-[11px] font-medium text-zinc-500 mb-3 relative z-10">
-                <span className="text-zinc-900 font-bold">2</span> of 3 projects
-                used
+                <span className="text-zinc-900 font-bold">{projectsCount}</span>{" "}
+                of {projectLimit} projects used
               </p>
+
               <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden relative z-10">
-                <div className="h-full bg-indigo-500 w-[66%] rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
+                <div
+                  className="h-full bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-500"
+                  style={{ width: `${percentage}%` }}
+                ></div>
               </div>
             </div>
           )}
@@ -250,11 +281,12 @@ export default function WorkspaceSidebar() {
               href={`/dashboard/${tenantId}/settings`}
               className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.includes("/settings") || pathname.includes("/team"))}`}
             >
-              {pathname.includes("/settings") && (
-                <div className="absolute left-[-1px] top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
+              {(pathname.includes("/settings") ||
+                pathname.includes("/team")) && (
+                <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
               )}
               <Settings
-                className={`w-4 h-4 ${getIconStyle(pathname.includes("/settings"))} group-hover:text-zinc-900 transition-colors`}
+                className={`w-4 h-4 ${getIconStyle(pathname.includes("/settings") || pathname.includes("/team"))} group-hover:text-zinc-900 transition-colors`}
               />
               Settings
             </Link>
@@ -262,7 +294,7 @@ export default function WorkspaceSidebar() {
         </div>
       </aside>
 
-      {/* CREATE MODULE MODAL (Premium Tasarım) */}
+      {/* CREATE MODULE MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-zinc-200 overflow-hidden animate-in zoom-in-95 duration-200 relative">

@@ -13,6 +13,7 @@ import {
   UserPlus,
   CheckCircle2,
   AlertCircle,
+  UploadCloud,
 } from "lucide-react";
 
 type TeamMember = {
@@ -46,7 +47,6 @@ export default function TeamBillingPage({
   const [usageType, setUsageType] = useState<string>("team");
 
   const [currentUserRole, setCurrentUserRole] = useState<string>("employee");
-
   const [projectsCount, setProjectsCount] = useState<number>(0);
 
   const [logoUrl, setLogoUrl] = useState<string>("");
@@ -91,12 +91,10 @@ export default function TeamBillingPage({
         }
 
         const res = await fetchAPI("/api/auth/me");
-
         if (!res.ok) throw new Error("Not logged in or token expired");
 
         const data = await res.json();
         const roleStr = data.role || "employee";
-
         setCurrentUserRole(roleStr);
 
         if (roleStr !== "owner" && roleStr !== "admin") {
@@ -105,19 +103,14 @@ export default function TeamBillingPage({
         }
 
         const tenantRes = await fetchAPI(`/api/tenants/${tenantId}`);
-
         if (tenantRes.ok) {
           const tenantData = await tenantRes.json();
           setWorkspaceName(tenantData.name || "");
-
           const currentUsageType = tenantData.usage_type || "team";
           setUsageType(currentUsageType);
 
-          if (currentUsageType === "team") {
-            setActiveTab("team");
-          } else {
-            setActiveTab("advanced");
-          }
+          if (currentUsageType === "team") setActiveTab("team");
+          else setActiveTab("advanced");
 
           if (tenantData.logo_url) setLogoUrl(tenantData.logo_url);
           if (tenantData.timezone) setTimezone(tenantData.timezone);
@@ -129,11 +122,7 @@ export default function TeamBillingPage({
         }
 
         const res2 = await fetchAPI(`/api/tenants/${tenantId}/team`);
-
-        if (res2.ok) {
-          const membersData = await res2.json();
-          setMembers(membersData);
-        }
+        if (res2.ok) setMembers(await res2.json());
 
         try {
           const projRes = await fetchAPI(`/api/records?tenant_id=${tenantId}`);
@@ -185,7 +174,6 @@ export default function TeamBillingPage({
       });
 
       if (!res.ok) throw new Error("Failed to upload logo.");
-
       const data = await res.json();
       setLogoUrl(data.logo_url);
       showNotification("success", "Workspace logo updated!");
@@ -196,7 +184,7 @@ export default function TeamBillingPage({
     }
   };
 
-  const handleRenameWorkspace = async (e: React.FormEvent) => {
+  const handleUpdatePreferences = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!workspaceName.trim()) return;
     setIsSavingName(true);
@@ -211,10 +199,10 @@ export default function TeamBillingPage({
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to rename workspace.");
-      showNotification("success", "Workspace renamed successfully!");
+      if (!res.ok) throw new Error("Failed to update workspace settings.");
+      showNotification("success", "Settings saved successfully!");
     } catch (err: unknown) {
-      showNotification("error", "Error renaming workspace.");
+      showNotification("error", "Error saving settings.");
     } finally {
       setIsSavingName(false);
     }
@@ -234,7 +222,6 @@ export default function TeamBillingPage({
       const res = await fetchAPI(`/api/tenants/${tenantId}`, {
         method: "DELETE",
       });
-
       if (!res.ok) throw new Error("Failed to delete workspace.");
       router.push("/login");
     } catch (err: unknown) {
@@ -278,17 +265,14 @@ export default function TeamBillingPage({
 
   const removeMember = async (memberId: string) => {
     if (!window.confirm("Are you sure you want to remove this member?")) return;
-
     try {
       const res = await fetchAPI(`/api/tenants/${tenantId}/team/${memberId}`, {
         method: "DELETE",
       });
-
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.detail || "Failed to remove member.");
       }
-
       setMembers(members.filter((m) => m.id !== memberId));
       showNotification("success", "Member removed from the workspace.");
     } catch (err: unknown) {
@@ -331,9 +315,8 @@ export default function TeamBillingPage({
       !window.confirm(
         `WARNING: Are you sure you want to transfer ownership of this workspace to ${memberEmail}? \n\nYou will lose owner privileges and be downgraded to an Admin.`,
       )
-    ) {
+    )
       return;
-    }
 
     try {
       const res = await fetchAPI(
@@ -350,10 +333,7 @@ export default function TeamBillingPage({
       }
 
       showNotification("success", "Ownership transferred successfully!");
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      setTimeout(() => window.location.reload(), 1500);
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -413,27 +393,32 @@ export default function TeamBillingPage({
           <div className="h-6 bg-zinc-200 rounded w-24"></div>
           <div className="h-6 bg-zinc-200 rounded w-24"></div>
         </div>
-        <div className="h-32 bg-zinc-100 rounded-xl mb-4"></div>
-        <div className="h-16 bg-zinc-100 rounded-xl mb-2"></div>
-        <div className="h-16 bg-zinc-100 rounded-xl"></div>
+        <div className="space-y-6">
+          <div className="h-48 bg-zinc-100 rounded-xl"></div>
+          <div className="h-48 bg-zinc-100 rounded-xl"></div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#FAFAFA] min-h-screen">
-      <div className="max-w-5xl mx-auto w-full p-6 md:p-10 lg:p-12">
+      <div className="max-w-5xl mx-auto w-full p-6 md:p-10 lg:p-12 pb-32 md:pb-40">
+        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-extrabold text-zinc-900 tracking-tight">
-            Workspace Settings
+            Settings
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
             Manage your{" "}
-            {usageType === "individual" ? "personal workspace" : "team members"}
-            , billing plan, and workspace preferences.
+            {usageType === "individual"
+              ? "personal workspace"
+              : "workspace team"}
+            , billing, and preferences.
           </p>
         </div>
 
+        {/* Tabs */}
         <div className="flex items-center gap-6 border-b border-zinc-200 mb-8 overflow-x-auto select-none">
           {usageType === "team" && (
             <TabButton
@@ -457,9 +442,10 @@ export default function TeamBillingPage({
           />
         </div>
 
+        {/* Global Notifications */}
         {notification && (
           <div
-            className={`mb-6 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 border ${
+            className={`mb-6 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 border shadow-sm ${
               notification.type === "success"
                 ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                 : "bg-red-50 border-red-200 text-red-700"
@@ -474,77 +460,84 @@ export default function TeamBillingPage({
           </div>
         )}
 
+        {/* ================= TEAM TAB ================= */}
         {usageType === "team" && activeTab === "team" && (
-          <div className="animate-in fade-in duration-300">
-            <div className="bg-white border border-zinc-200 rounded-2xl p-6 mb-6 shadow-sm">
-              <h2 className="text-base font-bold text-zinc-900 flex items-center gap-2 mb-1">
-                <UserPlus className="w-4 h-4 text-zinc-400" /> Invite New Member
-              </h2>
-              <p className="text-sm text-zinc-500 mb-4">
-                Send an email invitation to add someone to this workspace.
-              </p>
-
-              <form
-                onSubmit={handleInvite}
-                className="flex flex-col sm:flex-row gap-3"
-              >
-                <div className="relative flex-1 flex flex-col sm:flex-row gap-2">
-                  <div className="relative flex-[2]">
-                    <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="email"
-                      required
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      placeholder="colleague@company.com"
-                      className="w-full pl-10 pr-4 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800"
-                    />
+          <div className="animate-in fade-in duration-300 space-y-8">
+            {/* Invite Card */}
+            <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+              <form onSubmit={handleInvite}>
+                <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
+                  <div className="w-full md:w-1/3">
+                    <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
+                      <UserPlus className="w-4 h-4 text-zinc-400" /> Invite
+                      Members
+                    </h3>
+                    <p className="text-sm text-zinc-500 mt-2">
+                      Invite new colleagues to collaborate in your workspace.
+                      You will be billed for additional seats on pro plans.
+                    </p>
                   </div>
-                  <div className="relative flex-1">
-                    <select
-                      value={newRole}
-                      onChange={(e) => setNewRole(e.target.value)}
-                      className="w-full px-4 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg-no-repeat bg-[position:right_1rem_center]"
-                    >
-                      <option value="employee">Employee</option>
-                      <option value="admin">Admin</option>
-                    </select>
+                  <div className="w-full md:w-2/3 flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex flex-1 sm:flex-[2] items-center">
+                      <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 pointer-events-none" />
+                      <input
+                        type="email"
+                        required
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        placeholder="colleague@company.com"
+                        className="w-full pl-10 pr-4 py-2 text-sm border border-zinc-200 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-all font-medium text-zinc-900 placeholder:text-zinc-400"
+                      />
+                    </div>
+                    <div className="relative flex-1">
+                      <select
+                        value={newRole}
+                        onChange={(e) => setNewRole(e.target.value)}
+                        className="w-full px-4 py-2 text-sm border border-zinc-200 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-all font-medium text-zinc-900 appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg-no-repeat bg-[position:right_1rem_center]"
+                      >
+                        <option value="employee">Member</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
-                <button
-                  type="submit"
-                  disabled={isInviting}
-                  className="bg-zinc-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none shrink-0"
-                >
-                  {isInviting ? "Sending..." : "Send Invite"}
-                </button>
+                <div className="bg-zinc-50/80 px-6 py-4 border-t border-zinc-200 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={isInviting}
+                    className="bg-zinc-900 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-zinc-800 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    {isInviting ? "Sending..." : "Send Invite"}
+                  </button>
+                </div>
               </form>
             </div>
 
-            <div className="bg-white border border-zinc-200 rounded-2xl shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-zinc-100 bg-zinc-50/50 flex justify-between items-center">
-                <h3 className="text-sm font-bold text-zinc-900">
-                  Active Members ({members.length})
+            {/* Members List Card */}
+            <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-zinc-200 bg-white">
+                <h3 className="text-base font-bold text-zinc-900">
+                  Workspace Members
                 </h3>
+                <p className="text-sm text-zinc-500 mt-1">
+                  Manage access levels and roles for all active members.
+                </p>
               </div>
 
               <div className="divide-y divide-zinc-100">
                 {members.map((m) => {
                   const emailStr = m.email || "Pending Invite...";
                   const initial = emailStr.charAt(0).toUpperCase();
-
                   const isCurrentOwnerRow = m.role === "owner";
 
                   return (
                     <div
                       key={m.id}
-                      className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:bg-zinc-50/50 transition-colors"
+                      className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-zinc-50/50 transition-colors group"
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-tr ${getAvatarGradient(
-                            emailStr,
-                          )} shadow-sm shrink-0`}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-tr ${getAvatarGradient(emailStr)} shadow-sm shrink-0`}
                         >
                           {initial}
                         </div>
@@ -558,72 +551,52 @@ export default function TeamBillingPage({
                             )}
                           </span>
                           <span className="text-xs text-zinc-500 font-medium">
-                            Workspace Access
+                            Joined{" "}
+                            {m.created_at
+                              ? new Date(m.created_at).toLocaleDateString()
+                              : "Recently"}
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 justify-between sm:justify-end">
-                        <div className="relative">
-                          <select
-                            value={m.role}
-                            disabled={isCurrentOwnerRow}
-                            onChange={(e) => {
-                              if (e.target.value === "transfer_owner") {
-                                handleTransferOwnership(m.id, emailStr);
-                              } else {
-                                handleRoleChange(m.id, e.target.value);
-                              }
-                            }}
-                            className={`appearance-none pr-8 pl-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border focus:outline-none focus:ring-2 transition-all ${
-                              m.role === "admin"
-                                ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 focus:ring-indigo-500/20 cursor-pointer"
-                                : m.role === "owner"
-                                  ? "bg-zinc-900 text-white border-zinc-800 cursor-not-allowed opacity-90"
-                                  : "bg-zinc-100 text-zinc-600 border-zinc-200 hover:bg-zinc-200 focus:ring-zinc-900/20 cursor-pointer"
-                            }`}
-                          >
-                            {isCurrentOwnerRow && (
-                              <option value="owner">Owner</option>
+                      <div className="flex items-center gap-3">
+                        <select
+                          value={m.role}
+                          disabled={isCurrentOwnerRow}
+                          onChange={(e) => {
+                            if (e.target.value === "transfer_owner")
+                              handleTransferOwnership(m.id, emailStr);
+                            else handleRoleChange(m.id, e.target.value);
+                          }}
+                          className={`appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold rounded-md border focus:outline-none focus:ring-2 transition-all ${
+                            m.role === "admin"
+                              ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+                              : m.role === "owner"
+                                ? "bg-zinc-100 text-zinc-500 border-zinc-200 cursor-not-allowed"
+                                : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50 shadow-sm"
+                          }`}
+                        >
+                          {isCurrentOwnerRow && (
+                            <option value="owner">Owner</option>
+                          )}
+                          {!isCurrentOwnerRow &&
+                            currentUserRole === "owner" && (
+                              <option value="transfer_owner">
+                                Transfer Ownership
+                              </option>
                             )}
-
-                            {!isCurrentOwnerRow &&
-                              currentUserRole === "owner" && (
-                                <option value="transfer_owner">
-                                  Make Owner (Transfer)
-                                </option>
-                              )}
-
-                            {!isCurrentOwnerRow && (
-                              <option value="admin">Admin</option>
-                            )}
-                            {!isCurrentOwnerRow && (
-                              <option value="employee">Employee</option>
-                            )}
-                          </select>
-                          <svg
-                            className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60 ${
-                              m.role === "admin"
-                                ? "text-indigo-700"
-                                : m.role === "owner"
-                                  ? "text-white hidden"
-                                  : "text-zinc-600"
-                            }`}
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="m6 9 6 6 6-6" />
-                          </svg>
-                        </div>
+                          {!isCurrentOwnerRow && (
+                            <option value="admin">Admin</option>
+                          )}
+                          {!isCurrentOwnerRow && (
+                            <option value="employee">Member</option>
+                          )}
+                        </select>
 
                         {!isCurrentOwnerRow ? (
                           <button
                             onClick={() => removeMember(m.id)}
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100"
+                            className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                             title="Remove Member"
                           >
                             <svg
@@ -632,7 +605,7 @@ export default function TeamBillingPage({
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"
-                              strokeWidth="2.5"
+                              strokeWidth="2"
                               strokeLinecap="round"
                               strokeLinejoin="round"
                             >
@@ -641,15 +614,15 @@ export default function TeamBillingPage({
                             </svg>
                           </button>
                         ) : (
-                          <div className="w-8 h-8"></div>
+                          <div className="w-[28px]"></div>
                         )}
                       </div>
                     </div>
                   );
                 })}
                 {members.length === 0 && (
-                  <div className="p-8 text-center text-zinc-500 text-sm font-medium">
-                    No members found in this workspace.
+                  <div className="p-8 text-center text-zinc-500 text-sm">
+                    No members found.
                   </div>
                 )}
               </div>
@@ -657,29 +630,44 @@ export default function TeamBillingPage({
           </div>
         )}
 
+        {/* ================= BILLING TAB ================= */}
         {activeTab === "billing" && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
-            <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div>
-                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">
-                  Current Plan
-                </h3>
-                <div className="text-2xl font-black text-zinc-900 flex items-center gap-2">
-                  {tier}{" "}
-                  <span className="px-2 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-700 rounded-full border border-emerald-200">
-                    Active
-                  </span>
+          <div className="animate-in fade-in duration-300 space-y-8">
+            {/* Plan Card */}
+            <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8 justify-between items-start">
+                <div className="w-full md:w-1/3">
+                  <h3 className="text-base font-bold text-zinc-900">
+                    Current Plan
+                  </h3>
+                  <p className="text-sm text-zinc-500 mt-2">
+                    Manage your subscription and billing intervals.
+                  </p>
                 </div>
-                <p className="text-sm text-zinc-500 mt-2">
-                  You are currently on the {tier}. Upgrade for more projects and
-                  features.
-                </p>
+                <div className="w-full md:w-2/3">
+                  <div className="inline-flex items-center gap-3 px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+                    <div className="w-10 h-10 bg-zinc-900 rounded-md flex items-center justify-center">
+                      <CreditCard className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-zinc-900 flex items-center gap-2">
+                        {tier}
+                        <span className="px-2 py-0.5 text-[10px] uppercase font-bold bg-emerald-100 text-emerald-700 rounded border border-emerald-200">
+                          Active
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-500 mt-0.5">
+                        Billed monthly. Renews automatically.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex gap-3">
+              <div className="bg-zinc-50/80 px-6 py-4 border-t border-zinc-200 flex justify-end gap-3">
                 {tier === "Basic Plan" && (
                   <button
                     onClick={() => handleUpgradeTier("advanced")}
-                    className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
+                    className="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-indigo-700 transition-all active:scale-95"
                   >
                     Upgrade to Advanced
                   </button>
@@ -687,7 +675,7 @@ export default function TeamBillingPage({
                 {tier !== "Pro Plan" && (
                   <button
                     onClick={() => handleUpgradeTier("pro")}
-                    className="bg-zinc-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all shadow-md hover:shadow-lg active:scale-95 shrink-0"
+                    className="bg-zinc-900 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-zinc-800 transition-all active:scale-95"
                   >
                     Upgrade to Pro
                   </button>
@@ -695,196 +683,234 @@ export default function TeamBillingPage({
               </div>
             </div>
 
-            <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
-              <h3 className="text-base font-bold text-zinc-900 mb-4">
-                Active Items / Projects
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm font-medium mb-2">
-                    <span className="text-zinc-600">Active Projects</span>
-                    <span className="text-zinc-900 font-bold">
-                      {projectsCount} / {getProjectLimit()}
-                    </span>
-                  </div>
-                  <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                      style={{
-                        width:
-                          tier === "Pro Plan"
-                            ? "10%"
-                            : `${Math.min((projectsCount / (getProjectLimit() as number)) * 100, 100)}%`,
-                      }}
-                    ></div>
-                  </div>
+            {/* Usage Limits Card */}
+            <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
+                <div className="w-full md:w-1/3">
+                  <h3 className="text-base font-bold text-zinc-900">
+                    Usage & Quotas
+                  </h3>
+                  <p className="text-sm text-zinc-500 mt-2">
+                    Monitor your resource consumption based on your current
+                    plan.
+                  </p>
                 </div>
-                {usageType === "team" && (
+                <div className="w-full md:w-2/3 space-y-6 pt-1">
                   <div>
-                    <div className="flex justify-between text-sm font-medium mb-2">
-                      <span className="text-zinc-600">Team Members</span>
-                      <span className="text-zinc-900 font-bold">
-                        {members.length} / {getMemberLimit()}
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="font-semibold text-zinc-700">
+                        Active Projects
+                      </span>
+                      <span className="text-zinc-500 text-xs">
+                        {projectsCount} of {getProjectLimit()} used
                       </span>
                     </div>
-                    <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden border border-zinc-200/50">
                       <div
-                        className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                        className="bg-zinc-900 h-2 transition-all duration-500"
                         style={{
                           width:
                             tier === "Pro Plan"
                               ? "10%"
-                              : `${Math.min((members.length / (getMemberLimit() as number)) * 100, 100)}%`,
+                              : `${Math.min((projectsCount / (getProjectLimit() as number)) * 100, 100)}%`,
                         }}
                       ></div>
                     </div>
                   </div>
-                )}
+                  {usageType === "team" && (
+                    <div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="font-semibold text-zinc-700">
+                          Team Seats
+                        </span>
+                        <span className="text-zinc-500 text-xs">
+                          {members.length} of {getMemberLimit()} used
+                        </span>
+                      </div>
+                      <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden border border-zinc-200/50">
+                        <div
+                          className="bg-indigo-500 h-2 transition-all duration-500"
+                          style={{
+                            width:
+                              tier === "Pro Plan"
+                                ? "10%"
+                                : `${Math.min((members.length / (getMemberLimit() as number)) * 100, 100)}%`,
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         )}
 
+        {/* ================= ADVANCED TAB ================= */}
         {activeTab === "advanced" && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
-            <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
-              <h3 className="text-base font-bold text-zinc-900 mb-1">
-                Workspace Identity
-              </h3>
-              <p className="text-sm text-zinc-500 mb-6">
-                Manage your workspace brand assets and naming.
-              </p>
-
-              <div className="flex flex-col md:flex-row gap-8 items-start">
-                <div className="flex flex-col items-center gap-3 shrink-0">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={handleLogoUpload}
-                  />
-
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`relative w-24 h-24 rounded-2xl bg-zinc-100 border border-zinc-200 border-dashed flex items-center justify-center text-3xl font-black text-zinc-400 overflow-hidden group cursor-pointer hover:bg-zinc-200 transition-all ${
-                      isUploadingLogo ? "opacity-50 animate-pulse" : ""
-                    }`}
-                  >
-                    {logoUrl ? (
-                      <Image
-                        src={logoUrl}
-                        alt="Workspace Logo"
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      workspaceName.charAt(0).toUpperCase() || "?"
-                    )}
+          <div className="animate-in fade-in duration-300 space-y-8">
+            {/* Form for Identity & Localization */}
+            <form onSubmit={handleUpdatePreferences}>
+              {/* Workspace Identity Card */}
+              <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden mb-8">
+                <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
+                  <div className="w-full md:w-1/3">
+                    <h3 className="text-base font-bold text-zinc-900">
+                      Workspace Identity
+                    </h3>
+                    <p className="text-sm text-zinc-500 mt-2">
+                      Manage your workspace naming and branding. The logo will
+                      be visible to all members.
+                    </p>
                   </div>
+                  <div className="w-full md:w-2/3 flex flex-col sm:flex-row gap-6 items-start">
+                    {/* Logo Uploader */}
+                    <div className="flex flex-col items-center gap-3 shrink-0">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleLogoUpload}
+                      />
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`relative w-20 h-20 rounded-lg bg-zinc-50 border border-zinc-200 flex items-center justify-center text-xl font-black text-zinc-400 overflow-hidden cursor-pointer hover:bg-zinc-100 hover:border-zinc-300 transition-all ${isUploadingLogo ? "opacity-50 animate-pulse" : ""}`}
+                      >
+                        {logoUrl ? (
+                          <Image
+                            src={logoUrl}
+                            alt="Logo"
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <UploadCloud className="w-6 h-6 text-zinc-400" />
+                        )}
+                      </div>
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">
+                        {isUploadingLogo ? "Uploading..." : "Update Logo"}
+                      </span>
+                    </div>
+
+                    {/* Name Input */}
+                    <div className="flex-1 w-full space-y-2">
+                      <label className="block text-sm font-semibold text-zinc-900">
+                        Workspace Name
+                      </label>
+                      <input
+                        type="text"
+                        value={workspaceName}
+                        onChange={(e) => setWorkspaceName(e.target.value)}
+                        className="w-full px-4 py-2 text-sm border border-zinc-200 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-all font-medium text-zinc-900"
+                        required
+                        placeholder="e.g. Acme Corp"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Localization Card */}
+              <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden mb-8">
+                <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
+                  <div className="w-full md:w-1/3">
+                    <h3 className="text-base font-bold text-zinc-900">
+                      Localization
+                    </h3>
+                    <p className="text-sm text-zinc-500 mt-2">
+                      Set your regional preferences. This affects how dates and
+                      times are displayed across your projects.
+                    </p>
+                  </div>
+                  <div className="w-full md:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-zinc-900">
+                        Timezone
+                      </label>
+                      <select
+                        value={timezone}
+                        onChange={(e) => setTimezone(e.target.value)}
+                        className="w-full px-4 py-2 text-sm border border-zinc-200 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-all font-medium text-zinc-900 appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg-no-repeat bg-[position:right_1rem_center]"
+                      >
+                        <option value="UTC">
+                          UTC (Coordinated Universal Time)
+                        </option>
+                        <option value="Europe/Istanbul">
+                          GMT+3 (Europe/Istanbul)
+                        </option>
+                        <option value="America/New_York">
+                          EST (America/New_York)
+                        </option>
+                        <option value="Europe/London">
+                          GMT+0 (Europe/London)
+                        </option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-zinc-900">
+                        Date Format
+                      </label>
+                      <select
+                        value={dateFormat}
+                        onChange={(e) => setDateFormat(e.target.value)}
+                        className="w-full px-4 py-2 text-sm border border-zinc-200 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-all font-medium text-zinc-900 appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg-no-repeat bg-[position:right_1rem_center]"
+                      >
+                        <option value="YYYY-MM-DD">
+                          YYYY-MM-DD (2026-06-10)
+                        </option>
+                        <option value="DD/MM/YYYY">
+                          DD/MM/YYYY (10/06/2026)
+                        </option>
+                        <option value="MM/DD/YYYY">
+                          MM/DD/YYYY (06/10/2026)
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-zinc-50/80 px-6 py-4 border-t border-zinc-200 flex justify-end">
                   <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploadingLogo}
-                    className="text-xs font-bold text-zinc-600 hover:text-zinc-900 transition-colors"
+                    type="submit"
+                    disabled={isSavingName}
+                    className="bg-zinc-900 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-zinc-800 transition-all active:scale-95 disabled:opacity-50"
                   >
-                    {isUploadingLogo ? "Uploading..." : "Upload Logo"}
+                    {isSavingName ? "Saving..." : "Save Preferences"}
                   </button>
                 </div>
-
-                <form
-                  onSubmit={handleRenameWorkspace}
-                  className="flex-1 w-full space-y-3"
-                >
-                  <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                    Workspace Name
-                  </label>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <input
-                      type="text"
-                      value={workspaceName}
-                      onChange={(e) => setWorkspaceName(e.target.value)}
-                      className="flex-1 px-4 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800"
-                      required
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                      <div>
-                        <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
-                          Timezone
-                        </label>
-                        <select
-                          value={timezone}
-                          onChange={(e) => setTimezone(e.target.value)}
-                          className="w-full px-4 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg-no-repeat bg-[position:right_1rem_center]"
-                        >
-                          <option value="UTC">
-                            UTC (Coordinated Universal Time)
-                          </option>
-                          <option value="Europe/Istanbul">
-                            GMT+3 (Europe/Istanbul)
-                          </option>
-                          <option value="America/New_York">
-                            EST (America/New_York)
-                          </option>
-                          <option value="Europe/London">
-                            GMT+0 (Europe/London)
-                          </option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
-                          Date Format
-                        </label>
-                        <select
-                          value={dateFormat}
-                          onChange={(e) => setDateFormat(e.target.value)}
-                          className="w-full px-4 py-2.5 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg-no-repeat bg-[position:right_1rem_center]"
-                        >
-                          <option value="YYYY-MM-DD">
-                            YYYY-MM-DD (2026-06-10)
-                          </option>
-                          <option value="DD/MM/YYYY">
-                            DD/MM/YYYY (10/06/2026)
-                          </option>
-                          <option value="MM/DD/YYYY">
-                            MM/DD/YYYY (06/10/2026)
-                          </option>
-                        </select>
-                      </div>
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={isSavingName}
-                      className="bg-zinc-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all active:scale-95 disabled:opacity-50 shrink-0"
-                    >
-                      {isSavingName ? "Saving..." : "Save Name"}
-                    </button>
-                  </div>
-                </form>
               </div>
-            </div>
+            </form>
 
-            <div className="border border-red-200 bg-red-50/30 rounded-2xl p-6">
-              <h3 className="text-base font-bold text-red-600 flex items-center gap-2 mb-2">
-                <ShieldAlert className="w-5 h-5" /> Danger Zone
-              </h3>
-              <p className="text-sm text-zinc-600 mb-6">
-                Irreversible and destructive actions for your workspace. Proceed
-                with extreme caution.
-              </p>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white border border-red-100 rounded-xl gap-4">
-                <div>
-                  <h4 className="text-sm font-bold text-zinc-900">
-                    Delete Workspace
-                  </h4>
-                  <p className="text-xs text-zinc-500 mt-1">
-                    Permanently remove this workspace and all its data. This
-                    action cannot be undone.
+            {/* Danger Zone Card */}
+            <div className="bg-white border border-red-200 rounded-xl shadow-sm overflow-hidden mb-20">
+              <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
+                <div className="w-full md:w-1/3">
+                  <h3 className="text-base font-bold text-red-600 flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4" /> Danger Zone
+                  </h3>
+                  <p className="text-sm text-zinc-500 mt-2">
+                    Irreversible actions. Deleting a workspace removes all its
+                    projects, billing info, and member access.
                   </p>
                 </div>
+                <div className="w-full md:w-2/3 flex items-center">
+                  <div className="w-full p-4 bg-red-50/50 border border-red-100 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-zinc-900">
+                        Delete Workspace
+                      </h4>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        Permanently remove your workspace and all data.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-red-50/50 px-6 py-4 border-t border-red-200 flex justify-end">
                 <button
                   onClick={handleDeleteWorkspace}
-                  className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-600 hover:text-white transition-all shrink-0 active:scale-95"
+                  className="bg-white text-red-600 border border-red-200 px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-600 hover:text-white hover:border-red-600 transition-all active:scale-95"
                 >
                   Delete Workspace
                 </button>
@@ -911,7 +937,7 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 pb-3 px-1 border-b-2 text-sm font-bold transition-all ${
+      className={`flex items-center gap-2 pb-3 px-1 border-b-2 text-sm font-semibold transition-all ${
         active
           ? "border-zinc-900 text-zinc-900"
           : "border-transparent text-zinc-400 hover:text-zinc-700 hover:border-zinc-300"
