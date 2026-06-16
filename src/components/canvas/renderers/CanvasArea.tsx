@@ -880,7 +880,7 @@ export default function CanvasArea() {
               onDrop={(e) => handleDropOnPage(e, page)}
               className={`canvas-bg absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] rounded-2xl pointer-events-auto transition-shadow focus:outline-none ${
                 isPageActive
-                  ? "ring-2 ring-indigo-500 shadow-2xl z-10"
+                  ? "ring-2 ring-indigo-500 shadow-2xl z-40"
                   : "ring-1 ring-zinc-200/80 hover:shadow-xl z-0"
               }`}
               style={{
@@ -1017,7 +1017,7 @@ export default function CanvasArea() {
                       }}
                       className={`absolute bg-white border border-zinc-200/80 rounded-2xl p-5 pt-10 sm:pt-8 cursor-default select-text group transition-shadow ${
                         isBlockActive
-                          ? "ring-2 ring-indigo-500 shadow-xl z-20"
+                          ? "ring-2 ring-indigo-500 shadow-xl z-50"
                           : "shadow-sm hover:shadow-md z-10"
                       } ${connectingFrom && connectingFrom.blockId !== block.id ? "hover:ring-2 hover:ring-indigo-400" : ""}`}
                       style={{

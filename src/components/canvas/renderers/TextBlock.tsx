@@ -2,6 +2,20 @@
 import React, { useRef, useEffect, useState, memo } from "react";
 import { BlockContent } from "@/types/record";
 import { fetchAPI } from "@/services/api";
+import ReactMarkdown from "react-markdown";
+import {
+  MoreHorizontal,
+  X,
+  Sparkles,
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Palette,
+  Type,
+} from "lucide-react";
 
 interface TextBlockProps {
   block: BlockContent;
@@ -10,9 +24,12 @@ interface TextBlockProps {
 }
 
 function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const textValue = typeof block.value === "string" ? block.value : "";
+  const [text, setText] = useState(textValue);
 
+  const [isEditing, setIsEditing] = useState(false);
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
@@ -25,41 +42,41 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
     (block.settings?.textAlign as "left" | "center" | "right") || "left";
 
   useEffect(() => {
-    if (textareaRef.current) {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (textValue !== text) setText(textValue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textValue]);
+
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
-  }, [textValue, fontSize]);
+  }, [text, fontSize, isEditing]);
 
   const toggleSetting = (key: string, currentValue: unknown) => {
-    if (onSettingsChange) {
+    if (onSettingsChange)
       onSettingsChange({ ...block.settings, [key]: !currentValue });
-    }
   };
 
   const setSetting = (key: string, value: unknown) => {
-    if (onSettingsChange) {
-      onSettingsChange({ ...block.settings, [key]: value });
-    }
+    if (onSettingsChange) onSettingsChange({ ...block.settings, [key]: value });
   };
 
   const handleAiAction = async (action: string) => {
-    if (!textValue.trim() || !action) return;
-
+    if (!text.trim() || !action) return;
     setIsAiLoading(true);
     try {
       const res = await fetchAPI("/api/ai/magic-wand", {
         method: "POST",
-        body: JSON.stringify({ text: textValue, action }),
+        body: JSON.stringify({ text, action }),
       });
-
       if (res.ok) {
         const data = await res.json();
         if (data.result) {
+          setText(data.result);
           onUpdate(data.result);
         }
-      } else {
-        console.error("AI Request Failed");
       }
     } catch (error) {
       console.error("AI Action Error:", error);
@@ -68,166 +85,202 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
     }
   };
 
+  const handleBlur = (e: React.FocusEvent) => {
+    if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+      setIsEditing(false);
+      setIsToolbarOpen(false);
+    }
+  };
+
   return (
-    <div className="relative w-full h-full flex flex-col group/block pb-4">
+    <div
+      ref={containerRef}
+      onBlur={handleBlur}
+      tabIndex={-1}
+      className="relative w-full h-full flex flex-col group/block pb-4 outline-none"
+    >
+      <div className="absolute -left-5 top-1 bottom-1 w-1 bg-indigo-500 rounded-full opacity-0 group-focus-within/block:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
       {isToolbarOpen && onSettingsChange && (
-        <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-zinc-950 text-white p-1.5 rounded-xl flex items-center gap-1 shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-150 whitespace-nowrap">
-          <select
-            value=""
-            onChange={(e) => {
-              handleAiAction(e.target.value);
-              e.target.value = "";
-            }}
-            disabled={isAiLoading}
-            className={`bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold rounded-lg px-2 py-1 focus:outline-none cursor-pointer hover:bg-indigo-500/30 transition-colors ${
-              isAiLoading ? "opacity-50 pointer-events-none animate-pulse" : ""
-            }`}
-            title="AI Assistant"
-          >
-            <option value="" disabled>
-              {isAiLoading ? "⏳ Thinking..." : "✨ Ask AI"}
-            </option>
-            <option value="improve" className="text-black">
-              ✨ Improve & Polish
-            </option>
-            <option value="summarize" className="text-black">
-              📝 Summarize
-            </option>
-            <option value="brainstorm" className="text-black">
-              💡 Brainstorm Ideas
-            </option>
-          </select>
+        <div className="absolute top-0 -right-4 translate-x-full w-60 bg-white/95 backdrop-blur-xl border border-zinc-200/80 rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] p-3 flex flex-col gap-4 z-[100] animate-in slide-in-from-left-2 fade-in duration-200 cursor-default">
+          <div className="flex justify-between items-center pb-2 border-b border-zinc-100">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+              Block Options
+            </span>
+            <button
+              onClick={() => setIsToolbarOpen(false)}
+              className="text-zinc-400 hover:text-zinc-800 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
-          <div className="w-px h-4 bg-zinc-800 mx-1" />
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3" /> AI Assistant
+            </span>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => handleAiAction("improve")}
+                disabled={isAiLoading}
+                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 disabled:opacity-50 text-[11px] font-bold py-1.5 rounded-lg transition-colors flex justify-center items-center"
+              >
+                {isAiLoading ? "Thinking..." : "✨ Improve"}
+              </button>
+              <button
+                onClick={() => handleAiAction("summarize")}
+                disabled={isAiLoading}
+                className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 disabled:opacity-50 text-[11px] font-bold py-1.5 rounded-lg transition-colors flex justify-center items-center"
+              >
+                {isAiLoading ? "Thinking..." : "📝 Summarize"}
+              </button>
+            </div>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => toggleSetting("isBold", isBold)}
-            className={`w-7 h-7 rounded-lg text-xs font-black flex items-center justify-center transition-colors ${
-              isBold
-                ? "bg-zinc-800 text-white"
-                : "hover:bg-zinc-800 text-zinc-400"
-            }`}
-            title="Bold"
-          >
-            B
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleSetting("isItalic", isItalic)}
-            className={`w-7 h-7 rounded-lg text-xs font-black italic flex items-center justify-center transition-colors ${
-              isItalic
-                ? "bg-zinc-800 text-white"
-                : "hover:bg-zinc-800 text-zinc-400"
-            }`}
-            title="Italic"
-          >
-            I
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleSetting("isUnderline", isUnderline)}
-            className={`w-7 h-7 rounded-lg text-xs font-black underline flex items-center justify-center transition-colors ${
-              isUnderline
-                ? "bg-zinc-800 text-white"
-                : "hover:bg-zinc-800 text-zinc-400"
-            }`}
-            title="Underline"
-          >
-            U
-          </button>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              Typography
+            </span>
+            <div className="flex bg-zinc-100/80 p-1 rounded-xl">
+              <button
+                onClick={() => toggleSetting("isBold", isBold)}
+                className={`flex-1 flex justify-center items-center py-1.5 rounded-lg transition-all ${isBold ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200/50"}`}
+              >
+                <Bold className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => toggleSetting("isItalic", isItalic)}
+                className={`flex-1 flex justify-center items-center py-1.5 rounded-lg transition-all ${isItalic ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200/50"}`}
+              >
+                <Italic className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => toggleSetting("isUnderline", isUnderline)}
+                className={`flex-1 flex justify-center items-center py-1.5 rounded-lg transition-all ${isUnderline ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200/50"}`}
+              >
+                <Underline className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
 
-          <div className="w-px h-4 bg-zinc-800 mx-1" />
+          <div className="flex bg-zinc-100/80 p-1 rounded-xl">
+            <button
+              onClick={() => setSetting("textAlign", "left")}
+              className={`flex-1 flex justify-center items-center py-1.5 rounded-lg transition-all ${textAlign === "left" ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200/50"}`}
+            >
+              <AlignLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setSetting("textAlign", "center")}
+              className={`flex-1 flex justify-center items-center py-1.5 rounded-lg transition-all ${textAlign === "center" ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200/50"}`}
+            >
+              <AlignCenter className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setSetting("textAlign", "right")}
+              className={`flex-1 flex justify-center items-center py-1.5 rounded-lg transition-all ${textAlign === "right" ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200/50"}`}
+            >
+              <AlignRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
 
-          <select
-            value={fontSize}
-            onChange={(e) => setSetting("fontSize", e.target.value)}
-            className="bg-zinc-900 border border-zinc-800 text-white text-[11px] font-bold rounded-lg px-1.5 py-1 focus:outline-none cursor-pointer"
-          >
-            <option value="12px">Small</option>
-            <option value="15px">Medium</option>
-            <option value="18px">Large</option>
-            <option value="24px">X-Large</option>
-          </select>
-
-          <div className="w-px h-4 bg-zinc-800 mx-1" />
-
-          <select
-            value={textAlign}
-            onChange={(e) => setSetting("textAlign", e.target.value)}
-            className="bg-zinc-900 border border-zinc-800 text-white text-[11px] font-bold rounded-lg px-1.5 py-1 focus:outline-none cursor-pointer"
-          >
-            <option value="left">Left</option>
-            <option value="center">Center</option>
-            <option value="right">Right</option>
-          </select>
-
-          <div className="w-px h-4 bg-zinc-800 mx-1" />
-
-          <div className="relative w-7 h-7 flex items-center justify-center overflow-hidden rounded-lg hover:bg-zinc-800">
-            <input
-              type="color"
-              value={color}
-              onChange={(e) => setSetting("color", e.target.value)}
-              className="absolute -top-2 -left-2 w-12 h-12 cursor-pointer border-0 p-0 bg-transparent"
-              title="Text Color"
-            />
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1 bg-zinc-50 border border-zinc-200 hover:border-zinc-300 rounded-xl flex items-center px-2 py-1.5 transition-colors">
+              <Type className="w-3.5 h-3.5 text-zinc-400 mr-2 shrink-0" />
+              <select
+                value={fontSize}
+                onChange={(e) => setSetting("fontSize", e.target.value)}
+                className="w-full bg-transparent text-[11px] font-bold text-zinc-700 outline-none cursor-pointer appearance-none"
+              >
+                <option value="12px">Small text</option>
+                <option value="15px">Medium text</option>
+                <option value="18px">Large text</option>
+                <option value="24px">Title text</option>
+              </select>
+            </div>
+            <div
+              className="relative w-8 h-8 rounded-xl border border-zinc-200 hover:border-zinc-300 flex items-center justify-center overflow-hidden shrink-0 transition-colors"
+              title="Color Picker"
+            >
+              <Palette className="w-3.5 h-3.5 text-zinc-400 absolute pointer-events-none" />
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setSetting("color", e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+            </div>
           </div>
         </div>
       )}
 
-      <textarea
-        ref={textareaRef}
-        value={textValue}
-        onChange={(e) => onUpdate(e.target.value)}
-        style={{
-          fontSize,
-          color,
-          textAlign,
-          fontWeight: isBold ? "bold" : "normal",
-          fontStyle: isItalic ? "italic" : "normal",
-          textDecoration: isUnderline ? "underline" : "none",
-        }}
-        className="w-full h-full bg-transparent resize-none overflow-hidden focus:outline-none font-medium leading-relaxed p-1 placeholder-zinc-300"
-        placeholder="Type something..."
-      />
+      {isEditing || text.length === 0 ? (
+        <textarea
+          ref={textareaRef}
+          value={text}
+          autoFocus
+          onChange={(e) => {
+            setText(e.target.value);
+            onUpdate(e.target.value);
+          }}
+          style={{
+            fontSize,
+            color,
+            textAlign,
+            fontWeight: isBold ? "bold" : "normal",
+            fontStyle: isItalic ? "italic" : "normal",
+            textDecoration: isUnderline ? "underline" : "none",
+          }}
+          className={`w-full h-full bg-transparent resize-none overflow-hidden focus:outline-none leading-relaxed p-1 placeholder-zinc-300 transition-all ${isAiLoading ? "opacity-50 animate-pulse" : ""}`}
+          placeholder="Type something or use AI..."
+          spellCheck={false}
+        />
+      ) : (
+        <div
+          onClick={() => setIsEditing(true)}
+          className={`w-full h-full cursor-text p-1 leading-relaxed ${isAiLoading ? "opacity-50 animate-pulse" : ""}`}
+          style={{
+            fontSize,
+            color,
+            textAlign,
+            fontWeight: isBold ? "bold" : "normal",
+            fontStyle: isItalic ? "italic" : "normal",
+            textDecoration: isUnderline ? "underline" : "none",
+          }}
+        >
+          <div className="space-y-1">
+            <ReactMarkdown
+              components={{
+                strong: ({ node, ...props }) => (
+                  <span className="font-bold" {...props} />
+                ),
+                ul: ({ node, ...props }) => (
+                  <ul className="list-disc ml-4 mt-1" {...props} />
+                ),
+                ol: ({ node, ...props }) => (
+                  <ol className="list-decimal ml-4 mt-1" {...props} />
+                ),
+                li: ({ node, ...props }) => (
+                  <li className="mt-0.5" {...props} />
+                ),
+                p: ({ node, ...props }) => (
+                  <p className="mb-2 last:mb-0" {...props} />
+                ),
+              }}
+            >
+              {text}
+            </ReactMarkdown>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"
         onClick={() => setIsToolbarOpen(!isToolbarOpen)}
-        className="absolute -bottom-2 -right-2 opacity-0 group-hover/block:opacity-100 flex items-center justify-center w-7 h-7 bg-zinc-900 text-white rounded-full shadow-lg hover:bg-zinc-800 transition-all hover:scale-105 active:scale-95 z-10"
-        title={isToolbarOpen ? "Aletleri Gizle" : "Aletleri Göster"}
+        className="absolute -right-2 top-0 opacity-0 group-hover/block:opacity-100 flex items-center justify-center w-6 h-6 bg-white border border-zinc-200 text-zinc-500 rounded-md shadow-sm hover:bg-zinc-50 hover:text-zinc-900 transition-all z-[60]"
+        title="Options"
       >
-        {isToolbarOpen ? (
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        ) : (
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="1" />
-            <circle cx="19" cy="12" r="1" />
-            <circle cx="5" cy="12" r="1" />
-          </svg>
-        )}
+        <MoreHorizontal className="w-3.5 h-3.5" />
       </button>
     </div>
   );
