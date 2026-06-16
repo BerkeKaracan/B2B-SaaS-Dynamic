@@ -20,47 +20,45 @@ import ToggleSwitchBlock from "./ToggleSwitchBlock";
 import BadgeSelectorBlock from "./BadgeSelectorBlock";
 import AssetStreamBlock from "./AssetStreamBlock";
 import BlockResizer from "./BlockResizer";
+import { Sparkles, Minus, Plus, Maximize, MousePointer2 } from "lucide-react";
 
 export default function CanvasArea() {
-  const store = useCanvasStore();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const pages = (store.pages as PageWithSettings[]) ?? [];
-  const connections = store.connections ?? [];
-  const activePageId = store.activePageId ?? null;
-  const activeBlockId = store.activeBlockId ?? null;
-  const selectedBlocks = store.selectedBlocks ?? [];
+  // 1. PERFORMANS İYİLEŞTİRMESİ: Zustand Atomic Selectors (Re-render'ları engeller)
+  const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
+  const connections = useCanvasStore((s) => s.connections);
+  const activePageId = useCanvasStore((s) => s.activePageId);
+  const activeBlockId = useCanvasStore((s) => s.activeBlockId);
+  const selectedBlocks = useCanvasStore((s) => s.selectedBlocks);
+  const zoom = useCanvasStore((s) => s.zoom);
+  const panX = useCanvasStore((s) => s.panX);
+  const panY = useCanvasStore((s) => s.panY);
+  const isLoading = useCanvasStore((s) => s.isLoading);
 
-  const zoom = store.zoom ?? 100;
-  const panX = store.panX ?? 0;
-  const panY = store.panY ?? 0;
-  const isLoading = store.isLoading ?? false;
-
-  const {
-    addBlockToPage,
-    updateBlockValue,
-    updateBlockSettings,
-    setActivePage,
-    setActiveBlock,
-    setSelectedBlocks,
-    removeSelectedBlocks,
-    removePage,
-    removeBlockFromPage,
-    setZoom,
-    setPan,
-    updatePagePosition,
-    updateBlockPosition,
-    updatePageDimensions,
-    updatePageTitle,
-    updatePageSettings,
-    addConnection,
-    removeConnection,
-    undo,
-    redo,
-    saveHistory,
-    duplicateBlock,
-    transferBlockToPage,
-    addGeneratedBlocks,
-  } = store;
+  // Actions (Referansları değişmez, destruct edebiliriz)
+  const addBlockToPage = useCanvasStore((s) => s.addBlockToPage);
+  const updateBlockValue = useCanvasStore((s) => s.updateBlockValue);
+  const updateBlockSettings = useCanvasStore((s) => s.updateBlockSettings);
+  const setActivePage = useCanvasStore((s) => s.setActivePage);
+  const setActiveBlock = useCanvasStore((s) => s.setActiveBlock);
+  const setSelectedBlocks = useCanvasStore((s) => s.setSelectedBlocks);
+  const removeSelectedBlocks = useCanvasStore((s) => s.removeSelectedBlocks);
+  const removePage = useCanvasStore((s) => s.removePage);
+  const removeBlockFromPage = useCanvasStore((s) => s.removeBlockFromPage);
+  const setZoom = useCanvasStore((s) => s.setZoom);
+  const setPan = useCanvasStore((s) => s.setPan);
+  const updatePagePosition = useCanvasStore((s) => s.updatePagePosition);
+  const updateBlockPosition = useCanvasStore((s) => s.updateBlockPosition);
+  const updatePageDimensions = useCanvasStore((s) => s.updatePageDimensions);
+  const updatePageTitle = useCanvasStore((s) => s.updatePageTitle);
+  const updatePageSettings = useCanvasStore((s) => s.updatePageSettings);
+  const addConnection = useCanvasStore((s) => s.addConnection);
+  const removeConnection = useCanvasStore((s) => s.removeConnection);
+  const undo = useCanvasStore((s) => s.undo);
+  const redo = useCanvasStore((s) => s.redo);
+  const saveHistory = useCanvasStore((s) => s.saveHistory);
+  const duplicateBlock = useCanvasStore((s) => s.duplicateBlock);
+  const transferBlockToPage = useCanvasStore((s) => s.transferBlockToPage);
+  const addGeneratedBlocks = useCanvasStore((s) => s.addGeneratedBlocks);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -184,11 +182,8 @@ export default function CanvasArea() {
         if (e.ctrlKey || e.metaKey) {
           if (e.key.toLowerCase() === "z") {
             e.preventDefault();
-            if (e.shiftKey) {
-              redo();
-            } else {
-              undo();
-            }
+            if (e.shiftKey) redo();
+            else undo();
           } else if (e.key.toLowerCase() === "y") {
             e.preventDefault();
             redo();
@@ -198,7 +193,6 @@ export default function CanvasArea() {
         if (e.key === "Delete" || e.key === "Backspace") {
           e.preventDefault();
           const currentState = useCanvasStore.getState();
-
           if (currentState.selectedBlocks?.length > 0) {
             removeSelectedBlocks();
           } else {
@@ -269,20 +263,16 @@ export default function CanvasArea() {
 
       const state = useCanvasStore.getState();
       const currentZoom = (state.zoom ?? 100) / 100;
-
       const container = containerRef.current;
       const rect = container
         ? container.getBoundingClientRect()
         : { left: 0, top: 0 };
-
       const mouseCanvasX =
         (e.clientX - rect.left - (state.panX ?? 0)) / currentZoom;
       const mouseCanvasY =
         (e.clientY - rect.top - (state.panY ?? 0)) / currentZoom;
 
-      if (connectingFrom) {
-        setMousePos({ x: mouseCanvasX, y: mouseCanvasY });
-      }
+      if (connectingFrom) setMousePos({ x: mouseCanvasX, y: mouseCanvasY });
 
       if (isSpacePanning) {
         const dx = e.clientX - spacePanStart.x;
@@ -294,7 +284,6 @@ export default function CanvasArea() {
         setSpacePanStart({ x: e.clientX, y: e.clientY });
       } else if (lassoStart) {
         setLassoEnd({ x: mouseCanvasX, y: mouseCanvasY });
-
         const minX = Math.min(lassoStart.x, mouseCanvasX);
         const maxX = Math.max(lassoStart.x, mouseCanvasX);
         const minY = Math.min(lassoStart.y, mouseCanvasY);
@@ -306,9 +295,8 @@ export default function CanvasArea() {
             const bx = page.x + block.x;
             const by = page.y + block.y;
             const bw = block.width || 320;
-            if (bx < maxX && bx + bw > minX && by < maxY && by + 150 > minY) {
+            if (bx < maxX && bx + bw > minX && by < maxY && by + 150 > minY)
               newSelected.push(block.id);
-            }
           });
         });
         setSelectedBlocks(newSelected);
@@ -347,9 +335,7 @@ export default function CanvasArea() {
 
     const handleGlobalPointerUp = (e: globalThis.PointerEvent) => {
       activePointers.current.delete(e.pointerId);
-      if (activePointers.current.size < 2) {
-        prevTouchDistance.current = null;
-      }
+      if (activePointers.current.size < 2) prevTouchDistance.current = null;
 
       if (draggedBlockInfo) {
         const state = useCanvasStore.getState();
@@ -379,7 +365,7 @@ export default function CanvasArea() {
           if (targetPage) {
             const newX = blockAbsX - targetPage.x;
             const newY = blockAbsY - targetPage.y;
-            if (transferBlockToPage) {
+            if (transferBlockToPage)
               transferBlockToPage(
                 block.id,
                 sourcePage.id,
@@ -387,7 +373,6 @@ export default function CanvasArea() {
                 newX,
                 newY,
               );
-            }
           }
         }
       }
@@ -403,9 +388,7 @@ export default function CanvasArea() {
 
     const handleGlobalPointerCancel = (e: globalThis.PointerEvent) => {
       activePointers.current.delete(e.pointerId);
-      if (activePointers.current.size < 2) {
-        prevTouchDistance.current = null;
-      }
+      if (activePointers.current.size < 2) prevTouchDistance.current = null;
     };
 
     const handleTouchEndSync = (e: globalThis.TouchEvent) => {
@@ -429,7 +412,6 @@ export default function CanvasArea() {
     window.addEventListener("pointermove", handleGlobalPointerMove);
     window.addEventListener("pointerup", handleGlobalPointerUp);
     window.addEventListener("pointercancel", handleGlobalPointerCancel);
-
     window.addEventListener("touchend", handleTouchEndSync);
     window.addEventListener("touchcancel", handleTouchEndSync);
     window.addEventListener("blur", handleEmergencyCleanup);
@@ -478,8 +460,8 @@ export default function CanvasArea() {
 
   if (isLoading) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-white z-50">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-950" />
+      <div className="absolute inset-0 flex items-center justify-center bg-[#F9F9FB] z-50">
+        <span className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-indigo-600" />
       </div>
     );
   }
@@ -506,16 +488,14 @@ export default function CanvasArea() {
       clientX: e.clientX,
       clientY: e.clientY,
     });
-
     const isTouch = e.pointerType === "touch";
     const activeEl = document.activeElement as HTMLElement;
+
     if (
       activeEl &&
       ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl.tagName)
     ) {
-      if (!activeEl.contains(target)) {
-        activeEl.blur();
-      }
+      if (!activeEl.contains(target)) activeEl.blur();
     }
 
     if (activePointers.current.size === 2) {
@@ -524,17 +504,11 @@ export default function CanvasArea() {
       return;
     }
 
-    if (
-      isSpacePressed ||
-      target === containerRef.current ||
-      target.classList.contains("infinite-grid-layer") ||
-      target.classList.contains("canvas-bg")
-    ) {
+    if (isSpacePressed || isCanvasBackground) {
       if (e.button === 1 || (e.button === 0 && isSpacePressed) || isTouch) {
         e.preventDefault();
         setIsSpacePanning(true);
         setSpacePanStart({ x: e.clientX, y: e.clientY });
-
         setActivePage(null);
         setActiveBlock(null);
         setSelectedBlocks([]);
@@ -550,7 +524,6 @@ export default function CanvasArea() {
 
         setLassoStart({ x: mouseCanvasX, y: mouseCanvasY });
         setLassoEnd({ x: mouseCanvasX, y: mouseCanvasY });
-
         setActivePage(null);
         setActiveBlock(null);
         setSelectedBlocks([]);
@@ -595,13 +568,10 @@ export default function CanvasArea() {
     e.preventDefault();
 
     let targetBlockId = blockId;
-
     if (e.altKey) {
       duplicateBlock(pageId, blockId, 0, 0);
       const newState = useCanvasStore.getState();
-      if (newState.activeBlockId) {
-        targetBlockId = newState.activeBlockId;
-      }
+      if (newState.activeBlockId) targetBlockId = newState.activeBlockId;
     }
 
     setActivePage(pageId);
@@ -651,7 +621,7 @@ export default function CanvasArea() {
       (block.settings?.options as string) ?? "Option 1, Option 2, Option 3";
 
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 w-full h-full">
         <div className="w-full h-auto min-h-[40px] overflow-visible relative">
           {block.type === "text" && (
             <TextBlock
@@ -737,7 +707,6 @@ export default function CanvasArea() {
             />
           )}
         </div>
-
         {isActive && hasOptions && (
           <div className="mt-2 pt-2 border-t border-zinc-100 flex flex-col gap-1.5 animate-in fade-in duration-100">
             <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
@@ -752,7 +721,7 @@ export default function CanvasArea() {
                 })
               }
               placeholder="e.g. Critical, High, Normal"
-              className="text-[11px] font-medium bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1 w-full text-zinc-800 focus:outline-none focus:border-zinc-950 focus:bg-white transition-all"
+              className="text-[11px] font-medium bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 w-full text-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all"
             />
           </div>
         )}
@@ -761,11 +730,9 @@ export default function CanvasArea() {
   };
 
   let cursorStyle = "cursor-default";
-  if (isSpacePressed || isSpacePanning) {
+  if (isSpacePressed || isSpacePanning)
     cursorStyle = "cursor-grab active:cursor-grabbing";
-  } else if (connectingFrom || lassoStart) {
-    cursorStyle = "cursor-crosshair";
-  }
+  else if (connectingFrom || lassoStart) cursorStyle = "cursor-crosshair";
 
   return (
     <div
@@ -777,23 +744,30 @@ export default function CanvasArea() {
       <div
         className="canvas-bg absolute inset-0 infinite-grid-layer pointer-events-none"
         style={{
-          backgroundImage: `linear-gradient(to right, #ECECEF 1px, transparent 1px), linear-gradient(to bottom, #ECECEF 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(to right, #e4e4e7 1px, transparent 1px), linear-gradient(to bottom, #e4e4e7 1px, transparent 1px)`,
           backgroundSize: `${40 * (zoom / 100)}px ${40 * (zoom / 100)}px`,
           backgroundPosition: `${panX}px ${panY}px`,
         }}
       />
 
-      <div className="absolute top-4 left-4 z-50 bg-zinc-900/95 text-white backdrop-blur px-3 py-1.5 rounded-xl border border-zinc-800 text-[10px] font-mono shadow-md pointer-events-none hidden sm:flex items-center gap-3">
-        <span className="text-zinc-500 font-bold uppercase tracking-wider">
-          Radar:
-        </span>
-        <span>X: {Math.round(panX)}</span>
-        <span>Y: {Math.round(panY)}</span>
+      {/* Radar UI - Enterprise Polish */}
+      <div className="absolute top-6 left-6 z-50 bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl border border-zinc-200/60 shadow-sm pointer-events-none hidden sm:flex items-center gap-4 animate-in fade-in duration-300">
+        <div className="flex items-center gap-1.5">
+          <MousePointer2 className="w-3.5 h-3.5 text-indigo-500" />
+          <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+            Radar
+          </span>
+        </div>
+        <div className="h-3 w-px bg-zinc-200"></div>
+        <div className="flex items-center gap-3 text-[11px] font-mono font-bold text-zinc-600">
+          <span>X: {Math.round(panX)}</span>
+          <span>Y: {Math.round(panY)}</span>
+        </div>
       </div>
 
       {contextMenu && (
         <div
-          className="absolute z-50 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl py-1 min-w-[160px] animate-in fade-in zoom-in-95"
+          className="absolute z-50 bg-white/95 backdrop-blur-xl border border-zinc-200/80 rounded-xl shadow-xl py-1.5 min-w-[180px] animate-in fade-in zoom-in-95 duration-100"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onPointerDown={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.preventDefault()}
@@ -805,34 +779,35 @@ export default function CanvasArea() {
                 setAiMenu(contextMenu);
                 setContextMenu(null);
               }}
-              className="w-full text-left px-3 py-2 text-sm font-bold text-indigo-400 hover:bg-indigo-500/20 flex items-center gap-2 transition-colors"
+              className="w-full text-left px-3 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 transition-colors"
             >
-              ✨ Generate with AI
+              <Sparkles className="w-4 h-4" /> Generate with AI
             </button>
           ) : (
-            <div className="px-3 py-2 text-xs font-medium text-zinc-500">
+            <div className="px-4 py-2 text-xs font-medium text-zinc-500">
               Select a frame first to generate AI blocks.
             </div>
           )}
         </div>
       )}
 
+      {/* AI Menu - Enterprise Polish */}
       {aiMenu && (
         <div
-          className="absolute z-50 bg-zinc-950 border border-indigo-500/30 p-3 rounded-2xl shadow-2xl flex flex-col gap-2 w-72 animate-in zoom-in-95"
+          className="absolute z-50 bg-white/95 backdrop-blur-xl border border-zinc-200 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] p-4 rounded-2xl flex flex-col gap-3 w-80 animate-in zoom-in-95 slide-in-from-bottom-2 duration-150"
           style={{ left: aiMenu.x, top: aiMenu.y }}
           onPointerDown={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.preventDefault()}
         >
-          <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider px-1">
-            ✨ AI Architect
+          <div className="flex items-center gap-1.5 text-indigo-600 font-bold text-[10px] uppercase tracking-wider px-1">
+            <Sparkles className="w-3.5 h-3.5" /> AI Architect
           </div>
           <textarea
             autoFocus
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
             placeholder="e.g. Create a Kanban board for a product launch..."
-            className="w-full bg-zinc-900 text-white border border-zinc-800 rounded-xl p-2 text-sm resize-none focus:outline-none focus:border-indigo-500/50"
+            className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-sm text-zinc-800 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all placeholder:text-zinc-400"
             rows={3}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -844,15 +819,18 @@ export default function CanvasArea() {
           <div className="flex justify-between items-center mt-1">
             <button
               onClick={() => setAiMenu(null)}
-              className="text-xs font-medium text-zinc-500 hover:text-white px-2"
+              className="text-xs font-bold text-zinc-500 hover:text-zinc-900 px-2 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleAiGenerate}
               disabled={isAiGenerating || !aiPrompt.trim()}
-              className="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white text-xs font-bold py-1.5 px-4 rounded-lg transition-colors"
+              className="bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 text-white text-xs font-bold py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center gap-2"
             >
+              {isAiGenerating ? (
+                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              ) : null}
               {isAiGenerating ? "Building..." : "Generate"}
             </button>
           </div>
@@ -873,7 +851,6 @@ export default function CanvasArea() {
           mousePos={mousePos}
           onRemoveConnection={removeConnection}
         />
-
         <LassoLayer lassoStart={lassoStart} lassoEnd={lassoEnd} />
 
         {pages.map((page: PageWithSettings) => {
@@ -903,9 +880,9 @@ export default function CanvasArea() {
               onDragEnter={handleDragOverPage}
               onDragOver={handleDragOverPage}
               onDrop={(e) => handleDropOnPage(e, page)}
-              className={`canvas-bg absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] rounded-md pointer-events-auto transition-shadow focus:outline-none ${
+              className={`canvas-bg absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] rounded-2xl pointer-events-auto transition-shadow focus:outline-none ${
                 isPageActive
-                  ? "ring-2 ring-blue-500 shadow-2xl z-10"
+                  ? "ring-2 ring-indigo-500 shadow-2xl z-10"
                   : "ring-1 ring-zinc-200/80 hover:shadow-xl z-0"
               }`}
               style={{
@@ -917,15 +894,15 @@ export default function CanvasArea() {
               }}
             >
               {isPageActive && !activeBlockId ? (
-                <div className="absolute -top-12 left-0 flex items-center gap-2 bg-zinc-900 p-1.5 rounded-lg shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-150 z-50">
+                <div className="absolute -top-14 left-0 flex items-center gap-2 bg-white border border-zinc-200 p-1.5 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-150 z-50">
                   <input
                     type="text"
                     value={page.title}
                     onChange={(e) => updatePageTitle(page.id, e.target.value)}
-                    className="bg-zinc-800 text-white text-[11px] font-bold px-2 py-1 rounded outline-none w-32 sm:w-40 focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="bg-zinc-50 text-zinc-900 text-[11px] font-bold px-3 py-1.5 rounded-lg outline-none w-32 sm:w-40 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                   />
-                  <div className="w-px h-4 bg-zinc-700 mx-1" />
-                  <div className="relative flex items-center justify-center p-1 rounded hover:bg-zinc-800 transition-colors cursor-pointer overflow-hidden w-6 h-6">
+                  <div className="w-px h-5 bg-zinc-200 mx-1" />
+                  <div className="relative flex items-center justify-center p-1 rounded-lg hover:bg-zinc-100 transition-colors cursor-pointer overflow-hidden w-7 h-7 border border-zinc-200">
                     <input
                       type="color"
                       value={pageBgColor}
@@ -934,14 +911,14 @@ export default function CanvasArea() {
                           backgroundColor: e.target.value,
                         })
                       }
-                      className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer border-0 p-0"
+                      className="absolute -top-2 -left-2 w-12 h-12 cursor-pointer border-0 p-0"
                     />
                   </div>
                 </div>
               ) : (
                 <div
                   onPointerDown={(e) => startPageDrag(e, page.id, px, py)}
-                  className="absolute -top-8 left-0 flex items-center gap-2 text-zinc-500 font-bold text-[11px] uppercase tracking-wider cursor-move px-2 py-1 rounded hover:bg-zinc-100 transition-colors"
+                  className="absolute -top-8 left-0 flex items-center gap-2 text-zinc-400 font-bold text-[10px] uppercase tracking-widest cursor-move px-2 py-1 rounded hover:bg-zinc-200/50 transition-colors"
                 >
                   <span># {page.title}</span>
                 </div>
@@ -955,12 +932,12 @@ export default function CanvasArea() {
                       e.stopPropagation();
                       removePage(page.id);
                     }}
-                    className="absolute -top-8 right-0 text-zinc-400 hover:text-red-500 text-[11px] font-bold px-2 py-1 uppercase tracking-wider cursor-pointer transition-colors"
+                    className="absolute -top-8 right-0 text-zinc-400 hover:text-red-500 text-[10px] font-bold px-2 py-1 uppercase tracking-widest cursor-pointer transition-colors"
                   >
                     Delete Frame
                   </button>
                   <div
-                    className="absolute bottom-0 right-0 w-8 h-8 sm:w-4 sm:h-4 bg-blue-500 cursor-nwse-resize rounded-br-md rounded-tl-md z-50 flex items-center justify-center"
+                    className="absolute bottom-0 right-0 w-6 h-6 bg-indigo-500 cursor-nwse-resize rounded-br-2xl rounded-tl-xl z-50 flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity"
                     onPointerDown={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
@@ -974,8 +951,8 @@ export default function CanvasArea() {
                     }}
                   >
                     <svg
-                      width="12"
-                      height="12"
+                      width="10"
+                      height="10"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="white"
@@ -987,7 +964,7 @@ export default function CanvasArea() {
                 </>
               )}
 
-              <div className="canvas-bg relative w-full h-full p-4 overflow-visible">
+              <div className="canvas-bg relative w-full h-full p-6 overflow-visible">
                 {page.blocks.map((block) => {
                   const isBlockActive =
                     activeBlockId === block.id ||
@@ -1040,11 +1017,11 @@ export default function CanvasArea() {
                           setConnectingFrom(null);
                         }
                       }}
-                      className={`absolute bg-white border border-zinc-200/80 rounded-2xl p-5 pt-12 sm:pt-8 cursor-default select-text group transition-shadow ${
+                      className={`absolute bg-white border border-zinc-200/80 rounded-2xl p-5 pt-10 sm:pt-8 cursor-default select-text group transition-shadow ${
                         isBlockActive
-                          ? "ring-2 ring-blue-500 shadow-xl z-20"
-                          : "shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-md z-10"
-                      } ${connectingFrom && connectingFrom.blockId !== block.id ? "hover:ring-2 hover:ring-blue-400" : ""}`}
+                          ? "ring-2 ring-indigo-500 shadow-xl z-20"
+                          : "shadow-sm hover:shadow-md z-10"
+                      } ${connectingFrom && connectingFrom.blockId !== block.id ? "hover:ring-2 hover:ring-indigo-400" : ""}`}
                       style={{
                         left: `${bx}px`,
                         top: `${by}px`,
@@ -1076,18 +1053,17 @@ export default function CanvasArea() {
                               by,
                             );
                         }}
-                        className="absolute top-0 left-0 right-0 h-12 sm:h-6 bg-zinc-50/50 hover:bg-zinc-100/80 border-b border-zinc-100/50 rounded-t-2xl flex items-center justify-center cursor-move transition-colors select-none z-40 touch-none"
+                        className="absolute top-0 left-0 right-0 h-8 sm:h-6 bg-transparent hover:bg-zinc-50/80 rounded-t-2xl flex items-center justify-center cursor-move transition-colors select-none z-40 touch-none"
                       >
-                        <div className="flex gap-1 pointer-events-none">
-                          <span className="w-1 h-1 bg-zinc-400 sm:bg-zinc-300 rounded-full" />
-                          <span className="w-1 h-1 bg-zinc-400 sm:bg-zinc-300 rounded-full" />
-                          <span className="w-1 h-1 bg-zinc-400 sm:bg-zinc-300 rounded-full" />
-                          <span className="w-1 h-1 bg-zinc-400 sm:bg-zinc-300 rounded-full" />
+                        <div className="flex gap-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="w-1 h-1 bg-zinc-300 rounded-full" />
+                          <span className="w-1 h-1 bg-zinc-300 rounded-full" />
+                          <span className="w-1 h-1 bg-zinc-300 rounded-full" />
                         </div>
                       </div>
 
                       {activeBlockId === block.id && (
-                        <div className="absolute -top-4 -right-4 sm:-top-3 sm:-right-3 flex gap-1.5 sm:gap-1 z-30">
+                        <div className="absolute -top-4 -right-4 sm:-top-3 sm:-right-3 flex gap-1.5 sm:gap-1 z-30 animate-in fade-in zoom-in-95 duration-100">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1100,10 +1076,10 @@ export default function CanvasArea() {
                                   blockId: block.id,
                                 });
                             }}
-                            className={`w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center bg-white border rounded-full shadow-sm transition-colors cursor-pointer select-none ${connectingFrom?.blockId === block.id ? "border-blue-500 text-blue-500 bg-blue-50" : "border-zinc-200 text-zinc-500 hover:text-blue-500"}`}
+                            className={`w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center bg-white border rounded-full shadow-md transition-colors cursor-pointer select-none ${connectingFrom?.blockId === block.id ? "border-indigo-500 text-indigo-500 bg-indigo-50" : "border-zinc-200 text-zinc-400 hover:text-indigo-500"}`}
                           >
                             <svg
-                              className="w-5 h-5 sm:w-3 sm:h-3"
+                              className="w-4 h-4 sm:w-3 sm:h-3"
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"
@@ -1122,10 +1098,10 @@ export default function CanvasArea() {
                               e.stopPropagation();
                               removeBlockFromPage(page.id, block.id);
                             }}
-                            className="w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center bg-white border border-zinc-200 rounded-full text-zinc-400 hover:text-red-600 shadow-sm transition-colors cursor-pointer select-none"
+                            className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center bg-white border border-zinc-200 rounded-full text-zinc-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 shadow-md transition-colors cursor-pointer select-none"
                           >
                             <svg
-                              className="w-5 h-5 sm:w-3 sm:h-3"
+                              className="w-4 h-4 sm:w-3 sm:h-3"
                               viewBox="0 0 24 24"
                               fill="none"
                               stroke="currentColor"
@@ -1138,7 +1114,10 @@ export default function CanvasArea() {
                         </div>
                       )}
 
-                      <div onPointerDown={(e) => e.stopPropagation()}>
+                      <div
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className="h-full"
+                      >
                         {renderBlock(page.id, block, isBlockActive)}
                       </div>
                     </div>
@@ -1150,14 +1129,16 @@ export default function CanvasArea() {
         })}
       </div>
 
-      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+      {/* Floating Toolbar - Enterprise Polish */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center bg-white/80 backdrop-blur-xl border border-zinc-200/60 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-1.5 pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300">
         <button
           onClick={undo}
-          className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center bg-white border border-zinc-200 rounded-lg text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm transition-all"
+          className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
+          title="Undo"
         >
           <svg
-            width="16"
-            height="16"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -1169,11 +1150,12 @@ export default function CanvasArea() {
         </button>
         <button
           onClick={redo}
-          className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center bg-white border border-zinc-200 rounded-lg text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 shadow-sm transition-all"
+          className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
+          title="Redo"
         >
           <svg
-            width="16"
-            height="16"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -1183,30 +1165,33 @@ export default function CanvasArea() {
             <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
           </svg>
         </button>
-      </div>
 
-      <div className="absolute bottom-6 right-6 sm:bottom-6 sm:right-6 left-6 sm:left-auto z-50 flex items-center justify-center gap-2 sm:gap-1.5 bg-white/95 backdrop-blur-md border border-zinc-200/80 rounded-2xl sm:rounded-xl p-2 sm:p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] pointer-events-auto">
+        <div className="w-px h-5 bg-zinc-200 mx-2" />
+
         <button
           onClick={() => setZoom(zoom - 10)}
-          className="flex-1 sm:flex-none w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-xl sm:rounded-lg text-lg sm:text-xs font-black transition-all"
+          className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
         >
-          —
+          <Minus className="w-4 h-4" />
         </button>
-        <span className="text-xs sm:text-[11px] font-extrabold text-zinc-600 min-w-[40px] sm:min-w-[36px] text-center tracking-tight">
+        <span className="text-[11px] font-black text-zinc-700 min-w-[48px] text-center tracking-widest px-1">
           {zoom}%
         </span>
         <button
           onClick={() => setZoom(zoom + 10)}
-          className="flex-1 sm:flex-none w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-xl sm:rounded-lg text-lg sm:text-xs font-black transition-all"
+          className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
         >
-          +
+          <Plus className="w-4 h-4" />
         </button>
-        <div className="w-px h-6 sm:h-4 bg-zinc-200 mx-1 sm:mx-0.5" />
+
+        <div className="w-px h-5 bg-zinc-200 mx-2" />
+
         <button
           onClick={() => setPan(0, 0)}
-          className="px-4 sm:px-2 h-10 sm:h-7 flex items-center justify-center text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 rounded-xl sm:rounded-lg text-xs sm:text-[10px] font-bold transition-all"
+          className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all"
+          title="Reset View"
         >
-          Reset View
+          <Maximize className="w-4 h-4" />
         </button>
       </div>
     </div>
