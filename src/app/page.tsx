@@ -920,71 +920,107 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-24 px-6 max-w-7xl mx-auto border-t border-zinc-200/60 mt-10">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight mb-4">
-              Anatomy of a{" "}
-              <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
-                Smart Workspace.
-              </span>
-            </h2>
-            <p className="text-lg text-zinc-500 max-w-2xl mx-auto">
-              Everything is exactly where you need it. No clutter, just pure
-              productivity mapped out on an infinite canvas.
-            </p>
-          </div>
+        <section className="py-24 lg:py-32 relative overflow-hidden border-t border-zinc-200/60 mt-10">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+              <div className="w-full lg:w-5/12 space-y-8 z-10">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-xs font-bold text-blue-600 mb-6 shadow-sm">
+                    <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+                    Workspace Anatomy
+                  </div>
+                  <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight mb-5 leading-[1.1]">
+                    Everything you need, <br />
+                    <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
+                      in one view.
+                    </span>
+                  </h2>
+                  <p className="text-lg text-zinc-500 leading-relaxed font-medium">
+                    No clutter, just pure productivity. We designed the
+                    interface to keep your focus exactly where it belongs: on
+                    your work. The canvas dynamically adapts to what you need.
+                  </p>
+                </div>
 
-          <div className="relative w-full aspect-square md:aspect-video bg-zinc-900 rounded-4xl border-8 border-zinc-100 shadow-2xl p-4 flex items-center justify-center overflow-hidden group">
-            <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center opacity-80">
-              <span className="text-zinc-700 font-bold text-xl tracking-widest uppercase">
-                [ YOUR WORKSPACE SCREENSHOT HERE ]
-              </span>
-            </div>
+                <div className="space-y-6 pt-2">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 mt-1 shadow-sm">
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-zinc-900">
+                        Dynamic Modules
+                      </h4>
+                      <p className="text-sm text-zinc-500 mt-1.5 leading-relaxed">
+                        Switch seamlessly between Canvas, Kanban, and Timeline
+                        views without losing your context.
+                      </p>
+                    </div>
+                  </div>
 
-            <div className="absolute top-10 left-10 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-zinc-200/50 max-w-[200px] animate-bounce-slow">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                <h4 className="font-bold text-zinc-900 text-sm">
-                  Dynamic Sidebar
-                </h4>
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shrink-0 mt-1 shadow-sm">
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13 10V3L4 14h7v7l9-11h-7z"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-zinc-900">
+                        Always-on AI
+                      </h4>
+                      <p className="text-sm text-zinc-500 mt-1.5 leading-relaxed">
+                        Your context-aware AI assistant is always ready in the
+                        sidebar to summarize or generate blocks.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="text-[11px] text-zinc-600 font-medium">
-                Switch between projects, views, and settings instantly.
-              </p>
-            </div>
 
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-indigo-600/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-indigo-500 max-w-[240px] hidden md:block">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
-                <h4 className="font-bold text-white text-sm">
-                  Infinite JSONB Canvas
-                </h4>
-              </div>
-              <p className="text-[11px] text-indigo-100 font-medium">
-                Drag & drop any block type. Data synchronizes in real-time.
-              </p>
-            </div>
+              <div className="w-full lg:w-7/12 relative z-10 group">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-blue-500/20 blur-[100px] rounded-full -z-10 transition-opacity duration-700 opacity-70 group-hover:opacity-100"></div>
 
-            <div className="absolute bottom-10 right-10 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-zinc-200/50 max-w-[220px]">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                <h4 className="font-bold text-zinc-900 text-sm">
-                  Context-Aware AI
-                </h4>
-              </div>
-              <p className="text-[11px] text-zinc-600 font-medium">
-                The RAG engine sits right here, reading your canvas live.
-              </p>
-            </div>
+                <div className="relative w-full rounded-2xl md:rounded-3xl border border-zinc-200/80 shadow-2xl shadow-indigo-900/10 bg-white/60 backdrop-blur-xl p-2 md:p-3 transition-transform duration-700 hover:-translate-y-2">
+                  <div className="flex items-center gap-1.5 px-2 pb-2 md:pb-3 pt-1">
+                    <div className="w-2.5 h-2.5 rounded-full bg-zinc-300"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-zinc-300"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-zinc-300"></div>
+                  </div>
 
-            <div className="absolute top-10 right-10 bg-zinc-800/90 backdrop-blur-md px-4 py-2 rounded-full shadow-xl border border-zinc-700 flex items-center gap-3">
-              <div className="flex -space-x-2">
-                <div className="w-6 h-6 rounded-full bg-red-400 border-2 border-zinc-800"></div>
-                <div className="w-6 h-6 rounded-full bg-green-400 border-2 border-zinc-800"></div>
+                  <div className="rounded-lg md:rounded-xl border border-zinc-200/50 overflow-hidden bg-zinc-50 flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/dashboard.png"
+                      alt="SaaS Engine Workspace Dashboard"
+                      className="w-full h-auto block"
+                    />
+                  </div>
+
+                  <div className="absolute inset-0 ring-1 ring-inset ring-black/2 rounded-2xl md:rounded-3xl pointer-events-none"></div>
+                </div>
               </div>
-              <span className="text-xs font-bold text-white">
-                Multiplayer Ready
-              </span>
             </div>
           </div>
         </section>
@@ -1041,11 +1077,9 @@ export default function LandingPage() {
         </section>
 
         <section className="py-32 px-6 max-w-7xl mx-auto border-t border-zinc-200/60 mt-10 relative overflow-hidden">
-          {/* Subtle Background Glow */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-zinc-100 via-transparent to-transparent -z-10"></div>
 
           <div className="flex flex-col lg:flex-row gap-16 items-center">
-            {/* Left Side: Typography & Stats */}
             <div className="flex-1 space-y-8 lg:pr-10">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-xs font-bold text-zinc-600 shadow-sm">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
