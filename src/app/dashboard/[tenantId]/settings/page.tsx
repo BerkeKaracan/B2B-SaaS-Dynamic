@@ -666,7 +666,7 @@ export default function TeamBillingPage({
                 </div>
               </div>
               <div className="bg-zinc-50/80 px-6 py-4 border-t border-zinc-200 flex justify-end gap-3">
-                {tier === "Basic Plan" && (
+                {tier === "Free Plan" && (
                   <button
                     onClick={() => handleUpgradeTier("advanced")}
                     className="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-indigo-700 transition-all active:scale-95"
