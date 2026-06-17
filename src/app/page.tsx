@@ -16,6 +16,7 @@ import {
   Rocket,
 } from "lucide-react";
 import LandingChatbot from "@/components/chat/LandingChatbot";
+import DraggableFeatureBox from "@/components/ui/DraggableFeatureBox";
 
 const parseMarkdown = (text: string) => {
   if (!text) return null;
@@ -83,7 +84,7 @@ export default function LandingPage() {
           className="flex items-center gap-3 shrink-0 group transform-gpu active:scale-95 transition-transform"
         >
           <div className="w-8 h-8 bg-zinc-950 rounded-xl flex items-center justify-center shadow-[0_2px_10px_rgba(0,0,0,0.1)] border border-zinc-800 group-hover:bg-zinc-800 transition-colors relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="absolute inset-0 bg-linear-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <span className="text-white text-xs font-black font-mono tracking-tighter">
               B2
             </span>
@@ -110,7 +111,7 @@ export default function LandingPage() {
 
             <div className="absolute top-[calc(100%-10px)] left-0 w-full h-[20px] bg-transparent z-40"></div>
 
-            <div className="absolute top-[calc(100%+5px)] left-1/2 -translate-x-1/2 w-[650px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-[2rem] opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 z-50 overflow-hidden flex">
+            <div className="absolute top-[calc(100%+5px)] left-1/2 -translate-x-1/2 w-[650px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-4xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 z-50 overflow-hidden flex">
               <div className="w-2/3 p-6 grid grid-cols-1 gap-3 bg-white">
                 <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">
                   Core Capabilities
@@ -209,7 +210,7 @@ export default function LandingPage() {
 
             <div className="absolute top-[calc(100%-10px)] left-0 w-full h-[20px] bg-transparent z-40"></div>
 
-            <div className="absolute top-[calc(100%+5px)] left-1/2 -translate-x-1/2 w-[520px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-[2rem] p-5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 grid grid-cols-2 gap-x-4 gap-y-2 z-50">
+            <div className="absolute top-[calc(100%+5px)] left-1/2 -translate-x-1/2 w-[520px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-4xl p-5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 grid grid-cols-2 gap-x-4 gap-y-2 z-50">
               <div className="col-span-2 px-3 py-2 text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 mb-2">
                 Industry Use Cases
               </div>
@@ -284,7 +285,7 @@ export default function LandingPage() {
 
             <div className="absolute top-[calc(100%-10px)] left-0 w-full h-[20px] bg-transparent z-40"></div>
 
-            <div className="absolute top-[calc(100%+5px)] left-0 w-[260px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-[1.5rem] p-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 flex flex-col z-50">
+            <div className="absolute top-[calc(100%+5px)] left-0 w-[260px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-3xl p-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 flex flex-col z-50">
               <Link
                 href="/docs"
                 className="px-4 py-3 hover:bg-zinc-50 rounded-xl flex items-center gap-3 group/link transition-colors"
@@ -414,8 +415,8 @@ export default function LandingPage() {
           <p className="text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-8 relative z-20">
             Trusted by Industry Leaders
           </p>
-          <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute left-0 top-0 bottom-0 w-32 bg-linear-to-r from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-32 bg-linear-to-l from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
 
           <div className="flex whitespace-nowrap overflow-hidden group">
             <div className="flex items-center gap-16 animate-marquee group-hover:[animation-play-state:paused] px-8">
@@ -530,7 +531,7 @@ export default function LandingPage() {
               </div>
               <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight leading-[1.1]">
                 Chat directly with <br className="hidden md:block" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-violet-600">
+                <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-500 to-violet-600">
                   your Canvas Data.
                 </span>
               </h2>
@@ -563,8 +564,8 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className="flex-1 w-full bg-zinc-950 rounded-[2rem] p-3 shadow-2xl rotate-1 hover:rotate-0 transition-transform duration-500 hover:shadow-indigo-500/20">
-              <div className="bg-zinc-900 rounded-[1.5rem] border border-zinc-800 p-5 md:p-6 flex flex-col h-[400px]">
+            <div className="flex-1 w-full bg-zinc-950 rounded-4xl p-3 shadow-2xl rotate-1 hover:rotate-0 transition-transform duration-500 hover:shadow-indigo-500/20">
+              <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-5 md:p-6 flex flex-col h-[400px]">
                 <div className="flex items-center gap-2 mb-6 pb-4 border-b border-zinc-800/80">
                   <div className="w-3 h-3 rounded-full bg-red-500"></div>
                   <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
@@ -580,7 +581,7 @@ export default function LandingPage() {
                   </div>
 
                   <div className="self-start flex gap-3 max-w-[90%]">
-                    <div className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-violet-600 shrink-0 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-md bg-linear-to-br from-indigo-500 to-violet-600 shrink-0 flex items-center justify-center">
                       <svg
                         className="w-3.5 h-3.5 text-white"
                         fill="none"
@@ -797,8 +798,11 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
-              <div className="w-12 h-12 bg-zinc-950 text-white rounded-2xl flex items-center justify-center mb-5 group-hover:-translate-y-1 transition-transform">
+            <DraggableFeatureBox
+              title="Next.js 16 & Zustand"
+              desc="Lightning-fast React rendering on the edge, combined with Zustand for zero-lag synchronous state management across your canvas."
+              deepDive="Server Actions integration ensures instant data mutations with zero client-side waterfall requests."
+              icon={
                 <svg
                   className="w-6 h-6"
                   viewBox="0 0 24 24"
@@ -806,21 +810,16 @@ export default function LandingPage() {
                 >
                   <path d="M11.987 22c5.523 0 10-4.477 10-10s-4.477-10-10-10-10 4.477-10 10 4.477 10 10 10zm-3.66-6.42l-1.32.96v-9.08l1.32-.96v9.08zm4.98 0l-1.32.96V11.2l-3.32 4.42-1.32-.96 4.64-5.38v7.3zm1.66 0l1.32.96V7.46l-1.32-.96v9.08z" />
                 </svg>
-              </div>
-              <h4 className="text-lg font-bold text-zinc-900 mb-2">
-                Next.js 16 & Zustand
-              </h4>
-              <p className="text-sm text-zinc-500 leading-relaxed">
-                Lightning-fast React rendering on the edge, combined with
-                Zustand for zero-lag synchronous state management across your
-                canvas.
-              </p>
-            </div>
+              }
+            />
 
-            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
-              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-5 group-hover:-translate-y-1 transition-transform">
+            <DraggableFeatureBox
+              title="FastAPI & Python Engine"
+              desc="High-performance asynchronous backend architecture to handle complex RAG pipelines and heavy data processing instantly."
+              deepDive="Utilizes async endpoints to seamlessly manage thousands of concurrent WebSocket streams for AI tasks."
+              icon={
                 <svg
-                  className="w-6 h-6"
+                  className="w-6 h-6 text-emerald-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -832,20 +831,16 @@ export default function LandingPage() {
                     d="M13 10V3L4 14h7v7l9-11h-7z"
                   />
                 </svg>
-              </div>
-              <h4 className="text-lg font-bold text-zinc-900 mb-2">
-                FastAPI & Python Engine
-              </h4>
-              <p className="text-sm text-zinc-500 leading-relaxed">
-                High-performance asynchronous backend architecture to handle
-                complex RAG pipelines and heavy data processing instantly.
-              </p>
-            </div>
+              }
+            />
 
-            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
-              <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-5 group-hover:-translate-y-1 transition-transform">
+            <DraggableFeatureBox
+              title="Llama 3.3 (Groq RAG)"
+              desc="State-of-the-art open-weight AI models providing real-time, context-aware generations directly inside your workspace."
+              deepDive="Inference running at 800+ tokens per second. Fully contextualized with your active canvas elements."
+              icon={
                 <svg
-                  className="w-6 h-6"
+                  className="w-6 h-6 text-indigo-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -857,20 +852,16 @@ export default function LandingPage() {
                     d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                   />
                 </svg>
-              </div>
-              <h4 className="text-lg font-bold text-zinc-900 mb-2">
-                Llama 3.3 (Groq RAG)
-              </h4>
-              <p className="text-sm text-zinc-500 leading-relaxed">
-                State-of-the-art open-weight AI models providing real-time,
-                context-aware generations directly inside your workspace.
-              </p>
-            </div>
+              }
+            />
 
-            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
-              <div className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-5 group-hover:-translate-y-1 transition-transform">
+            <DraggableFeatureBox
+              title="Supabase & PostgreSQL"
+              desc="Dynamic canvas data stored seamlessly in JSONB structures, backed by Row Level Security (RLS) for strict multi-tenant isolation."
+              deepDive="Native vector embeddings and real-time subscriptions enabled on all core tables for instant client updates."
+              icon={
                 <svg
-                  className="w-6 h-6"
+                  className="w-6 h-6 text-green-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -882,21 +873,16 @@ export default function LandingPage() {
                     d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
                   />
                 </svg>
-              </div>
-              <h4 className="text-lg font-bold text-zinc-900 mb-2">
-                Supabase & PostgreSQL
-              </h4>
-              <p className="text-sm text-zinc-500 leading-relaxed">
-                Dynamic canvas data stored seamlessly in JSONB structures,
-                backed by Row Level Security (RLS) for strict multi-tenant
-                isolation.
-              </p>
-            </div>
+              }
+            />
 
-            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
-              <div className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-5 group-hover:-translate-y-1 transition-transform">
+            <DraggableFeatureBox
+              title="Sentry APM"
+              desc="Enterprise-grade application performance monitoring and error tracking ensuring 99.99% uptime and immediate bug resolution."
+              deepDive="End-to-end distributed tracing connects Next.js frontend actions directly to Python backend queries."
+              icon={
                 <svg
-                  className="w-6 h-6"
+                  className="w-6 h-6 text-red-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -908,20 +894,16 @@ export default function LandingPage() {
                     d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                   />
                 </svg>
-              </div>
-              <h4 className="text-lg font-bold text-zinc-900 mb-2">
-                Sentry APM
-              </h4>
-              <p className="text-sm text-zinc-500 leading-relaxed">
-                Enterprise-grade application performance monitoring and error
-                tracking ensuring 99.99% uptime and immediate bug resolution.
-              </p>
-            </div>
+              }
+            />
 
-            <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-md transition-all group">
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-5 group-hover:-translate-y-1 transition-transform">
+            <DraggableFeatureBox
+              title="Docker Containerized"
+              desc="Fully containerized infrastructure allowing consistent deployments and extreme scalability across any cloud environment."
+              deepDive="Multi-stage builds drastically reduce image sizes. 100% prepared for Kubernetes (K8s) auto-scaling clusters."
+              icon={
                 <svg
-                  className="w-6 h-6"
+                  className="w-6 h-6 text-blue-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -933,16 +915,8 @@ export default function LandingPage() {
                     d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
                   />
                 </svg>
-              </div>
-              <h4 className="text-lg font-bold text-zinc-900 mb-2">
-                Docker Containerized
-              </h4>
-              <p className="text-sm text-zinc-500 leading-relaxed">
-                Fully containerized infrastructure allowing consistent
-                deployments and extreme scalability across any cloud
-                environment.
-              </p>
-            </div>
+              }
+            />
           </div>
         </section>
 
@@ -950,7 +924,7 @@ export default function LandingPage() {
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight mb-4">
               Anatomy of a{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
                 Smart Workspace.
               </span>
             </h2>
@@ -960,7 +934,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="relative w-full aspect-square md:aspect-[16/9] bg-zinc-900 rounded-[2rem] border-[8px] border-zinc-100 shadow-2xl p-4 flex items-center justify-center overflow-hidden group">
+          <div className="relative w-full aspect-square md:aspect-video bg-zinc-900 rounded-4xl border-8 border-zinc-100 shadow-2xl p-4 flex items-center justify-center overflow-hidden group">
             <div className="absolute inset-0 bg-zinc-950 flex items-center justify-center opacity-80">
               <span className="text-zinc-700 font-bold text-xl tracking-widest uppercase">
                 [ YOUR WORKSPACE SCREENSHOT HERE ]
@@ -1016,7 +990,7 @@ export default function LandingPage() {
         </section>
 
         <section className="py-8 px-6 max-w-5xl mx-auto mt-10">
-          <div className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-fuchsia-600 rounded-3xl p-1 relative overflow-hidden shadow-2xl hover:shadow-indigo-500/20 transition-all">
+          <div className="w-full bg-linear-to-r from-indigo-600 via-purple-600 to-fuchsia-600 rounded-3xl p-1 relative overflow-hidden shadow-2xl hover:shadow-indigo-500/20 transition-all">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 mix-blend-overlay"></div>
 
             <div className="bg-zinc-950/40 backdrop-blur-sm w-full h-full rounded-[1.4rem] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -1026,7 +1000,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-2">
                   Unlock the{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500">
+                  <span className="text-transparent bg-clip-text bg-linear-to-r from-amber-200 to-yellow-500">
                     Pro Edition
                   </span>{" "}
                   today.
