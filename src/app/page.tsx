@@ -1040,27 +1040,58 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-24 px-6 max-w-6xl mx-auto border-t border-zinc-200/60 mt-10">
-          <div className="flex flex-col md:flex-row gap-16 items-center">
-            <div className="flex-1 space-y-6">
-              <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight leading-[1.1]">
+        <section className="py-32 px-6 max-w-7xl mx-auto border-t border-zinc-200/60 mt-10 relative overflow-hidden">
+          {/* Subtle Background Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-zinc-100 via-transparent to-transparent -z-10"></div>
+
+          <div className="flex flex-col lg:flex-row gap-16 items-center">
+            {/* Left Side: Typography & Stats */}
+            <div className="flex-1 space-y-8 lg:pr-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-xs font-bold text-zinc-600 shadow-sm">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                Personal Workspaces
+              </div>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-zinc-900 tracking-tight leading-[1.05]">
                 Not just for teams. <br className="hidden md:block" />
-                <span className="text-zinc-400">Built for your life.</span>
+                <span className="text-transparent bg-clip-text bg-linear-to-r from-zinc-400 to-zinc-600">
+                  Built for your life.
+                </span>
               </h2>
-              <p className="text-lg text-zinc-500 leading-relaxed max-w-md">
-                You don&apos;t need a company to harness the power of our
+              <p className="text-lg md:text-xl text-zinc-500 leading-relaxed max-w-lg">
+                You don&lsquo;t need a company to harness the power of our
                 platform. Turn your workspace into a{" "}
-                <strong>Personal Second Brain</strong>. Organize your studies,
-                plan your freelance projects, or track your daily life with the
-                same enterprise-grade tools.
+                <strong className="text-zinc-900 font-bold">
+                  Personal Second Brain
+                </strong>
+                . Organize your studies, plan your freelance projects, or track
+                your daily life with the same enterprise-grade tools.
               </p>
+
+              <div className="pt-4 flex gap-6 items-center">
+                <div className="flex flex-col">
+                  <span className="text-3xl font-black text-zinc-900">
+                    100%
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                    Private
+                  </span>
+                </div>
+                <div className="w-px h-10 bg-zinc-200"></div>
+                <div className="flex flex-col">
+                  <span className="text-3xl font-black text-zinc-900">∞</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                    Blocks
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1">
-                <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mb-5">
+            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="group relative bg-white p-8 rounded-4xl border border-zinc-200 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-orange-100/80 rounded-full blur-3xl -z-10 group-hover:bg-orange-200 transition-colors duration-500 translate-x-1/2 -translate-y-1/2"></div>
+                <div className="w-14 h-14 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200 text-orange-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-sm">
                   <svg
-                    className="w-6 h-6"
+                    className="w-7 h-7"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -1073,19 +1104,20 @@ export default function LandingPage() {
                     />
                   </svg>
                 </div>
-                <h4 className="text-lg font-bold text-zinc-900 mb-2">
+                <h4 className="text-xl font-bold text-zinc-900 mb-3">
                   Students & Research
                 </h4>
-                <p className="text-sm text-zinc-500 leading-relaxed">
+                <p className="text-sm text-zinc-500 leading-relaxed font-medium">
                   Drop your notes onto the canvas and let our AI instantly quiz
                   you or summarize complex chapters.
                 </p>
               </div>
 
-              <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1">
-                <div className="w-12 h-12 bg-sky-50 text-sky-600 rounded-2xl flex items-center justify-center mb-5">
+              <div className="group relative bg-white p-8 rounded-4xl border border-zinc-200 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1">
+                <div className="absolute bottom-0 right-0 w-40 h-40 bg-sky-100/80 rounded-full blur-3xl -z-10 group-hover:bg-sky-200 transition-colors duration-500 translate-x-1/2 translate-y-1/2"></div>
+                <div className="w-14 h-14 bg-linear-to-br from-sky-50 to-sky-100 border border-sky-200 text-sky-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-sm">
                   <svg
-                    className="w-6 h-6"
+                    className="w-7 h-7"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -1098,20 +1130,22 @@ export default function LandingPage() {
                     />
                   </svg>
                 </div>
-                <h4 className="text-lg font-bold text-zinc-900 mb-2">
+                <h4 className="text-xl font-bold text-zinc-900 mb-3">
                   Freelancers
                 </h4>
-                <p className="text-sm text-zinc-500 leading-relaxed">
+                <p className="text-sm text-zinc-500 leading-relaxed font-medium">
                   Manage multiple clients, project timelines, and workflows in
                   beautifully isolated personal workspaces.
                 </p>
               </div>
 
-              <div className="bg-zinc-950 p-6 rounded-3xl border border-zinc-800 shadow-sm sm:col-span-2 hover:shadow-xl transition-all">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-12 h-12 bg-zinc-800 text-pink-400 rounded-2xl flex items-center justify-center shrink-0">
+              <div className="group relative bg-zinc-950 p-8 sm:p-10 rounded-[2.5rem] border border-zinc-800 shadow-xl sm:col-span-2 hover:shadow-2xl hover:shadow-pink-500/10 transition-all duration-500 overflow-hidden mt-1 sm:mt-0">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#3f3f46_1px,transparent_1px),linear-gradient(to_bottom,#3f3f46_1px,transparent_1px)] bg-size-[2rem_2rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20"></div>
+
+                <div className="relative z-10 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                  <div className="w-16 h-16 bg-zinc-800/80 backdrop-blur-md text-pink-400 rounded-3xl flex items-center justify-center shrink-0 border border-zinc-700/50 shadow-inner group-hover:scale-105 group-hover:text-pink-300 transition-all duration-500">
                     <svg
-                      className="w-6 h-6"
+                      className="w-8 h-8"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -1124,15 +1158,19 @@ export default function LandingPage() {
                       />
                     </svg>
                   </div>
-                  <h4 className="text-lg font-bold text-white">
-                    Life & Habit Organization
-                  </h4>
+                  <div>
+                    <h4 className="text-2xl font-bold text-white mb-2">
+                      Life & Habit Organization
+                    </h4>
+                    <p className="text-zinc-400 leading-relaxed font-medium max-w-lg text-sm">
+                      Build your custom habit trackers, fitness logs, and travel
+                      itineraries with dynamic check-blocks and date widgets.
+                      Make it truly yours.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-zinc-400 leading-relaxed">
-                  Build your custom habit trackers, fitness logs, and travel
-                  itineraries with dynamic check-blocks and date widgets. Make
-                  it yours.
-                </p>
+
+                <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-pink-600 rounded-full blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
               </div>
             </div>
           </div>
