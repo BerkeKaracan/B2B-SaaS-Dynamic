@@ -1025,33 +1025,42 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-8 px-6 max-w-5xl mx-auto mt-10">
-          <div className="w-full bg-linear-to-r from-indigo-600 via-purple-600 to-fuchsia-600 rounded-3xl p-1 relative overflow-hidden shadow-2xl hover:shadow-indigo-500/20 transition-all">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 mix-blend-overlay"></div>
+        <section className="py-12 px-6 max-w-5xl mx-auto mt-10">
+          <div className="relative w-full bg-zinc-950 rounded-4xl border border-zinc-800 p-8 md:p-12 overflow-hidden shadow-2xl group">
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 bg-indigo-500/20 rounded-full blur-[80px] group-hover:bg-indigo-500/30 transition-colors duration-700 pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 bg-fuchsia-500/20 rounded-full blur-[80px] group-hover:bg-fuchsia-500/30 transition-colors duration-700 pointer-events-none"></div>
 
-            <div className="bg-zinc-950/40 backdrop-blur-sm w-full h-full rounded-[1.4rem] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="text-left z-10 flex-1">
-                <div className="inline-block px-3 py-1 bg-white/10 rounded-full text-[10px] font-black text-white uppercase tracking-widest mb-3 backdrop-blur-md border border-white/20">
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#3f3f46_1px,transparent_1px),linear-gradient(to_bottom,#3f3f46_1px,transparent_1px)] bg-size-[3rem_3rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 pointer-events-none"></div>
+
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
+              <div className="text-left flex-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-full text-[10px] font-black text-zinc-300 uppercase tracking-widest mb-6 shadow-sm">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
                   Early Adopter Special
                 </div>
-                <h3 className="text-2xl md:text-3xl font-black text-white tracking-tight mb-2">
+
+                <h3 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-4 leading-tight">
                   Unlock the{" "}
-                  <span className="text-transparent bg-clip-text bg-linear-to-r from-amber-200 to-yellow-500">
+                  <span className="text-transparent bg-clip-text bg-linear-to-r from-amber-200 via-yellow-400 to-amber-600">
                     Pro Edition
                   </span>{" "}
                   today.
                 </h3>
-                <p className="text-indigo-100/80 text-sm font-medium max-w-md leading-relaxed">
+
+                <p className="text-zinc-400 text-base md:text-lg font-medium max-w-xl leading-relaxed">
                   Join the beta now and get lifetime access to the Llama 3.3 RAG
                   engine, unlimited dynamic blocks, and priority support. No
                   credit card required for the first 14 days.
                 </p>
               </div>
 
-              <div className="z-10 shrink-0 w-full md:w-auto">
-                <a
+              <div className="shrink-0 w-full md:w-auto flex flex-col items-center md:items-end">
+                <Link
                   href="/register"
-                  className="w-full md:w-auto px-8 py-4 bg-white text-indigo-950 font-black rounded-xl hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-lg"
+                  className="w-full md:w-auto px-8 py-4 bg-white text-zinc-950 font-extrabold rounded-2xl hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-1"
                 >
                   Claim Your Offer
                   <svg
@@ -1067,8 +1076,22 @@ export default function LandingPage() {
                       d="M17 8l4 4m0 0l-4 4m4-4H3"
                     />
                   </svg>
-                </a>
-                <p className="text-center text-[10px] text-white/50 mt-3 uppercase tracking-widest font-bold">
+                </Link>
+
+                <p className="text-center md:text-right text-[11px] text-zinc-500 mt-4 uppercase tracking-widest font-bold flex items-center gap-1.5">
+                  <svg
+                    className="w-3.5 h-3.5 text-zinc-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
                   Limited spots available
                 </p>
               </div>
