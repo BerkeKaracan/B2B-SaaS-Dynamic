@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/layout/Footer";
 import {
@@ -14,6 +14,12 @@ import {
   FileText,
   Activity,
   Rocket,
+  Menu,
+  X,
+  ArrowRight,
+  Zap,
+  Shield,
+  LayoutDashboard,
 } from "lucide-react";
 import LandingChatbot from "@/components/chat/LandingChatbot";
 import DraggableFeatureBox from "@/components/ui/DraggableFeatureBox";
@@ -36,6 +42,7 @@ const parseMarkdown = (text: string) => {
 };
 
 export default function LandingPage() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   return (
     <div className="relative min-h-screen bg-[#fafafb] text-zinc-900 font-sans antialiased selection:bg-zinc-200 flex flex-col overflow-hidden">
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center transform-gpu will-change-transform">
@@ -360,7 +367,99 @@ export default function LandingPage() {
               <path d="m12 5 7 7-7 7"></path>
             </svg>
           </Link>
+          <button
+            className="md:hidden flex items-center justify-center p-2 -mr-2 text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors focus:outline-none"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
         </div>
+
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-16 left-0 w-full bg-white/95 backdrop-blur-xl border-b border-zinc-200/80 shadow-2xl animate-in slide-in-from-top-2 duration-200 overflow-y-auto max-h-[calc(100vh-64px)]">
+            <div className="flex flex-col px-6 py-6 space-y-6">
+              <div className="flex flex-col space-y-4">
+                <Link
+                  href="/docs"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-base font-bold text-zinc-900 flex items-center justify-between"
+                >
+                  Platform <ArrowRight className="w-4 h-4 text-zinc-300" />
+                </Link>
+
+                {/* DÜZELTİLEN KISIM: 4 Farklı Çözüm Sayfası Eklendi */}
+                <div className="flex flex-col space-y-4 pt-2 pb-2">
+                  <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 pb-2">
+                    Solutions
+                  </span>
+                  <div className="flex flex-col space-y-4 pl-2">
+                    <Link
+                      href="/solutions/engineering"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-sm font-bold text-zinc-700 flex items-center gap-3"
+                    >
+                      <GitMerge className="w-4 h-4 text-indigo-500" />{" "}
+                      Engineering & Product
+                    </Link>
+                    <Link
+                      href="/solutions/hr"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-sm font-bold text-zinc-700 flex items-center gap-3"
+                    >
+                      <Users className="w-4 h-4 text-rose-500" /> Human
+                      Resources
+                    </Link>
+                    <Link
+                      href="/solutions/sales"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-sm font-bold text-zinc-700 flex items-center gap-3"
+                    >
+                      <TrendingUp className="w-4 h-4 text-emerald-500" /> Sales
+                      & CRM
+                    </Link>
+                    <Link
+                      href="/solutions/operations"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-sm font-bold text-zinc-700 flex items-center gap-3"
+                    >
+                      <Briefcase className="w-4 h-4 text-amber-500" /> Strategy
+                      & Ops
+                    </Link>
+                  </div>
+                </div>
+
+                <Link
+                  href="/docs"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-base font-bold text-zinc-900 flex items-center justify-between"
+                >
+                  Developers <ArrowRight className="w-4 h-4 text-zinc-300" />
+                </Link>
+                <Link
+                  href="/pricing"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-base font-bold text-zinc-900 flex items-center justify-between"
+                >
+                  Pricing <ArrowRight className="w-4 h-4 text-zinc-300" />
+                </Link>
+              </div>
+              <div className="h-px bg-zinc-200/80 w-full"></div>
+              <div className="flex flex-col space-y-4">
+                <Link
+                  href="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-base font-bold text-zinc-600 flex items-center justify-between"
+                >
+                  Sign In
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="flex-1 relative z-10">
