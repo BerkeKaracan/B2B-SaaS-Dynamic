@@ -163,7 +163,7 @@ export default function WorkspaceSidebar() {
                   (tenant?.name?.charAt(0).toUpperCase() ?? "W")
                 )
               ) : (
-                "W" // Tarayıcı yüklenene kadar varsayılan harf
+                "W"
               )}
             </div>
             <div className="flex flex-col">

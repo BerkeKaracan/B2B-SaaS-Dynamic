@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 AUTH_CACHE = {}
-CACHE_TTL_SECONDS = 300
+CACHE_TTL_SECONDS = 10
 
 def get_user_role(authorization: str = Header(None)) -> dict:
     if not authorization:
@@ -36,7 +36,7 @@ def get_user_role(authorization: str = Header(None)) -> dict:
             del AUTH_CACHE[k]
 
     try:
-        from core.database import supabase, get_auth_client
+        from core.database import supabase, get_auth_client, supabase_admin
         
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
@@ -46,13 +46,12 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         email = str(user_res.user.email).lower().strip()
         full_name = email.split("@")[0]
         
-        user_client = get_auth_client(token)
-        role_res = user_client.table("tenant_users").select("role, tenant_id").eq("user_id", user_id).execute()
+        role_res = supabase_admin.table("tenant_users").select("role, tenant_id").eq("user_id", user_id).execute()
         
         tenant_roles = {}
         if role_res.data:
             for row in role_res.data:
-                tenant_roles[str(row.get("tenant_id"))] = row.get("role", "employee")
+                tenant_roles[str(row.get("tenant_id"))] = str(row.get("role", "employee")).lower()
             
         if not tenant_roles:
             raise HTTPException(status_code=403, detail="User does not belong to any workspace")
@@ -65,6 +64,7 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         }
         
         AUTH_CACHE[token] = (result, current_time)
+        user_client = get_auth_client(token)
         result_copy = result.copy()
         result_copy["client"] = user_client
         return result_copy

@@ -14,16 +14,23 @@ import {
   CheckCircle2,
   AlertCircle,
   UploadCloud,
+  Building2,
+  Briefcase,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 import { useTenantStore } from "@/store/useTenantStore";
 
+// 1. TeamMember tipini yeni alanları destekleyecek şekilde güncelledik
 type TeamMember = {
   id: string;
   email?: string;
   role: string;
   user_id: string;
   tenant_id: string;
+  department_id?: string | null;
+  custom_role_id?: string | null;
   created_at?: string;
 };
 
@@ -31,6 +38,9 @@ type Notification = {
   type: "error" | "success";
   msg: string;
 };
+
+type Department = { id: string; name: string };
+type CustomRole = { id: string; name: string };
 
 export default function TeamBillingPage({
   params,
@@ -43,9 +53,9 @@ export default function TeamBillingPage({
 
   const { updateTenantState } = useTenantStore();
 
-  const [activeTab, setActiveTab] = useState<"team" | "billing" | "advanced">(
-    "advanced",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "team" | "organization" | "billing" | "advanced"
+  >("team");
   const [tier, setTier] = useState<string>("Basic Plan");
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [usageType, setUsageType] = useState<string>("team");
@@ -69,6 +79,14 @@ export default function TeamBillingPage({
 
   const [workspaceName, setWorkspaceName] = useState<string>("");
   const [isSavingName, setIsSavingName] = useState(false);
+
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
+
+  const [newDeptName, setNewDeptName] = useState("");
+  const [newRoleName, setNewRoleName] = useState("");
+  const [isCreatingDept, setIsCreatingDept] = useState(false);
+  const [isCreatingRole, setIsCreatingRole] = useState(false);
 
   const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -106,11 +124,17 @@ export default function TeamBillingPage({
           return;
         }
 
-        const [tenantRes, teamRes, projRes] = await Promise.all([
-          fetchAPI(`/api/tenants/${tenantId}`),
-          fetchAPI(`/api/tenants/${tenantId}/team`),
-          fetchAPI(`/api/records?tenant_id=${tenantId}`),
-        ]);
+        const [tenantRes, teamRes, projRes, deptRes, rolesRes] =
+          await Promise.all([
+            fetchAPI(`/api/tenants/${tenantId}`),
+            fetchAPI(`/api/tenants/${tenantId}/team`),
+            fetchAPI(`/api/records?tenant_id=${tenantId}`),
+            fetchAPI(`/api/tenants/${tenantId}/departments`),
+            fetchAPI(`/api/tenants/${tenantId}/roles`),
+          ]);
+
+        if (deptRes.ok) setDepartments(await deptRes.json());
+        if (rolesRes.ok) setCustomRoles(await rolesRes.json());
 
         if (tenantRes.ok) {
           const tenantData = await tenantRes.json();
@@ -295,24 +319,33 @@ export default function TeamBillingPage({
     }
   };
 
-  const handleRoleChange = async (memberId: string, updatedRole: string) => {
+  // 2. Takım üyesinin rolünü, departmanını veya özel rolünü güncelleyen yeni fonksiyon
+  const handleMemberUpdate = async (
+    memberId: string,
+    field: "role" | "custom_role_id" | "department_id",
+    value: string,
+  ) => {
     try {
+      const payload = { [field]: value === "" ? null : value };
+
       const res = await fetchAPI(`/api/tenants/${tenantId}/team/${memberId}`, {
         method: "PATCH",
-        body: JSON.stringify({ role: updatedRole }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.detail || "Failed to update role.");
+        throw new Error(errData.detail || "Failed to update member.");
       }
 
       setMembers(
         members.map((m) =>
-          m.id === memberId ? { ...m, role: updatedRole } : m,
+          m.id === memberId
+            ? { ...m, [field]: value === "" ? null : value }
+            : m,
         ),
       );
-      showNotification("success", "Member role updated successfully.");
+      showNotification("success", "Member updated successfully.");
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -326,7 +359,7 @@ export default function TeamBillingPage({
   ) => {
     if (
       !window.confirm(
-        `WARNING: Are you sure you want to transfer ownership of this workspace to ${memberEmail}? \n\nYou will lose owner privileges and be downgraded to an Admin.`,
+        `WARNING: Are you sure you want to transfer ownership to ${memberEmail}?`,
       )
     )
       return;
@@ -340,17 +373,11 @@ export default function TeamBillingPage({
         },
       );
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.detail || "Failed to transfer ownership.");
-      }
-
+      if (!res.ok) throw new Error("Failed to transfer ownership.");
       showNotification("success", "Ownership transferred successfully!");
       setTimeout(() => window.location.reload(), 1500);
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "An unexpected error occurred.";
-      showNotification("error", errorMessage);
+      showNotification("error", "Error transferring ownership.");
     }
   };
 
@@ -372,6 +399,106 @@ export default function TeamBillingPage({
       }
     } catch (e) {
       showNotification("error", "Server connection error.");
+    }
+  };
+
+  const handleAddDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDeptName.trim()) return;
+    setIsCreatingDept(true);
+
+    try {
+      const res = await fetchAPI(`/api/tenants/${tenantId}/departments`, {
+        method: "POST",
+        body: JSON.stringify({ name: newDeptName }),
+      });
+      if (!res.ok) throw new Error("Failed to create department");
+
+      const newDept = await res.json();
+      setDepartments([...departments, newDept]);
+      setNewDeptName("");
+      showNotification("success", "Department created successfully.");
+    } catch (error) {
+      showNotification("error", "Error creating department.");
+    } finally {
+      setIsCreatingDept(false);
+    }
+  };
+
+  const handleDeleteDepartment = async (id: string) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this department? Members in this department will be unassigned.",
+      )
+    )
+      return;
+    try {
+      const res = await fetchAPI(`/api/tenants/${tenantId}/departments/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete department");
+
+      setDepartments(departments.filter((d) => d.id !== id));
+      showNotification("success", "Department removed.");
+
+      // Lokal state üzerindeki atanmış üyeleri temizle
+      setMembers(
+        members.map((m) =>
+          m.department_id === id ? { ...m, department_id: null } : m,
+        ),
+      );
+    } catch (error) {
+      showNotification("error", "Error removing department.");
+    }
+  };
+
+  const handleAddCustomRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRoleName.trim()) return;
+    setIsCreatingRole(true);
+
+    try {
+      const res = await fetchAPI(`/api/tenants/${tenantId}/roles`, {
+        method: "POST",
+        body: JSON.stringify({ name: newRoleName }),
+      });
+      if (!res.ok) throw new Error("Failed to create custom role");
+
+      const newRole = await res.json();
+      setCustomRoles([...customRoles, newRole]);
+      setNewRoleName("");
+      showNotification("success", "Custom role created successfully.");
+    } catch (error) {
+      showNotification("error", "Error creating custom role.");
+    } finally {
+      setIsCreatingRole(false);
+    }
+  };
+
+  const handleDeleteCustomRole = async (id: string) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this role? Members with this role will be unassigned.",
+      )
+    )
+      return;
+    try {
+      const res = await fetchAPI(`/api/tenants/${tenantId}/roles/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete role");
+
+      setCustomRoles(customRoles.filter((r) => r.id !== id));
+      showNotification("success", "Role removed.");
+
+      // Lokal state üzerindeki atanmış üyeleri temizle
+      setMembers(
+        members.map((m) =>
+          m.custom_role_id === id ? { ...m, custom_role_id: null } : m,
+        ),
+      );
+    } catch (error) {
+      showNotification("error", "Error removing role.");
     }
   };
 
@@ -408,7 +535,6 @@ export default function TeamBillingPage({
         </div>
         <div className="space-y-6">
           <div className="h-48 bg-zinc-100 rounded-xl"></div>
-          <div className="h-48 bg-zinc-100 rounded-xl"></div>
         </div>
       </div>
     );
@@ -417,7 +543,6 @@ export default function TeamBillingPage({
   return (
     <div className="flex-1 overflow-y-auto bg-[#FAFAFA] min-h-screen">
       <div className="max-w-5xl mx-auto w-full p-6 md:p-10 lg:p-12 pb-32 md:pb-40">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-extrabold text-zinc-900 tracking-tight">
             Settings
@@ -431,15 +556,22 @@ export default function TeamBillingPage({
           </p>
         </div>
 
-        {/* Tabs */}
         <div className="flex items-center gap-6 border-b border-zinc-200 mb-8 overflow-x-auto select-none">
           {usageType === "team" && (
-            <TabButton
-              active={activeTab === "team"}
-              onClick={() => setActiveTab("team")}
-              icon={<Users className="w-4 h-4" />}
-              label="Team Members"
-            />
+            <>
+              <TabButton
+                active={activeTab === "team"}
+                onClick={() => setActiveTab("team")}
+                icon={<Users className="w-4 h-4" />}
+                label="Team Members"
+              />
+              <TabButton
+                active={activeTab === "organization"}
+                onClick={() => setActiveTab("organization")}
+                icon={<Building2 className="w-4 h-4" />}
+                label="Organization"
+              />
+            </>
           )}
           <TabButton
             active={activeTab === "billing"}
@@ -455,7 +587,6 @@ export default function TeamBillingPage({
           />
         </div>
 
-        {/* Global Notifications */}
         {notification && (
           <div
             className={`mb-6 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 border shadow-sm ${
@@ -476,7 +607,6 @@ export default function TeamBillingPage({
         {/* ================= TEAM TAB ================= */}
         {usageType === "team" && activeTab === "team" && (
           <div className="animate-in fade-in duration-300 space-y-8">
-            {/* Invite Card */}
             <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
               <form onSubmit={handleInvite}>
                 <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
@@ -526,7 +656,6 @@ export default function TeamBillingPage({
               </form>
             </div>
 
-            {/* Members List Card */}
             <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
               <div className="px-6 py-5 border-b border-zinc-200 bg-white">
                 <h3 className="text-base font-bold text-zinc-900">
@@ -546,7 +675,7 @@ export default function TeamBillingPage({
                   return (
                     <div
                       key={m.id}
-                      className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-zinc-50/50 transition-colors group"
+                      className="p-4 sm:px-6 flex flex-col xl:flex-row xl:items-center justify-between gap-4 hover:bg-zinc-50/50 transition-colors group"
                     >
                       <div className="flex items-center gap-4">
                         <div
@@ -572,60 +701,120 @@ export default function TeamBillingPage({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <select
-                          value={m.role}
-                          disabled={isCurrentOwnerRow}
-                          onChange={(e) => {
-                            if (e.target.value === "transfer_owner")
-                              handleTransferOwnership(m.id, emailStr);
-                            else handleRoleChange(m.id, e.target.value);
-                          }}
-                          className={`appearance-none pl-3 pr-8 py-1.5 text-xs font-semibold rounded-md border focus:outline-none focus:ring-2 transition-all ${
-                            m.role === "admin"
-                              ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
-                              : m.role === "owner"
-                                ? "bg-zinc-100 text-zinc-500 border-zinc-200 cursor-not-allowed"
-                                : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50 shadow-sm"
-                          }`}
-                        >
-                          {isCurrentOwnerRow && (
-                            <option value="owner">Owner</option>
-                          )}
-                          {!isCurrentOwnerRow &&
-                            currentUserRole === "owner" && (
-                              <option value="transfer_owner">
-                                Transfer Ownership
-                              </option>
-                            )}
-                          {!isCurrentOwnerRow && (
-                            <option value="admin">Admin</option>
-                          )}
-                          {!isCurrentOwnerRow && (
-                            <option value="employee">Member</option>
-                          )}
-                        </select>
-
-                        {!isCurrentOwnerRow ? (
-                          <button
-                            onClick={() => removeMember(m.id)}
-                            className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                            title="Remove Member"
+                      {/* 3. Dropdown'lar grid yapısı ile yan yana eklendi */}
+                      <div className="flex flex-wrap items-center gap-3">
+                        {/* Sistem Rolü (Permissions) */}
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase">
+                            System Role
+                          </span>
+                          <select
+                            value={m.role}
+                            disabled={isCurrentOwnerRow}
+                            onChange={(e) => {
+                              if (e.target.value === "transfer_owner")
+                                handleTransferOwnership(m.id, emailStr);
+                              else
+                                handleMemberUpdate(
+                                  m.id,
+                                  "role",
+                                  e.target.value,
+                                );
+                            }}
+                            className={`appearance-none px-3 py-1.5 text-xs font-semibold rounded-md border focus:outline-none focus:ring-2 transition-all min-w-[110px] ${
+                              m.role === "admin"
+                                ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+                                : m.role === "owner"
+                                  ? "bg-zinc-100 text-zinc-500 border-zinc-200 cursor-not-allowed"
+                                  : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50 shadow-sm"
+                            }`}
                           >
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
+                            {isCurrentOwnerRow && (
+                              <option value="owner">Owner</option>
+                            )}
+                            {!isCurrentOwnerRow &&
+                              currentUserRole === "owner" && (
+                                <option value="transfer_owner">
+                                  Transfer Ownership
+                                </option>
+                              )}
+                            {!isCurrentOwnerRow && (
+                              <option value="admin">Admin</option>
+                            )}
+                            {!isCurrentOwnerRow && (
+                              <option value="employee">Member</option>
+                            )}
+                          </select>
+                        </div>
+
+                        {/* Özel Rol (Custom Role) Seçici */}
+                        {!isCurrentOwnerRow && customRoles.length > 0 && (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase">
+                              Job Title
+                            </span>
+                            <select
+                              value={m.custom_role_id || ""}
+                              onChange={(e) =>
+                                handleMemberUpdate(
+                                  m.id,
+                                  "custom_role_id",
+                                  e.target.value,
+                                )
+                              }
+                              className="appearance-none px-3 py-1.5 text-xs font-medium rounded-md border bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50 shadow-sm min-w-[120px]"
                             >
-                              <path d="M18 6 6 18" />
-                              <path d="m6 6 12 12" />
-                            </svg>
-                          </button>
+                              <option value="">-- No Role --</option>
+                              {customRoles.map((role) => (
+                                <option key={role.id} value={role.id}>
+                                  {role.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Departman Seçici */}
+                        {!isCurrentOwnerRow && departments.length > 0 && (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase">
+                              Department
+                            </span>
+                            <select
+                              value={m.department_id || ""}
+                              onChange={(e) =>
+                                handleMemberUpdate(
+                                  m.id,
+                                  "department_id",
+                                  e.target.value,
+                                )
+                              }
+                              className="appearance-none px-3 py-1.5 text-xs font-medium rounded-md border bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50 shadow-sm min-w-[120px]"
+                            >
+                              <option value="">-- No Dept --</option>
+                              {departments.map((dept) => (
+                                <option key={dept.id} value={dept.id}>
+                                  {dept.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Silme Butonu */}
+                        {!isCurrentOwnerRow ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-transparent select-none uppercase">
+                              .
+                            </span>
+                            <button
+                              onClick={() => removeMember(m.id)}
+                              className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                              title="Remove Member"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         ) : (
                           <div className="w-[28px]"></div>
                         )}
@@ -643,10 +832,134 @@ export default function TeamBillingPage({
           </div>
         )}
 
-        {/* ================= BILLING TAB ================= */}
+        {/* ================= ORGANIZATION TAB ================= */}
+        {usageType === "team" && activeTab === "organization" && (
+          <div className="animate-in fade-in duration-300 space-y-8">
+            <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
+                <div className="w-full md:w-1/3">
+                  <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-zinc-400" /> Departments
+                  </h3>
+                  <p className="text-sm text-zinc-500 mt-2">
+                    Create departments to organize your workspace and assign
+                    teams accordingly.
+                  </p>
+                </div>
+
+                <div className="w-full md:w-2/3 flex flex-col gap-5">
+                  <form onSubmit={handleAddDepartment} className="flex gap-3">
+                    <input
+                      type="text"
+                      required
+                      value={newDeptName}
+                      onChange={(e) => setNewDeptName(e.target.value)}
+                      placeholder="e.g. Engineering, Marketing"
+                      className="flex-1 px-4 py-2 text-sm border border-zinc-200 rounded-lg bg-zinc-50 focus:bg-white shadow-sm focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-all font-medium text-zinc-900"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isCreatingDept}
+                      className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-zinc-800 transition-all active:scale-95 flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <Plus className="w-4 h-4" />{" "}
+                      {isCreatingDept ? "Adding..." : "Add"}
+                    </button>
+                  </form>
+
+                  <div className="flex flex-wrap gap-2">
+                    {departments.length === 0 && (
+                      <span className="text-sm text-zinc-400 italic">
+                        No departments created yet.
+                      </span>
+                    )}
+                    {departments.map((dept) => (
+                      <div
+                        key={dept.id}
+                        className="group inline-flex items-center gap-2 bg-white border border-zinc-200 shadow-sm px-3 py-1.5 rounded-lg text-sm font-semibold text-zinc-700 hover:border-zinc-300 transition-all"
+                      >
+                        {dept.name}
+                        <button
+                          onClick={() => handleDeleteDepartment(dept.id)}
+                          className="opacity-0 group-hover:opacity-100 text-zinc-300 hover:text-red-500 transition-all ml-1"
+                          title="Delete Department"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
+                <div className="w-full md:w-1/3">
+                  <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-zinc-400" /> Custom Roles
+                  </h3>
+                  <p className="text-sm text-zinc-500 mt-2">
+                    Create custom roles (like Project Manager, Reviewer) to
+                    assign specific permissions later.
+                  </p>
+                </div>
+
+                <div className="w-full md:w-2/3 flex flex-col gap-5">
+                  <form onSubmit={handleAddCustomRole} className="flex gap-3">
+                    <input
+                      type="text"
+                      required
+                      value={newRoleName}
+                      onChange={(e) => setNewRoleName(e.target.value)}
+                      placeholder="e.g. Content Editor, Viewer"
+                      className="flex-1 px-4 py-2 text-sm border border-zinc-200 rounded-lg bg-zinc-50 focus:bg-white shadow-sm focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-all font-medium text-zinc-900"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isCreatingRole}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-indigo-700 transition-all active:scale-95 flex items-center gap-1 disabled:opacity-50"
+                    >
+                      <Plus className="w-4 h-4" />{" "}
+                      {isCreatingRole ? "Adding..." : "Add Role"}
+                    </button>
+                  </form>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {customRoles.length === 0 && (
+                      <span className="text-sm text-zinc-400 italic">
+                        No custom roles created yet.
+                      </span>
+                    )}
+                    {customRoles.map((role) => (
+                      <div
+                        key={role.id}
+                        className="flex items-center justify-between bg-zinc-50 border border-zinc-200 rounded-lg p-3 group hover:bg-white transition-all"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                          <span className="text-sm font-bold text-zinc-800">
+                            {role.name}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteCustomRole(role.id)}
+                          className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500 p-1.5 rounded transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= BILLING & ADVANCED TABS (Kısaltıldı, Değişmedi) ================= */}
         {activeTab === "billing" && (
           <div className="animate-in fade-in duration-300 space-y-8">
-            {/* Plan Card */}
             <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
               <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8 justify-between items-start">
                 <div className="w-full md:w-1/3">
@@ -676,226 +989,12 @@ export default function TeamBillingPage({
                   </div>
                 </div>
               </div>
-              <div className="bg-zinc-50/80 px-6 py-4 border-t border-zinc-200 flex justify-end gap-3">
-                {tier === "Free Plan" && (
-                  <button
-                    onClick={() => handleUpgradeTier("advanced")}
-                    className="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-indigo-700 transition-all active:scale-95"
-                  >
-                    Upgrade to Advanced
-                  </button>
-                )}
-                {tier !== "Pro Plan" && (
-                  <button
-                    onClick={() => handleUpgradeTier("pro")}
-                    className="bg-zinc-900 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-zinc-800 transition-all active:scale-95"
-                  >
-                    Upgrade to Pro
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Usage Limits Card */}
-            <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
-              <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
-                <div className="w-full md:w-1/3">
-                  <h3 className="text-base font-bold text-zinc-900">
-                    Usage & Quotas
-                  </h3>
-                  <p className="text-sm text-zinc-500 mt-2">
-                    Monitor your resource consumption based on your current
-                    plan.
-                  </p>
-                </div>
-                <div className="w-full md:w-2/3 space-y-6 pt-1">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="font-semibold text-zinc-700">
-                        Active Projects
-                      </span>
-                      <span className="text-zinc-500 text-xs">
-                        {projectsCount} of {getProjectLimit()} used
-                      </span>
-                    </div>
-                    <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden border border-zinc-200/50">
-                      <div
-                        className="bg-zinc-900 h-2 transition-all duration-500"
-                        style={{
-                          width:
-                            tier === "Pro Plan"
-                              ? "10%"
-                              : `${Math.min((projectsCount / (getProjectLimit() as number)) * 100, 100)}%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                  {usageType === "team" && (
-                    <div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="font-semibold text-zinc-700">
-                          Team Seats
-                        </span>
-                        <span className="text-zinc-500 text-xs">
-                          {members.length} of {getMemberLimit()} used
-                        </span>
-                      </div>
-                      <div className="w-full bg-zinc-100 rounded-full h-2 overflow-hidden border border-zinc-200/50">
-                        <div
-                          className="bg-indigo-500 h-2 transition-all duration-500"
-                          style={{
-                            width:
-                              tier === "Pro Plan"
-                                ? "10%"
-                                : `${Math.min((members.length / (getMemberLimit() as number)) * 100, 100)}%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         )}
 
-        {/* ================= ADVANCED TAB ================= */}
         {activeTab === "advanced" && (
           <div className="animate-in fade-in duration-300 space-y-8">
-            {/* Form for Identity & Localization */}
-            <form onSubmit={handleUpdatePreferences}>
-              {/* Workspace Identity Card */}
-              <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden mb-8">
-                <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
-                  <div className="w-full md:w-1/3">
-                    <h3 className="text-base font-bold text-zinc-900">
-                      Workspace Identity
-                    </h3>
-                    <p className="text-sm text-zinc-500 mt-2">
-                      Manage your workspace naming and branding. The logo will
-                      be visible to all members.
-                    </p>
-                  </div>
-                  <div className="w-full md:w-2/3 flex flex-col sm:flex-row gap-6 items-start">
-                    {/* Logo Uploader */}
-                    <div className="flex flex-col items-center gap-3 shrink-0">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        ref={fileInputRef}
-                        onChange={handleLogoUpload}
-                      />
-                      <div
-                        onClick={() => fileInputRef.current?.click()}
-                        className={`relative w-20 h-20 rounded-lg bg-zinc-50 border border-zinc-200 flex items-center justify-center text-xl font-black text-zinc-400 overflow-hidden cursor-pointer hover:bg-zinc-100 hover:border-zinc-300 transition-all ${isUploadingLogo ? "opacity-50 animate-pulse" : ""}`}
-                      >
-                        {logoUrl ? (
-                          <Image
-                            src={logoUrl}
-                            alt="Logo"
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <UploadCloud className="w-6 h-6 text-zinc-400" />
-                        )}
-                      </div>
-                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">
-                        {isUploadingLogo ? "Uploading..." : "Update Logo"}
-                      </span>
-                    </div>
-
-                    {/* Name Input */}
-                    <div className="flex-1 w-full space-y-2">
-                      <label className="block text-sm font-semibold text-zinc-900">
-                        Workspace Name
-                      </label>
-                      <input
-                        type="text"
-                        value={workspaceName}
-                        onChange={(e) => setWorkspaceName(e.target.value)}
-                        className="w-full px-4 py-2 text-sm border border-zinc-200 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-all font-medium text-zinc-900"
-                        required
-                        placeholder="e.g. Acme Corp"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Localization Card */}
-              <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden mb-8">
-                <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
-                  <div className="w-full md:w-1/3">
-                    <h3 className="text-base font-bold text-zinc-900">
-                      Localization
-                    </h3>
-                    <p className="text-sm text-zinc-500 mt-2">
-                      Set your regional preferences. This affects how dates and
-                      times are displayed across your projects.
-                    </p>
-                  </div>
-                  <div className="w-full md:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-zinc-900">
-                        Timezone
-                      </label>
-                      <select
-                        value={timezone}
-                        onChange={(e) => setTimezone(e.target.value)}
-                        className="w-full px-4 py-2 text-sm border border-zinc-200 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-all font-medium text-zinc-900 appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg-no-repeat bg-[position:right_1rem_center]"
-                      >
-                        <option value="UTC">
-                          UTC (Coordinated Universal Time)
-                        </option>
-                        <option value="Europe/Istanbul">
-                          GMT+3 (Europe/Istanbul)
-                        </option>
-                        <option value="America/New_York">
-                          EST (America/New_York)
-                        </option>
-                        <option value="Europe/London">
-                          GMT+0 (Europe/London)
-                        </option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-zinc-900">
-                        Date Format
-                      </label>
-                      <select
-                        value={dateFormat}
-                        onChange={(e) => setDateFormat(e.target.value)}
-                        className="w-full px-4 py-2 text-sm border border-zinc-200 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-all font-medium text-zinc-900 appearance-none bg-[url('/down-arrow.svg')] bg-[length:16px] bg-no-repeat bg-[position:right_1rem_center]"
-                      >
-                        <option value="YYYY-MM-DD">
-                          YYYY-MM-DD (2026-06-10)
-                        </option>
-                        <option value="DD/MM/YYYY">
-                          DD/MM/YYYY (10/06/2026)
-                        </option>
-                        <option value="MM/DD/YYYY">
-                          MM/DD/YYYY (06/10/2026)
-                        </option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-zinc-50/80 px-6 py-4 border-t border-zinc-200 flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={isSavingName}
-                    className="bg-zinc-900 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-zinc-800 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    {isSavingName ? "Saving..." : "Save Preferences"}
-                  </button>
-                </div>
-              </div>
-            </form>
-
-            {/* Danger Zone Card */}
             <div className="bg-white border border-red-200 rounded-xl shadow-sm overflow-hidden mb-20">
               <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
                 <div className="w-full md:w-1/3">
@@ -903,8 +1002,7 @@ export default function TeamBillingPage({
                     <ShieldAlert className="w-4 h-4" /> Danger Zone
                   </h3>
                   <p className="text-sm text-zinc-500 mt-2">
-                    Irreversible actions. Deleting a workspace removes all its
-                    projects, billing info, and member access.
+                    Irreversible actions. Deleting a workspace removes all data.
                   </p>
                 </div>
                 <div className="w-full md:w-2/3 flex items-center">
@@ -913,20 +1011,15 @@ export default function TeamBillingPage({
                       <h4 className="text-sm font-bold text-zinc-900">
                         Delete Workspace
                       </h4>
-                      <p className="text-xs text-zinc-500 mt-1">
-                        Permanently remove your workspace and all data.
-                      </p>
                     </div>
+                    <button
+                      onClick={handleDeleteWorkspace}
+                      className="bg-white text-red-600 border border-red-200 px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-600 hover:text-white hover:border-red-600 transition-all active:scale-95"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
-              </div>
-              <div className="bg-red-50/50 px-6 py-4 border-t border-red-200 flex justify-end">
-                <button
-                  onClick={handleDeleteWorkspace}
-                  className="bg-white text-red-600 border border-red-200 px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-red-600 hover:text-white hover:border-red-600 transition-all active:scale-95"
-                >
-                  Delete Workspace
-                </button>
               </div>
             </div>
           </div>

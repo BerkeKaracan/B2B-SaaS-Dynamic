@@ -24,8 +24,10 @@ class InviteUserRequest(BaseModel):
     email: EmailStr
     role: str = "employee"
 
-class UpdateRoleRequest(BaseModel):
-    role: str
+class UpdateTeamMemberRequest(BaseModel):
+    role: Optional[str] = None
+    department_id: Optional[str] = None
+    custom_role_id: Optional[str] = None
 
 class UpdateTenantRequest(BaseModel):
     name: str
@@ -34,6 +36,12 @@ class UpdateTenantRequest(BaseModel):
 
 class TransferOwnershipRequest(BaseModel):
     new_owner_member_id: UUID
+
+class CreateDepartmentRequest(BaseModel):
+    name: str
+
+class CreateRoleRequest(BaseModel):
+    name: str
 
 @router.get("/{tenant_id}")
 def get_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
@@ -117,7 +125,7 @@ def get_tenant_members(tenant_id: UUID, user: dict = Depends(get_user_role)):
             raise HTTPException(status_code=403, detail="Workspace access denied")
         
         response = supabase_admin.table("tenant_users").select(
-            "id, tenant_id, user_id, role, email, created_at"
+            "id, tenant_id, user_id, role, department_id, custom_role_id, email, created_at"
         ).eq("tenant_id", str(tenant_id)).execute()
 
         missing_email_uids = [str(row.get("user_id")) for row in response.data if not row.get("email")]
@@ -145,6 +153,8 @@ def get_tenant_members(tenant_id: UUID, user: dict = Depends(get_user_role)):
                 "tenant_id": str(row.get("tenant_id")),
                 "user_id": uid,
                 "role": row.get("role"),
+                "department_id": row.get("department_id"),
+                "custom_role_id": row.get("custom_role_id"),
                 "created_at": row.get("created_at"),
                 "email": email 
             })
@@ -279,21 +289,30 @@ def remove_member(tenant_id: UUID, member_id: UUID, user: dict = Depends(get_use
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.patch("/{tenant_id}/team/{member_id}")
-def update_member_role(tenant_id: UUID, member_id: UUID, request: UpdateRoleRequest, user: dict = Depends(get_user_role)):
+def update_team_member(tenant_id: UUID, member_id: UUID, request: UpdateTeamMemberRequest, user: dict = Depends(get_user_role)):
     try:
         current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
         if current_role not in ["admin", "owner"]:
             raise HTTPException(status_code=403, detail="Unauthorized: Only admins and owners can update roles")
             
-        if request.role.lower() == "owner":
+        if request.role and request.role.lower() == "owner":
             raise HTTPException(status_code=400, detail="Cannot assign 'owner' role directly. Use transfer ownership instead.")
 
         target_user = supabase_admin.table("tenant_users").select("role").eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
         if target_user.data and target_user.data[0].get("role", "").lower() == "owner":
             raise HTTPException(status_code=403, detail="Cannot modify the role of the workspace owner.")
             
-        supabase_admin.table("tenant_users").update({"role": request.role}).eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
-        return {"message": "Role updated successfully"}
+        provided_data = request.model_dump(exclude_unset=True)
+        if not provided_data:
+            return {"message": "No data to update"}
+
+        update_data = {}
+        for key, value in provided_data.items():
+            update_data[key] = None if value == "" else value
+            
+        supabase_admin.table("tenant_users").update(update_data).eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
+        return {"message": "Member updated successfully"}
+        
     except HTTPException:
         raise
     except Exception as e:
@@ -348,5 +367,98 @@ def delete_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
             
         supabase_admin.table("tenants").delete().eq("id", str(tenant_id)).execute()
         return {"message": "Workspace deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==========================================
+# ORGANIZATION: DEPARTMENTS & CUSTOM ROLES
+# ==========================================
+
+# --- DEPARTMENTS ---
+@router.get("/{tenant_id}/departments")
+def get_departments(tenant_id: UUID, user: dict = Depends(get_user_role)):
+    try:
+        if str(tenant_id) not in user["tenant_roles"]:
+            raise HTTPException(status_code=403, detail="Workspace access denied")
+        
+        response = supabase_admin.table("departments").select("id, name, created_at").eq("tenant_id", str(tenant_id)).execute()
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{tenant_id}/departments")
+def create_department(tenant_id: UUID, request: CreateDepartmentRequest, user: dict = Depends(get_user_role)):
+    try:
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Only admins and owners can create departments")
+            
+        new_dept = {
+            "tenant_id": str(tenant_id),
+            "name": request.name
+        }
+        response = supabase_admin.table("departments").insert(new_dept).execute()
+        return response.data[0] if response.data else {"message": "Department created"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{tenant_id}/departments/{department_id}")
+def delete_department(tenant_id: UUID, department_id: UUID, user: dict = Depends(get_user_role)):
+    try:
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Only admins and owners can delete departments")
+            
+        supabase_admin.table("departments").delete().eq("id", str(department_id)).eq("tenant_id", str(tenant_id)).execute()
+        return {"message": "Department deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- CUSTOM ROLES ---
+@router.get("/{tenant_id}/roles")
+def get_custom_roles(tenant_id: UUID, user: dict = Depends(get_user_role)):
+    try:
+        if str(tenant_id) not in user["tenant_roles"]:
+            raise HTTPException(status_code=403, detail="Workspace access denied")
+        
+        response = supabase_admin.table("custom_roles").select("id, name, created_at").eq("tenant_id", str(tenant_id)).execute()
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{tenant_id}/roles")
+def create_custom_role(tenant_id: UUID, request: CreateRoleRequest, user: dict = Depends(get_user_role)):
+    try:
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Only admins and owners can create roles")
+            
+        new_role = {
+            "tenant_id": str(tenant_id),
+            "name": request.name
+        }
+        response = supabase_admin.table("custom_roles").insert(new_role).execute()
+        return response.data[0] if response.data else {"message": "Role created"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{tenant_id}/roles/{role_id}")
+def delete_custom_role(tenant_id: UUID, role_id: UUID, user: dict = Depends(get_user_role)):
+    try:
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Only admins and owners can delete roles")
+            
+        supabase_admin.table("custom_roles").delete().eq("id", str(role_id)).eq("tenant_id", str(tenant_id)).execute()
+        return {"message": "Role deleted successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
