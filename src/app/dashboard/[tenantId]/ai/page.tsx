@@ -2,7 +2,17 @@
 
 import React, { useState, useRef, useEffect, use } from "react";
 import { fetchAPI } from "@/services/api";
-import { Sparkles, Send, Loader2, Bot, User, Trash2 } from "lucide-react";
+import {
+  Sparkles,
+  Send,
+  Loader2,
+  Bot,
+  User,
+  Trash2,
+  Copy,
+  CheckCheck,
+  Lightbulb,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -16,6 +26,13 @@ const INITIAL_MESSAGE: Message = {
     "Hello! I'm your dedicated **Workspace AI Assistant**. \n\nI don't need any specific data. You can use me to brainstorm ideas, plan your next project, write marketing copies, or just have a general chat. How can I help you today?",
 };
 
+const QUICK_ACTIONS = [
+  "Draft a 30-60-90 day product launch plan.",
+  "Brainstorm 5 B2B marketing strategies.",
+  "Write a cold email template for SaaS sales.",
+  "Create a standard API documentation structure.",
+];
+
 export default function AIPage({
   params,
 }: {
@@ -27,6 +44,7 @@ export default function AIPage({
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -41,12 +59,13 @@ export default function AIPage({
     return () => clearTimeout(timeoutId);
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  const handleSend = async (textOverride?: string) => {
+    const textToSend = textOverride || input;
+    if (!textToSend.trim()) return;
 
-    const userMessage: Message = { role: "user", content: input.trim() };
+    const userMessage: Message = { role: "user", content: textToSend.trim() };
     setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    if (!textOverride) setInput("");
     setIsLoading(true);
 
     try {
@@ -93,6 +112,12 @@ export default function AIPage({
     }
   };
 
+  const handleCopyMessage = (content: string, index: number) => {
+    navigator.clipboard.writeText(content);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
   return (
     <div className="flex-1 flex flex-col h-[calc(100vh-64px)] bg-[#FAFAFA] overflow-hidden">
       <header className="shrink-0 px-8 py-6 border-b border-zinc-200/60 bg-white shadow-sm z-10 relative">
@@ -133,50 +158,90 @@ export default function AIPage({
               </div>
 
               <div
-                className={`flex-1 max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-4 text-[15px] leading-relaxed shadow-sm ${
-                  msg.role === "user"
-                    ? "bg-zinc-900 text-white rounded-tr-sm"
-                    : "bg-white border border-zinc-200/80 text-zinc-800 rounded-tl-sm"
-                }`}
+                className={`flex flex-col gap-1.5 ${msg.role === "user" ? "items-end" : "items-start"} max-w-[85%] sm:max-w-[75%]`}
               >
-                <div className="prose prose-sm sm:prose-base max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:text-zinc-50 prose-indigo">
-                  <ReactMarkdown
-                    components={{
-                      strong: ({ node, ...props }) => (
-                        <span className="font-bold" {...props} />
-                      ),
-                      ul: ({ node, ...props }) => (
-                        <ul
-                          className="list-disc ml-4 my-2 space-y-1"
-                          {...props}
-                        />
-                      ),
-                      ol: ({ node, ...props }) => (
-                        <ol
-                          className="list-decimal ml-4 my-2 space-y-1"
-                          {...props}
-                        />
-                      ),
-                      li: ({ node, ...props }) => (
-                        <li className="mt-0.5" {...props} />
-                      ),
-                      h3: ({ node, ...props }) => (
-                        <h3
-                          className="text-lg font-bold mt-4 mb-2"
-                          {...props}
-                        />
-                      ),
-                      p: ({ node, ...props }) => (
-                        <p className="mb-3 last:mb-0" {...props} />
-                      ),
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
+                <div
+                  className={`rounded-2xl px-5 py-4 text-[15px] leading-relaxed shadow-sm w-full ${
+                    msg.role === "user"
+                      ? "bg-zinc-900 text-white rounded-tr-sm"
+                      : "bg-white border border-zinc-200/80 text-zinc-800 rounded-tl-sm"
+                  }`}
+                >
+                  <div className="prose prose-sm sm:prose-base max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:text-zinc-50 prose-indigo">
+                    <ReactMarkdown
+                      components={{
+                        strong: ({ node, ...props }) => (
+                          <span className="font-bold" {...props} />
+                        ),
+                        ul: ({ node, ...props }) => (
+                          <ul
+                            className="list-disc ml-4 my-2 space-y-1"
+                            {...props}
+                          />
+                        ),
+                        ol: ({ node, ...props }) => (
+                          <ol
+                            className="list-decimal ml-4 my-2 space-y-1"
+                            {...props}
+                          />
+                        ),
+                        li: ({ node, ...props }) => (
+                          <li className="mt-0.5" {...props} />
+                        ),
+                        h3: ({ node, ...props }) => (
+                          <h3
+                            className="text-lg font-bold mt-4 mb-2"
+                            {...props}
+                          />
+                        ),
+                        p: ({ node, ...props }) => (
+                          <p className="mb-3 last:mb-0" {...props} />
+                        ),
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  </div>
                 </div>
+
+                {msg.role === "assistant" && (
+                  <button
+                    onClick={() => handleCopyMessage(msg.content, i)}
+                    className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-400 hover:text-zinc-600 transition-colors px-1"
+                  >
+                    {copiedIndex === i ? (
+                      <>
+                        <CheckCheck className="w-3.5 h-3.5 text-emerald-500" />
+                        <span className="text-emerald-500">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        Copy Response
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           ))}
+
+          {messages.length === 1 && !isLoading && (
+            <div className="pl-12 sm:pl-14">
+              <div className="flex flex-wrap gap-2 mt-4">
+                {QUICK_ACTIONS.map((action, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSend(action)}
+                    className="flex items-center gap-2 text-xs font-semibold text-zinc-600 bg-white border border-zinc-200/80 px-3 py-2 rounded-lg hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm active:scale-95"
+                  >
+                    <Lightbulb className="w-3.5 h-3.5" />
+                    {action}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {isLoading && (
             <div className="flex gap-4 sm:gap-6">
@@ -188,7 +253,7 @@ export default function AIPage({
               <div className="bg-white border border-zinc-200/80 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex items-center gap-3">
                 <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
                 <span className="text-sm font-medium text-zinc-500">
-                  AI is thinking...
+                  AI is crafting a response...
                 </span>
               </div>
             </div>
@@ -222,7 +287,7 @@ export default function AIPage({
           />
 
           <button
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={isLoading || !input.trim()}
             className="absolute right-2.5 bottom-2.5 w-9 h-9 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl disabled:opacity-50 disabled:hover:bg-indigo-600 transition-colors active:scale-95"
           >

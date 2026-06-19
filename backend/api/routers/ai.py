@@ -3,7 +3,7 @@ import json
 import re
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from groq import Groq
+from groq import AsyncGroq  
 
 router = APIRouter(
     prefix="/api/ai",
@@ -33,7 +33,7 @@ async def magic_wand(req: MagicWandRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing in backend")
 
-    client = Groq(api_key=api_key)
+    client = AsyncGroq(api_key=api_key)
     
     system_prompt = (
         "You are a professional B2B SaaS Canvas assistant. "
@@ -51,7 +51,7 @@ async def magic_wand(req: MagicWandRequest):
         user_prompt = req.text
 
     try:
-        chat_completion = client.chat.completions.create(
+        chat_completion = await client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -74,7 +74,7 @@ async def generate_canvas(req: GenerateCanvasRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing")
 
-    client = Groq(api_key=api_key)
+    client = AsyncGroq(api_key=api_key)
     
     system_prompt = f"""You are an expert AI Canvas Architect for a workspace app.
     The user will give you a prompt. Return ONLY a valid JSON object.
@@ -95,7 +95,7 @@ async def generate_canvas(req: GenerateCanvasRequest):
     """
     
     try:
-        chat_completion = client.chat.completions.create(
+        chat_completion = await client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": req.prompt}
@@ -132,7 +132,7 @@ async def chat_with_canvas(req: ChatRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing")
 
-    client = Groq(api_key=api_key)
+    client = AsyncGroq(api_key=api_key)
     
     system_prompt = (
         "You are an intelligent AI assistant integrated into a B2B SaaS Workspace. "
@@ -149,7 +149,7 @@ async def chat_with_canvas(req: ChatRequest):
         groq_messages.append({"role": msg.role, "content": msg.content})
 
     try:
-        chat_completion = client.chat.completions.create(
+        chat_completion = await client.chat.completions.create(
             messages=groq_messages,
             model="llama-3.3-70b-versatile",
             temperature=0.7,
