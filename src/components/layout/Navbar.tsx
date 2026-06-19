@@ -20,13 +20,22 @@ export default function Navbar({
   const router = useRouter();
   const { toggleSecondarySidebar, isSecondarySidebarOpen } = useLayoutStore();
   const { isSaving, showSaved } = useCanvasStore();
-  const { user, logout } = useAuthStore();
+
+  // DÜZELTME 1: fetchUser fonksiyonunu store'dan dahil ettik
+  const { user, logout, fetchUser } = useAuthStore();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const initials = user?.initials || "--";
   const fullName = user?.full_name || "Loading...";
+
+  // DÜZELTME 2: URL'deki tenantId (çalışma alanı) her değiştiğinde kullanıcının o çalışma alanındaki güncel rolünü çeker
+  useEffect(() => {
+    if (tenantId) {
+      fetchUser(tenantId);
+    }
+  }, [tenantId, fetchUser]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -135,8 +144,8 @@ export default function Navbar({
               <span className="text-[13px] font-bold text-zinc-900 leading-none mb-1">
                 {fullName}
               </span>
-              <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest leading-none">
-                {user?.role || "Employee"}
+              <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest leading-none truncate max-w-[120px]">
+                {user?.custom_role_name || user?.role || "Employee"}
               </span>
             </div>
 
@@ -153,7 +162,17 @@ export default function Navbar({
                 <p className="text-sm font-extrabold text-zinc-950 truncate">
                   {fullName}
                 </p>
-                <p className="text-xs text-zinc-500 truncate mt-0.5">
+                <div className="flex items-center gap-1.5 mt-1 mb-0.5">
+                  <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
+                    {user?.custom_role_name || user?.role || "Employee"}
+                  </span>
+                  {user?.department_name && (
+                    <span className="px-1.5 py-0.5 bg-zinc-100/80 border border-zinc-200 text-zinc-600 rounded text-[9px] font-semibold truncate max-w-[100px]">
+                      {user.department_name}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-zinc-400 truncate mt-0.5">
                   {user?.email || "user@company.com"}
                 </p>
               </div>

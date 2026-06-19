@@ -11,13 +11,15 @@ interface User {
   initials?: string;
   tenant_id?: string;
   avatar_url?: string;
+  custom_role_name?: string | null;
+  department_name?: string | null;
 }
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isCheckingAuth: boolean;
-  fetchUser: () => Promise<void>;
+  fetchUser: (tenantId?: string) => Promise<void>;
   logout: () => void;
   updateProfile: (data: { full_name: string }) => Promise<void>;
   uploadAvatar: (file: File) => Promise<string>;
@@ -29,7 +31,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isCheckingAuth: true,
 
-  fetchUser: async () => {
+  fetchUser: async (tenantId?: string) => {
     try {
       const token = Cookies.get("token");
 
@@ -38,7 +40,12 @@ export const useAuthStore = create<AuthState>((set) => ({
         return;
       }
 
-      const res = await fetchAPI("/api/auth/me");
+      const options: RequestInit = {};
+      if (tenantId) {
+        options.headers = { "x-tenant-id": tenantId };
+      }
+
+      const res = await fetchAPI("/api/auth/me", options);
 
       if (res.ok) {
         const userData = await res.json();

@@ -22,7 +22,6 @@ import {
 
 import { useTenantStore } from "@/store/useTenantStore";
 
-// 1. TeamMember tipini yeni alanları destekleyecek şekilde güncelledik
 type TeamMember = {
   id: string;
   email?: string;
@@ -319,7 +318,6 @@ export default function TeamBillingPage({
     }
   };
 
-  // 2. Takım üyesinin rolünü, departmanını veya özel rolünü güncelleyen yeni fonksiyon
   const handleMemberUpdate = async (
     memberId: string,
     field: "role" | "custom_role_id" | "department_id",
@@ -441,7 +439,6 @@ export default function TeamBillingPage({
       setDepartments(departments.filter((d) => d.id !== id));
       showNotification("success", "Department removed.");
 
-      // Lokal state üzerindeki atanmış üyeleri temizle
       setMembers(
         members.map((m) =>
           m.department_id === id ? { ...m, department_id: null } : m,
@@ -491,7 +488,6 @@ export default function TeamBillingPage({
       setCustomRoles(customRoles.filter((r) => r.id !== id));
       showNotification("success", "Role removed.");
 
-      // Lokal state üzerindeki atanmış üyeleri temizle
       setMembers(
         members.map((m) =>
           m.custom_role_id === id ? { ...m, custom_role_id: null } : m,
@@ -701,9 +697,7 @@ export default function TeamBillingPage({
                         </div>
                       </div>
 
-                      {/* 3. Dropdown'lar grid yapısı ile yan yana eklendi */}
                       <div className="flex flex-wrap items-center gap-3">
-                        {/* Sistem Rolü (Permissions) */}
                         <div className="flex flex-col gap-1">
                           <span className="text-[10px] font-bold text-zinc-400 uppercase">
                             System Role
@@ -747,7 +741,6 @@ export default function TeamBillingPage({
                           </select>
                         </div>
 
-                        {/* Özel Rol (Custom Role) Seçici */}
                         {!isCurrentOwnerRow && customRoles.length > 0 && (
                           <div className="flex flex-col gap-1">
                             <span className="text-[10px] font-bold text-zinc-400 uppercase">
@@ -774,7 +767,6 @@ export default function TeamBillingPage({
                           </div>
                         )}
 
-                        {/* Departman Seçici */}
                         {!isCurrentOwnerRow && departments.length > 0 && (
                           <div className="flex flex-col gap-1">
                             <span className="text-[10px] font-bold text-zinc-400 uppercase">
@@ -801,7 +793,6 @@ export default function TeamBillingPage({
                           </div>
                         )}
 
-                        {/* Silme Butonu */}
                         {!isCurrentOwnerRow ? (
                           <div className="flex flex-col gap-1">
                             <span className="text-[10px] font-bold text-transparent select-none uppercase">
@@ -957,7 +948,7 @@ export default function TeamBillingPage({
           </div>
         )}
 
-        {/* ================= BILLING & ADVANCED TABS (Kısaltıldı, Değişmedi) ================= */}
+        {/* ================= BILLING & ADVANCED TABS ================= */}
         {activeTab === "billing" && (
           <div className="animate-in fade-in duration-300 space-y-8">
             <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">

@@ -193,9 +193,12 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
         
         role = "employee" 
         resolved_tenant_id = current_tenant_id
+        
+        custom_role_name = None
+        department_name = None
 
         try:
-            query = supabase_admin.table("tenant_users").select("tenant_id, role").eq("user_id", user_res.user.id)
+            query = supabase_admin.table("tenant_users").select("tenant_id, role, custom_role_id, department_id").eq("user_id", user_res.user.id)
             if current_tenant_id:
                 query = query.eq("tenant_id", current_tenant_id)
             else:
@@ -204,9 +207,24 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
             role_res = query.execute()
             if role_res.data:
                 role = role_res.data[0].get("role", "employee")
+                custom_role_id = role_res.data[0].get("custom_role_id")
+                department_id = role_res.data[0].get("department_id")
+                
                 if not resolved_tenant_id:
                     resolved_tenant_id = role_res.data[0].get("tenant_id")
-        except Exception:
+
+                if custom_role_id:
+                    cr_res = supabase_admin.table("custom_roles").select("name").eq("id", custom_role_id).execute()
+                    if cr_res.data:
+                        custom_role_name = cr_res.data[0]["name"]
+                
+                if department_id:
+                    dp_res = supabase_admin.table("departments").select("name").eq("id", department_id).execute()
+                    if dp_res.data:
+                        department_name = dp_res.data[0]["name"]
+
+        except Exception as ex:
+            print("Role fetch error:", ex)
             pass 
         
         return {
@@ -215,6 +233,8 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
             "full_name": full_name,
             "initials": initials,
             "role": role,
+            "custom_role_name": custom_role_name,
+            "department_name": department_name,
             "avatar_url": avatar_url,
             "tenant_id": resolved_tenant_id
         }

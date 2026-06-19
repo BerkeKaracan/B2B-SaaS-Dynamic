@@ -15,6 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { Calendar as CustomCalendar } from "@/components/ui/calendar";
 
 interface DatabaseBoardProps {
   projectId: string;
@@ -77,6 +78,11 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
     setDbTitle(newTitle);
     updateMetadata({ databaseTitle: newTitle });
   };
+
+  const [activeDateCell, setActiveDateCell] = useState<{
+    rowId: string;
+    propId: string;
+  } | null>(null);
 
   const handleAddProperty = (type: PropertyType) => {
     const newPropId = `prop-${Date.now()}`;
@@ -334,14 +340,68 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                         )}
 
                         {prop.type === "date" && (
-                          <input
-                            type="date"
-                            value={(row[prop.id] as string) || ""}
-                            onChange={(e) =>
-                              updateCell(row.id, prop.id, e.target.value)
-                            }
-                            className="w-full h-full bg-transparent focus:outline-none text-sm text-zinc-600 cursor-pointer"
-                          />
+                          <div className="w-full h-full relative">
+                            <div
+                              onClick={() =>
+                                setActiveDateCell({
+                                  rowId: row.id,
+                                  propId: prop.id,
+                                })
+                              }
+                              className="w-full h-full min-h-[26px] bg-transparent focus:outline-none text-sm cursor-pointer flex items-center"
+                            >
+                              {(row[prop.id] as string) ? (
+                                <span className="text-zinc-900">
+                                  {row[prop.id] as string}
+                                </span>
+                              ) : (
+                                <span className="text-transparent group-hover/cell:text-zinc-300">
+                                  Empty
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Custom Calendar Popover */}
+                            {activeDateCell?.rowId === row.id &&
+                              activeDateCell?.propId === prop.id && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setActiveDateCell(null)}
+                                  ></div>
+                                  <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-zinc-200 shadow-xl rounded-xl p-1">
+                                    <CustomCalendar
+                                      mode="single"
+                                      selected={
+                                        row[prop.id]
+                                          ? new Date(row[prop.id] as string)
+                                          : undefined
+                                      }
+                                      onSelect={(date) => {
+                                        if (date) {
+                                          const y = date.getFullYear();
+                                          const m = String(
+                                            date.getMonth() + 1,
+                                          ).padStart(2, "0");
+                                          const d = String(
+                                            date.getDate(),
+                                          ).padStart(2, "0");
+                                          updateCell(
+                                            row.id,
+                                            prop.id,
+                                            `${y}-${m}-${d}`,
+                                          );
+                                        } else {
+                                          updateCell(row.id, prop.id, "");
+                                        }
+                                        setActiveDateCell(null);
+                                      }}
+                                      initialFocus
+                                    />
+                                  </div>
+                                </>
+                              )}
+                          </div>
                         )}
 
                         {prop.type === "checkbox" && (
