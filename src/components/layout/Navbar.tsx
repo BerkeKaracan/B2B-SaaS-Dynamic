@@ -76,11 +76,15 @@ export default function Navbar({
           </svg>
         </button>
 
-        <div className="flex items-center gap-2">
+        <Link
+          href={`/dashboard/${tenantId}`}
+          className="flex items-center gap-2 hover:opacity-70 transition-opacity active:scale-95 transform-gpu cursor-pointer"
+          title="Go to Dashboard"
+        >
           <span className="font-extrabold text-zinc-900 text-sm tracking-tight uppercase">
             Engine
           </span>
-        </div>
+        </Link>
 
         <div className="ml-4 flex items-center h-full">
           {isSaving ? (
