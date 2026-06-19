@@ -137,30 +137,47 @@ export default function Navbar({
 
         <div className="relative" ref={dropdownRef}>
           <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-2.5 hover:bg-zinc-100/80 pl-1.5 pr-2 py-1.5 rounded-xl transition-all focus:outline-none border border-transparent hover:border-zinc-200"
+            onClick={() => user && setIsDropdownOpen(!isDropdownOpen)}
+            className={`flex items-center gap-2.5 pl-1.5 pr-2 py-1.5 rounded-xl transition-all focus:outline-none border border-transparent ${
+              user
+                ? "hover:bg-zinc-100/80 hover:border-zinc-200 cursor-pointer"
+                : "cursor-default"
+            }`}
           >
-            <div className="w-9 h-9 rounded-xl bg-zinc-950 text-white flex items-center justify-center text-sm font-extrabold shadow-sm shrink-0">
-              {initials}
-            </div>
+            {!user ? (
+              <div className="flex items-center gap-2.5 animate-pulse">
+                <div className="w-9 h-9 rounded-xl bg-zinc-200 shrink-0"></div>
+                <div className="hidden sm:flex flex-col items-start justify-center gap-2">
+                  <div className="w-24 h-2.5 bg-zinc-200 rounded-full"></div>
+                  <div className="w-16 h-2 bg-zinc-200 rounded-full"></div>
+                </div>
+                <ChevronDown className="w-4 h-4 text-zinc-200 ml-1" />
+              </div>
+            ) : (
+              <>
+                <div className="w-9 h-9 rounded-xl bg-zinc-950 text-white flex items-center justify-center text-sm font-extrabold shadow-sm shrink-0">
+                  {initials}
+                </div>
 
-            <div className="hidden sm:flex flex-col items-start justify-center">
-              <span className="text-[13px] font-bold text-zinc-900 leading-none mb-1">
-                {fullName}
-              </span>
-              <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest leading-none truncate max-w-[120px]">
-                {user?.custom_role_name || user?.role || "Employee"}
-              </span>
-            </div>
+                <div className="hidden sm:flex flex-col items-start justify-center">
+                  <span className="text-[13px] font-bold text-zinc-900 leading-none mb-1">
+                    {fullName}
+                  </span>
+                  <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest leading-none truncate max-w-[120px]">
+                    {user?.custom_role_name || user?.role || "Employee"}
+                  </span>
+                </div>
 
-            <ChevronDown
-              className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ml-1 ${
-                isDropdownOpen ? "rotate-180" : ""
-              }`}
-            />
+                <ChevronDown
+                  className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ml-1 ${
+                    isDropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </>
+            )}
           </button>
 
-          {isDropdownOpen && (
+          {isDropdownOpen && user && (
             <div className="absolute right-0 mt-2 w-64 bg-white border border-zinc-200/80 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50/50 rounded-t-2xl mb-2">
                 <p className="text-sm font-extrabold text-zinc-950 truncate">
