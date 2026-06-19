@@ -11,6 +11,7 @@ import NotepadBoard from "@/components/notepad/NotepadBoard";
 import TimelineBoard from "@/components/timeline/TimelineBoard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoadingSpinner } from "@/components/ui/loading";
+import DatabaseBoard from "@/components/database/DatabaseBoard";
 
 type Collaborator = {
   email: string;
@@ -55,7 +56,8 @@ export default function ProjectDesignPage() {
           if (
             data.record_data?.template === "kanban" ||
             data.record_data?.template === "notepad" ||
-            data.record_data?.template === "timeline"
+            data.record_data?.template === "timeline" ||
+            data.record_data?.template === "database"
           ) {
             setShowEngineToolkit(false);
           } else {
@@ -249,6 +251,8 @@ export default function ProjectDesignPage() {
             <NotepadBoard projectId={projectId} />
           ) : projectTemplate === "timeline" ? (
             <TimelineBoard projectId={projectId} />
+          ) : projectTemplate === "database" ? (
+            <DatabaseBoard projectId={projectId} />
           ) : (
             <CanvasArea />
           )}

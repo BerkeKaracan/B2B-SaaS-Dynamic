@@ -22,6 +22,10 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
   const tasks = metadata?.tasks;
   const timelineEvents = metadata?.timelineEvents;
 
+  const databaseProperties = metadata?.databaseProperties;
+  const databaseRows = metadata?.databaseRows;
+  const databaseTitle = metadata?.databaseTitle;
+
   useEffect(() => {
     if (!recordId) return;
 
@@ -53,6 +57,9 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
     notepadTitle,
     tasks, 
     timelineEvents, 
+    databaseProperties,
+    databaseRows,
+    databaseTitle
   ]);
 
   useEffect(() => {

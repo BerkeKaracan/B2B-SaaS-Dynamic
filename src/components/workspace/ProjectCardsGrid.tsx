@@ -23,6 +23,7 @@ import {
   LayoutTemplate,
   Trash2,
   AlertTriangle,
+  Database,
 } from "lucide-react";
 
 type ProjectRecord = {
@@ -484,7 +485,11 @@ export default function ProjectCardsGrid({
                           {displayName}
                         </h3>
                         <div className="flex items-center gap-1.5 mt-1 text-xs text-zinc-500">
-                          <LayoutTemplate className="w-3.5 h-3.5" />
+                          {templateType === "database" ? (
+                            <Database className="w-3.5 h-3.5" />
+                          ) : (
+                            <LayoutTemplate className="w-3.5 h-3.5" />
+                          )}
                           <span className="capitalize">
                             {templateType} Template
                           </span>
@@ -699,6 +704,7 @@ export default function ProjectCardsGrid({
                   <option value="kanban">Kanban Board</option>
                   <option value="notepad">Notepad</option>
                   <option value="timeline">Timeline</option>
+                  <option value="database">Database / Table</option>
                 </select>
               </div>
               {createError && (
