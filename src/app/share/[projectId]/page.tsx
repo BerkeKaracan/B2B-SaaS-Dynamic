@@ -9,6 +9,7 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import StaticKanbanBoard from "@/components/kanban/StaticKanbanBoard";
 import NotepadBoard from "@/components/notepad/NotepadBoard";
 import TimelineBoard from "@/components/timeline/TimelineBoard";
+import Cookies from "js-cookie";
 import {
   Globe,
   ShieldAlert,
@@ -83,10 +84,39 @@ export default function PublicSharePage() {
   const [panY, setPanY] = useState<number>(0);
   const [isPanning, setIsPanning] = useState<boolean>(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [isSpacePressed, setIsSpacePressed] = useState<boolean>(false);
 
   const panRef = useRef({ x: 0, y: 0 });
   const gridRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space" && !e.repeat) {
+        const activeEl = document.activeElement;
+        const isInput =
+          activeEl && ["INPUT", "TEXTAREA"].includes(activeEl.tagName);
+        if (!isInput) {
+          e.preventDefault();
+          setIsSpacePressed(true);
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        setIsSpacePressed(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
 
   useEffect(() => {
     panRef.current = { x: panX, y: panY };
@@ -99,7 +129,7 @@ export default function PublicSharePage() {
   useEffect(() => {
     const checkAuthAndModules = async () => {
       if (typeof window === "undefined") return;
-      const token = localStorage.getItem("token");
+      const token = Cookies.get("token") || localStorage.getItem("token");
       if (!token) return;
 
       try {
@@ -107,7 +137,9 @@ export default function PublicSharePage() {
         if (meRes.ok) {
           const userData = await meRes.json();
           const tenantId =
-            userData.tenant_id || localStorage.getItem("tenant_id");
+            userData.tenant_id ||
+            Cookies.get("tenant_id") ||
+            localStorage.getItem("tenant_id");
 
           if (tenantId) {
             setIsLoggedIn(true);
@@ -236,9 +268,21 @@ export default function PublicSharePage() {
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    setIsPanning(true);
-    setPanStart({ x: e.clientX, y: e.clientY });
-    e.currentTarget.setPointerCapture(e.pointerId);
+    const isBackground =
+      e.target === e.currentTarget ||
+      e.target === gridRef.current ||
+      e.target === wrapperRef.current;
+
+    if (
+      e.button === 1 ||
+      (e.button === 0 && isSpacePressed) ||
+      (e.button === 0 && isBackground)
+    ) {
+      e.preventDefault();
+      setIsPanning(true);
+      setPanStart({ x: e.clientX, y: e.clientY });
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -259,10 +303,25 @@ export default function PublicSharePage() {
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    setIsPanning(false);
-    e.currentTarget.releasePointerCapture(e.pointerId);
-    setPanX(panRef.current.x);
-    setPanY(panRef.current.y);
+    if (isPanning) {
+      setIsPanning(false);
+      e.currentTarget.releasePointerCapture(e.pointerId);
+      setPanX(panRef.current.x);
+      setPanY(panRef.current.y);
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const zoomDelta = e.deltaY < 0 ? 10 : -10;
+      setZoom((prev) => Math.min(Math.max(prev + zoomDelta, 20), 300));
+    } else {
+      setPanX((prev) => prev - e.deltaX);
+      setPanY((prev) => prev - e.deltaY);
+      panRef.current.x -= e.deltaX;
+      panRef.current.y -= e.deltaY;
+    }
   };
 
   if (loading) {
@@ -322,10 +381,14 @@ export default function PublicSharePage() {
 
     return (
       <main
-        className={`flex-1 relative z-10 w-full h-full overflow-hidden transform-gpu will-change-transform ${isPanning ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`flex-1 relative z-10 w-full h-full overflow-hidden transform-gpu will-change-transform ${
+          isSpacePressed || isPanning ? "cursor-grab" : "cursor-default"
+        } ${isPanning ? "active:cursor-grabbing" : ""}`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onWheel={handleWheel}
       >
         <div
           ref={gridRef}
@@ -388,7 +451,7 @@ export default function PublicSharePage() {
                             {block.type}
                           </span>
                         </div>
-                        <div className="text-xs font-medium text-zinc-600 Richmond whitespace-pre-wrap leading-relaxed">
+                        <div className="text-xs font-medium text-zinc-600 Richmond whitespace-pre-wrap leading-relaxed select-text">
                           {String(block.value)}
                         </div>
                       </div>
