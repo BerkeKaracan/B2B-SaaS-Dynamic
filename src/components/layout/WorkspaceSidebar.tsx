@@ -3,7 +3,15 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import { Plus, X, LayoutDashboard, Settings, Globe, Zap } from "lucide-react";
+import {
+  Plus,
+  X,
+  LayoutDashboard,
+  Settings,
+  Globe,
+  Zap,
+  Sparkles,
+} from "lucide-react";
 import { fetchAPI } from "@/services/api";
 import { useTenantStore } from "@/store/useTenantStore";
 
@@ -220,6 +228,19 @@ export default function WorkspaceSidebar() {
               className={`w-4 h-4 ${getIconStyle(pathname.endsWith("/projects") && !isOnProject)} group-hover:text-zinc-900 transition-colors`}
             />
             Projects
+          </Link>
+
+          <Link
+            href={`/dashboard/${tenantId}/ai`}
+            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith("/ai"))}`}
+          >
+            {pathname.endsWith("/ai") && (
+              <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
+            )}
+            <Sparkles
+              className={`w-4 h-4 ${getIconStyle(pathname.endsWith("/ai"))} group-hover:text-zinc-900 transition-colors`}
+            />
+            AI Assistant
           </Link>
 
           <Link
