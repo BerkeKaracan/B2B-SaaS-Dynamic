@@ -12,6 +12,7 @@ from api.routers import records, auth, tenants, public, notifications, ai, publi
 from core.config import settings
 
 import sentry_sdk
+from api.routers import tasks
 
 if settings.SENTRY_DSN:
     sentry_sdk.init(
@@ -80,6 +81,7 @@ app.include_router(public.router)
 app.include_router(notifications.router)
 app.include_router(ai.router)
 app.include_router(public_ai.router)
+app.include_router(tasks.router)
 
 @app.get("/", tags=["System"])
 async def root() -> dict[str, str]:

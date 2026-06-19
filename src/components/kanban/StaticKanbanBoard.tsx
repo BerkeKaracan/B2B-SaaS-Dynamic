@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useParams } from "next/navigation";
+import { fetchAPI } from "@/services/api";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Calendar } from "@/components/ui/calendar";
@@ -49,7 +51,10 @@ export default function StaticKanbanBoard({
 }: {
   projectId: string;
 }) {
-  const { metadata, updateMetadata, isSaving, showSaved } = useCanvasStore();
+  const params = useParams();
+  const tenantId = params?.tenantId as string;
+
+  const { metadata, updateMetadata } = useCanvasStore();
   const tasks = (metadata.tasks as Task[]) || [];
   const collaborators =
     (metadata.collaborators as { email: string; role: string }[]) || [];
@@ -83,8 +88,45 @@ export default function StaticKanbanBoard({
     setIsClient(true);
   }, []);
 
+  const mapStatusToBackend = (status: TaskStatus) => {
+    if (status === "IN PROGRESS") return "in_progress";
+    if (status === "DONE") return "done";
+    return "todo";
+  };
+
+  const syncTasksToBackend = async (currentTasks: Task[]) => {
+    if (!tenantId || !projectId) return;
+
+    const formattedTasks = currentTasks.map((t) => ({
+      project_id: projectId,
+      project_name:
+        (metadata.name as string) ||
+        (metadata.title as string) ||
+        "Project Board",
+      title: t.title,
+      status: mapStatusToBackend(t.status),
+      priority: t.priority,
+      due_date: t.deadline || null,
+      assigned_to: t.assignee,
+    }));
+
+    try {
+      await fetchAPI("/api/tasks/sync", {
+        method: "POST",
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          project_id: projectId,
+          tasks: formattedTasks,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to sync tasks:", error);
+    }
+  };
+
   const updateTasks = (newTasks: Task[]) => {
     updateMetadata({ tasks: newTasks });
+    syncTasksToBackend(newTasks);
   };
 
   const handleOpenAddModal = (status: TaskStatus) => {
@@ -351,7 +393,10 @@ export default function StaticKanbanBoard({
                                           <span
                                             className={`text-[8px] md:text-[9px] font-bold px-2 py-0.5 rounded-full border ${isDarkBg ? "bg-white/10 border-white/20" : "bg-zinc-200/50 border-zinc-200"}`}
                                           >
-                                            For {task.assignee}
+                                            For{" "}
+                                            {task.assignee.includes("@")
+                                              ? task.assignee.split("@")[0]
+                                              : task.assignee}
                                           </span>
                                         </div>
                                       </div>
@@ -615,7 +660,7 @@ export default function StaticKanbanBoard({
                               <div
                                 key={i}
                                 onClick={() => {
-                                  setNewTaskAssignee(c.email.split("@")[0]);
+                                  setNewTaskAssignee(c.email);
                                   setShowAssigneeDropdown(false);
                                 }}
                                 className="px-3 py-3 sm:py-2 hover:bg-zinc-100 cursor-pointer text-xs font-semibold text-zinc-700 flex justify-between items-center"

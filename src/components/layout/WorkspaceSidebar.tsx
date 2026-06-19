@@ -11,6 +11,7 @@ import {
   Globe,
   Zap,
   Sparkles,
+  CheckCircle,
 } from "lucide-react";
 import { fetchAPI } from "@/services/api";
 import { useTenantStore } from "@/store/useTenantStore";
@@ -228,6 +229,19 @@ export default function WorkspaceSidebar() {
               className={`w-4 h-4 ${getIconStyle(pathname.endsWith("/projects") && !isOnProject)} group-hover:text-zinc-900 transition-colors`}
             />
             Projects
+          </Link>
+
+          <Link
+            href={`/dashboard/${tenantId}/my-tasks`}
+            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith("/my-tasks"))}`}
+          >
+            {pathname.endsWith("/my-tasks") && (
+              <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
+            )}
+            <CheckCircle
+              className={`w-4 h-4 ${getIconStyle(pathname.endsWith("/my-tasks"))} group-hover:text-zinc-900 transition-colors`}
+            />
+            My Tasks
           </Link>
 
           <Link
