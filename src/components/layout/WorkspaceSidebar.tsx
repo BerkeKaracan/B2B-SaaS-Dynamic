@@ -5,6 +5,7 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Plus, X, LayoutDashboard, Settings, Globe, Zap } from "lucide-react";
 import { fetchAPI } from "@/services/api";
+import { useTenantStore } from "@/store/useTenantStore";
 
 type TenantInfo = {
   id: string;
@@ -27,8 +28,10 @@ export default function WorkspaceSidebar() {
   const { user } = useAuthStore();
   const isAdmin = user?.role === "admin" || user?.role === "owner";
 
-  const [tenant, setTenant] = useState<TenantInfo | null>(null);
+  const { tenant, fetchTenant } = useTenantStore();
   const [projectsCount, setProjectsCount] = useState<number>(0);
+
+  const [isClient, setIsClient] = useState(false);
 
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,19 +39,18 @@ export default function WorkspaceSidebar() {
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsClient(true);
     const fetchWorkspaceData = async () => {
       try {
-        const [tenantRes, modulesRes, projectsRes] = await Promise.all([
-          fetchAPI(`/api/tenants/${tenantId}`),
+        if (tenantId) fetchTenant(tenantId);
+
+        const [modulesRes, projectsRes] = await Promise.all([
           fetchAPI(
             `/api/records?tenant_id=${tenantId}&module_name=workspace_modules`,
           ),
           fetchAPI(`/api/records?tenant_id=${tenantId}`),
         ]);
-
-        if (tenantRes.ok) {
-          setTenant(await tenantRes.json());
-        }
 
         if (modulesRes.ok) {
           const data = await modulesRes.json();
@@ -77,7 +79,7 @@ export default function WorkspaceSidebar() {
     };
 
     if (tenantId) fetchWorkspaceData();
-  }, [tenantId]);
+  }, [tenantId, fetchTenant]);
 
   const handleCreateModule = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,15 +151,27 @@ export default function WorkspaceSidebar() {
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none"></div>
 
           <div className="flex items-center gap-3 relative z-10">
-            <div className="w-8 h-8 rounded-lg bg-zinc-950 text-white flex items-center justify-center font-bold text-sm shadow-md">
-              {tenant?.name?.charAt(0).toUpperCase() ?? "W"}
+            <div className="w-8 h-8 rounded-lg bg-zinc-950 text-white flex items-center justify-center font-bold text-sm shadow-md overflow-hidden relative">
+              {isClient ? (
+                tenant?.logo_url ? (
+                  <img
+                    src={tenant.logo_url}
+                    alt="Logo"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  (tenant?.name?.charAt(0).toUpperCase() ?? "W")
+                )
+              ) : (
+                "W" // Tarayıcı yüklenene kadar varsayılan harf
+              )}
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none mb-1">
                 Workspace
               </span>
-              <h2 className="text-sm font-bold text-zinc-900 leading-none truncate max-w-[140px]">
-                {tenant?.name ?? "Loading..."}
+              <h2 className="font-bold text-sm truncate">
+                {isClient ? tenant?.name || "Workspace" : "Workspace"}
               </h2>
             </div>
           </div>

@@ -16,6 +16,8 @@ import {
   UploadCloud,
 } from "lucide-react";
 
+import { useTenantStore } from "@/store/useTenantStore";
+
 type TeamMember = {
   id: string;
   email?: string;
@@ -38,6 +40,8 @@ export default function TeamBillingPage({
   const resolvedParams = use(params);
   const tenantId = resolvedParams.tenantId;
   const router = useRouter();
+
+  const { updateTenantState } = useTenantStore();
 
   const [activeTab, setActiveTab] = useState<"team" | "billing" | "advanced">(
     "advanced",
@@ -178,6 +182,7 @@ export default function TeamBillingPage({
       if (!res.ok) throw new Error("Failed to upload logo.");
       const data = await res.json();
       setLogoUrl(data.logo_url);
+      updateTenantState({ logo_url: data.logo_url });
       showNotification("success", "Workspace logo updated!");
     } catch (err) {
       showNotification("error", "Error uploading logo.");
@@ -203,6 +208,12 @@ export default function TeamBillingPage({
 
       if (!res.ok) throw new Error("Failed to update workspace settings.");
       showNotification("success", "Settings saved successfully!");
+
+      updateTenantState({
+        name: workspaceName,
+        timezone: timezone,
+        date_format: dateFormat,
+      });
     } catch (err: unknown) {
       showNotification("error", "Error saving settings.");
     } finally {
