@@ -5,18 +5,18 @@ import Link from "next/link";
 import { fetchAPI } from "@/services/api";
 import { Loader2 } from "lucide-react";
 
-interface PullRequestUpdate {
-  id: number;
+interface ChangelogUpdate {
+  id: string;
   title: string;
   description: string;
   author: string;
-  merged_at: string;
+  date: string;
   labels: string[];
   url: string;
 }
 
 export default function ChangelogPage() {
-  const [updates, setUpdates] = useState<PullRequestUpdate[]>([]);
+  const [updates, setUpdates] = useState<ChangelogUpdate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function ChangelogPage() {
       try {
         const res = await fetchAPI("/api/github/changelog?limit=15");
         if (res.ok) {
-          const data: PullRequestUpdate[] = await res.json();
+          const data: ChangelogUpdate[] = await res.json();
           setUpdates(data);
         }
       } catch (error) {
@@ -44,6 +44,21 @@ export default function ChangelogPage() {
       month: "long",
       day: "numeric",
     });
+  };
+
+  const getLabelColor = (label: string) => {
+    switch (label) {
+      case "Feature":
+        return "bg-indigo-50 text-indigo-600 border-indigo-100";
+      case "Bug Fix":
+        return "bg-red-50 text-red-600 border-red-100";
+      case "Improvement":
+        return "bg-blue-50 text-blue-600 border-blue-100";
+      case "Design":
+        return "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100";
+      default:
+        return "bg-zinc-50 text-zinc-500 border-zinc-200";
+    }
   };
 
   return (
@@ -72,7 +87,7 @@ export default function ChangelogPage() {
             Changelog
           </h1>
           <p className="text-zinc-400 text-xs uppercase font-black tracking-widest">
-            Live updates synced directly from GitHub
+            Live updates synced directly from GitHub Commits
           </p>
         </div>
 
@@ -86,7 +101,7 @@ export default function ChangelogPage() {
             </div>
           ) : updates.length === 0 ? (
             <div className="pl-10 md:pl-0 text-center md:text-left md:ml-[140px] text-zinc-500 font-medium bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
-              No merged pull requests found in the repository yet.
+              No commits found in the repository yet.
             </div>
           ) : (
             updates.map((update) => (
@@ -99,12 +114,12 @@ export default function ChangelogPage() {
                     href={update.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-black text-indigo-600 hover:text-indigo-800 transition-colors block"
+                    className="text-xs font-mono font-black text-zinc-600 hover:text-zinc-950 bg-zinc-100 hover:bg-zinc-200 px-2 py-0.5 rounded transition-colors block"
                   >
-                    PR #{update.id}
+                    {update.id}
                   </a>
                   <span className="text-[10px] font-bold text-zinc-400 block">
-                    {formatDate(update.merged_at)}
+                    {formatDate(update.date)}
                   </span>
                 </div>
 
@@ -114,29 +129,25 @@ export default function ChangelogPage() {
                   <h3 className="text-base font-extrabold text-zinc-950 tracking-tight mb-3">
                     {update.title}
                   </h3>
-                  <div className="text-zinc-600 text-[13px] font-medium leading-relaxed mb-4 whitespace-pre-wrap">
-                    {update.description || "No description provided."}
-                  </div>
+                  {update.description && (
+                    <div className="text-zinc-600 text-[13px] font-medium leading-relaxed mb-4 whitespace-pre-wrap">
+                      {update.description}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between mt-6 pt-4 border-t border-zinc-100">
                     <div className="flex flex-wrap gap-1.5">
-                      {update.labels.length > 0 ? (
-                        update.labels.map((t) => (
-                          <span
-                            key={t}
-                            className="px-2 py-0.5 bg-zinc-50 border border-zinc-100 text-zinc-500 text-[9px] font-black uppercase tracking-widest rounded"
-                          >
-                            {t}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-[10px] text-zinc-400 font-medium italic">
-                          No tags
+                      {update.labels.map((t) => (
+                        <span
+                          key={t}
+                          className={`px-2 py-0.5 border text-[9px] font-black uppercase tracking-widest rounded ${getLabelColor(t)}`}
+                        >
+                          {t}
                         </span>
-                      )}
+                      ))}
                     </div>
                     <span className="text-[10px] font-bold text-zinc-400 bg-zinc-50 px-2 py-1 rounded-md border border-zinc-100">
-                      Merged by {update.author}
+                      by {update.author}
                     </span>
                   </div>
                 </div>

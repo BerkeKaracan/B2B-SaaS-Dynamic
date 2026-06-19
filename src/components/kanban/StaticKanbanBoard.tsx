@@ -8,12 +8,29 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Calendar } from "@/components/ui/calendar";
 import toast from "react-hot-toast";
+import { Loader2, Link2, Unlink, X } from "lucide-react";
 import {
   DragDropContext,
   Droppable,
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
+
+const CustomGithubIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path>
+    <path d="M9 18c-4.51 2-5-2-7-2"></path>
+  </svg>
+);
 
 export type TaskStatus = "TO DO" | "IN PROGRESS" | "DONE";
 export type TaskPriority = "URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NO PRIORITY";
@@ -30,6 +47,14 @@ export interface Task {
   deadline?: string;
   priority: TaskPriority;
   status: TaskStatus;
+}
+
+interface GithubCommit {
+  sha: string;
+  message: string;
+  author: string;
+  date: string;
+  url: string;
 }
 
 const PRIORITIES: Record<TaskPriority, string> = {
@@ -59,6 +84,8 @@ export default function StaticKanbanBoard({
   const collaborators =
     (metadata.collaborators as { email: string; role: string }[]) || [];
 
+  const linkedRepo = (metadata.githubRepo as string) || "";
+
   const { user } = useAuthStore();
   const currentUserName =
     user?.full_name || user?.email?.split("@")[0] || "System User";
@@ -83,10 +110,56 @@ export default function StaticKanbanBoard({
   const [showDeadlineCalendar, setShowDeadlineCalendar] = useState(false);
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
 
+  const [commits, setCommits] = useState<GithubCommit[]>([]);
+  const [isCommitsLoading, setIsCommitsLoading] = useState(false);
+  const [repoInput, setRepoInput] = useState("");
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    if (linkedRepo) {
+      const [owner, repo] = linkedRepo.split("/");
+      if (!owner || !repo) return;
+
+      const fetchCommits = async () => {
+        setIsCommitsLoading(true);
+        try {
+          const res = await fetchAPI(
+            `/api/github/commits?owner=${owner}&repo=${repo}&limit=15`,
+          );
+          if (res.ok) {
+            const data: GithubCommit[] = await res.json();
+            setCommits(data);
+          }
+        } catch (error) {
+          console.error("Failed to fetch GitHub commits:", error);
+        } finally {
+          setIsCommitsLoading(false);
+        }
+      };
+      fetchCommits();
+    }
+  }, [linkedRepo]);
+
+  const handleConnectRepo = () => {
+    if (!repoInput.includes("/")) {
+      toast.error("Format must be: owner/repo (e.g., vercel/next.js)");
+      return;
+    }
+    updateMetadata({ githubRepo: repoInput });
+    toast.success("GitHub repository successfully linked!");
+    setRepoInput("");
+  };
+
+  const handleUnlinkRepo = () => {
+    if (window.confirm("Are you sure you want to unlink this repository?")) {
+      updateMetadata({ githubRepo: "" });
+      setCommits([]);
+    }
+  };
 
   const mapStatusToBackend = (status: TaskStatus) => {
     if (status === "IN PROGRESS") return "in_progress";
@@ -232,7 +305,6 @@ export default function StaticKanbanBoard({
 
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
-
     if (!destination) return;
     if (
       destination.droppableId === source.droppableId &&
@@ -267,6 +339,16 @@ export default function StaticKanbanBoard({
     updateTasks(finalTasks);
   };
 
+  const formatCommitDate = (dateString: string) => {
+    const d = new Date(dateString);
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   if (!isClient) return null;
 
   return (
@@ -276,6 +358,17 @@ export default function StaticKanbanBoard({
           <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 tracking-tight">
             Project Board
           </h2>
+          {linkedRepo && (
+            <a
+              href={`https://github.com/${linkedRepo}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-zinc-100 border border-zinc-200 rounded-md text-[10px] font-bold text-zinc-600 hover:text-zinc-900 transition-colors"
+            >
+              <CustomGithubIcon className="w-3 h-3" />
+              {linkedRepo.split("/")[1]}
+            </a>
+          )}
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
@@ -285,15 +378,15 @@ export default function StaticKanbanBoard({
           <button className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-zinc-600 bg-white border border-zinc-200 px-3 py-1.5 rounded-md hover:bg-zinc-50 shadow-xs">
             Sort
           </button>
-
           <div className="hidden sm:block w-px h-6 bg-zinc-200 mx-1"></div>
-
           <button
             onClick={() => setIsDrawerOpen(!isDrawerOpen)}
             className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors font-bold text-sm border ${isDrawerOpen ? "bg-zinc-900 text-white border-zinc-900" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border-zinc-200"}`}
             title="Toggle Github History"
           >
-            {isDrawerOpen ? "[>]" : "[<]"}
+            <CustomGithubIcon
+              className={`w-4 h-4 ${isDrawerOpen ? "text-white" : "text-zinc-700"}`}
+            />
           </button>
         </div>
       </div>
@@ -362,10 +455,7 @@ export default function StaticKanbanBoard({
                                       backgroundColor:
                                         PRIORITIES[task.priority],
                                     }}
-                                    className={`rounded-xl shadow-xs flex flex-col overflow-hidden cursor-grab active:cursor-grabbing hover:-translate-y-0.5
-                                      ${snapshot.isDragging ? "shadow-2xl scale-105 z-50 opacity-100" : "opacity-100 scale-100"}
-                                      ${textColor}
-                                    `}
+                                    className={`rounded-xl shadow-xs flex flex-col overflow-hidden cursor-grab active:cursor-grabbing hover:-translate-y-0.5 ${snapshot.isDragging ? "shadow-2xl scale-105 z-50 opacity-100" : "opacity-100 scale-100"} ${textColor}`}
                                   >
                                     <div className="p-3 md:p-4 flex flex-col gap-2 md:gap-3">
                                       <div className="flex justify-between items-start gap-2 md:gap-4">
@@ -381,7 +471,6 @@ export default function StaticKanbanBoard({
                                             </p>
                                           )}
                                         </div>
-
                                         <div className="flex flex-col items-end gap-1.5 shrink-0">
                                           {task.commitCode && (
                                             <span
@@ -400,11 +489,9 @@ export default function StaticKanbanBoard({
                                           </span>
                                         </div>
                                       </div>
-
                                       <div
                                         className={`h-px w-full ${borderColor} my-0.5`}
                                       />
-
                                       <div className="flex justify-between items-end">
                                         <div className="flex flex-col gap-0.5">
                                           <span
@@ -424,7 +511,6 @@ export default function StaticKanbanBoard({
                                             </span>
                                           </span>
                                         </div>
-
                                         <div className="flex flex-col items-end gap-0.5 text-[9px] md:text-[10px] font-bold">
                                           {task.startDate && (
                                             <span className={mutedTextColor}>
@@ -445,7 +531,6 @@ export default function StaticKanbanBoard({
                             );
                           })}
                           {provided.placeholder}
-
                           <button
                             onClick={() => handleOpenAddModal(col.id)}
                             className="mt-1 md:mt-2 w-full flex items-center justify-center gap-2 py-2 md:py-3 rounded-xl text-xs font-extrabold text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50 transition-all border border-dashed border-zinc-300 hover:border-zinc-400"
@@ -466,87 +551,127 @@ export default function StaticKanbanBoard({
           <div className="w-[85vw] sm:w-80 shrink-0 bg-white border-l border-zinc-200 shadow-2xl flex flex-col h-full absolute md:relative right-0 z-40 animate-in slide-in-from-right duration-300">
             <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50 shrink-0">
               <div className="flex items-center gap-2">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  className="text-zinc-800"
-                >
-                  <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path>
-                  <path d="M9 18c-4.51 2-5-2-7-2"></path>
-                </svg>
+                <CustomGithubIcon className="w-4 h-4 text-zinc-800" />
                 <h3 className="font-extrabold text-zinc-900 text-sm">
-                  Git History
+                  Project Git History
                 </h3>
               </div>
               <button
                 onClick={() => setIsDrawerOpen(false)}
-                className="flex items-center justify-center w-7 h-7 bg-zinc-200 text-zinc-700 rounded-md hover:bg-zinc-300 font-bold text-sm"
+                className="flex items-center justify-center w-7 h-7 bg-zinc-200 text-zinc-700 rounded-md hover:bg-zinc-300 transition-colors"
               >
-                [&gt;]
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 flex-1 overflow-y-auto bg-zinc-50 custom-scrollbar relative">
-              <div className="absolute left-9 top-6 bottom-6 w-0.5 bg-zinc-200"></div>
-              <div className="space-y-6 relative z-10">
-                <div className="flex gap-4">
-                  <div className="w-6 h-6 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-blue-600 shrink-0 shadow-sm mt-0.5">
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                    >
-                      <circle cx="12" cy="12" r="3"></circle>
-                      <line x1="12" y1="5" x2="12" y2="9"></line>
-                      <line x1="12" y1="15" x2="12" y2="19"></line>
-                    </svg>
+            <div className="p-5 flex-1 overflow-y-auto bg-zinc-50 custom-scrollbar relative">
+              {!linkedRepo ? (
+                <div className="flex flex-col items-center text-center mt-10 bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm animate-in fade-in zoom-in-95">
+                  <div className="w-12 h-12 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center mb-4">
+                    <Link2 className="w-6 h-6 text-indigo-600" />
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-zinc-900">
-                      Merge pull request #42
-                    </p>
-                    <p className="text-[10px] font-medium text-zinc-500 mt-0.5">
-                      by <b>User001</b> • 2 hours ago
-                    </p>
-                    <span className="inline-block mt-1.5 px-1.5 py-0.5 bg-zinc-200/50 text-zinc-600 rounded text-[9px] font-mono font-bold border border-zinc-200">
-                      0560MK8
-                    </span>
+                  <h4 className="text-sm font-extrabold text-zinc-900">
+                    Link GitHub Repository
+                  </h4>
+                  <p className="text-xs font-medium text-zinc-500 mt-2 mb-6 leading-relaxed">
+                    Connect this project to a repository to track live commits
+                    and link them to tasks.
+                  </p>
+                  <div className="w-full space-y-3">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <CustomGithubIcon className="h-4 w-4 text-zinc-400" />
+                      </div>
+                      <input
+                        type="text"
+                        value={repoInput}
+                        onChange={(e) => setRepoInput(e.target.value)}
+                        placeholder="owner/repo"
+                        className="w-full text-xs font-medium pl-9 pr-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <button
+                      onClick={handleConnectRepo}
+                      disabled={!repoInput}
+                      className="w-full py-2.5 bg-zinc-900 text-white text-xs font-bold rounded-xl hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+                    >
+                      Connect Repository
+                    </button>
                   </div>
                 </div>
-                <div className="flex gap-4">
-                  <div className="w-6 h-6 rounded-full bg-emerald-100 border-2 border-white flex items-center justify-center text-emerald-600 shrink-0 shadow-sm mt-0.5">
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
+              ) : (
+                <>
+                  <div className="mb-6 flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-zinc-200 shadow-sm">
+                    <div className="flex flex-col truncate">
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                        Connected To
+                      </span>
+                      <span className="text-xs font-bold text-zinc-900 truncate">
+                        {linkedRepo}
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleUnlinkRepo}
+                      className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Unlink Repository"
                     >
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
+                      <Unlink className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-zinc-900">
-                      Fix transparent dragging bug
-                    </p>
-                    <p className="text-[10px] font-medium text-zinc-500 mt-0.5">
-                      by <b>Boss</b> • 5 hours ago
-                    </p>
-                    <span className="inline-block mt-1.5 px-1.5 py-0.5 bg-zinc-200/50 text-zinc-600 rounded text-[9px] font-mono font-bold border border-zinc-200">
-                      1A9F43B
-                    </span>
+                  <div className="absolute left-8 top-28 bottom-6 w-0.5 bg-zinc-200 z-0"></div>
+                  <div className="space-y-6 relative z-10">
+                    {isCommitsLoading ? (
+                      <div className="flex flex-col items-center justify-center h-40 text-zinc-400">
+                        <Loader2 className="w-6 h-6 animate-spin mb-3 text-zinc-500" />
+                        <span className="text-xs font-bold tracking-widest uppercase">
+                          Fetching Commits...
+                        </span>
+                      </div>
+                    ) : commits.length === 0 ? (
+                      <div className="text-center text-xs font-medium text-zinc-500 bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
+                        No commits found or unable to access repository.
+                      </div>
+                    ) : (
+                      commits.map((commit) => (
+                        <div key={commit.sha} className="flex gap-4 group">
+                          <div className="w-6 h-6 rounded-full bg-zinc-100 border-2 border-white flex items-center justify-center text-zinc-600 shrink-0 shadow-sm mt-0.5 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                            >
+                              <circle cx="12" cy="12" r="3"></circle>
+                              <line x1="12" y1="5" x2="12" y2="9"></line>
+                              <line x1="12" y1="15" x2="12" y2="19"></line>
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-zinc-900 break-words line-clamp-2">
+                              {commit.message}
+                            </p>
+                            <p className="text-[10px] font-medium text-zinc-500 mt-0.5">
+                              by{" "}
+                              <b className="text-zinc-700">{commit.author}</b> •{" "}
+                              {formatCommitDate(commit.date)}
+                            </p>
+                            <a
+                              href={commit.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block mt-1.5 px-1.5 py-0.5 bg-white hover:bg-zinc-100 text-zinc-600 rounded text-[9px] font-mono font-bold border border-zinc-200 transition-colors shadow-sm"
+                            >
+                              {commit.sha}
+                            </a>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -561,23 +686,11 @@ export default function StaticKanbanBoard({
                     {editingTaskId ? "Edit Task" : "Add New Task"}
                   </h2>
                   <button
-                    type="button"
                     onClick={() => setIsAddModalOpen(false)}
+                    type="button"
                     className="text-zinc-400 hover:text-zinc-950 bg-white hover:bg-zinc-200 border border-zinc-200 rounded-full transition-colors p-1.5 shadow-sm"
                   >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
 
@@ -675,20 +788,44 @@ export default function StaticKanbanBoard({
                       )}
                     </div>
 
-                    {editingTaskId && (
-                      <div className="col-span-1 md:col-span-2 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
-                        <label className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
-                          Commit Code (Optional)
-                        </label>
+                    <div className="col-span-1 md:col-span-2 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                      <label className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                        Linked Commit (Optional)
+                      </label>
+
+                      {linkedRepo && commits.length > 0 ? (
+                        <select
+                          value={newTaskCommit}
+                          onChange={(e) => setNewTaskCommit(e.target.value)}
+                          className="w-full mt-1 px-3 py-3 sm:py-2 border border-blue-200 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        >
+                          <option value="" className="font-sans">
+                            -- Select a recent commit --
+                          </option>
+                          {commits.map((c) => (
+                            <option key={c.sha} value={c.sha}>
+                              {c.sha} -{" "}
+                              {c.message.length > 50
+                                ? c.message.substring(0, 50) + "..."
+                                : c.message}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
                         <input
                           type="text"
                           value={newTaskCommit}
                           onChange={(e) => setNewTaskCommit(e.target.value)}
                           className="w-full mt-1 px-3 py-3 sm:py-2 border border-blue-200 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                          placeholder="e.g. 0560MK8"
+                          placeholder="e.g. 1A9F43B"
                         />
-                      </div>
-                    )}
+                      )}
+                      <p className="text-[10px] text-blue-400 mt-1 font-medium">
+                        {linkedRepo
+                          ? "Link this task directly to a commit from your repository."
+                          : "Enter a commit hash manually or link a repository to select from a list."}
+                      </p>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-100 pt-4">
