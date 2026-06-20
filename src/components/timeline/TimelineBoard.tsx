@@ -62,19 +62,32 @@ export interface TimelineSavedView {
   sortBy: "manual" | "priority";
 }
 
-const generateNext12Months = () => {
-  const months = [];
-  const date = new Date();
-  for (let i = 0; i < 12; i++) {
-    const current = new Date(date.getFullYear(), date.getMonth() + i, 1);
-    months.push({
-      key: `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}`,
-      year: current.getFullYear(),
-      monthNum: String(current.getMonth() + 1).padStart(2, "0"),
-      monthName: current.toLocaleString("en-US", { month: "short" }),
+const generateNextDays = (daysCount = 30) => {
+  const days = [];
+  const today = new Date();
+
+  for (let i = 0; i < daysCount; i++) {
+    const current = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() + i,
+    );
+    const dayName = current.toLocaleString("en-US", { weekday: "short" });
+    const monthName = current.toLocaleString("en-US", { month: "short" });
+    const dayNum = String(current.getDate()).padStart(2, "0");
+    const monthNum = String(current.getMonth() + 1).padStart(2, "0");
+    const year = current.getFullYear();
+
+    days.push({
+      key: `${year}-${monthNum}-${dayNum}`,
+      year: year,
+      dayNum: dayNum,
+      dayName: dayName,
+      monthName: monthName,
+      isToday: i === 0,
     });
   }
-  return months;
+  return days;
 };
 
 export default function TimelineBoard({
@@ -89,7 +102,7 @@ export default function TimelineBoard({
 
   const savedViews = (metadata.timelineSavedViews as TimelineSavedView[]) || [];
 
-  const [columns] = useState(generateNext12Months());
+  const [columns] = useState(generateNextDays(30));
   const [isClient, setIsClient] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
@@ -115,7 +128,6 @@ export default function TimelineBoard({
   const sortRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsClient(true);
   }, []);
 
@@ -150,7 +162,7 @@ export default function TimelineBoard({
     if (sortBy !== "manual") {
       setSortBy("manual");
       setActiveViewId(null);
-      toast("Sort method automatically reset to Manual for Drag & Drop", {
+      toast("Sort automatically reset to Manual for Drag & Drop", {
         icon: "ℹ️",
       });
     }
@@ -195,9 +207,11 @@ export default function TimelineBoard({
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.title?.trim()) return;
+  const processSubmit = (addAnother: boolean = false) => {
+    if (!formData.title?.trim()) {
+      toast.error("Event title is required!");
+      return;
+    }
 
     let updatedEvents = [...events];
     if (editingEventId) {
@@ -210,16 +224,32 @@ export default function TimelineBoard({
             }
           : ev,
       );
+      toast.success("Event updated!");
     } else {
       updatedEvents.push({
         ...(formData as TimelineEvent),
         id: "evt-" + Date.now(),
         monthKey: activeMonthKey,
       });
+      toast.success("Event added!");
     }
 
     updateEvents(updatedEvents);
-    setIsModalOpen(false);
+
+    if (addAnother) {
+      setEditingEventId(null);
+      setFormData({
+        ...formData,
+        title: "",
+        description: "",
+        place: "",
+        time: "",
+        notes: "",
+        assignee: "",
+      });
+    } else {
+      setIsModalOpen(false);
+    }
   };
 
   const handleSaveView = () => {
@@ -453,22 +483,41 @@ export default function TimelineBoard({
                     key={col.key}
                     className="w-[85vw] sm:w-[320px] shrink-0 flex flex-col max-h-full"
                   >
-                    <div className="flex items-center justify-between p-3 mb-3 bg-white rounded-xl border-2 border-zinc-200 shadow-sm shrink-0">
+                    {/* YENİ: Takvim Yaprağı Başlığı */}
+                    <div
+                      className={`flex items-center justify-between p-3 mb-3 rounded-xl border-2 shadow-sm shrink-0 transition-colors ${col.isToday ? "bg-indigo-50 border-indigo-200" : "bg-white border-zinc-200"}`}
+                    >
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                          {col.year}
+                        <span
+                          className={`text-[10px] font-black uppercase tracking-widest ${col.isToday ? "text-indigo-500" : "text-zinc-400"}`}
+                        >
+                          {col.monthName} {col.year}
                         </span>
                         <div className="flex items-end gap-1.5 mt-0.5">
-                          <span className="text-2xl font-black text-zinc-900 leading-none">
-                            {col.monthNum}
+                          <span
+                            className={`text-2xl font-black leading-none ${col.isToday ? "text-indigo-900" : "text-zinc-900"}`}
+                          >
+                            {col.dayNum}
                           </span>
-                          <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-0.5">
-                            {col.monthName}
+                          <span
+                            className={`text-xs font-bold uppercase tracking-wider mb-0.5 ${col.isToday ? "text-indigo-600" : "text-zinc-500"}`}
+                          >
+                            {col.dayName}
                           </span>
                         </div>
                       </div>
-                      <div className="w-8 h-8 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center text-xs font-bold text-zinc-500">
-                        {colEvents.length}
+
+                      <div className="flex flex-col items-end gap-2">
+                        {col.isToday && (
+                          <span className="px-2 py-0.5 bg-indigo-600 text-white text-[9px] font-bold rounded uppercase tracking-wider animate-pulse">
+                            Today
+                          </span>
+                        )}
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${col.isToday ? "bg-indigo-100 text-indigo-700" : "bg-zinc-100 text-zinc-500 border border-zinc-200"}`}
+                        >
+                          {colEvents.length}
+                        </div>
                       </div>
                     </div>
 
@@ -610,10 +659,7 @@ export default function TimelineBoard({
                   </button>
                 </div>
 
-                <form
-                  onSubmit={handleSubmit}
-                  className="p-5 space-y-4 overflow-y-auto custom-scrollbar pb-8 sm:pb-5"
-                >
+                <div className="p-5 space-y-4 overflow-y-auto custom-scrollbar pb-8 sm:pb-5">
                   <div className="flex items-center justify-between bg-zinc-100 p-2 rounded-xl">
                     <span className="text-xs font-bold text-zinc-600 px-2">
                       Card Style
@@ -638,6 +684,24 @@ export default function TimelineBoard({
                         Detailed Card
                       </button>
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-1">
+                      Target Date
+                    </label>
+                    <select
+                      value={activeMonthKey}
+                      onChange={(e) => setActiveMonthKey(e.target.value)}
+                      className="w-full px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-bold focus:outline-none cursor-pointer bg-white"
+                    >
+                      {columns.map((col) => (
+                        <option key={col.key} value={col.key}>
+                          {col.dayNum} {col.monthName} {col.year} ({col.dayName}
+                          )
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
@@ -764,7 +828,7 @@ export default function TimelineBoard({
                     </div>
                   )}
 
-                  <div className="pt-4 border-t border-zinc-100 flex justify-end gap-3 shrink-0 mt-4 sticky bottom-0 bg-white">
+                  <div className="pt-4 border-t border-zinc-100 flex justify-end gap-2 shrink-0 mt-4 sticky bottom-0 bg-white">
                     {editingEventId && (
                       <button
                         type="button"
@@ -773,27 +837,41 @@ export default function TimelineBoard({
                             events.filter((e) => e.id !== editingEventId),
                           );
                           setIsModalOpen(false);
+                          toast.success("Event deleted!");
                         }}
-                        className="px-4 py-3 sm:py-2 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl mr-auto"
+                        className="px-4 py-2 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl mr-auto"
                       >
                         Delete
                       </button>
                     )}
+
                     <button
                       type="button"
                       onClick={() => setIsModalOpen(false)}
-                      className="px-5 py-3 sm:py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
+                      className="px-3 py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
                     >
                       Cancel
                     </button>
+
+                    {!editingEventId && (
+                      <button
+                        type="button"
+                        onClick={() => processSubmit(true)}
+                        className="px-4 py-2 bg-indigo-50 text-indigo-600 text-sm font-bold rounded-xl hover:bg-indigo-100 transition-colors hidden sm:block"
+                      >
+                        Save & Add Another
+                      </button>
+                    )}
+
                     <button
-                      type="submit"
-                      className="px-6 py-3 sm:py-2 bg-zinc-900 text-white text-sm font-bold rounded-xl hover:bg-zinc-800 shadow-md flex-1 sm:flex-none"
+                      type="button"
+                      onClick={() => processSubmit(false)}
+                      className="px-6 py-2 bg-zinc-900 text-white text-sm font-bold rounded-xl hover:bg-zinc-800 shadow-md"
                     >
-                      {editingEventId ? "Save Changes" : "Add Event"}
+                      {editingEventId ? "Save Changes" : "Save & Close"}
                     </button>
                   </div>
-                </form>
+                </div>
               </div>
             </div>,
             document.body,
