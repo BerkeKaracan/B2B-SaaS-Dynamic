@@ -9,12 +9,10 @@ import { useOSNotification } from "@/hooks/useOSNotification";
 
 interface NotificationItem {
   id: string;
-  record_data: {
-    title?: string;
-    message?: string;
-    is_read?: boolean;
-    type?: string;
-  } | null;
+  title: string;
+  message: string;
+  is_read: boolean;
+  type?: string;
   created_at: string;
 }
 
@@ -27,6 +25,7 @@ export default function NotificationBell() {
   const { tenant } = useTenantStore();
 
   const popoverRef = useRef<HTMLDivElement>(null);
+
   const { permission, requestPermission, sendNotification } =
     useOSNotification();
 
@@ -56,14 +55,14 @@ export default function NotificationBell() {
           const data: NotificationItem[] = await res.json();
           setNotifications(data);
 
-          const currentUnread = data.filter((n) => !n.record_data?.is_read);
+          const currentUnread = data.filter((n) => !n.is_read);
           if (
             currentUnread.length > previousUnreadCount &&
             previousUnreadCount !== 0
           ) {
             const newest = currentUnread[0];
-            sendNotification(newest.record_data?.title || "New Notification", {
-              body: newest.record_data?.message || "",
+            sendNotification(newest.title, {
+              body: newest.message,
             });
           }
           previousUnreadCount = currentUnread.length;
@@ -84,35 +83,29 @@ export default function NotificationBell() {
     return () => clearInterval(intervalId);
   }, [user, tenant, sendNotification]);
 
-  const unreadCount = notifications.filter(
-    (n) => !n.record_data?.is_read,
-  ).length;
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const handleMarkAsRead = async (id: string) => {
-    if (!tenant) return;
     try {
       await fetchAPI(`/api/notifications/${id}/read`, {
-        method: "PUT",
-        body: JSON.stringify({ tenant_id: tenant.id }),
+        method: "PATCH",
       });
       setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === id
-            ? { ...n, record_data: { ...(n.record_data || {}), is_read: true } }
-            : n,
-        ),
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
       );
     } catch (error) {
       console.error("Mark as read failed:", error);
     }
   };
 
-  const handleClearAll = async () => {
-    if (!tenant) return;
+  const handleMarkAllAsRead = async () => {
     try {
-      setNotifications([]);
+      await fetchAPI(`/api/notifications/read-all`, {
+        method: "PATCH",
+      });
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     } catch (error) {
-      console.error("Clear all failed:", error);
+      console.error("Mark all as read failed:", error);
     }
   };
 
@@ -147,12 +140,12 @@ export default function NotificationBell() {
                 </span>
               )}
             </h3>
-            {notifications.length > 0 && (
+            {unreadCount > 0 && (
               <button
-                onClick={handleClearAll}
-                className="text-[10px] font-bold text-zinc-500 hover:text-red-600 flex items-center gap-1 transition-colors"
+                onClick={handleMarkAllAsRead}
+                className="text-[10px] font-bold text-zinc-500 hover:text-indigo-600 flex items-center gap-1 transition-colors"
               >
-                <Trash2 className="w-3 h-3" /> Clear All
+                <Check className="w-3 h-3" /> Mark all read
               </button>
             )}
           </div>
@@ -204,7 +197,7 @@ export default function NotificationBell() {
                   <li
                     key={notif.id}
                     className={`p-4 flex gap-3 transition-colors ${
-                      notif.record_data?.is_read
+                      notif.is_read
                         ? "bg-white opacity-60"
                         : "bg-zinc-50/50 hover:bg-zinc-50"
                     }`}
@@ -212,7 +205,7 @@ export default function NotificationBell() {
                     <div className="shrink-0 mt-1">
                       <div
                         className={`w-2 h-2 rounded-full ${
-                          notif.record_data?.is_read
+                          notif.is_read
                             ? "bg-zinc-200"
                             : "bg-indigo-500 ring-4 ring-indigo-50"
                         }`}
@@ -220,18 +213,18 @@ export default function NotificationBell() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p
-                        className={`text-xs font-bold truncate ${notif.record_data?.is_read ? "text-zinc-600" : "text-zinc-900"}`}
+                        className={`text-xs font-bold truncate ${notif.is_read ? "text-zinc-600" : "text-zinc-900"}`}
                       >
-                        {notif.record_data?.title || "New Notification"}
+                        {notif.title}
                       </p>
                       <p className="text-[11px] font-medium text-zinc-500 mt-0.5 line-clamp-2 leading-relaxed">
-                        {notif.record_data?.message || "No details provided."}
+                        {notif.message}
                       </p>
                       <p className="text-[9px] font-bold text-zinc-400 mt-2 uppercase tracking-wider">
                         {formatDate(notif.created_at)}
                       </p>
                     </div>
-                    {!notif.record_data?.is_read && (
+                    {!notif.is_read && (
                       <button
                         onClick={() => handleMarkAsRead(notif.id)}
                         className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 transition-colors"
