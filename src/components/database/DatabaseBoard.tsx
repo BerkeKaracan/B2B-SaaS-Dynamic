@@ -16,6 +16,8 @@ import {
   BookmarkPlus,
   LayoutDashboard,
   X,
+  MoreHorizontal,
+  Copy,
 } from "lucide-react";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { Calendar as CustomCalendar } from "@/components/ui/calendar";
@@ -46,7 +48,14 @@ export interface DatabaseSavedView {
   sortConfig: { propId: string; dir: "asc" | "desc" } | null;
 }
 
-export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
+// ÇÖZÜM: Saf olmayan (impure) fonksiyonları React bileşeninin dışına çıkardık.
+const generateId = (prefix: string) => {
+  return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+};
+
+export default function DatabaseBoard({
+  projectId: _projectId,
+}: DatabaseBoardProps) {
   const { metadata, updateMetadata } = useCanvasStore();
   const [isClient, setIsClient] = useState(false);
 
@@ -71,6 +80,8 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   );
   const [isPropertyMenuOpen, setIsPropertyMenuOpen] = useState(false);
 
+  const [openRowMenu, setOpenRowMenu] = useState<string | null>(null);
+
   const [filterQuery, setFilterQuery] = useState("");
   const [sortConfig, setSortConfig] = useState<{
     propId: string;
@@ -92,13 +103,21 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        filterRef.current &&
-        !filterRef.current.contains(event.target as Node)
-      )
+      const target = event.target as Element;
+
+      if (filterRef.current && !filterRef.current.contains(target as Node))
         setIsFilterOpen(false);
-      if (sortRef.current && !sortRef.current.contains(event.target as Node))
+      if (sortRef.current && !sortRef.current.contains(target as Node))
         setIsSortOpen(false);
+
+      if (target && typeof target.closest === "function") {
+        if (
+          !target.closest(".row-dropdown-menu") &&
+          !target.closest(".row-menu-trigger")
+        ) {
+          setOpenRowMenu(null);
+        }
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -108,10 +127,12 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
     setProperties(newProps);
     updateMetadata({ databaseProperties: newProps });
   };
+
   const saveRows = (newRows: RowRecord[]) => {
     setRows(newRows);
     updateMetadata({ databaseRows: newRows });
   };
+
   const saveTitle = (newTitle: string) => {
     setDbTitle(newTitle);
     updateMetadata({ databaseTitle: newTitle });
@@ -123,7 +144,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   } | null>(null);
 
   const handleAddProperty = (type: PropertyType) => {
-    const newPropId = `prop-${Date.now()}`;
+    const newPropId = generateId("prop");
     const newProps = [
       ...properties,
       { id: newPropId, name: `New ${type}`, type },
@@ -151,7 +172,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   };
 
   const handleAddRow = () => {
-    const newRow: RowRecord = { id: `row-${Date.now()}` };
+    const newRow: RowRecord = { id: generateId("row") };
     properties.forEach((prop) => {
       newRow[prop.id] = prop.type === "checkbox" ? false : "";
     });
@@ -160,6 +181,25 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
 
   const handleDeleteRow = (rowId: string) => {
     saveRows(rows.filter((r) => r.id !== rowId));
+    setOpenRowMenu(null);
+  };
+
+  const handleDuplicateRow = (rowId: string) => {
+    const rowToDuplicate = rows.find((r) => r.id === rowId);
+    if (!rowToDuplicate) return;
+
+    const newRowId = generateId("row");
+    const newRow: RowRecord = { ...rowToDuplicate, id: newRowId };
+
+    const textProp = properties.find((p) => p.type === "text");
+    if (textProp && typeof newRow[textProp.id] === "string") {
+      newRow[textProp.id] = `${newRow[textProp.id]} (Copy)`;
+    }
+
+    const updatedRows = [...rows, newRow];
+    saveRows(updatedRows);
+    toast.success("Row duplicated successfully!");
+    setOpenRowMenu(null);
   };
 
   const updateCell = (rowId: string, propId: string, value: CellValue) => {
@@ -179,7 +219,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
     if (!viewName?.trim()) return;
 
     const newView: DatabaseSavedView = {
-      id: "view-db-" + Date.now(),
+      id: generateId("view-db"),
       name: viewName,
       filterQuery,
       sortConfig,
@@ -640,15 +680,50 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                       </div>
                     </td>
                   ))}
-                  <td className="border-r border-zinc-100 w-12 text-center p-0 align-middle">
+
+                  <td className="border-r border-zinc-100 w-12 text-center p-0 align-middle relative">
                     <button
-                      onClick={() => handleDeleteRow(row.id)}
-                      className="opacity-0 group-hover/row:opacity-100 text-zinc-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition-all mx-auto"
-                      title="Delete Row"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setOpenRowMenu(openRowMenu === row.id ? null : row.id);
+                      }}
+                      className="row-menu-trigger opacity-0 group-hover/row:opacity-100 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 p-1.5 rounded transition-all mx-auto flex items-center justify-center"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <MoreHorizontal className="w-4 h-4" />
                     </button>
+
+                    {openRowMenu === row.id && (
+                      <div
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        className="row-dropdown-menu absolute right-full top-1/2 -translate-y-1/2 mr-2 w-36 bg-white shadow-xl border border-zinc-200 rounded-lg p-1 z-70 animate-in fade-in zoom-in-95 cursor-default text-left"
+                      >
+                        <button
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDuplicateRow(row.id);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
+                        >
+                          <Copy className="w-3.5 h-3.5" /> Duplicate
+                        </button>
+                        <div className="w-full h-px bg-zinc-100 my-0.5"></div>
+                        <button
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDeleteRow(row.id);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </button>
+                      </div>
+                    )}
                   </td>
+
                   <td></td>
                 </tr>
               ))}
