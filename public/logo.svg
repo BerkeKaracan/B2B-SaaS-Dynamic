@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#27272a" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+    
+    <linearGradient id="text-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#a1a1aa" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="128" fill="url(#bg-gradient)" />
+  
+  <path d="M-100 100 L612 812 M812 -100 L100 612" stroke="#ffffff" stroke-opacity="0.03" stroke-width="80" />
+  
+  <text 
+    x="50%" 
+    y="54%" 
+    font-family="system-ui, -apple-system, sans-serif" 
+    font-size="260" 
+    font-weight="900" 
+    fill="url(#text-gradient)" 
+    text-anchor="middle" 
+    dominant-baseline="middle" 
+    letter-spacing="-15"
+  >
+    B2
+  </text>
+</svg>

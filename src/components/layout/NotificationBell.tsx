@@ -1,82 +1,41 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { Bell } from "lucide-react";
-import Link from "next/link";
+import React, { useState, useEffect, useRef } from "react";
+import { Bell, Check, Trash2, Loader2, MonitorSmartphone } from "lucide-react";
 import { fetchAPI } from "@/services/api";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useTenantStore } from "@/store/useTenantStore";
+import { useOSNotification } from "@/hooks/useOSNotification";
 
-type Notification = {
+interface NotificationItem {
   id: string;
-  type: "mention" | "system" | "invite" | "update";
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt: string;
-  actionUrl?: string;
-};
-
-type BackendNotification = {
-  id: string;
-  target_email: string;
-  type: "mention" | "system" | "invite" | "update";
-  title: string;
-  message: string;
-  is_read: boolean;
-  action_url?: string;
+  record_data: {
+    title: string;
+    message: string;
+    is_read: boolean;
+    type?: string;
+  };
   created_at: string;
-};
+}
 
 export default function NotificationBell() {
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
+  const { user } = useAuthStore();
+  const { tenant } = useTenantStore();
 
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetchAPI("/api/notifications");
+  const popoverRef = useRef<HTMLDivElement>(null);
 
-        if (!isMounted) return;
-
-        if (res.ok) {
-          const data = (await res.json()) as BackendNotification[];
-          if (!isMounted) return;
-
-          const mappedData: Notification[] = data.map((n) => ({
-            id: n.id,
-            type: n.type,
-            title: n.title,
-            message: n.message,
-            isRead: n.is_read,
-            createdAt: n.created_at,
-            actionUrl: n.action_url,
-          }));
-
-          setNotifications(mappedData);
-          setUnreadCount(mappedData.filter((n) => !n.isRead).length);
-        }
-      } catch (err) {
-        console.error("Failed to fetch notifications:", err);
-      }
-    };
-
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
+  const { permission, requestPermission, sendNotification } =
+    useOSNotification();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
       }
@@ -85,171 +44,207 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const markAsRead = async (id: string) => {
-    try {
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+  useEffect(() => {
+    if (!user || !tenant) return;
 
+    let previousUnreadCount = 0;
+
+    const loadNotifications = async (showLoader = false) => {
+      if (showLoader) setIsLoading(true);
+      try {
+        const res = await fetchAPI(`/api/notifications?tenant_id=${tenant.id}`);
+        if (res.ok) {
+          const data: NotificationItem[] = await res.json();
+          setNotifications(data);
+
+          const currentUnread = data.filter((n) => !n.record_data.is_read);
+          if (
+            currentUnread.length > previousUnreadCount &&
+            previousUnreadCount !== 0
+          ) {
+            const newest = currentUnread[0];
+            sendNotification(newest.record_data.title, {
+              body: newest.record_data.message,
+            });
+          }
+          previousUnreadCount = currentUnread.length;
+        }
+      } catch (error) {
+        console.error("Failed to load notifications:", error);
+      } finally {
+        if (showLoader) setIsLoading(false);
+      }
+    };
+
+    loadNotifications(true);
+
+    const intervalId = setInterval(() => {
+      loadNotifications(false);
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [user, tenant, sendNotification]);
+
+  const unreadCount = notifications.filter(
+    (n) => !n.record_data.is_read,
+  ).length;
+
+  const handleMarkAsRead = async (id: string) => {
+    if (!tenant) return;
+    try {
       await fetchAPI(`/api/notifications/${id}/read`, {
-        method: "PATCH",
+        method: "PUT",
+        body: JSON.stringify({ tenant_id: tenant.id }),
       });
-    } catch (err) {
-      console.error("Failed to mark as read:", err);
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === id
+            ? { ...n, record_data: { ...n.record_data, is_read: true } }
+            : n,
+        ),
+      );
+    } catch (error) {
+      console.error("Mark as read failed:", error);
     }
   };
 
-  const markAllAsRead = async () => {
+  const handleClearAll = async () => {
+    if (!tenant) return;
     try {
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      setUnreadCount(0);
-
-      await fetchAPI(`/api/notifications/read-all`, {
-        method: "PATCH",
-      });
-    } catch (err) {
-      console.error("Failed to mark all as read:", err);
+      setNotifications([]);
+    } catch (error) {
+      console.error("Clear all failed:", error);
     }
   };
 
-  const formatTimeAgo = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return "Just now";
-    const diffInMinutes = Math.floor(diffInSeconds / 60);
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}d ago`;
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={popoverRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`relative p-2 md:p-2.5 rounded-xl transition-all duration-200 ${
-          isOpen || unreadCount > 0
-            ? "text-zinc-900 bg-zinc-100"
-            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-        }`}
+        className="relative p-2 text-zinc-500 hover:text-zinc-900 transition-colors rounded-full hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-900"
       >
-        <Bell size={18} strokeWidth={2.5} className="shrink-0" />
+        <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
         )}
       </button>
 
       {isOpen && (
-        <div className="fixed sm:absolute top-[70px] sm:top-full left-4 sm:left-auto right-4 sm:-right-2 w-auto sm:w-[380px] bg-white border border-zinc-200/80 shadow-2xl rounded-2xl sm:mt-3 z-[100] flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-4 sm:slide-in-from-top-2 duration-200 max-h-[85vh] sm:max-h-[80vh]">
-          <div className="flex items-center justify-between px-4 py-3 md:p-4 border-b border-zinc-100 bg-zinc-50/50 shrink-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-extrabold text-zinc-950 text-sm">
-                Notifications
-              </h3>
+        <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white border border-zinc-200 shadow-2xl rounded-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className="px-4 py-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+            <h3 className="font-extrabold text-zinc-900 text-sm flex items-center gap-2">
+              Notifications
               {unreadCount > 0 && (
-                <span className="bg-zinc-950 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[10px] font-black">
                   {unreadCount} new
                 </span>
               )}
-            </div>
-            {unreadCount > 0 && (
+            </h3>
+            {notifications.length > 0 && (
               <button
-                onClick={markAllAsRead}
-                className="text-[10px] font-bold text-zinc-500 hover:text-zinc-950 transition-colors uppercase tracking-widest"
+                onClick={handleClearAll}
+                className="text-[10px] font-bold text-zinc-500 hover:text-red-600 flex items-center gap-1 transition-colors"
               >
-                Mark all read
+                <Trash2 className="w-3 h-3" /> Clear All
               </button>
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar max-h-[60vh] sm:max-h-[400px]">
-            {notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 text-center">
+          {permission === "default" && (
+            <div className="px-4 py-3 bg-indigo-50 border-b border-indigo-100 flex items-start gap-3">
+              <MonitorSmartphone className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[11px] font-bold text-indigo-900">
+                  Enable Desktop Notifications
+                </p>
+                <p className="text-[10px] font-medium text-indigo-700/80 mt-0.5 leading-relaxed">
+                  Get notified of new tasks and updates even when the app is in
+                  the background.
+                </p>
+                <button
+                  onClick={requestPermission}
+                  className="mt-2 text-[10px] font-bold bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                >
+                  Enable Now
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-[60vh] overflow-y-auto custom-scrollbar bg-white">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-10 text-zinc-400">
+                <Loader2 className="w-5 h-5 animate-spin mb-2" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                  Loading...
+                </span>
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
                 <div className="w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center mb-3">
-                  <Bell size={20} className="text-zinc-300" />
+                  <Bell className="w-5 h-5 text-zinc-300" />
                 </div>
                 <p className="text-sm font-bold text-zinc-900">
                   All caught up!
                 </p>
-                <p className="text-xs text-zinc-500 font-medium mt-1">
-                  You don&apos;t have any new notifications.
+                <p className="text-[11px] text-zinc-500 mt-1">
+                  You have no new notifications.
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-zinc-100">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    onClick={() => {
-                      if (!notification.isRead) markAsRead(notification.id);
-                    }}
-                    className={`p-4 flex gap-3 md:gap-4 transition-colors hover:bg-zinc-50 cursor-pointer ${
-                      !notification.isRead ? "bg-blue-50/30" : ""
+              <ul className="divide-y divide-zinc-50">
+                {notifications.map((notif) => (
+                  <li
+                    key={notif.id}
+                    className={`p-4 flex gap-3 transition-colors ${
+                      notif.record_data.is_read
+                        ? "bg-white opacity-60"
+                        : "bg-zinc-50/50 hover:bg-zinc-50"
                     }`}
                   >
                     <div className="shrink-0 mt-1">
-                      {notification.type === "mention" ? (
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
-                          @
-                        </div>
-                      ) : notification.type === "invite" ? (
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xs">
-                          +
-                        </div>
-                      ) : notification.type === "update" ? (
-                        <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xs">
-                          !
-                        </div>
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center font-bold text-xs">
-                          <Bell size={14} />
-                        </div>
-                      )}
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          notif.record_data.is_read
+                            ? "bg-zinc-200"
+                            : "bg-indigo-500 ring-4 ring-indigo-50"
+                        }`}
+                      ></div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p
-                          className={`text-xs md:text-sm truncate ${
-                            !notification.isRead
-                              ? "font-extrabold text-zinc-950"
-                              : "font-bold text-zinc-700"
-                          }`}
-                        >
-                          {notification.title}
-                        </p>
-                        <span className="text-[9px] font-semibold text-zinc-400 whitespace-nowrap shrink-0">
-                          {formatTimeAgo(notification.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-[11px] md:text-xs text-zinc-500 font-medium mt-0.5 line-clamp-2 leading-relaxed">
-                        {notification.message}
+                      <p
+                        className={`text-xs font-bold truncate ${notif.record_data.is_read ? "text-zinc-600" : "text-zinc-900"}`}
+                      >
+                        {notif.record_data.title}
                       </p>
-                      {notification.actionUrl && (
-                        <Link
-                          href={notification.actionUrl}
-                          className="inline-block mt-2 text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-widest"
-                        >
-                          View Details &rarr;
-                        </Link>
-                      )}
+                      <p className="text-[11px] font-medium text-zinc-500 mt-0.5 line-clamp-2 leading-relaxed">
+                        {notif.record_data.message}
+                      </p>
+                      <p className="text-[9px] font-bold text-zinc-400 mt-2 uppercase tracking-wider">
+                        {formatDate(notif.created_at)}
+                      </p>
                     </div>
-                    {!notification.isRead && (
-                      <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2"></div>
+                    {!notif.record_data.is_read && (
+                      <button
+                        onClick={() => handleMarkAsRead(notif.id)}
+                        className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 transition-colors"
+                        title="Mark as read"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
                     )}
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
-          </div>
-
-          <div className="p-3 bg-zinc-50 border-t border-zinc-100 shrink-0 flex justify-center">
-            <button className="text-[10px] md:text-xs font-bold text-zinc-500 hover:text-zinc-900 transition-colors uppercase tracking-widest">
-              View All History
-            </button>
           </div>
         </div>
       )}

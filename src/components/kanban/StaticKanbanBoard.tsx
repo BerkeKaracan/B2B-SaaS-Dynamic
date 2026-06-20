@@ -139,7 +139,7 @@ export default function StaticKanbanBoard({
         } finally {
           setIsCommitsLoading(false);
         }
-      }; 
+      };
       fetchCommits();
     }
   }, [linkedRepo]);

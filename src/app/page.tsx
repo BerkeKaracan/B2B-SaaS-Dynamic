@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import LandingChatbot from "@/components/chat/LandingChatbot";
 import DraggableFeatureBox from "@/components/ui/DraggableFeatureBox";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const parseMarkdown = (text: string) => {
   if (!text) return null;
@@ -43,6 +45,18 @@ const parseMarkdown = (text: string) => {
 
 export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const router = useRouter();
+  const { user } = useAuthStore();
+
+  const handleDeployClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+
+    if (user) {
+      router.push("/onboarding");
+    } else {
+      router.push("/login");
+    }
+  };
   return (
     <div className="relative min-h-screen bg-[#fafafb] text-zinc-900 font-sans antialiased selection:bg-zinc-200 flex flex-col overflow-hidden">
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center transform-gpu will-change-transform">

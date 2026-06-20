@@ -11,6 +11,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "B2B SaaS Engine",
   description: "Dynamic Notion-like SaaS",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
