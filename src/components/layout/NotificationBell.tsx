@@ -1,11 +1,19 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Bell, Check, Trash2, Loader2, MonitorSmartphone } from "lucide-react";
+import {
+  Bell,
+  Check,
+  Trash2,
+  Loader2,
+  MonitorSmartphone,
+  ExternalLink,
+} from "lucide-react";
 import { fetchAPI } from "@/services/api";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useTenantStore } from "@/store/useTenantStore";
 import { useOSNotification } from "@/hooks/useOSNotification";
+import Link from "next/link";
 
 interface NotificationItem {
   id: string;
@@ -13,6 +21,7 @@ interface NotificationItem {
   message: string;
   is_read: boolean;
   type?: string;
+  action_url?: string | null;
   created_at: string;
 }
 
@@ -220,6 +229,23 @@ export default function NotificationBell() {
                       <p className="text-[11px] font-medium text-zinc-500 mt-0.5 line-clamp-2 leading-relaxed">
                         {notif.message}
                       </p>
+
+                      {notif.action_url && (
+                        <div className="mt-2.5">
+                          <Link
+                            href={notif.action_url}
+                            onClick={() => {
+                              if (!notif.is_read) handleMarkAsRead(notif.id);
+                              setIsOpen(false);
+                            }}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-md transition-colors"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            View Action
+                          </Link>
+                        </div>
+                      )}
+
                       <p className="text-[9px] font-bold text-zinc-400 mt-2 uppercase tracking-wider">
                         {formatDate(notif.created_at)}
                       </p>
