@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
 import { fetchAPI } from "@/services/api";
@@ -8,7 +8,14 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Calendar } from "@/components/ui/calendar";
 import toast from "react-hot-toast";
-import { Loader2, Link2, Unlink, X } from "lucide-react";
+import {
+  Loader2,
+  Link2,
+  Unlink,
+  X,
+  Activity,
+  GitCommitHorizontal,
+} from "lucide-react";
 import {
   DragDropContext,
   Droppable,
@@ -49,6 +56,14 @@ export interface Task {
   status: TaskStatus;
 }
 
+export interface ActivityLog {
+  id: string;
+  user: string;
+  action: string;
+  target: string;
+  date: string;
+}
+
 interface GithubCommit {
   sha: string;
   message: string;
@@ -83,16 +98,18 @@ export default function StaticKanbanBoard({
   const tasks = (metadata.tasks as Task[]) || [];
   const collaborators =
     (metadata.collaborators as { email: string; role: string }[]) || [];
-
   const linkedRepo = (metadata.githubRepo as string) || "";
+
+  const activityLogs = (metadata.activityLogs as ActivityLog[]) || [];
 
   const { user } = useAuthStore();
   const currentUserName =
     user?.full_name || user?.email?.split("@")[0] || "System User";
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isClient, setIsClient] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<"activity" | "github">("activity");
 
+  const [isClient, setIsClient] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
@@ -119,6 +136,18 @@ export default function StaticKanbanBoard({
     setIsClient(true);
   }, []);
 
+  const logActivity = (action: string, target: string) => {
+    const newLog: ActivityLog = {
+      id: "log-" + Date.now(),
+      user: currentUserName,
+      action,
+      target,
+      date: new Date().toISOString(),
+    };
+    const updatedLogs = [newLog, ...activityLogs].slice(0, 50);
+    updateMetadata({ activityLogs: updatedLogs });
+  };
+
   useEffect(() => {
     if (linkedRepo) {
       const [owner, repo] = linkedRepo.split("/");
@@ -133,9 +162,12 @@ export default function StaticKanbanBoard({
           if (res.ok) {
             const data: GithubCommit[] = await res.json();
             setCommits(data);
+          } else {
+            setCommits([]);
           }
         } catch (error) {
           console.error("Failed to fetch GitHub commits:", error);
+          setCommits([]);
         } finally {
           setIsCommitsLoading(false);
         }
@@ -150,6 +182,7 @@ export default function StaticKanbanBoard({
       return;
     }
     updateMetadata({ githubRepo: repoInput });
+    logActivity("connected GitHub repository", repoInput);
     toast.success("GitHub repository successfully linked!");
     setRepoInput("");
   };
@@ -157,6 +190,7 @@ export default function StaticKanbanBoard({
   const handleUnlinkRepo = () => {
     if (window.confirm("Are you sure you want to unlink this repository?")) {
       updateMetadata({ githubRepo: "" });
+      logActivity("unlinked GitHub repository", linkedRepo);
       setCommits([]);
     }
   };
@@ -280,6 +314,7 @@ export default function StaticKanbanBoard({
             }
           : task,
       );
+      logActivity("updated task", newTaskTitle);
       toast.success("Task updated successfully!");
     } else {
       const taskToSave: Task = {
@@ -296,6 +331,7 @@ export default function StaticKanbanBoard({
         status: newTaskStatus,
       };
       updatedTasks.push(taskToSave);
+      logActivity("created new task", newTaskTitle);
       toast.success("New task created!");
     }
 
@@ -336,17 +372,22 @@ export default function StaticKanbanBoard({
       }
     }
 
+    if (source.droppableId !== destination.droppableId) {
+      logActivity(`moved to ${destination.droppableId}`, draggedTask.title);
+    }
+
     updateTasks(finalTasks);
   };
 
-  const formatCommitDate = (dateString: string) => {
+  const formatActivityDate = (dateString: string) => {
     const d = new Date(dateString);
-    return d.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const now = new Date();
+    const diffInMinutes = Math.floor((now.getTime() - d.getTime()) / 60000);
+
+    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   if (!isClient) return null;
@@ -381,12 +422,11 @@ export default function StaticKanbanBoard({
           <div className="hidden sm:block w-px h-6 bg-zinc-200 mx-1"></div>
           <button
             onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-            className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors font-bold text-sm border ${isDrawerOpen ? "bg-zinc-900 text-white border-zinc-900" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border-zinc-200"}`}
-            title="Toggle Github History"
+            className={`flex items-center gap-2 px-3 h-8 rounded-md transition-colors font-bold text-xs border ${isDrawerOpen ? "bg-zinc-900 text-white border-zinc-900" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border-zinc-200"}`}
+            title="Toggle Activity & Github"
           >
-            <CustomGithubIcon
-              className={`w-4 h-4 ${isDrawerOpen ? "text-white" : "text-zinc-700"}`}
-            />
+            <Activity className="w-3.5 h-3.5" />
+            History
           </button>
         </div>
       </div>
@@ -547,136 +587,181 @@ export default function StaticKanbanBoard({
           </DragDropContext>
         </div>
 
+        {/* 5. YENİ SEKMELİ (TABS) SAĞ ÇEKMECE */}
         {isDrawerOpen && (
           <div className="w-[85vw] sm:w-80 shrink-0 bg-white border-l border-zinc-200 shadow-2xl flex flex-col h-full absolute md:relative right-0 z-40 animate-in slide-in-from-right duration-300">
-            <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50 shrink-0">
-              <div className="flex items-center gap-2">
-                <CustomGithubIcon className="w-4 h-4 text-zinc-800" />
-                <h3 className="font-extrabold text-zinc-900 text-sm">
-                  Project Git History
-                </h3>
+            <div className="p-2 border-b border-zinc-100 bg-zinc-50/50 shrink-0 flex items-center justify-between">
+              <div className="flex items-center gap-1 bg-zinc-200/50 p-1 rounded-lg">
+                <button
+                  onClick={() => setDrawerTab("activity")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+                    drawerTab === "activity"
+                      ? "bg-white text-zinc-900 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-700"
+                  }`}
+                >
+                  <Activity className="w-3.5 h-3.5" /> Activity
+                </button>
+                <button
+                  onClick={() => setDrawerTab("github")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+                    drawerTab === "github"
+                      ? "bg-white text-zinc-900 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-700"
+                  }`}
+                >
+                  <GitCommitHorizontal className="w-3.5 h-3.5" /> Commits
+                </button>
               </div>
+
               <button
                 onClick={() => setIsDrawerOpen(false)}
-                className="flex items-center justify-center w-7 h-7 bg-zinc-200 text-zinc-700 rounded-md hover:bg-zinc-300 transition-colors"
+                className="flex items-center justify-center w-7 h-7 mr-1 bg-white border border-zinc-200 text-zinc-400 rounded-md hover:text-zinc-900 transition-colors shadow-sm"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-5 flex-1 overflow-y-auto bg-zinc-50 custom-scrollbar relative">
-              {!linkedRepo ? (
-                <div className="flex flex-col items-center text-center mt-10 bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm animate-in fade-in zoom-in-95">
-                  <div className="w-12 h-12 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center mb-4">
-                    <Link2 className="w-6 h-6 text-indigo-600" />
-                  </div>
-                  <h4 className="text-sm font-extrabold text-zinc-900">
-                    Link GitHub Repository
-                  </h4>
-                  <p className="text-xs font-medium text-zinc-500 mt-2 mb-6 leading-relaxed">
-                    Connect this project to a repository to track live commits
-                    and link them to tasks.
-                  </p>
-                  <div className="w-full space-y-3">
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <CustomGithubIcon className="h-4 w-4 text-zinc-400" />
-                      </div>
-                      <input
-                        type="text"
-                        value={repoInput}
-                        onChange={(e) => setRepoInput(e.target.value)}
-                        placeholder="owner/repo"
-                        className="w-full text-xs font-medium pl-9 pr-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
-                      />
+            <div className="p-5 flex-1 overflow-y-auto bg-white custom-scrollbar relative">
+              {/* ACTIVITY TAB CONTENT */}
+              {drawerTab === "activity" && (
+                <div className="space-y-5 relative">
+                  {activityLogs.length === 0 ? (
+                    <div className="text-center text-xs font-medium text-zinc-500 mt-10 bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                      No activity recorded yet. Start moving tasks!
                     </div>
-                    <button
-                      onClick={handleConnectRepo}
-                      disabled={!repoInput}
-                      className="w-full py-2.5 bg-zinc-900 text-white text-xs font-bold rounded-xl hover:bg-zinc-800 disabled:opacity-50 transition-colors"
-                    >
-                      Connect Repository
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="mb-6 flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-zinc-200 shadow-sm">
-                    <div className="flex flex-col truncate">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                        Connected To
-                      </span>
-                      <span className="text-xs font-bold text-zinc-900 truncate">
-                        {linkedRepo}
-                      </span>
-                    </div>
-                    <button
-                      onClick={handleUnlinkRepo}
-                      className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Unlink Repository"
-                    >
-                      <Unlink className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="absolute left-8 top-28 bottom-6 w-0.5 bg-zinc-200 z-0"></div>
-                  <div className="space-y-6 relative z-10">
-                    {isCommitsLoading ? (
-                      <div className="flex flex-col items-center justify-center h-40 text-zinc-400">
-                        <Loader2 className="w-6 h-6 animate-spin mb-3 text-zinc-500" />
-                        <span className="text-xs font-bold tracking-widest uppercase">
-                          Fetching Commits...
-                        </span>
-                      </div>
-                    ) : commits.length === 0 ? (
-                      <div className="text-center text-xs font-medium text-zinc-500 bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
-                        No commits found or unable to access repository.
-                      </div>
-                    ) : (
-                      commits.map((commit) => (
-                        <div key={commit.sha} className="flex gap-4 group">
-                          <div className="w-6 h-6 rounded-full bg-zinc-100 border-2 border-white flex items-center justify-center text-zinc-600 shrink-0 shadow-sm mt-0.5 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                            <svg
-                              width="10"
-                              height="10"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="3"
-                            >
-                              <circle cx="12" cy="12" r="3"></circle>
-                              <line x1="12" y1="5" x2="12" y2="9"></line>
-                              <line x1="12" y1="15" x2="12" y2="19"></line>
-                            </svg>
+                  ) : (
+                    <>
+                      <div className="absolute left-4 top-2 bottom-2 w-px bg-zinc-100"></div>
+                      {activityLogs.map((log) => (
+                        <div key={log.id} className="relative flex gap-3 group">
+                          <div className="w-8 h-8 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center text-[10px] font-black text-zinc-600 shrink-0 z-10">
+                            {log.user.charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <p className="text-xs font-bold text-zinc-900 break-words line-clamp-2">
-                              {commit.message}
+                          <div className="pt-1.5">
+                            <p className="text-[11px] text-zinc-600 leading-relaxed">
+                              <span className="font-bold text-zinc-900">
+                                {log.user}
+                              </span>{" "}
+                              {log.action}{" "}
+                              <span className="font-semibold text-zinc-800">
+                                {log.target}
+                              </span>
                             </p>
-                            <p className="text-[10px] font-medium text-zinc-500 mt-0.5">
-                              by{" "}
-                              <b className="text-zinc-700">{commit.author}</b> •{" "}
-                              {formatCommitDate(commit.date)}
+                            <p className="text-[9px] font-bold text-zinc-400 mt-1 uppercase tracking-wider">
+                              {formatActivityDate(log.date)}
                             </p>
-                            <a
-                              href={commit.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-block mt-1.5 px-1.5 py-0.5 bg-white hover:bg-zinc-100 text-zinc-600 rounded text-[9px] font-mono font-bold border border-zinc-200 transition-colors shadow-sm"
-                            >
-                              {commit.sha}
-                            </a>
                           </div>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* GITHUB TAB CONTENT */}
+              {drawerTab === "github" && (
+                <div className="space-y-4">
+                  {!linkedRepo ? (
+                    <div className="flex flex-col items-center text-center mt-6 bg-zinc-50 p-5 rounded-2xl border border-zinc-200">
+                      <div className="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center mb-3">
+                        <Link2 className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <h4 className="text-xs font-extrabold text-zinc-900">
+                        Link Repository
+                      </h4>
+                      <p className="text-[11px] font-medium text-zinc-500 mt-1.5 mb-4 leading-relaxed">
+                        Connect this project to a repository to track live
+                        commits.
+                      </p>
+                      <div className="w-full space-y-2">
+                        <input
+                          type="text"
+                          value={repoInput}
+                          onChange={(e) => setRepoInput(e.target.value)}
+                          placeholder="owner/repo"
+                          className="w-full text-xs font-medium px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <button
+                          onClick={handleConnectRepo}
+                          disabled={!repoInput}
+                          className="w-full py-2 bg-zinc-900 text-white text-xs font-bold rounded-lg hover:bg-zinc-800 disabled:opacity-50"
+                        >
+                          Connect
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-4 flex items-center justify-between bg-zinc-50 px-3 py-2.5 rounded-xl border border-zinc-200">
+                        <div className="flex flex-col truncate">
+                          <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">
+                            Connected To
+                          </span>
+                          <span className="text-[11px] font-bold text-zinc-900 truncate">
+                            {linkedRepo}
+                          </span>
+                        </div>
+                        <button
+                          onClick={handleUnlinkRepo}
+                          className="p-1.5 text-zinc-400 hover:text-red-500 bg-white border border-zinc-200 rounded-lg shadow-sm"
+                        >
+                          <Unlink className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-5 relative">
+                        <div className="absolute left-[11px] top-4 bottom-4 w-px bg-zinc-100"></div>
+                        {isCommitsLoading ? (
+                          <div className="flex flex-col items-center justify-center py-10 text-zinc-400">
+                            <Loader2 className="w-5 h-5 animate-spin mb-2" />
+                            <span className="text-[10px] font-bold uppercase tracking-widest">
+                              Fetching...
+                            </span>
+                          </div>
+                        ) : commits.length === 0 ? (
+                          <div className="text-center text-xs font-medium text-zinc-500 bg-zinc-50 p-4 rounded-xl border border-zinc-100">
+                            No commits found.
+                          </div>
+                        ) : (
+                          commits.map((commit) => (
+                            <div
+                              key={commit.sha}
+                              className="flex gap-3 group relative z-10"
+                            >
+                              <div className="w-6 h-6 rounded-full bg-white border-2 border-zinc-200 flex items-center justify-center text-zinc-400 shrink-0 mt-0.5">
+                                <GitCommitHorizontal className="w-3 h-3" />
+                              </div>
+                              <div>
+                                <p className="text-[11px] font-bold text-zinc-900 break-words line-clamp-2">
+                                  {commit.message}
+                                </p>
+                                <p className="text-[9px] font-medium text-zinc-500 mt-1">
+                                  by{" "}
+                                  <b className="text-zinc-700">
+                                    {commit.author}
+                                  </b>{" "}
+                                  •{" "}
+                                  {new Date(commit.date).toLocaleDateString(
+                                    "en-US",
+                                    { month: "short", day: "numeric" },
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           </div>
         )}
       </div>
 
+      {/* ADD/EDIT TASK MODAL */}
       {isAddModalOpen && isClient && typeof document !== "undefined"
         ? createPortal(
             <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-zinc-950/60 backdrop-blur-sm sm:p-4">
@@ -788,8 +873,8 @@ export default function StaticKanbanBoard({
                       )}
                     </div>
 
-                    <div className="col-span-1 md:col-span-2 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
-                      <label className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                    <div className="col-span-1 md:col-span-2 bg-zinc-50 p-3 rounded-xl border border-zinc-200">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                         Linked Commit (Optional)
                       </label>
 
@@ -797,7 +882,7 @@ export default function StaticKanbanBoard({
                         <select
                           value={newTaskCommit}
                           onChange={(e) => setNewTaskCommit(e.target.value)}
-                          className="w-full mt-1 px-3 py-3 sm:py-2 border border-blue-200 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-300 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
                         >
                           <option value="" className="font-sans">
                             -- Select a recent commit --
@@ -816,15 +901,10 @@ export default function StaticKanbanBoard({
                           type="text"
                           value={newTaskCommit}
                           onChange={(e) => setNewTaskCommit(e.target.value)}
-                          className="w-full mt-1 px-3 py-3 sm:py-2 border border-blue-200 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                          className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-300 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
                           placeholder="e.g. 1A9F43B"
                         />
                       )}
-                      <p className="text-[10px] text-blue-400 mt-1 font-medium">
-                        {linkedRepo
-                          ? "Link this task directly to a commit from your repository."
-                          : "Enter a commit hash manually or link a repository to select from a list."}
-                      </p>
                     </div>
                   </div>
 
