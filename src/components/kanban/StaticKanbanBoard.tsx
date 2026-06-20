@@ -18,6 +18,8 @@ import {
   Filter,
   ArrowUpDown,
   Search,
+  BookmarkPlus,
+  LayoutDashboard,
 } from "lucide-react";
 import {
   DragDropContext,
@@ -67,6 +69,15 @@ export interface ActivityLog {
   date: string;
 }
 
+// YENİ: Kaydedilmiş Görünüm Modeli
+export interface SavedView {
+  id: string;
+  name: string;
+  filterQuery: string;
+  filterPriority: TaskPriority | "ALL";
+  sortBy: "manual" | "priority" | "deadline";
+}
+
 interface GithubCommit {
   sha: string;
   message: string;
@@ -112,6 +123,8 @@ export default function StaticKanbanBoard({
   const linkedRepo = (metadata.githubRepo as string) || "";
   const activityLogs = (metadata.activityLogs as ActivityLog[]) || [];
 
+  const savedViews = (metadata.savedViews as SavedView[]) || [];
+
   const { user } = useAuthStore();
   const currentUserName =
     user?.full_name || user?.email?.split("@")[0] || "System User";
@@ -148,6 +161,9 @@ export default function StaticKanbanBoard({
   const [sortBy, setSortBy] = useState<"manual" | "priority" | "deadline">(
     "manual",
   );
+
+  const [activeViewId, setActiveViewId] = useState<string | null>(null);
+
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -188,21 +204,15 @@ export default function StaticKanbanBoard({
     if (linkedRepo) {
       const [owner, repo] = linkedRepo.split("/");
       if (!owner || !repo) return;
-
       const fetchCommits = async () => {
         setIsCommitsLoading(true);
         try {
           const res = await fetchAPI(
             `/api/github/commits?owner=${owner}&repo=${repo}&limit=15`,
           );
-          if (res.ok) {
-            const data: GithubCommit[] = await res.json();
-            setCommits(data);
-          } else {
-            setCommits([]);
-          }
+          if (res.ok) setCommits(await res.json());
+          else setCommits([]);
         } catch (error) {
-          console.error("Failed to fetch GitHub commits:", error);
           setCommits([]);
         } finally {
           setIsCommitsLoading(false);
@@ -213,13 +223,11 @@ export default function StaticKanbanBoard({
   }, [linkedRepo]);
 
   const handleConnectRepo = () => {
-    if (!repoInput.includes("/")) {
-      toast.error("Format must be: owner/repo (e.g., vercel/next.js)");
-      return;
-    }
+    if (!repoInput.includes("/"))
+      return toast.error("Format must be: owner/repo");
     updateMetadata({ githubRepo: repoInput });
     logActivity("connected GitHub repository", repoInput);
-    toast.success("GitHub repository successfully linked!");
+    toast.success("GitHub repository linked!");
     setRepoInput("");
   };
 
@@ -241,10 +249,7 @@ export default function StaticKanbanBoard({
     if (!tenantId || !projectId) return;
     const formattedTasks = currentTasks.map((t) => ({
       project_id: projectId,
-      project_name:
-        (metadata.name as string) ||
-        (metadata.title as string) ||
-        "Project Board",
+      project_name: (metadata.name as string) || "Project Board",
       title: t.title,
       status: mapStatusToBackend(t.status),
       priority: t.priority,
@@ -291,21 +296,18 @@ export default function StaticKanbanBoard({
     setNewTaskAssignee(task.assignee);
     setNewTaskCommit(task.commitCode || "");
     setNewTaskPriority(task.priority);
-
     if (task.startDate) {
       const [day, month] = task.startDate.split("/");
       setStartDateObj(
         new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day)),
       );
     } else setStartDateObj(undefined);
-
     if (task.deadline) {
       const [day, month] = task.deadline.split("/");
       setDeadlineObj(
         new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day)),
       );
     } else setDeadlineObj(undefined);
-
     setIsAddModalOpen(true);
   };
 
@@ -346,9 +348,9 @@ export default function StaticKanbanBoard({
           : task,
       );
       logActivity("updated task", newTaskTitle);
-      toast.success("Task updated successfully!");
+      toast.success("Task updated!");
     } else {
-      const taskToSave: Task = {
+      updatedTasks.push({
         id: "t-" + Date.now(),
         title: newTaskTitle,
         description: newTaskDescription,
@@ -360,8 +362,7 @@ export default function StaticKanbanBoard({
         deadline: formattedDeadline,
         priority: newTaskPriority,
         status: newTaskStatus,
-      };
-      updatedTasks.push(taskToSave);
+      });
       logActivity("created new task", newTaskTitle);
       toast.success("New task created!");
     }
@@ -381,6 +382,7 @@ export default function StaticKanbanBoard({
 
     if (sortBy !== "manual") {
       setSortBy("manual");
+      setActiveViewId(null);
       toast("Sort method automatically reset to Manual for Drag & Drop", {
         icon: "ℹ️",
       });
@@ -412,6 +414,62 @@ export default function StaticKanbanBoard({
     updateTasks(finalTasks);
   };
 
+  const parseDateStr = (dateStr?: string) => {
+    if (!dateStr) return Infinity;
+    const parts = dateStr.split("/");
+    if (parts.length === 3)
+      return new Date(+parts[2], +parts[1] - 1, +parts[0]).getTime();
+    return Infinity;
+  };
+
+  const handleSaveView = () => {
+    const viewName = prompt(
+      "Enter a name for this view (e.g. My Urgent Tasks):",
+    );
+    if (!viewName?.trim()) return;
+
+    const newView: SavedView = {
+      id: "view-" + Date.now(),
+      name: viewName,
+      filterQuery,
+      filterPriority,
+      sortBy,
+    };
+
+    const updatedViews = [...savedViews, newView];
+    updateMetadata({ savedViews: updatedViews });
+    setActiveViewId(newView.id);
+    setIsFilterOpen(false);
+    toast.success(`View "${viewName}" saved successfully!`);
+    logActivity("created custom view", viewName);
+  };
+
+  const applyView = (viewId: string | null) => {
+    setActiveViewId(viewId);
+    if (viewId === null) {
+      setFilterQuery("");
+      setFilterPriority("ALL");
+      setSortBy("manual");
+      return;
+    }
+    const view = savedViews.find((v) => v.id === viewId);
+    if (view) {
+      setFilterQuery(view.filterQuery);
+      setFilterPriority(view.filterPriority);
+      setSortBy(view.sortBy);
+    }
+  };
+
+  const handleDeleteView = (e: React.MouseEvent, viewId: string) => {
+    e.stopPropagation();
+    if (window.confirm("Are you sure you want to delete this custom view?")) {
+      const updatedViews = savedViews.filter((v) => v.id !== viewId);
+      updateMetadata({ savedViews: updatedViews });
+      if (activeViewId === viewId) applyView(null);
+      toast.success("View deleted.");
+    }
+  };
+
   const formatActivityDate = (dateString: string) => {
     const d = new Date(dateString);
     const now = new Date();
@@ -422,161 +480,187 @@ export default function StaticKanbanBoard({
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
-  const parseDateStr = (dateStr?: string) => {
-    if (!dateStr) return Infinity;
-    const parts = dateStr.split("/");
-    if (parts.length === 3)
-      return new Date(+parts[2], +parts[1] - 1, +parts[0]).getTime();
-    return Infinity;
-  };
-
   if (!isClient) return null;
 
   return (
     <div className="absolute inset-0 flex flex-col bg-zinc-50 overflow-hidden">
-      <div className="flex items-center justify-between p-4 md:px-6 py-4 bg-white border-b border-zinc-200 shrink-0 z-10 shadow-xs">
-        <div className="flex items-center gap-3 md:gap-4">
-          <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 tracking-tight">
-            Project Board
-          </h2>
-          {linkedRepo && (
-            <a
-              href={`https://github.com/${linkedRepo}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-zinc-100 border border-zinc-200 rounded-md text-[10px] font-bold text-zinc-600 hover:text-zinc-900 transition-colors"
-            >
-              <CustomGithubIcon className="w-3 h-3" />
-              {linkedRepo.split("/")[1]}
-            </a>
-          )}
-        </div>
+      <div className="flex flex-col bg-white border-b border-zinc-200 shrink-0 z-10 shadow-xs">
+        <div className="flex items-center justify-between p-4 md:px-6 py-4">
+          <div className="flex items-center gap-3 md:gap-4">
+            <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 tracking-tight">
+              Project Board
+            </h2>
+            {linkedRepo && (
+              <a
+                href={`https://github.com/${linkedRepo}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-zinc-100 border border-zinc-200 rounded-md text-[10px] font-bold text-zinc-600 hover:text-zinc-900 transition-colors"
+              >
+                <CustomGithubIcon className="w-3 h-3" />
+                {linkedRepo.split("/")[1]}
+              </a>
+            )}
+          </div>
 
-        <div className="flex items-center gap-2 md:gap-3">
-          {/* FİLTRELEME BUTONU VE AÇILIR MENÜSÜ */}
-          <div className="relative" ref={filterRef}>
-            <button
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isFilterOpen || filterQuery || filterPriority !== "ALL" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"}`}
-            >
-              <Filter className="w-3.5 h-3.5" />
-              Filter
-              {(filterQuery || filterPriority !== "ALL") && (
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
-              )}
-            </button>
-            {isFilterOpen && (
-              <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-zinc-200 shadow-xl rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
-                      Search Content
-                    </label>
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-zinc-400" />
-                      <input
-                        type="text"
-                        value={filterQuery}
-                        onChange={(e) => setFilterQuery(e.target.value)}
-                        placeholder="Title or Assignee..."
-                        className="w-full pl-8 pr-3 py-1.5 text-xs font-medium border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="relative" ref={filterRef}>
+              <button
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className={`hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isFilterOpen || filterQuery || filterPriority !== "ALL" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"}`}
+              >
+                <Filter className="w-3.5 h-3.5" /> Filter
+                {(filterQuery || filterPriority !== "ALL") && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
+                )}
+              </button>
+              {isFilterOpen && (
+                <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-zinc-200 shadow-xl rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
+                        Search Content
+                      </label>
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-zinc-400" />
+                        <input
+                          type="text"
+                          value={filterQuery}
+                          onChange={(e) => {
+                            setFilterQuery(e.target.value);
+                            setActiveViewId(null);
+                          }}
+                          placeholder="Title or Assignee..."
+                          className="w-full pl-8 pr-3 py-1.5 text-xs font-medium border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
+                        Priority Filter
+                      </label>
+                      <select
+                        value={filterPriority}
+                        onChange={(e) => {
+                          setFilterPriority(
+                            e.target.value as TaskPriority | "ALL",
+                          );
+                          setActiveViewId(null);
+                        }}
+                        className="w-full px-2 py-1.5 text-xs font-bold border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      >
+                        <option value="ALL">All Priorities</option>
+                        {Object.keys(PRIORITIES).map((p) => (
+                          <option key={p} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="pt-2 border-t border-zinc-100 flex flex-col gap-1.5">
+                      <button
+                        onClick={handleSaveView}
+                        className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                      >
+                        <BookmarkPlus className="w-3 h-3" /> Save as Custom View
+                      </button>
+                      {(filterQuery || filterPriority !== "ALL") && (
+                        <button
+                          onClick={() => applyView(null)}
+                          className="w-full py-1.5 text-[10px] font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                        >
+                          Clear Filters
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
-                      Priority Filter
-                    </label>
-                    <select
-                      value={filterPriority}
-                      onChange={(e) =>
-                        setFilterPriority(
-                          e.target.value as TaskPriority | "ALL",
-                        )
-                      }
-                      className="w-full px-2 py-1.5 text-xs font-bold border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                    >
-                      <option value="ALL">All Priorities</option>
-                      {Object.keys(PRIORITIES).map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {(filterQuery || filterPriority !== "ALL") && (
+                </div>
+              )}
+            </div>
+
+            <div className="relative" ref={sortRef}>
+              <button
+                onClick={() => setIsSortOpen(!isSortOpen)}
+                className={`hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isSortOpen || sortBy !== "manual" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"}`}
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" /> Sort
+                {sortBy !== "manual" && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
+                )}
+              </button>
+              {isSortOpen && (
+                <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-zinc-200 shadow-xl rounded-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex flex-col">
                     <button
                       onClick={() => {
-                        setFilterQuery("");
-                        setFilterPriority("ALL");
+                        setSortBy("manual");
+                        setActiveViewId(null);
+                        setIsSortOpen(false);
                       }}
-                      className="w-full py-1.5 text-[10px] font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors mt-1"
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "manual" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
                     >
-                      Clear Filters
+                      Manual (Drag & Drop)
                     </button>
-                  )}
+                    <button
+                      onClick={() => {
+                        setSortBy("priority");
+                        setActiveViewId(null);
+                        setIsSortOpen(false);
+                      }}
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "priority" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
+                    >
+                      Priority (High to Low)
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSortBy("deadline");
+                        setActiveViewId(null);
+                        setIsSortOpen(false);
+                      }}
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "deadline" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
+                    >
+                      Deadline (Soonest First)
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* SIRALAMA BUTONU VE AÇILIR MENÜSÜ */}
-          <div className="relative" ref={sortRef}>
-            <button
-              onClick={() => setIsSortOpen(!isSortOpen)}
-              className={`hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isSortOpen || sortBy !== "manual" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"}`}
-            >
-              <ArrowUpDown className="w-3.5 h-3.5" />
-              Sort
-              {sortBy !== "manual" && (
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
               )}
+            </div>
+
+            <div className="hidden sm:block w-px h-6 bg-zinc-200 mx-1"></div>
+            <button
+              onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+              className={`flex items-center gap-2 px-3 h-8 rounded-md transition-colors font-bold text-xs border ${isDrawerOpen ? "bg-zinc-900 text-white border-zinc-900" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border-zinc-200"}`}
+            >
+              <Activity className="w-3.5 h-3.5" /> History
             </button>
-            {isSortOpen && (
-              <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-zinc-200 shadow-xl rounded-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2">
-                <div className="flex flex-col">
-                  <button
-                    onClick={() => {
-                      setSortBy("manual");
-                      setIsSortOpen(false);
-                    }}
-                    className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "manual" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
-                  >
-                    Manual (Drag & Drop)
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortBy("priority");
-                      setIsSortOpen(false);
-                    }}
-                    className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "priority" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
-                  >
-                    Priority (High to Low)
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortBy("deadline");
-                      setIsSortOpen(false);
-                    }}
-                    className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "deadline" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
-                  >
-                    Deadline (Soonest First)
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
+        </div>
 
-          <div className="hidden sm:block w-px h-6 bg-zinc-200 mx-1"></div>
-
+        <div className="flex items-center gap-1 px-4 md:px-6 pb-2 overflow-x-auto custom-scrollbar hide-scrollbar-y">
           <button
-            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-            className={`flex items-center gap-2 px-3 h-8 rounded-md transition-colors font-bold text-xs border ${isDrawerOpen ? "bg-zinc-900 text-white border-zinc-900" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border-zinc-200"}`}
-            title="Toggle Activity & Github"
+            onClick={() => applyView(null)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === null ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
           >
-            <Activity className="w-3.5 h-3.5" />
-            History
+            <LayoutDashboard className="w-3.5 h-3.5" /> Default View
           </button>
+
+          {savedViews.map((view) => (
+            <div key={view.id} className="flex items-center group relative">
+              <button
+                onClick={() => applyView(view.id)}
+                className={`flex items-center pr-6 pl-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === view.id ? "bg-indigo-600 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+              >
+                {view.name}
+              </button>
+              <button
+                onClick={(e) => handleDeleteView(e, view.id)}
+                className={`absolute right-1.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? "hover:bg-indigo-700 text-white" : "hover:bg-red-500 hover:text-white text-zinc-400"}`}
+              >
+                <X className="w-2.5 h-2.5" />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -604,17 +688,15 @@ export default function StaticKanbanBoard({
                     return true;
                   })
                   .sort((a, b) => {
-                    if (sortBy === "priority") {
+                    if (sortBy === "priority")
                       return (
                         PRIORITY_WEIGHTS[b.priority] -
                         PRIORITY_WEIGHTS[a.priority]
                       );
-                    }
-                    if (sortBy === "deadline") {
+                    if (sortBy === "deadline")
                       return (
                         parseDateStr(a.deadline) - parseDateStr(b.deadline)
                       );
-                    }
                     return 0;
                   });
 
@@ -773,21 +855,13 @@ export default function StaticKanbanBoard({
               <div className="flex items-center gap-1 bg-zinc-200/50 p-1 rounded-lg">
                 <button
                   onClick={() => setDrawerTab("activity")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
-                    drawerTab === "activity"
-                      ? "bg-white text-zinc-900 shadow-sm"
-                      : "text-zinc-500 hover:text-zinc-700"
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${drawerTab === "activity" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}
                 >
                   <Activity className="w-3.5 h-3.5" /> Activity
                 </button>
                 <button
                   onClick={() => setDrawerTab("github")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
-                    drawerTab === "github"
-                      ? "bg-white text-zinc-900 shadow-sm"
-                      : "text-zinc-500 hover:text-zinc-700"
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${drawerTab === "github" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}
                 >
                   <GitCommitHorizontal className="w-3.5 h-3.5" /> Commits
                 </button>
@@ -885,7 +959,6 @@ export default function StaticKanbanBoard({
                           <Unlink className="w-3.5 h-3.5" />
                         </button>
                       </div>
-
                       <div className="space-y-5 relative">
                         <div className="absolute left-[11px] top-4 bottom-4 w-px bg-zinc-100"></div>
                         {isCommitsLoading ? (
@@ -1045,40 +1118,6 @@ export default function StaticKanbanBoard({
                               </div>
                             ))}
                         </div>
-                      )}
-                    </div>
-
-                    <div className="col-span-1 md:col-span-2 bg-zinc-50 p-3 rounded-xl border border-zinc-200">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                        Linked Commit (Optional)
-                      </label>
-
-                      {linkedRepo && commits.length > 0 ? (
-                        <select
-                          value={newTaskCommit}
-                          onChange={(e) => setNewTaskCommit(e.target.value)}
-                          className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-300 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
-                        >
-                          <option value="" className="font-sans">
-                            -- Select a recent commit --
-                          </option>
-                          {commits.map((c) => (
-                            <option key={c.sha} value={c.sha}>
-                              {c.sha} -{" "}
-                              {c.message.length > 50
-                                ? c.message.substring(0, 50) + "..."
-                                : c.message}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          value={newTaskCommit}
-                          onChange={(e) => setNewTaskCommit(e.target.value)}
-                          className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-300 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
-                          placeholder="e.g. 1A9F43B"
-                        />
                       )}
                     </div>
                   </div>

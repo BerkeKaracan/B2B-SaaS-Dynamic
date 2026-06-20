@@ -17,6 +17,9 @@ import {
   Filter,
   ArrowUpDown,
   Search,
+  BookmarkPlus,
+  LayoutDashboard,
+  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -51,6 +54,14 @@ export interface TimelineEvent {
   isDetailed: boolean;
 }
 
+export interface TimelineSavedView {
+  id: string;
+  name: string;
+  filterQuery: string;
+  filterPriority: TaskPriority | "ALL";
+  sortBy: "manual" | "priority";
+}
+
 const generateNext12Months = () => {
   const months = [];
   const date = new Date();
@@ -76,6 +87,8 @@ export default function TimelineBoard({
     (metadata.timelineEvents as TimelineEvent[]) || [],
   );
 
+  const savedViews = (metadata.timelineSavedViews as TimelineSavedView[]) || [];
+
   const [columns] = useState(generateNext12Months());
   const [isClient, setIsClient] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -93,9 +106,11 @@ export default function TimelineBoard({
     "ALL",
   );
   const [sortBy, setSortBy] = useState<"manual" | "priority">("manual");
+
+  const [activeViewId, setActiveViewId] = useState<string | null>(null);
+
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
-
   const filterRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
 
@@ -134,6 +149,7 @@ export default function TimelineBoard({
 
     if (sortBy !== "manual") {
       setSortBy("manual");
+      setActiveViewId(null);
       toast("Sort method automatically reset to Manual for Drag & Drop", {
         icon: "ℹ️",
       });
@@ -206,118 +222,197 @@ export default function TimelineBoard({
     setIsModalOpen(false);
   };
 
+  const handleSaveView = () => {
+    const viewName = prompt("Enter a name for this timeline view:");
+    if (!viewName?.trim()) return;
+
+    const newView: TimelineSavedView = {
+      id: "view-tl-" + Date.now(),
+      name: viewName,
+      filterQuery,
+      filterPriority,
+      sortBy,
+    };
+    const updatedViews = [...savedViews, newView];
+    updateMetadata({ timelineSavedViews: updatedViews });
+    setActiveViewId(newView.id);
+    setIsFilterOpen(false);
+    toast.success(`View "${viewName}" saved!`);
+  };
+
+  const applyView = (viewId: string | null) => {
+    setActiveViewId(viewId);
+    if (viewId === null) {
+      setFilterQuery("");
+      setFilterPriority("ALL");
+      setSortBy("manual");
+      return;
+    }
+    const view = savedViews.find((v) => v.id === viewId);
+    if (view) {
+      setFilterQuery(view.filterQuery);
+      setFilterPriority(view.filterPriority);
+      setSortBy(view.sortBy);
+    }
+  };
+
+  const handleDeleteView = (e: React.MouseEvent, viewId: string) => {
+    e.stopPropagation();
+    if (window.confirm("Delete this view?")) {
+      const updatedViews = savedViews.filter((v) => v.id !== viewId);
+      updateMetadata({ timelineSavedViews: updatedViews });
+      if (activeViewId === viewId) applyView(null);
+      toast.success("View deleted.");
+    }
+  };
+
   if (!isClient) return null;
 
   return (
     <div className="absolute inset-0 flex flex-col bg-zinc-50 overflow-hidden select-none">
-      <div className="flex items-center justify-between p-4 md:px-6 py-4 bg-white border-b border-zinc-200 shrink-0 z-10 shadow-xs">
-        <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 tracking-tight">
-          Timeline Planning
-        </h2>
-
-        <div className="flex items-center gap-2 md:gap-3">
-          <div className="relative" ref={filterRef}>
-            <button
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isFilterOpen || filterQuery || filterPriority !== "ALL" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"}`}
-            >
-              <Filter className="w-3.5 h-3.5" />
-              Filter
-              {(filterQuery || filterPriority !== "ALL") && (
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
-              )}
-            </button>
-            {isFilterOpen && (
-              <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-zinc-200 shadow-xl rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
-                      Search Content
-                    </label>
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-zinc-400" />
-                      <input
-                        type="text"
-                        value={filterQuery}
-                        onChange={(e) => setFilterQuery(e.target.value)}
-                        placeholder="Title or Assignee..."
-                        className="w-full pl-8 pr-3 py-1.5 text-xs font-medium border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
+      <div className="flex flex-col bg-white border-b border-zinc-200 shrink-0 z-10 shadow-xs">
+        <div className="flex items-center justify-between p-4 md:px-6 py-4">
+          <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 tracking-tight">
+            Timeline Planning
+          </h2>
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="relative" ref={filterRef}>
+              <button
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isFilterOpen || filterQuery || filterPriority !== "ALL" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"}`}
+              >
+                <Filter className="w-3.5 h-3.5" /> Filter
+                {(filterQuery || filterPriority !== "ALL") && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
+                )}
+              </button>
+              {isFilterOpen && (
+                <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-zinc-200 shadow-xl rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
+                        Search Content
+                      </label>
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-zinc-400" />
+                        <input
+                          type="text"
+                          value={filterQuery}
+                          onChange={(e) => {
+                            setFilterQuery(e.target.value);
+                            setActiveViewId(null);
+                          }}
+                          placeholder="Title or Assignee..."
+                          className="w-full pl-8 pr-3 py-1.5 text-xs font-medium border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
+                        Priority Filter
+                      </label>
+                      <select
+                        value={filterPriority}
+                        onChange={(e) => {
+                          setFilterPriority(
+                            e.target.value as TaskPriority | "ALL",
+                          );
+                          setActiveViewId(null);
+                        }}
+                        className="w-full px-2 py-1.5 text-xs font-bold border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      >
+                        <option value="ALL">All Priorities</option>
+                        {Object.keys(PRIORITIES).map((p) => (
+                          <option key={p} value={p}>
+                            {p}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="pt-2 border-t border-zinc-100 flex flex-col gap-1.5">
+                      <button
+                        onClick={handleSaveView}
+                        className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                      >
+                        <BookmarkPlus className="w-3 h-3" /> Save as Custom View
+                      </button>
+                      {(filterQuery || filterPriority !== "ALL") && (
+                        <button
+                          onClick={() => applyView(null)}
+                          className="w-full py-1.5 text-[10px] font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                        >
+                          Clear Filters
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
-                      Priority Filter
-                    </label>
-                    <select
-                      value={filterPriority}
-                      onChange={(e) =>
-                        setFilterPriority(
-                          e.target.value as TaskPriority | "ALL",
-                        )
-                      }
-                      className="w-full px-2 py-1.5 text-xs font-bold border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                    >
-                      <option value="ALL">All Priorities</option>
-                      {Object.keys(PRIORITIES).map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {(filterQuery || filterPriority !== "ALL") && (
+                </div>
+              )}
+            </div>
+
+            <div className="relative" ref={sortRef}>
+              <button
+                onClick={() => setIsSortOpen(!isSortOpen)}
+                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isSortOpen || sortBy !== "manual" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"}`}
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" /> Sort
+                {sortBy !== "manual" && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
+                )}
+              </button>
+              {isSortOpen && (
+                <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-zinc-200 shadow-xl rounded-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex flex-col">
                     <button
                       onClick={() => {
-                        setFilterQuery("");
-                        setFilterPriority("ALL");
+                        setSortBy("manual");
+                        setActiveViewId(null);
+                        setIsSortOpen(false);
                       }}
-                      className="w-full py-1.5 text-[10px] font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors mt-1"
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "manual" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
                     >
-                      Clear Filters
+                      Manual (Drag & Drop)
                     </button>
-                  )}
+                    <button
+                      onClick={() => {
+                        setSortBy("priority");
+                        setActiveViewId(null);
+                        setIsSortOpen(false);
+                      }}
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "priority" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
+                    >
+                      Priority (High to Low)
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          <div className="relative" ref={sortRef}>
-            <button
-              onClick={() => setIsSortOpen(!isSortOpen)}
-              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isSortOpen || sortBy !== "manual" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"}`}
-            >
-              <ArrowUpDown className="w-3.5 h-3.5" />
-              Sort
-              {sortBy !== "manual" && (
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
               )}
-            </button>
-            {isSortOpen && (
-              <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-zinc-200 shadow-xl rounded-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2">
-                <div className="flex flex-col">
-                  <button
-                    onClick={() => {
-                      setSortBy("manual");
-                      setIsSortOpen(false);
-                    }}
-                    className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "manual" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
-                  >
-                    Manual (Drag & Drop)
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortBy("priority");
-                      setIsSortOpen(false);
-                    }}
-                    className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "priority" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
-                  >
-                    Priority (High to Low)
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
+        </div>
+
+        <div className="flex items-center gap-1 px-4 md:px-6 pb-2 overflow-x-auto custom-scrollbar hide-scrollbar-y">
+          <button
+            onClick={() => applyView(null)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === null ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" /> Default View
+          </button>
+          {savedViews.map((view) => (
+            <div key={view.id} className="flex items-center group relative">
+              <button
+                onClick={() => applyView(view.id)}
+                className={`flex items-center pr-6 pl-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === view.id ? "bg-indigo-600 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+              >
+                {view.name}
+              </button>
+              <button
+                onClick={(e) => handleDeleteView(e, view.id)}
+                className={`absolute right-1.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? "hover:bg-indigo-700 text-white" : "hover:bg-red-500 hover:text-white text-zinc-400"}`}
+              >
+                <X className="w-2.5 h-2.5" />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -345,12 +440,11 @@ export default function TimelineBoard({
                     return true;
                   })
                   .sort((a, b) => {
-                    if (sortBy === "priority") {
+                    if (sortBy === "priority")
                       return (
                         PRIORITY_WEIGHTS[b.priority] -
                         PRIORITY_WEIGHTS[a.priority]
                       );
-                    }
                     return 0;
                   });
 
@@ -512,19 +606,7 @@ export default function TimelineBoard({
                     onClick={() => setIsModalOpen(false)}
                     className="text-zinc-400 hover:text-zinc-950 bg-white hover:bg-zinc-200 border border-zinc-200 rounded-full transition-colors p-1.5 shadow-sm"
                   >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
 

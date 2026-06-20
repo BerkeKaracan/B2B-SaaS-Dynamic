@@ -13,9 +13,13 @@ import {
   FileText,
   Trash2,
   ArrowUpDown,
+  BookmarkPlus,
+  LayoutDashboard,
+  X,
 } from "lucide-react";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { Calendar as CustomCalendar } from "@/components/ui/calendar";
+import toast from "react-hot-toast";
 
 interface DatabaseBoardProps {
   projectId: string;
@@ -33,6 +37,13 @@ interface Property {
 interface RowRecord {
   id: string;
   [propertyId: string]: CellValue;
+}
+
+export interface DatabaseSavedView {
+  id: string;
+  name: string;
+  filterQuery: string;
+  sortConfig: { propId: string; dir: "asc" | "desc" } | null;
 }
 
 export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
@@ -53,6 +64,8 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
     ],
   );
 
+  const savedViews = (metadata.databaseSavedViews as DatabaseSavedView[]) || [];
+
   const [dbTitle, setDbTitle] = useState(
     (metadata?.databaseTitle as string) || "Untitled Database",
   );
@@ -63,6 +76,8 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
     propId: string;
     dir: "asc" | "desc";
   } | null>(null);
+
+  const [activeViewId, setActiveViewId] = useState<string | null>(null);
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -93,12 +108,10 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
     setProperties(newProps);
     updateMetadata({ databaseProperties: newProps });
   };
-
   const saveRows = (newRows: RowRecord[]) => {
     setRows(newRows);
     updateMetadata({ databaseRows: newRows });
   };
-
   const saveTitle = (newTitle: string) => {
     setDbTitle(newTitle);
     updateMetadata({ databaseTitle: newTitle });
@@ -119,7 +132,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
       ...row,
       [newPropId]: type === "checkbox" ? false : "",
     }));
-
     saveProperties(newProps);
     saveRows(newRows);
     setIsPropertyMenuOpen(false);
@@ -133,7 +145,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
       delete updatedRow[propId];
       return updatedRow;
     });
-
     saveProperties(newProps);
     saveRows(newRows);
     if (sortConfig?.propId === propId) setSortConfig(null);
@@ -148,22 +159,60 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   };
 
   const handleDeleteRow = (rowId: string) => {
-    const newRows = rows.filter((r) => r.id !== rowId);
-    saveRows(newRows);
+    saveRows(rows.filter((r) => r.id !== rowId));
   };
 
   const updateCell = (rowId: string, propId: string, value: CellValue) => {
-    const newRows = rows.map((row) =>
-      row.id === rowId ? { ...row, [propId]: value } : row,
+    saveRows(
+      rows.map((row) => (row.id === rowId ? { ...row, [propId]: value } : row)),
     );
-    saveRows(newRows);
   };
 
   const updatePropertyName = (propId: string, name: string) => {
-    const newProps = properties.map((prop) =>
-      prop.id === propId ? { ...prop, name } : prop,
+    saveProperties(
+      properties.map((prop) => (prop.id === propId ? { ...prop, name } : prop)),
     );
-    saveProperties(newProps);
+  };
+
+  const handleSaveView = () => {
+    const viewName = prompt("Enter a name for this database view:");
+    if (!viewName?.trim()) return;
+
+    const newView: DatabaseSavedView = {
+      id: "view-db-" + Date.now(),
+      name: viewName,
+      filterQuery,
+      sortConfig,
+    };
+    const updatedViews = [...savedViews, newView];
+    updateMetadata({ databaseSavedViews: updatedViews });
+    setActiveViewId(newView.id);
+    setIsFilterOpen(false);
+    toast.success(`View "${viewName}" saved!`);
+  };
+
+  const applyView = (viewId: string | null) => {
+    setActiveViewId(viewId);
+    if (viewId === null) {
+      setFilterQuery("");
+      setSortConfig(null);
+      return;
+    }
+    const view = savedViews.find((v) => v.id === viewId);
+    if (view) {
+      setFilterQuery(view.filterQuery);
+      setSortConfig(view.sortConfig);
+    }
+  };
+
+  const handleDeleteView = (e: React.MouseEvent, viewId: string) => {
+    e.stopPropagation();
+    if (window.confirm("Delete this view?")) {
+      const updatedViews = savedViews.filter((v) => v.id !== viewId);
+      updateMetadata({ databaseSavedViews: updatedViews });
+      if (activeViewId === viewId) applyView(null);
+      toast.success("View deleted.");
+    }
   };
 
   const getPropertyIcon = (type: PropertyType) => {
@@ -205,31 +254,53 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   if (!isClient) return null;
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden font-sans relative">
-      <div className="px-4 py-2.5 border-b border-zinc-200 flex items-center justify-between bg-white select-none shrink-0 relative z-20">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 px-2 py-1 rounded cursor-pointer transition-colors">
-            <ListIcon className="w-4 h-4 text-zinc-500" />
-            Table
-          </div>
-          <div className="h-3.5 w-px bg-zinc-300"></div>
-          <button className="text-sm font-medium text-zinc-500 hover:text-zinc-800 transition-colors">
-            + Add View
+    <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden font-sans relative z-10">
+      <div className="px-4 py-2.5 border-b border-zinc-200 flex items-center justify-between bg-white select-none shrink-0 relative z-50">
+        <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar hide-scrollbar-y pr-4 flex-1">
+          <button
+            onClick={() => applyView(null)}
+            className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded transition-colors whitespace-nowrap ${activeViewId === null ? "text-zinc-900 bg-zinc-100" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"}`}
+          >
+            <ListIcon className="w-4 h-4" /> Default View
           </button>
+
+          {savedViews.length > 0 && (
+            <div className="h-4 w-px bg-zinc-300 mx-1 shrink-0"></div>
+          )}
+
+          {savedViews.map((view) => (
+            <div
+              key={view.id}
+              className="flex items-center group relative shrink-0"
+            >
+              <button
+                onClick={() => applyView(view.id)}
+                className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 pr-6 rounded transition-colors whitespace-nowrap ${activeViewId === view.id ? "text-indigo-700 bg-indigo-50" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"}`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" /> {view.name}
+              </button>
+              <button
+                onClick={(e) => handleDeleteView(e, view.id)}
+                className={`absolute right-1 w-4 h-4 rounded-full flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? "hover:bg-indigo-200 text-indigo-700" : "hover:bg-red-100 text-red-500"}`}
+              >
+                <X className="w-2.5 h-2.5" />
+              </button>
+            </div>
+          ))}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pl-4 border-l border-zinc-100 shrink-0">
           <div className="relative" ref={filterRef}>
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors ${isFilterOpen || filterQuery ? "bg-indigo-50 text-indigo-700" : "text-zinc-500 hover:bg-zinc-100"}`}
             >
-              <Search className="w-3.5 h-3.5" />
-              Filter
+              <Search className="w-3.5 h-3.5" /> Filter
               {filterQuery && (
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
               )}
             </button>
+
             {isFilterOpen && (
               <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-zinc-200 shadow-xl rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
@@ -240,19 +311,34 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                   <input
                     type="text"
                     value={filterQuery}
-                    onChange={(e) => setFilterQuery(e.target.value)}
+                    onChange={(e) => {
+                      setFilterQuery(e.target.value);
+                      setActiveViewId(null);
+                    }}
                     placeholder="Type to search..."
                     className="w-full pl-8 pr-3 py-1.5 text-xs font-medium border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
-                {filterQuery && (
+
+                <div className="pt-2 mt-2 border-t border-zinc-100 flex flex-col gap-1.5">
                   <button
-                    onClick={() => setFilterQuery("")}
-                    className="w-full py-1.5 text-[10px] font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors mt-2"
+                    onClick={handleSaveView}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
                   >
-                    Clear Filter
+                    <BookmarkPlus className="w-3 h-3" /> Save as Custom View
                   </button>
-                )}
+                  {filterQuery && (
+                    <button
+                      onClick={() => {
+                        setFilterQuery("");
+                        setActiveViewId(null);
+                      }}
+                      className="w-full py-1.5 text-[10px] font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                    >
+                      Clear Filter
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -262,12 +348,12 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
               onClick={() => setIsSortOpen(!isSortOpen)}
               className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors ${isSortOpen || sortConfig ? "bg-indigo-50 text-indigo-700" : "text-zinc-500 hover:bg-zinc-100"}`}
             >
-              <ArrowUpDown className="w-3.5 h-3.5" />
-              Sort
+              <ArrowUpDown className="w-3.5 h-3.5" /> Sort
               {sortConfig && (
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
               )}
             </button>
+
             {isSortOpen && (
               <div className="absolute top-full mt-2 right-0 w-56 bg-white border border-zinc-200 shadow-xl rounded-xl p-2 z-50 animate-in fade-in slide-in-from-top-2">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 px-2 block">
@@ -277,6 +363,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                   <button
                     onClick={() => {
                       setSortConfig(null);
+                      setActiveViewId(null);
                       setIsSortOpen(false);
                     }}
                     className={`px-2 py-1.5 text-xs font-bold rounded-lg text-left transition-colors ${!sortConfig ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
@@ -294,6 +381,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                       <button
                         onClick={() => {
                           setSortConfig({ propId: prop.id, dir: "asc" });
+                          setActiveViewId(null);
                           setIsSortOpen(false);
                         }}
                         className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === "asc" ? "bg-indigo-50 text-indigo-700 font-bold" : "hover:bg-zinc-50 text-zinc-700"}`}
@@ -303,6 +391,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                       <button
                         onClick={() => {
                           setSortConfig({ propId: prop.id, dir: "desc" });
+                          setActiveViewId(null);
                           setIsSortOpen(false);
                         }}
                         className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === "desc" ? "bg-indigo-50 text-indigo-700 font-bold" : "hover:bg-zinc-50 text-zinc-700"}`}
@@ -341,7 +430,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
             <thead>
               <tr className="border-y border-zinc-200">
                 <th className="w-10 py-1.5 bg-white"></th>
-
                 {properties.map((prop) => (
                   <th
                     key={prop.id}
@@ -372,7 +460,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                     </div>
                   </th>
                 ))}
-
                 <th className="border-r border-zinc-200 bg-white font-normal text-zinc-500 text-sm hover:bg-zinc-50 transition-colors w-24 relative">
                   <button
                     onClick={() => setIsPropertyMenuOpen(!isPropertyMenuOpen)}
@@ -380,14 +467,13 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                   >
                     <Plus className="w-4 h-4" />
                   </button>
-
                   {isPropertyMenuOpen && (
                     <>
                       <div
-                        className="fixed inset-0 z-10"
+                        className="fixed inset-0 z-40"
                         onClick={() => setIsPropertyMenuOpen(false)}
                       ></div>
-                      <div className="absolute top-full right-0 mt-1 w-56 bg-white border border-zinc-200 shadow-xl rounded-lg py-1.5 z-20">
+                      <div className="absolute top-full right-0 mt-1 w-56 bg-white border border-zinc-200 shadow-xl rounded-lg py-1.5 z-50">
                         <div className="px-3 py-1.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                           Property Type
                         </div>
@@ -429,7 +515,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                 <th className="bg-white w-full"></th>
               </tr>
             </thead>
-
             <tbody>
               {processedRows.map((row) => (
                 <tr
@@ -443,7 +528,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                       </button>
                     </div>
                   </td>
-
                   {properties.map((prop) => (
                     <td
                       key={`${row.id}-${prop.id}`}
@@ -520,9 +604,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                                             prop.id,
                                             `${y}-${m}-${d}`,
                                           );
-                                        } else {
-                                          updateCell(row.id, prop.id, "");
-                                        }
+                                        } else updateCell(row.id, prop.id, "");
                                         setActiveDateCell(null);
                                       }}
                                       initialFocus
@@ -558,7 +640,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                       </div>
                     </td>
                   ))}
-
                   <td className="border-r border-zinc-100 w-12 text-center p-0 align-middle">
                     <button
                       onClick={() => handleDeleteRow(row.id)}
