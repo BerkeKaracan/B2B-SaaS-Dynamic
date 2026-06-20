@@ -403,6 +403,36 @@ export default function StaticKanbanBoard({
       });
       logActivity("created new task", newTaskTitle);
       toast.success("New task created!");
+
+      if (newTaskAssignee.includes("@")) {
+        try {
+          const loadingToast = toast.loading("Sending email notification...");
+
+          fetch("/api/send-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: newTaskAssignee,
+              taskTitle: newTaskTitle,
+              assigneeName: newTaskAssignee.split("@")[0],
+              assignedBy: currentUserName,
+            }),
+          }).then(async (res) => {
+            const response = await res.json();
+            if (res.ok && response.success) {
+              toast.success(`Email notification sent to ${newTaskAssignee}!`, {
+                id: loadingToast,
+              });
+            } else {
+              toast.error("Failed to send email notification.", {
+                id: loadingToast,
+              });
+            }
+          });
+        } catch (error) {
+          console.error("Email trigger failed", error);
+        }
+      }
     }
 
     updateTasks(updatedTasks);
