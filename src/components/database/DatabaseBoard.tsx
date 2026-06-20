@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Plus,
   Search,
-  MoreHorizontal,
   Type,
   Calendar,
   Hash,
-  List,
+  List as ListIcon,
   CheckSquare,
   GripVertical,
   FileText,
   Trash2,
+  ArrowUpDown,
 } from "lucide-react";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { Calendar as CustomCalendar } from "@/components/ui/calendar";
@@ -22,7 +22,6 @@ interface DatabaseBoardProps {
 }
 
 type PropertyType = "text" | "number" | "select" | "date" | "checkbox";
-
 type CellValue = string | number | boolean;
 
 interface Property {
@@ -59,9 +58,35 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   );
   const [isPropertyMenuOpen, setIsPropertyMenuOpen] = useState(false);
 
+  const [filterQuery, setFilterQuery] = useState("");
+  const [sortConfig, setSortConfig] = useState<{
+    propId: string;
+    dir: "asc" | "desc";
+  } | null>(null);
+
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+
+  const filterRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        filterRef.current &&
+        !filterRef.current.contains(event.target as Node)
+      )
+        setIsFilterOpen(false);
+      if (sortRef.current && !sortRef.current.contains(event.target as Node))
+        setIsSortOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const saveProperties = (newProps: Property[]) => {
@@ -90,7 +115,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
       ...properties,
       { id: newPropId, name: `New ${type}`, type },
     ];
-
     const newRows = rows.map((row) => ({
       ...row,
       [newPropId]: type === "checkbox" ? false : "",
@@ -103,9 +127,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
 
   const handleDeleteProperty = (propId: string) => {
     if (properties.length === 1) return;
-
     const newProps = properties.filter((p) => p.id !== propId);
-
     const newRows = rows.map((row) => {
       const updatedRow = { ...row };
       delete updatedRow[propId];
@@ -114,6 +136,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
 
     saveProperties(newProps);
     saveRows(newRows);
+    if (sortConfig?.propId === propId) setSortConfig(null);
   };
 
   const handleAddRow = () => {
@@ -152,7 +175,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
       case "date":
         return <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />;
       case "select":
-        return <List className="w-3.5 h-3.5 text-zinc-400 shrink-0" />;
+        return <ListIcon className="w-3.5 h-3.5 text-zinc-400 shrink-0" />;
       case "checkbox":
         return <CheckSquare className="w-3.5 h-3.5 text-zinc-400 shrink-0" />;
       default:
@@ -160,14 +183,33 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
     }
   };
 
+  const processedRows = rows
+    .filter((row) => {
+      if (!filterQuery) return true;
+      const q = filterQuery.toLowerCase();
+      return properties.some((prop) =>
+        String(row[prop.id] || "")
+          .toLowerCase()
+          .includes(q),
+      );
+    })
+    .sort((a, b) => {
+      if (!sortConfig) return 0;
+      const valA = String(a[sortConfig.propId] || "").toLowerCase();
+      const valB = String(b[sortConfig.propId] || "").toLowerCase();
+      if (valA < valB) return sortConfig.dir === "asc" ? -1 : 1;
+      if (valA > valB) return sortConfig.dir === "asc" ? 1 : -1;
+      return 0;
+    });
+
   if (!isClient) return null;
 
   return (
     <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden font-sans relative">
-      <div className="px-4 py-2.5 border-b border-zinc-200 flex items-center justify-between bg-white select-none shrink-0">
+      <div className="px-4 py-2.5 border-b border-zinc-200 flex items-center justify-between bg-white select-none shrink-0 relative z-20">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 px-2 py-1 rounded cursor-pointer transition-colors">
-            <List className="w-4 h-4 text-zinc-500" />
+            <ListIcon className="w-4 h-4 text-zinc-500" />
             Table
           </div>
           <div className="h-3.5 w-px bg-zinc-300"></div>
@@ -175,23 +217,115 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
             + Add View
           </button>
         </div>
-        <div className="flex items-center gap-1">
-          <button className="text-zinc-500 hover:bg-zinc-100 p-1.5 rounded transition-colors flex items-center gap-1.5 text-sm font-medium">
-            <Search className="w-4 h-4" /> Filter
-          </button>
-          <button className="text-zinc-500 hover:bg-zinc-100 p-1.5 rounded transition-colors">
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
+
+        <div className="flex items-center gap-2">
+          <div className="relative" ref={filterRef}>
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors ${isFilterOpen || filterQuery ? "bg-indigo-50 text-indigo-700" : "text-zinc-500 hover:bg-zinc-100"}`}
+            >
+              <Search className="w-3.5 h-3.5" />
+              Filter
+              {filterQuery && (
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
+              )}
+            </button>
+            {isFilterOpen && (
+              <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-zinc-200 shadow-xl rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
+                  Search Database
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-zinc-400" />
+                  <input
+                    type="text"
+                    value={filterQuery}
+                    onChange={(e) => setFilterQuery(e.target.value)}
+                    placeholder="Type to search..."
+                    className="w-full pl-8 pr-3 py-1.5 text-xs font-medium border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                {filterQuery && (
+                  <button
+                    onClick={() => setFilterQuery("")}
+                    className="w-full py-1.5 text-[10px] font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors mt-2"
+                  >
+                    Clear Filter
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="relative" ref={sortRef}>
+            <button
+              onClick={() => setIsSortOpen(!isSortOpen)}
+              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors ${isSortOpen || sortConfig ? "bg-indigo-50 text-indigo-700" : "text-zinc-500 hover:bg-zinc-100"}`}
+            >
+              <ArrowUpDown className="w-3.5 h-3.5" />
+              Sort
+              {sortConfig && (
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
+              )}
+            </button>
+            {isSortOpen && (
+              <div className="absolute top-full mt-2 right-0 w-56 bg-white border border-zinc-200 shadow-xl rounded-xl p-2 z-50 animate-in fade-in slide-in-from-top-2">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 px-2 block">
+                  Sort By Column
+                </label>
+                <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar">
+                  <button
+                    onClick={() => {
+                      setSortConfig(null);
+                      setIsSortOpen(false);
+                    }}
+                    className={`px-2 py-1.5 text-xs font-bold rounded-lg text-left transition-colors ${!sortConfig ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
+                  >
+                    None (Default)
+                  </button>
+                  {properties.map((prop) => (
+                    <div
+                      key={prop.id}
+                      className="flex flex-col mt-1 pt-1 border-t border-zinc-100"
+                    >
+                      <span className="text-[10px] font-bold text-zinc-400 px-2 mb-1 truncate">
+                        {prop.name}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setSortConfig({ propId: prop.id, dir: "asc" });
+                          setIsSortOpen(false);
+                        }}
+                        className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === "asc" ? "bg-indigo-50 text-indigo-700 font-bold" : "hover:bg-zinc-50 text-zinc-700"}`}
+                      >
+                        Ascending (A-Z)
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortConfig({ propId: prop.id, dir: "desc" });
+                          setIsSortOpen(false);
+                        }}
+                        className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === "desc" ? "bg-indigo-50 text-indigo-700 font-bold" : "hover:bg-zinc-50 text-zinc-700"}`}
+                      >
+                        Descending (Z-A)
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={handleAddRow}
-            className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-3 py-1.5 rounded transition-colors ml-2 shadow-sm"
+            className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors ml-2 shadow-sm"
           >
             New
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-white p-8 pt-10 relative custom-scrollbar">
+      <div className="flex-1 overflow-auto bg-white p-8 pt-10 relative custom-scrollbar z-10">
         <div className="mb-8 max-w-3xl">
           <input
             type="text"
@@ -226,7 +360,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                           placeholder="Property name"
                         />
                       </div>
-
                       {properties.length > 1 && (
                         <button
                           onClick={() => handleDeleteProperty(prop.id)}
@@ -243,9 +376,9 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                 <th className="border-r border-zinc-200 bg-white font-normal text-zinc-500 text-sm hover:bg-zinc-50 transition-colors w-24 relative">
                   <button
                     onClick={() => setIsPropertyMenuOpen(!isPropertyMenuOpen)}
-                    className="flex items-center gap-1.5 px-2 py-1.5 w-full h-full"
+                    className="flex items-center justify-center gap-1.5 px-2 py-1.5 w-full h-full"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-4 h-4" />
                   </button>
 
                   {isPropertyMenuOpen && (
@@ -254,7 +387,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                         className="fixed inset-0 z-10"
                         onClick={() => setIsPropertyMenuOpen(false)}
                       ></div>
-                      <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-zinc-200 shadow-xl rounded-lg py-1.5 z-20">
+                      <div className="absolute top-full right-0 mt-1 w-56 bg-white border border-zinc-200 shadow-xl rounded-lg py-1.5 z-20">
                         <div className="px-3 py-1.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                           Property Type
                         </div>
@@ -274,7 +407,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                           onClick={() => handleAddProperty("select")}
                           className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-100 text-sm text-zinc-700 text-left"
                         >
-                          <List className="w-4 h-4 text-zinc-400" /> Select
+                          <ListIcon className="w-4 h-4 text-zinc-400" /> Select
                         </button>
                         <button
                           onClick={() => handleAddProperty("date")}
@@ -298,7 +431,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
             </thead>
 
             <tbody>
-              {rows.map((row) => (
+              {processedRows.map((row) => (
                 <tr
                   key={row.id}
                   className="group/row border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors"
@@ -327,7 +460,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                             className="w-full h-full bg-transparent focus:outline-none text-sm text-zinc-900"
                           />
                         )}
-
                         {prop.type === "number" && (
                           <input
                             type="number"
@@ -338,7 +470,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                             className="w-full h-full bg-transparent focus:outline-none text-sm text-zinc-900"
                           />
                         )}
-
                         {prop.type === "date" && (
                           <div className="w-full h-full relative">
                             <div
@@ -360,8 +491,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                                 </span>
                               )}
                             </div>
-
-                            {/* Custom Calendar Popover */}
                             {activeDateCell?.rowId === row.id &&
                               activeDateCell?.propId === prop.id && (
                                 <>
@@ -403,7 +532,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                               )}
                           </div>
                         )}
-
                         {prop.type === "checkbox" && (
                           <div className="w-full flex items-center justify-center">
                             <input
@@ -416,7 +544,6 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                             />
                           </div>
                         )}
-
                         {prop.type === "select" && (
                           <input
                             type="text"
@@ -425,11 +552,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                               updateCell(row.id, prop.id, e.target.value)
                             }
                             placeholder="Empty"
-                            className={`w-full bg-transparent focus:outline-none text-sm transition-all ${
-                              row[prop.id]
-                                ? "bg-zinc-100 px-2 py-0.5 rounded text-zinc-700 font-medium"
-                                : "text-zinc-900 placeholder:text-transparent group-hover/cell:placeholder:text-zinc-300"
-                            }`}
+                            className={`w-full bg-transparent focus:outline-none text-sm transition-all ${row[prop.id] ? "bg-zinc-100 px-2 py-0.5 rounded text-zinc-700 font-medium w-fit" : "text-zinc-900 placeholder:text-transparent group-hover/cell:placeholder:text-zinc-300"}`}
                           />
                         )}
                       </div>
@@ -448,6 +571,17 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                   <td></td>
                 </tr>
               ))}
+
+              {processedRows.length === 0 && filterQuery && (
+                <tr>
+                  <td
+                    colSpan={properties.length + 2}
+                    className="py-8 text-center text-sm font-medium text-zinc-400"
+                  >
+                    No results found for &quot;{filterQuery}&quot;
+                  </td>
+                </tr>
+              )}
 
               <tr>
                 <td className="w-10"></td>
