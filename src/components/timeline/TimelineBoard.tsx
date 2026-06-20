@@ -20,6 +20,10 @@ import {
   BookmarkPlus,
   LayoutDashboard,
   X,
+  MoreHorizontal,
+  Copy,
+  Trash2,
+  Edit2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -107,6 +111,8 @@ export default function TimelineBoard({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
+  const [openEventMenu, setOpenEventMenu] = useState<string | null>(null);
+
   const [formData, setFormData] = useState<Partial<TimelineEvent>>({
     title: "",
     priority: "NO PRIORITY",
@@ -134,13 +140,21 @@ export default function TimelineBoard({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        filterRef.current &&
-        !filterRef.current.contains(event.target as Node)
-      )
+      const target = event.target as Element;
+
+      if (filterRef.current && !filterRef.current.contains(target as Node))
         setIsFilterOpen(false);
-      if (sortRef.current && !sortRef.current.contains(event.target as Node))
+      if (sortRef.current && !sortRef.current.contains(target as Node))
         setIsSortOpen(false);
+
+      if (target && typeof target.closest === "function") {
+        if (
+          !target.closest(".event-dropdown-menu") &&
+          !target.closest(".event-menu-trigger")
+        ) {
+          setOpenEventMenu(null);
+        }
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -206,6 +220,27 @@ export default function TimelineBoard({
       });
     }
     setIsModalOpen(true);
+  };
+
+  const handleDuplicateEvent = (eventToDuplicate: TimelineEvent) => {
+    const duplicatedEvent: TimelineEvent = {
+      ...eventToDuplicate,
+      id: "evt-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+      title: `${eventToDuplicate.title} (Copy)`,
+    };
+    const updatedEvents = [...events, duplicatedEvent];
+    updateEvents(updatedEvents);
+    toast.success("Event duplicated successfully!");
+    setOpenEventMenu(null);
+  };
+
+  const handleDeleteEvent = (eventId: string, eventTitle: string) => {
+    if (window.confirm(`Are you sure you want to delete "${eventTitle}"?`)) {
+      const updatedEvents = events.filter((e) => e.id !== eventId);
+      updateEvents(updatedEvents);
+      toast.success("Event deleted!");
+    }
+    setOpenEventMenu(null);
   };
 
   const processSubmit = (addAnother: boolean = false) => {
@@ -428,6 +463,7 @@ export default function TimelineBoard({
           >
             <LayoutDashboard className="w-3.5 h-3.5" /> Default View
           </button>
+
           {savedViews.map((view) => (
             <div key={view.id} className="flex items-center group relative">
               <button
@@ -484,7 +520,6 @@ export default function TimelineBoard({
                     key={col.key}
                     className="w-[85vw] sm:w-[320px] shrink-0 flex flex-col max-h-full"
                   >
-                    {/* YENİ: Takvim Yaprağı Başlığı */}
                     <div
                       className={`flex items-center justify-between p-3 mb-3 rounded-xl border-2 shadow-sm shrink-0 transition-colors ${col.isToday ? "bg-indigo-50 border-indigo-200" : "bg-white border-zinc-200"}`}
                     >
@@ -507,7 +542,6 @@ export default function TimelineBoard({
                           </span>
                         </div>
                       </div>
-
                       <div className="flex flex-col items-end gap-2">
                         {col.isToday && (
                           <span className="px-2 py-0.5 bg-indigo-600 text-white text-[9px] font-bold rounded uppercase tracking-wider animate-pulse">
@@ -565,11 +599,152 @@ export default function TimelineBoard({
                                     }}
                                   >
                                     {!event.isDetailed ? (
-                                      <div className="p-3 font-extrabold text-sm text-center tracking-wide">
-                                        {event.title}
+                                      <div className="p-3 font-extrabold text-sm text-center tracking-wide relative">
+                                        <div className="absolute top-1.5 right-1.5">
+                                          <button
+                                            onMouseDown={(e) =>
+                                              e.stopPropagation()
+                                            }
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              setOpenEventMenu(
+                                                openEventMenu === event.id
+                                                  ? null
+                                                  : event.id,
+                                              );
+                                            }}
+                                            className={`event-menu-trigger p-1 rounded-md transition-colors ${isDarkBg ? "hover:bg-white/20 text-white" : "hover:bg-zinc-200/50 text-zinc-500"}`}
+                                          >
+                                            <MoreHorizontal className="w-3.5 h-3.5" />
+                                          </button>
+                                          {openEventMenu === event.id && (
+                                            <div
+                                              onMouseDown={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                              className="event-dropdown-menu absolute right-0 top-full mt-1 w-36 bg-white shadow-xl border border-zinc-200 rounded-lg p-1 z-[70] animate-in fade-in zoom-in-95 cursor-default text-zinc-900"
+                                            >
+                                              <button
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  openModal(col.key, event);
+                                                  setOpenEventMenu(null);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
+                                              >
+                                                <Edit2 className="w-3.5 h-3.5" />{" "}
+                                                Edit
+                                              </button>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  handleDuplicateEvent(event);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
+                                              >
+                                                <Copy className="w-3.5 h-3.5" />{" "}
+                                                Duplicate
+                                              </button>
+                                              <div className="w-full h-px bg-zinc-100 my-0.5"></div>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  handleDeleteEvent(
+                                                    event.id,
+                                                    event.title,
+                                                  );
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                              >
+                                                <Trash2 className="w-3.5 h-3.5" />{" "}
+                                                Delete
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                        <span className="pr-4">
+                                          {event.title}
+                                        </span>
                                       </div>
                                     ) : (
-                                      <div className="p-3.5 flex flex-col gap-2">
+                                      <div className="p-3.5 flex flex-col gap-2 relative">
+                                        <div className="absolute top-2 right-2">
+                                          <button
+                                            onMouseDown={(e) =>
+                                              e.stopPropagation()
+                                            }
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              setOpenEventMenu(
+                                                openEventMenu === event.id
+                                                  ? null
+                                                  : event.id,
+                                              );
+                                            }}
+                                            className={`event-menu-trigger p-1.5 rounded-md transition-colors ${isDarkBg ? "hover:bg-white/20 text-white" : "hover:bg-zinc-200/50 text-zinc-500"}`}
+                                          >
+                                            <MoreHorizontal className="w-4 h-4" />
+                                          </button>
+                                          {openEventMenu === event.id && (
+                                            <div
+                                              onMouseDown={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                              className="event-dropdown-menu absolute right-0 top-full mt-1 w-40 bg-white shadow-xl border border-zinc-200 rounded-lg p-1 z-[70] animate-in fade-in zoom-in-95 cursor-default text-zinc-900"
+                                            >
+                                              <button
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  openModal(col.key, event);
+                                                  setOpenEventMenu(null);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
+                                              >
+                                                <Edit2 className="w-3.5 h-3.5" />{" "}
+                                                Edit
+                                              </button>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  handleDuplicateEvent(event);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
+                                              >
+                                                <Copy className="w-3.5 h-3.5" />{" "}
+                                                Duplicate
+                                              </button>
+                                              <div className="w-full h-px bg-zinc-100 my-1"></div>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  handleDeleteEvent(
+                                                    event.id,
+                                                    event.title,
+                                                  );
+                                                }}
+                                                className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                              >
+                                                <Trash2 className="w-3.5 h-3.5" />{" "}
+                                                Delete
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+
                                         {event.assignee && (
                                           <div
                                             className={`text-[10px] font-bold px-2 py-1 w-max rounded-md mb-1 ${isDarkBg ? "bg-black/20" : "bg-white/50 border border-zinc-300"} ${textColor}`}
@@ -577,7 +752,7 @@ export default function TimelineBoard({
                                             For: {event.assignee}
                                           </div>
                                         )}
-                                        <h4 className="text-sm font-black uppercase tracking-tight">
+                                        <h4 className="text-sm font-black uppercase tracking-tight pr-6">
                                           {event.title}
                                         </h4>
                                         {event.description && (
