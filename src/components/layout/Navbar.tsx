@@ -21,20 +21,37 @@ export default function Navbar({
   const { toggleSecondarySidebar, isSecondarySidebarOpen } = useLayoutStore();
   const { isSaving, showSaved } = useCanvasStore();
 
-  // DÜZELTME 1: fetchUser fonksiyonunu store'dan dahil ettik
   const { user, logout, fetchUser } = useAuthStore();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const [isFetchingRole, setIsFetchingRole] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const initials = user?.initials || "--";
   const fullName = user?.full_name || "Loading...";
 
-  // DÜZELTME 2: URL'deki tenantId (çalışma alanı) her değiştiğinde kullanıcının o çalışma alanındaki güncel rolünü çeker
+  const displayRole =
+    user?.role === "owner"
+      ? "Owner"
+      : user?.custom_role_name || user?.role || "Employee";
+
   useEffect(() => {
-    if (tenantId) {
-      fetchUser(tenantId);
-    }
+    let isMounted = true;
+
+    const loadTenantData = async () => {
+      if (tenantId) {
+        setIsFetchingRole(true); 
+        await fetchUser(tenantId);
+        if (isMounted) setIsFetchingRole(false); 
+      }
+    };
+
+    loadTenantData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [tenantId, fetchUser]);
 
   useEffect(() => {
@@ -137,14 +154,16 @@ export default function Navbar({
 
         <div className="relative" ref={dropdownRef}>
           <button
-            onClick={() => user && setIsDropdownOpen(!isDropdownOpen)}
+            onClick={() =>
+              user && !isFetchingRole && setIsDropdownOpen(!isDropdownOpen)
+            }
             className={`flex items-center gap-2.5 pl-1.5 pr-2 py-1.5 rounded-xl transition-all focus:outline-none border border-transparent ${
-              user
+              user && !isFetchingRole
                 ? "hover:bg-zinc-100/80 hover:border-zinc-200 cursor-pointer"
                 : "cursor-default"
             }`}
           >
-            {!user ? (
+            {!user || isFetchingRole ? (
               <div className="flex items-center gap-2.5 animate-pulse">
                 <div className="w-9 h-9 rounded-xl bg-zinc-200 shrink-0"></div>
                 <div className="hidden sm:flex flex-col items-start justify-center gap-2">
@@ -164,7 +183,7 @@ export default function Navbar({
                     {fullName}
                   </span>
                   <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest leading-none truncate max-w-[120px]">
-                    {user?.custom_role_name || user?.role || "Employee"}
+                    {displayRole}
                   </span>
                 </div>
 
@@ -177,7 +196,7 @@ export default function Navbar({
             )}
           </button>
 
-          {isDropdownOpen && user && (
+          {isDropdownOpen && user && !isFetchingRole && (
             <div className="absolute right-0 mt-2 w-64 bg-white border border-zinc-200/80 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50/50 rounded-t-2xl mb-2">
                 <p className="text-sm font-extrabold text-zinc-950 truncate">
@@ -185,7 +204,7 @@ export default function Navbar({
                 </p>
                 <div className="flex items-center gap-1.5 mt-1 mb-0.5">
                   <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
-                    {user?.custom_role_name || user?.role || "Employee"}
+                    {displayRole}
                   </span>
                   {user?.department_name && (
                     <span className="px-1.5 py-0.5 bg-zinc-100/80 border border-zinc-200 text-zinc-600 rounded text-[9px] font-semibold truncate max-w-[100px]">
