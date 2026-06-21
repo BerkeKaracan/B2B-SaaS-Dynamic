@@ -81,7 +81,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/register"
+                  href="/templates"
                   className="hover:text-zinc-950 transition-colors"
                 >
                   {t("resources.templateGallery")}

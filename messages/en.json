@@ -191,5 +191,69 @@
       "title": "Ready to experience the difference?",
       "button": "Start Free Trial"
     }
+  },
+  "TemplatesPage": {
+    "back": "Go Back",
+    "badge": "Template Gallery",
+    "title": "Start instantly with pre-built workflows.",
+    "subtitle": "Don't build from scratch. Choose a template designed for your industry and customize it in seconds.",
+    "cards": {
+      "agile": {
+        "title": "Agile Sprint Board",
+        "desc": "Perfect for dev teams. Includes backlog, active sprint, and bug tracking kanban views."
+      },
+      "onboarding": {
+        "title": "Employee Onboarding",
+        "desc": "A step-by-step spatial canvas to get new hires up to speed with company policies."
+      },
+      "crm": {
+        "title": "Sales CRM Pipeline",
+        "desc": "Track deals, calculate win rates, and manage client contacts with dynamic databases."
+      },
+      "roadmap": {
+        "title": "Product Roadmap",
+        "desc": "A high-level timeline view to align stakeholders on Q1-Q4 deliverables."
+      },
+      "okr": {
+        "title": "Company OKRs",
+        "desc": "Keep track of objectives and key results with connected progress blocks."
+      },
+      "content": {
+        "title": "Content Calendar",
+        "desc": "Plan, draft, and publish your marketing content with collaborative text blocks."
+      }
+    },
+    "cta": {
+      "title": "Can't find what you need?",
+      "subtitle": "Start with a blank canvas and let our AI generate a custom workflow for you.",
+      "button": "Create Custom Workspace"
+    }
+  },
+  "BlogPage": {
+    "back": "Go Back",
+    "badge": "Our Blog",
+    "title": "Insights & Updates",
+    "subtitle": "The latest news, engineering deep-dives, and resources for scaling your company.",
+    "readMore": "Read Article",
+    "posts": {
+      "1": {
+        "category": "Product",
+        "date": "Jun 15, 2026",
+        "title": "Welcome to SaaS Engine v2.0",
+        "desc": "Everything you need to know about our latest release and the new infinite spatial canvas."
+      },
+      "2": {
+        "category": "Engineering",
+        "date": "May 28, 2026",
+        "title": "Scaling Real-Time Sync with PostgreSQL",
+        "desc": "A deep dive into how we use JSONB and WebSocket architecture for zero-latency updates."
+      },
+      "3": {
+        "category": "Leadership",
+        "date": "May 10, 2026",
+        "title": "The Future of Asynchronous Work",
+        "desc": "Why dynamic workflows are replacing traditional linear document management."
+      }
+    }
   }
 }

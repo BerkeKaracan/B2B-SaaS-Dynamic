@@ -191,5 +191,69 @@
       "title": "Farkı deneyimlemeye hazır mısınız?",
       "button": "Ücretsiz Denemeyi Başlat"
     }
+  },
+  "TemplatesPage": {
+    "back": "Geri Dön",
+    "badge": "Şablon Galerisi",
+    "title": "Hazır iş akışlarıyla anında başlayın.",
+    "subtitle": "Sıfırdan inşa etmeyin. Sektörünüz için tasarlanmış bir şablon seçin ve saniyeler içinde özelleştirin.",
+    "cards": {
+      "agile": {
+        "title": "Çevik (Agile) Sprint Panosu",
+        "desc": "Geliştirici ekipler için idealdir. Backlog, aktif sprint ve hata takibi görünümlerini içerir."
+      },
+      "onboarding": {
+        "title": "Personel İşe Alımı",
+        "desc": "Yeni çalışanların şirket politikalarına hızla alışması için adım adım uzamsal tuval."
+      },
+      "crm": {
+        "title": "Satış CRM Hunisi",
+        "desc": "Anlaşmaları takip edin, kazanma oranlarını hesaplayın ve dinamik veritabanlarıyla müşterileri yönetin."
+      },
+      "roadmap": {
+        "title": "Ürün Yol Haritası",
+        "desc": "Tüm paydaşları hedeflerde hizalamak için üst düzey bir zaman çizelgesi (timeline) görünümü."
+      },
+      "okr": {
+        "title": "Şirket OKR'ları",
+        "desc": "Bağlantılı ilerleme bloklarıyla hedefleri ve kilit sonuçları takip edin."
+      },
+      "content": {
+        "title": "İçerik Takvimi",
+        "desc": "Ortak çalışma bloklarıyla pazarlama içeriklerinizi planlayın, taslağını çıkarın ve yayınlayın."
+      }
+    },
+    "cta": {
+      "title": "Aradığınızı bulamadınız mı?",
+      "subtitle": "Boş bir tuvalle başlayın ve yapay zekamızın size özel bir iş akışı oluşturmasına izin verin.",
+      "button": "Özel Çalışma Alanı Oluştur"
+    }
+  },
+  "BlogPage": {
+    "back": "Geri Dön",
+    "badge": "Blogumuz",
+    "title": "İçgörüler ve Güncellemeler",
+    "subtitle": "Şirketinizi ölçeklendirmek için en son haberler, mühendislik notları ve kaynaklar.",
+    "readMore": "Makaleyi Oku",
+    "posts": {
+      "1": {
+        "category": "Ürün",
+        "date": "15 Haz 2026",
+        "title": "SaaS Engine v2.0'a Hoş Geldiniz",
+        "desc": "Son sürümümüz ve yeni sonsuz uzamsal tuvalimiz hakkında bilmeniz gereken her şey."
+      },
+      "2": {
+        "category": "Mühendislik",
+        "date": "28 May 2026",
+        "title": "PostgreSQL ile Gerçek Zamanlı Senkronizasyon",
+        "desc": "Sıfır gecikmeli güncellemeler için JSONB ve WebSocket mimarisini nasıl kullandığımıza derinlemesine bir bakış."
+      },
+      "3": {
+        "category": "Liderlik",
+        "date": "10 May 2026",
+        "title": "Asenkron Çalışmanın Geleceği",
+        "desc": "Dinamik iş akışlarının neden geleneksel doğrusal belge yönetiminin yerini aldığına dair görüşlerimiz."
+      }
+    }
   }
 }
