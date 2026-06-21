@@ -303,5 +303,54 @@
       "subtitle": "Our robust API and webhook system allows you to connect SaaS Engine to any internal tool.",
       "button": "Read API Docs"
     }
+  },
+  "AboutPage": {
+    "back": "Go Back",
+    "badge": "Our Story",
+    "title": "Building the future of workspaces.",
+    "subtitle": "We are a team of engineers and designers on a mission to bring spatial, dynamic, and infinite productivity to teams worldwide.",
+    "story": {
+      "title": "How it all started",
+      "p1": "In early 2026, we realized that traditional documents and linear project management tools were fundamentally broken. They forced human thoughts into rigid boxes and created invisible silos across departments.",
+      "p2": "We built SaaS Engine to break those boundaries. By combining an infinite spatial canvas with real-time relational databases, we've created a central nervous system where your ideas, data, and workflows can live and breathe together without limitations."
+    },
+    "stats": {
+      "1": { "value": "2026", "label": "Founded" },
+      "2": { "value": "100%", "label": "Bootstrapped" },
+      "3": { "value": "Global", "label": "Remote Team" }
+    },
+    "values": {
+      "title": "Our Core Values",
+      "v1": {
+        "title": "Move Fast",
+        "desc": "We iterate quickly, listen to our users, and ship features that actually matter."
+      },
+      "v2": {
+        "title": "Build Trust",
+        "desc": "Enterprise-grade security and uncompromising reliability are at the heart of our code."
+      },
+      "v3": {
+        "title": "Human First",
+        "desc": "We design software for the human behind the screen, focusing on joy and simplicity."
+      },
+      "v4": {
+        "title": "Stay Infinite",
+        "desc": "We believe in borderless creativity, spatial thinking, and limitless scaling."
+      }
+    },
+    "team": {
+      "title": "Meet the minds behind the engine",
+      "subtitle": "A diverse group of thinkers, builders, and designers dedicated to your productivity.",
+      "roles": {
+        "ceo": "Co-Founder & CEO",
+        "cto": "Co-Founder & CTO",
+        "design": "Head of Design"
+      }
+    },
+    "cta": {
+      "title": "Want to build the future with us?",
+      "subtitle": "We're always looking for talented engineers and designers to join our remote team.",
+      "button": "View Open Roles"
+    }
   }
 }

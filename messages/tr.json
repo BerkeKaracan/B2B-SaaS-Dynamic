@@ -303,5 +303,54 @@
       "subtitle": "Güçlü API ve webhook sistemimiz, SaaS Engine'i herhangi bir iç aracınıza bağlamanıza olanak tanır.",
       "button": "API Dokümanlarını Oku"
     }
+  },
+  "AboutPage": {
+    "back": "Geri Dön",
+    "badge": "Hikayemiz",
+    "title": "Çalışma alanlarının geleceğini inşa ediyoruz.",
+    "subtitle": "Dünya çapındaki ekiplere uzamsal, dinamik ve sonsuz üretkenlik sunmayı görev edinmiş bir grup mühendis ve tasarımcıyız.",
+    "story": {
+      "title": "Her şey nasıl başladı?",
+      "p1": "2026'nın başlarında, geleneksel belgelerin ve doğrusal proje yönetim araçlarının temelden kusurlu olduğunu fark ettik. İnsan düşüncesini katı kalıplara zorluyor ve departmanlar arasında görünmez duvarlar örüyorlardı.",
+      "p2": "Bu sınırları yıkmak için SaaS Engine'i kurduk. Sonsuz bir uzamsal tuvali gerçek zamanlı ilişkisel veritabanlarıyla birleştirerek; fikirlerinizin, verilerinizin ve iş akışlarınızın sınırlamalar olmadan bir arada nefes alabileceği merkezi bir sinir sistemi yarattık."
+    },
+    "stats": {
+      "1": { "value": "2026", "label": "Kuruluş" },
+      "2": { "value": "%100", "label": "Bağımsız (Bootstrapped)" },
+      "3": { "value": "Küresel", "label": "Uzaktan Ekip" }
+    },
+    "values": {
+      "title": "Temel Değerlerimiz",
+      "v1": {
+        "title": "Hızlı Hareket Et",
+        "desc": "Hızla yineler, kullanıcılarımızı dinler ve gerçekten önemli olan özellikleri yayına alırız."
+      },
+      "v2": {
+        "title": "Güven İnşa Et",
+        "desc": "Kurumsal düzeyde güvenlik ve tavizsiz güvenilirlik kodumuzun kalbinde yer alır."
+      },
+      "v3": {
+        "title": "Önce İnsan",
+        "desc": "Yazılımları ekranın arkasındaki insan için tasarlar, sadeliğe ve keyfe odaklanırız."
+      },
+      "v4": {
+        "title": "Sonsuz Kal",
+        "desc": "Sınırsız yaratıcılığa, uzamsal düşünmeye ve limitleri aşan ölçeklenmeye inanıyoruz."
+      }
+    },
+    "team": {
+      "title": "Motorun arkasındaki zihinlerle tanışın",
+      "subtitle": "Kendini üretkenliğinize adamış düşünürler, geliştiriciler ve tasarımcılardan oluşan bir ekip.",
+      "roles": {
+        "ceo": "Kurucu Ortak & CEO",
+        "cto": "Kurucu Ortak & CTO",
+        "design": "Tasarım Lideri"
+      }
+    },
+    "cta": {
+      "title": "Geleceği bizimle inşa etmek ister misiniz?",
+      "subtitle": "Uzaktan çalışan ekibimize katılacak yetenekli mühendisler ve tasarımcılar arıyoruz.",
+      "button": "Açık Pozisyonları İncele"
+    }
   }
 }
