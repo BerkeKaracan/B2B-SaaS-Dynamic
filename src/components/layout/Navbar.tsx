@@ -6,6 +6,7 @@ import { useLayoutStore } from "@/store/useLayoutStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import NotificationBell from "@/components/layout/NotificationBell";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { User, Shield, Settings, LogOut, ChevronDown } from "lucide-react";
 
 export default function Navbar({
@@ -41,9 +42,9 @@ export default function Navbar({
 
     const loadTenantData = async () => {
       if (tenantId) {
-        setIsFetchingRole(true); 
+        setIsFetchingRole(true);
         await fetchUser(tenantId);
-        if (isMounted) setIsFetchingRole(false); 
+        if (isMounted) setIsFetchingRole(false);
       }
     };
 
@@ -72,11 +73,11 @@ export default function Navbar({
   };
 
   return (
-    <nav className="h-16 w-full border-b border-zinc-200/80 bg-white/80 backdrop-blur-lg flex items-center justify-between px-6 shrink-0 z-50 sticky top-0 shadow-sm">
+    <nav className="h-16 w-full border-b border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-lg flex items-center justify-between px-6 shrink-0 z-50 sticky top-0 shadow-sm transition-colors duration-300">
       <div className="flex items-center gap-4">
         <button
           onClick={onMenuToggle}
-          className="p-2 hover:bg-zinc-100 rounded-xl text-zinc-500 hover:text-zinc-900 transition-colors"
+          className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
         >
           <svg
             width="22"
@@ -98,23 +99,23 @@ export default function Navbar({
           className="flex items-center gap-2 hover:opacity-70 transition-opacity active:scale-95 transform-gpu cursor-pointer"
           title="Go to Dashboard"
         >
-          <span className="font-extrabold text-zinc-900 text-sm tracking-tight uppercase">
+          <span className="font-extrabold text-zinc-900 dark:text-white text-sm tracking-tight uppercase">
             Engine
           </span>
         </Link>
 
         <div className="ml-4 flex items-center h-full">
           {isSaving ? (
-            <div className="flex items-center gap-2 px-2.5 py-1 bg-zinc-50 rounded-md border border-zinc-100">
+            <div className="flex items-center gap-2 px-2.5 py-1 bg-zinc-50 dark:bg-zinc-800 rounded-md border border-zinc-100 dark:border-zinc-700">
               <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                 Saving
               </span>
             </div>
           ) : showSaved ? (
-            <div className="flex items-center gap-2 px-2.5 py-1 bg-emerald-50 rounded-md border border-emerald-100 transition-opacity duration-300">
+            <div className="flex items-center gap-2 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/30 rounded-md border border-emerald-100 dark:border-emerald-800 transition-opacity duration-300">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                 Saved
               </span>
             </div>
@@ -123,15 +124,16 @@ export default function Navbar({
       </div>
 
       <div className="flex items-center gap-4">
+        <ThemeToggle />
         <NotificationBell />
 
         {showProjectInfo && (
           <button
             onClick={toggleSecondarySidebar}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-extrabold text-zinc-600 bg-zinc-50 border hover:bg-zinc-100 rounded-xl transition-all group ${
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-extrabold bg-zinc-50 dark:bg-zinc-900 border hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all group ${
               isSecondarySidebarOpen
-                ? "border-zinc-300 text-zinc-950"
-                : "border-zinc-200/80 hover:text-zinc-950"
+                ? "border-zinc-300 dark:border-zinc-600 text-zinc-950 dark:text-white"
+                : "border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
             }`}
           >
             <div className="relative w-3.5 h-3.5 rounded-full border-[2px] border-current flex items-center justify-center shrink-0">
@@ -159,30 +161,30 @@ export default function Navbar({
             }
             className={`flex items-center gap-2.5 pl-1.5 pr-2 py-1.5 rounded-xl transition-all focus:outline-none border border-transparent ${
               user && !isFetchingRole
-                ? "hover:bg-zinc-100/80 hover:border-zinc-200 cursor-pointer"
+                ? "hover:bg-zinc-100/80 dark:hover:bg-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 cursor-pointer"
                 : "cursor-default"
             }`}
           >
             {!user || isFetchingRole ? (
               <div className="flex items-center gap-2.5 animate-pulse">
-                <div className="w-9 h-9 rounded-xl bg-zinc-200 shrink-0"></div>
+                <div className="w-9 h-9 rounded-xl bg-zinc-200 dark:bg-zinc-800 shrink-0"></div>
                 <div className="hidden sm:flex flex-col items-start justify-center gap-2">
-                  <div className="w-24 h-2.5 bg-zinc-200 rounded-full"></div>
-                  <div className="w-16 h-2 bg-zinc-200 rounded-full"></div>
+                  <div className="w-24 h-2.5 bg-zinc-200 dark:bg-zinc-800 rounded-full"></div>
+                  <div className="w-16 h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full"></div>
                 </div>
-                <ChevronDown className="w-4 h-4 text-zinc-200 ml-1" />
+                <ChevronDown className="w-4 h-4 text-zinc-200 dark:text-zinc-700 ml-1" />
               </div>
             ) : (
               <>
-                <div className="w-9 h-9 rounded-xl bg-zinc-950 text-white flex items-center justify-center text-sm font-extrabold shadow-sm shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 flex items-center justify-center text-sm font-extrabold shadow-sm shrink-0">
                   {initials}
                 </div>
 
                 <div className="hidden sm:flex flex-col items-start justify-center">
-                  <span className="text-[13px] font-bold text-zinc-900 leading-none mb-1">
+                  <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 leading-none mb-1">
                     {fullName}
                   </span>
-                  <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest leading-none truncate max-w-[120px]">
+                  <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-none truncate max-w-[120px]">
                     {displayRole}
                   </span>
                 </div>
@@ -197,66 +199,66 @@ export default function Navbar({
           </button>
 
           {isDropdownOpen && user && !isFetchingRole && (
-            <div className="absolute right-0 mt-2 w-64 bg-white border border-zinc-200/80 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="px-4 py-3 border-b border-zinc-100 bg-zinc-50/50 rounded-t-2xl mb-2">
-                <p className="text-sm font-extrabold text-zinc-950 truncate">
+            <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30 rounded-t-2xl mb-2">
+                <p className="text-sm font-extrabold text-zinc-950 dark:text-white truncate">
                   {fullName}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1 mb-0.5">
-                  <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
+                  <span className="text-[10px] uppercase font-bold text-zinc-500 dark:text-zinc-400 tracking-wider">
                     {displayRole}
                   </span>
                   {user?.department_name && (
-                    <span className="px-1.5 py-0.5 bg-zinc-100/80 border border-zinc-200 text-zinc-600 rounded text-[9px] font-semibold truncate max-w-[100px]">
+                    <span className="px-1.5 py-0.5 bg-zinc-100/80 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded text-[9px] font-semibold truncate max-w-[100px]">
                       {user.department_name}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-zinc-400 truncate mt-0.5">
+                <p className="text-xs text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
                   {user?.email || "user@company.com"}
                 </p>
               </div>
 
               <div className="p-2 space-y-0.5">
-                <div className="px-2 py-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                <div className="px-2 py-1.5 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
                   Account Settings
                 </div>
 
                 <Link
                   href={`/dashboard/${tenantId}/account/profile`}
                   onClick={() => setIsDropdownOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors group"
+                  className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors group"
                 >
-                  <User className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900" />
+                  <User className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-white" />
                   Personal Profile
                 </Link>
 
                 <Link
                   href={`/dashboard/${tenantId}/account/security`}
                   onClick={() => setIsDropdownOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors group"
+                  className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors group"
                 >
-                  <Shield className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900" />
+                  <Shield className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-white" />
                   Security & Password
                 </Link>
 
                 <Link
                   href={`/dashboard/${tenantId}/settings`}
                   onClick={() => setIsDropdownOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-700 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors group"
+                  className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors group"
                 >
-                  <Settings className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900" />
+                  <Settings className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-white" />
                   Workspace Settings
                 </Link>
               </div>
 
-              <div className="p-2 border-t border-zinc-100 mt-2">
+              <div className="p-2 border-t border-zinc-100 dark:border-zinc-800 mt-2">
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl transition-colors group"
+                  className="w-full flex items-center justify-between px-3 py-2 text-sm font-bold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-400 rounded-xl transition-colors group"
                 >
                   Sign Out
-                  <LogOut className="w-4 h-4 text-red-400 group-hover:text-red-600" />
+                  <LogOut className="w-4 h-4 text-red-400 dark:text-red-500/70 group-hover:text-red-600 dark:group-hover:text-red-400" />
                 </button>
               </div>
             </div>
