@@ -5,6 +5,8 @@ import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import CookieConsent from "@/components/CookieConsent";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages } from "next-intl/server";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,19 +16,23 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
+  const messages = await getMessages();
+
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <Toaster position="bottom-right" />
-        {children}
-        <CookieConsent />
-        <Analytics />
-        <SpeedInsights />
+    <html lang={locale}>
+      <head></head>
+      <body>
+        <NextIntlClientProvider messages={messages}>
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

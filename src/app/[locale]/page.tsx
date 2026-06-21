@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/layout/Footer";
+import { useTranslations } from "next-intl";
 import {
   Layers,
   Database,
@@ -17,57 +18,28 @@ import {
   Menu,
   X,
   ArrowRight,
-  Zap,
-  Shield,
-  LayoutDashboard,
 } from "lucide-react";
 import LandingChatbot from "@/components/chat/LandingChatbot";
 import DraggableFeatureBox from "@/components/ui/DraggableFeatureBox";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
 
-const parseMarkdown = (text: string) => {
-  if (!text) return null;
-
-  let parsedText = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-
-  parsedText = parsedText.replace(/\*(.*?)\*/g, "<em>$1</em>");
-
-  parsedText = parsedText.replace(/\n/g, "<br />");
-
-  parsedText = parsedText.replace(
-    /^- (.*)$/gm,
-    "<li class='ml-4 list-disc'>$1</li>",
-  );
-
-  return <span dangerouslySetInnerHTML={{ __html: parsedText }} />;
-};
-
 export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
   const { user } = useAuthStore();
 
-  const handleDeployClick = (e: React.MouseEvent) => {
-    e.preventDefault();
+  const t = useTranslations("LandingPage");
 
-    if (user) {
-      router.push("/onboarding");
-    } else {
-      router.push("/login");
-    }
-  };
   return (
     <div className="relative min-h-screen bg-[#fafafb] text-zinc-900 font-sans antialiased selection:bg-zinc-200 flex flex-col overflow-hidden">
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center transform-gpu will-change-transform">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] opacity-[0.3] transform-gpu"></div>
-
         <svg
           className="absolute top-0 left-0 w-full md:w-1/2 h-full opacity-5 text-zinc-900"
           preserveAspectRatio="none"
           viewBox="0 0 500 1000"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
         >
           <path
             d="M0,0 C200,200 50,400 300,600 C500,800 100,900 0,1000 Z"
@@ -78,13 +50,11 @@ export default function LandingPage() {
             fill="currentColor"
           />
         </svg>
-
         <svg
           className="absolute top-0 right-0 w-full md:w-1/2 h-full opacity-5 text-zinc-900"
           preserveAspectRatio="none"
           viewBox="0 0 500 1000"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
         >
           <path
             d="M500,0 C300,200 450,400 200,600 C0,800 400,900 500,1000 Z"
@@ -95,7 +65,6 @@ export default function LandingPage() {
             fill="currentColor"
           />
         </svg>
-
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-white rounded-full blur-[100px] opacity-80 transform-gpu will-change-transform"></div>
       </div>
 
@@ -118,7 +87,7 @@ export default function LandingPage() {
         <nav className="hidden md:flex items-center gap-2 h-full">
           <div className="relative group h-full flex items-center">
             <button className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-zinc-100/80">
-              Platform
+              {t("nav.platform")}
               <svg
                 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
                 fill="none"
@@ -129,15 +98,12 @@ export default function LandingPage() {
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-
             <div className="absolute top-[calc(100%-10px)] left-0 w-full h-[20px] bg-transparent z-40"></div>
-
             <div className="absolute top-[calc(100%+5px)] left-1/2 -translate-x-1/2 w-[650px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-4xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 z-50 overflow-hidden flex">
               <div className="w-2/3 p-6 grid grid-cols-1 gap-3 bg-white">
                 <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">
-                  Core Capabilities
+                  {t("nav.coreCapabilities")}
                 </span>
-
                 <Link
                   href="/docs?sec=canvas"
                   className="group/feature relative p-4 bg-white hover:bg-zinc-50/80 rounded-2xl border border-zinc-100 hover:border-indigo-200 transition-all block overflow-hidden transform-gpu hover:-translate-y-0.5 shadow-sm hover:shadow-md"
@@ -147,14 +113,12 @@ export default function LandingPage() {
                     <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-inner group-hover/feature:scale-110 transition-transform transform-gpu">
                       <Layers className="w-4 h-4" />
                     </div>
-                    Spatial Canvas Engine
+                    {t("nav.spatialCanvas")}
                   </h4>
                   <p className="text-[11px] text-zinc-500 font-medium leading-relaxed pl-11">
-                    Infinite vector grids for dynamic block orchestration and
-                    infinite workflow mapping.
+                    {t("nav.spatialCanvasDesc")}
                   </p>
                 </Link>
-
                 <Link
                   href="/docs?sec=autosave"
                   className="group/feature relative p-4 bg-white hover:bg-zinc-50/80 rounded-2xl border border-zinc-100 hover:border-emerald-200 transition-all block overflow-hidden transform-gpu hover:-translate-y-0.5 shadow-sm hover:shadow-md"
@@ -164,20 +128,17 @@ export default function LandingPage() {
                     <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner group-hover/feature:scale-110 transition-transform transform-gpu">
                       <Database className="w-4 h-4" />
                     </div>
-                    Real-Time Sync (JSONB)
+                    {t("nav.realTimeSync")}
                   </h4>
                   <p className="text-[11px] text-zinc-500 font-medium leading-relaxed pl-11">
-                    Zero-latency background data streaming utilizing advanced
-                    PostgreSQL primitives.
+                    {t("nav.realTimeSyncDesc")}
                   </p>
                 </Link>
               </div>
-
               <div className="w-1/3 bg-zinc-50/50 p-6 border-l border-zinc-100 flex flex-col gap-5">
                 <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
-                  Security & Data
+                  {t("nav.securityData")}
                 </span>
-
                 <Link
                   href="/docs?sec=rbac"
                   className="group/item flex items-start gap-3"
@@ -187,14 +148,13 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h4 className="text-[13px] font-bold text-zinc-900 group-hover/item:text-blue-600 transition-colors">
-                      Enterprise RBAC
+                      {t("nav.enterpriseRbac")}
                     </h4>
                     <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
-                      Granular Row-Level Security.
+                      {t("nav.enterpriseRbacDesc")}
                     </p>
                   </div>
                 </Link>
-
                 <Link
                   href="/docs?sec=assets"
                   className="group/item flex items-start gap-3"
@@ -204,10 +164,10 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h4 className="text-[13px] font-bold text-zinc-900 group-hover/item:text-purple-600 transition-colors">
-                      Cloud Storage
+                      {t("nav.cloudStorage")}
                     </h4>
                     <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
-                      Protected Supabase buckets.
+                      {t("nav.cloudStorageDesc")}
                     </p>
                   </div>
                 </Link>
@@ -217,7 +177,7 @@ export default function LandingPage() {
 
           <div className="relative group h-full flex items-center">
             <button className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-zinc-100/80">
-              Solutions
+              {t("nav.solutions")}
               <svg
                 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
                 fill="none"
@@ -228,63 +188,57 @@ export default function LandingPage() {
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-
             <div className="absolute top-[calc(100%-10px)] left-0 w-full h-[20px] bg-transparent z-40"></div>
-
             <div className="absolute top-[calc(100%+5px)] left-1/2 -translate-x-1/2 w-[520px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-4xl p-5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 grid grid-cols-2 gap-x-4 gap-y-2 z-50">
               <div className="col-span-2 px-3 py-2 text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 mb-2">
-                Industry Use Cases
+                {t("nav.industryUseCases")}
               </div>
-
               <Link
                 href="/solutions/engineering"
                 className="p-3 hover:bg-zinc-50 rounded-2xl transition-colors block border border-transparent hover:border-zinc-200/60 hover:shadow-sm group/sol"
               >
                 <h4 className="text-xs font-black text-zinc-900 flex items-center gap-2">
                   <GitMerge className="w-3.5 h-3.5 text-zinc-400 group-hover/sol:text-indigo-600" />
-                  Engineering & Product
+                  {t("nav.engineeringProduct")}
                 </h4>
                 <p className="text-[11px] text-zinc-500 font-medium mt-1 pl-5.5">
-                  Sprint planning & bug tracking.
+                  {t("nav.engineeringProductDesc")}
                 </p>
               </Link>
-
               <Link
                 href="/solutions/hr"
                 className="p-3 hover:bg-zinc-50 rounded-2xl transition-colors block border border-transparent hover:border-zinc-200/60 hover:shadow-sm group/sol"
               >
                 <h4 className="text-xs font-black text-zinc-900 flex items-center gap-2">
                   <Users className="w-3.5 h-3.5 text-zinc-400 group-hover/sol:text-rose-600" />
-                  Human Resources
+                  {t("nav.humanResources")}
                 </h4>
                 <p className="text-[11px] text-zinc-500 font-medium mt-1 pl-5.5">
-                  Onboarding workflows & policies.
+                  {t("nav.humanResourcesDesc")}
                 </p>
               </Link>
-
               <Link
                 href="/solutions/sales"
                 className="p-3 hover:bg-zinc-50 rounded-2xl transition-colors block border border-transparent hover:border-zinc-200/60 hover:shadow-sm group/sol"
               >
                 <h4 className="text-xs font-black text-zinc-900 flex items-center gap-2">
                   <TrendingUp className="w-3.5 h-3.5 text-zinc-400 group-hover/sol:text-emerald-600" />
-                  Sales & CRM
+                  {t("nav.salesCrm")}
                 </h4>
                 <p className="text-[11px] text-zinc-500 font-medium mt-1 pl-5.5">
-                  Deal pipelines & conversion grids.
+                  {t("nav.salesCrmDesc")}
                 </p>
               </Link>
-
               <Link
                 href="/solutions/operations"
                 className="p-3 hover:bg-zinc-50 rounded-2xl transition-colors block border border-transparent hover:border-zinc-200/60 hover:shadow-sm group/sol"
               >
                 <h4 className="text-xs font-black text-zinc-900 flex items-center gap-2">
                   <Briefcase className="w-3.5 h-3.5 text-zinc-400 group-hover/sol:text-amber-600" />
-                  Strategy & Ops
+                  {t("nav.strategyOps")}
                 </h4>
                 <p className="text-[11px] text-zinc-500 font-medium mt-1 pl-5.5">
-                  OKRs and executive timelines.
+                  {t("nav.strategyOpsDesc")}
                 </p>
               </Link>
             </div>
@@ -292,7 +246,7 @@ export default function LandingPage() {
 
           <div className="relative group h-full flex items-center">
             <button className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-zinc-100/80">
-              Developers
+              {t("nav.developers")}
               <svg
                 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
                 fill="none"
@@ -303,9 +257,7 @@ export default function LandingPage() {
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </button>
-
             <div className="absolute top-[calc(100%-10px)] left-0 w-full h-[20px] bg-transparent z-40"></div>
-
             <div className="absolute top-[calc(100%+5px)] left-0 w-[260px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-3xl p-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 flex flex-col z-50">
               <Link
                 href="/docs"
@@ -313,10 +265,9 @@ export default function LandingPage() {
               >
                 <FileText className="w-4 h-4 text-zinc-400 group-hover/link:text-zinc-900" />
                 <span className="text-[13px] font-bold text-zinc-700 group-hover/link:text-zinc-950">
-                  Documentation
+                  {t("nav.documentation")}
                 </span>
               </Link>
-
               <Link
                 href="/changelog"
                 className="px-4 py-3 hover:bg-zinc-50 rounded-xl flex items-center justify-between group/link transition-colors"
@@ -324,23 +275,21 @@ export default function LandingPage() {
                 <div className="flex items-center gap-3">
                   <Activity className="w-4 h-4 text-zinc-400 group-hover/link:text-zinc-900" />
                   <span className="text-[13px] font-bold text-zinc-700 group-hover/link:text-zinc-950">
-                    Changelog
+                    {t("nav.changelog")}
                   </span>
                 </div>
                 <span className="text-[9px] font-black bg-blue-50 border border-blue-100 text-blue-600 px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">
-                  New
+                  {t("nav.new")}
                 </span>
               </Link>
-
               <div className="h-px bg-zinc-100 my-1 mx-3"></div>
-
               <Link
                 href="/demo"
                 className="px-4 py-3 hover:bg-zinc-50 rounded-xl flex items-center gap-3 group/link transition-colors"
               >
                 <Rocket className="w-4 h-4 text-zinc-400 group-hover/link:text-zinc-900" />
                 <span className="text-[13px] font-bold text-zinc-700 group-hover/link:text-zinc-950">
-                  Community Hub
+                  {t("nav.communityHub")}
                 </span>
               </Link>
             </div>
@@ -350,7 +299,7 @@ export default function LandingPage() {
             href="/pricing"
             className="text-[13px] font-bold text-zinc-500 hover:text-zinc-950 transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-100/80"
           >
-            Pricing
+            {t("nav.pricing")}
           </Link>
         </nav>
 
@@ -359,14 +308,14 @@ export default function LandingPage() {
             href="/login"
             className="hidden md:block text-[13px] font-extrabold text-zinc-500 hover:text-zinc-950 transition-colors"
           >
-            Sign In
+            {t("nav.signIn")}
           </Link>
           <div className="h-4 w-px bg-zinc-200 hidden md:block"></div>
           <Link
             href="/register"
             className="text-[13px] font-extrabold bg-zinc-950 text-white px-5 py-2.5 rounded-xl hover:bg-zinc-800 transition-all shadow-[0_4px_14px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] flex items-center gap-2 transform-gpu hover:-translate-y-0.5 active:scale-95"
           >
-            Deploy Workspace
+            {t("nav.deployWorkspace")}
             <svg
               width="14"
               height="14"
@@ -402,13 +351,13 @@ export default function LandingPage() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="text-base font-bold text-zinc-900 flex items-center justify-between"
                 >
-                  Platform <ArrowRight className="w-4 h-4 text-zinc-300" />
+                  {t("nav.platform")}{" "}
+                  <ArrowRight className="w-4 h-4 text-zinc-300" />
                 </Link>
 
-                {/* DÜZELTİLEN KISIM: 4 Farklı Çözüm Sayfası Eklendi */}
                 <div className="flex flex-col space-y-4 pt-2 pb-2">
                   <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 pb-2">
-                    Solutions
+                    {t("nav.solutions")}
                   </span>
                   <div className="flex flex-col space-y-4 pl-2">
                     <Link
@@ -417,31 +366,31 @@ export default function LandingPage() {
                       className="text-sm font-bold text-zinc-700 flex items-center gap-3"
                     >
                       <GitMerge className="w-4 h-4 text-indigo-500" />{" "}
-                      Engineering & Product
+                      {t("nav.engineeringProduct")}
                     </Link>
                     <Link
                       href="/solutions/hr"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="text-sm font-bold text-zinc-700 flex items-center gap-3"
                     >
-                      <Users className="w-4 h-4 text-rose-500" /> Human
-                      Resources
+                      <Users className="w-4 h-4 text-rose-500" />{" "}
+                      {t("nav.humanResources")}
                     </Link>
                     <Link
                       href="/solutions/sales"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="text-sm font-bold text-zinc-700 flex items-center gap-3"
                     >
-                      <TrendingUp className="w-4 h-4 text-emerald-500" /> Sales
-                      & CRM
+                      <TrendingUp className="w-4 h-4 text-emerald-500" />{" "}
+                      {t("nav.salesCrm")}
                     </Link>
                     <Link
                       href="/solutions/operations"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="text-sm font-bold text-zinc-700 flex items-center gap-3"
                     >
-                      <Briefcase className="w-4 h-4 text-amber-500" /> Strategy
-                      & Ops
+                      <Briefcase className="w-4 h-4 text-amber-500" />{" "}
+                      {t("nav.strategyOps")}
                     </Link>
                   </div>
                 </div>
@@ -451,14 +400,16 @@ export default function LandingPage() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="text-base font-bold text-zinc-900 flex items-center justify-between"
                 >
-                  Developers <ArrowRight className="w-4 h-4 text-zinc-300" />
+                  {t("nav.developers")}{" "}
+                  <ArrowRight className="w-4 h-4 text-zinc-300" />
                 </Link>
                 <Link
                   href="/pricing"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="text-base font-bold text-zinc-900 flex items-center justify-between"
                 >
-                  Pricing <ArrowRight className="w-4 h-4 text-zinc-300" />
+                  {t("nav.pricing")}{" "}
+                  <ArrowRight className="w-4 h-4 text-zinc-300" />
                 </Link>
               </div>
               <div className="h-px bg-zinc-200/80 w-full"></div>
@@ -468,7 +419,7 @@ export default function LandingPage() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="text-base font-bold text-zinc-600 flex items-center justify-between"
                 >
-                  Sign In
+                  {t("nav.signIn")}
                 </Link>
               </div>
             </div>
@@ -480,19 +431,18 @@ export default function LandingPage() {
         <section className="pt-40 pb-20 px-6 flex flex-col items-center text-center max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-zinc-200/80 text-xs font-semibold text-zinc-600 mb-8 shadow-sm">
             <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
-            SaaS Engine v2.0 is Live
+            {t("hero.versionLive")}
           </div>
 
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 mb-6 leading-[1.1]">
-            The Operating System for{" "}
+            {t("hero.title1")}{" "}
             <span className="text-transparent bg-clip-text bg-linear-to-r from-zinc-900 to-zinc-500">
-              your Company.
+              {t("hero.title2")}
             </span>
           </h1>
 
           <p className="text-lg md:text-xl text-zinc-500 mb-10 max-w-2xl leading-relaxed">
-            Manage your projects, design your custom workflow with dynamic
-            blocks, and organize your team in seconds with role-based access.
+            {t("hero.subtitle")}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
@@ -500,7 +450,7 @@ export default function LandingPage() {
               href="/register"
               className="w-full sm:w-auto px-8 py-4 bg-zinc-900 text-white rounded-xl font-bold text-base hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2"
             >
-              Create Your Workspace
+              {t("hero.createWorkspace")}
               <svg
                 width="18"
                 height="18"
@@ -515,18 +465,18 @@ export default function LandingPage() {
                 <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
             </Link>
-            <a
+            <Link
               href="/demo"
               className="w-full sm:w-auto px-8 py-4 bg-white text-zinc-900 border-2 border-zinc-200 rounded-2xl font-bold text-base hover:border-zinc-300 hover:bg-zinc-50 transition-all flex items-center justify-center gap-2 shadow-sm"
             >
-              View Demo
-            </a>
+              {t("hero.viewDemo")}
+            </Link>
           </div>
         </section>
 
         <section className="py-10 border-y border-zinc-200/60 bg-white/60 backdrop-blur-md overflow-hidden flex flex-col relative">
           <p className="text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-8 relative z-20">
-            Trusted by Industry Leaders
+            {t("hero.trustedBy")}
           </p>
           <div className="absolute left-0 top-0 bottom-0 w-32 bg-linear-to-r from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
           <div className="absolute right-0 top-0 bottom-0 w-32 bg-linear-to-l from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
@@ -640,19 +590,16 @@ export default function LandingPage() {
                     d="M13 10V3L4 14h7v7l9-11h-7z"
                   />
                 </svg>
-                Introducing Workspace AI
+                {t("ai.badge")}
               </div>
               <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight leading-[1.1]">
-                Chat directly with <br className="hidden md:block" />
+                {t("ai.title1")} <br className="hidden md:block" />
                 <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-500 to-violet-600">
-                  your Canvas Data.
+                  {t("ai.title2")}
                 </span>
               </h2>
               <p className="text-lg text-zinc-500 leading-relaxed">
-                Meet your context-aware AI assistant. Our built-in RAG engine
-                reads your active blocks in real-time. Ask questions, summarize
-                projects, or use the Generative Wand to let AI structure your
-                thoughts instantly.
+                {t("ai.desc")}
               </p>
 
               <ul className="space-y-4 mt-8">
@@ -660,19 +607,19 @@ export default function LandingPage() {
                   <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
                     ✓
                   </div>
-                  Context-Aware Chatbot (Llama 3.3)
+                  {t("ai.feat1")}
                 </li>
                 <li className="flex items-center gap-4 text-zinc-700 font-bold text-sm">
                   <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 shrink-0">
                     ✓
                   </div>
-                  Generative Magic Wand
+                  {t("ai.feat2")}
                 </li>
                 <li className="flex items-center gap-4 text-zinc-700 font-bold text-sm">
                   <div className="w-8 h-8 rounded-full bg-fuchsia-100 flex items-center justify-center text-fuchsia-600 shrink-0">
                     ✓
                   </div>
-                  Real-time Canvas Parsing
+                  {t("ai.feat3")}
                 </li>
               </ul>
             </div>
@@ -690,7 +637,7 @@ export default function LandingPage() {
 
                 <div className="flex flex-col gap-5 flex-1 overflow-hidden font-sans">
                   <div className="self-end bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm text-[13px] shadow-sm max-w-[85%] font-medium">
-                    Summarize the Q3 Roadmap items on my canvas.
+                    {t("ai.chatQ")}
                   </div>
 
                   <div className="self-start flex gap-3 max-w-[90%]">
@@ -710,23 +657,23 @@ export default function LandingPage() {
                       </svg>
                     </div>
                     <div className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-2xl rounded-tl-sm text-[13px] shadow-sm border border-zinc-700/50 leading-relaxed">
-                      Based on your current canvas, the Q3 Roadmap focuses on:
+                      {t("ai.chatA1")}
                       <br />
                       <br />
                       <span className="text-white font-bold">
-                        1. Multi-tenant SSO
+                        {t("ai.chatA2")}
                       </span>
                       <br />
                       <span className="text-white font-bold">
-                        2. New Block Types
+                        {t("ai.chatA3")}
                       </span>
                       <br />
                       <span className="text-white font-bold">
-                        3. Database Sharding
+                        {t("ai.chatA4")}
                       </span>
                       <br />
                       <br />
-                      Should I generate a timeline block for these?
+                      {t("ai.chatA5")}
                     </div>
                   </div>
                 </div>
@@ -740,11 +687,9 @@ export default function LandingPage() {
         <section className="py-24 px-6 max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-zinc-900 tracking-tight">
-              Everything you need, out of the box.
+              {t("features.title")}
             </h2>
-            <p className="text-zinc-500 mt-4">
-              No complex setups, just focus on your work.
-            </p>
+            <p className="text-zinc-500 mt-4">{t("features.subtitle")}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -764,11 +709,10 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-zinc-900 mb-2">
-                Dynamic Work Blocks
+                {t("features.f1Title")}
               </h3>
               <p className="text-zinc-500 leading-relaxed text-sm">
-                Drag and drop text, dates, and form fields to shape your
-                projects exactly how you want them.
+                {t("features.f1Desc")}
               </p>
             </div>
 
@@ -786,11 +730,10 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-zinc-900 mb-2">
-                Workspace RBAC
+                {t("features.f2Title")}
               </h3>
               <p className="text-zinc-500 leading-relaxed text-sm">
-                Admins see everything, while your team sees only what they need
-                to. Perfect workspace security.
+                {t("features.f2Desc")}
               </p>
             </div>
 
@@ -809,11 +752,10 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-zinc-900 mb-2">
-                Real-Time Auto Save
+                {t("features.f3Title")}
               </h3>
               <p className="text-zinc-500 leading-relaxed text-sm">
-                Everything is saved instantly in the background as you work.
-                Never lose data again.
+                {t("features.f3Desc")}
               </p>
             </div>
 
@@ -836,11 +778,10 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-zinc-900 mb-2">
-                Project-Level Access
+                {t("features.f4Title")}
               </h3>
               <p className="text-zinc-500 leading-relaxed text-sm">
-                Invite specific teammates to view or edit individual projects
-                without giving full workspace access.
+                {t("features.f4Desc")}
               </p>
             </div>
 
@@ -861,11 +802,10 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-zinc-900 mb-2">
-                Smart Notifications
+                {t("features.f5Title")}
               </h3>
               <p className="text-zinc-500 leading-relaxed text-sm">
-                Get real-time application alerts for project invites and role
-                updates right in your dashboard.
+                {t("features.f5Desc")}
               </p>
             </div>
 
@@ -887,11 +827,10 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-zinc-900 mb-2">
-                JSONB Architecture
+                {t("features.f6Title")}
               </h3>
               <p className="text-zinc-500 leading-relaxed text-sm">
-                Store complex custom data structures securely with
-                lightning-fast PostgreSQL JSONB queries.
+                {t("features.f6Desc")}
               </p>
             </div>
           </div>
@@ -900,21 +839,19 @@ export default function LandingPage() {
         <section className="py-24 px-6 max-w-6xl mx-auto border-t border-zinc-200/60 mt-10">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">
-              Enterprise-grade architecture. <br className="hidden sm:block" />
-              <span className="text-zinc-400">Zero compromises.</span>
+              {t("architecture.title1")} <br className="hidden sm:block" />
+              <span className="text-zinc-400">{t("architecture.title2")}</span>
             </h2>
             <p className="text-zinc-500 mt-4 max-w-2xl mx-auto text-lg leading-relaxed">
-              SaaS Engine isn&lsquo;t just another wrapper. It&lsquo;s built
-              from the ground up using a modern, scalable, and secure technology
-              stack designed for real-world performance.
+              {t("architecture.desc")}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <DraggableFeatureBox
-              title="Next.js 16 & Zustand"
-              desc="Lightning-fast React rendering on the edge, combined with Zustand for zero-lag synchronous state management across your canvas."
-              deepDive="Server Actions integration ensures instant data mutations with zero client-side waterfall requests."
+              title={t("architecture.t1")}
+              desc={t("architecture.d1")}
+              deepDive={t("architecture.dd1")}
               icon={
                 <svg
                   className="w-6 h-6"
@@ -927,9 +864,9 @@ export default function LandingPage() {
             />
 
             <DraggableFeatureBox
-              title="FastAPI & Python Engine"
-              desc="High-performance asynchronous backend architecture to handle complex RAG pipelines and heavy data processing instantly."
-              deepDive="Utilizes async endpoints to seamlessly manage thousands of concurrent WebSocket streams for AI tasks."
+              title={t("architecture.t2")}
+              desc={t("architecture.d2")}
+              deepDive={t("architecture.dd2")}
               icon={
                 <svg
                   className="w-6 h-6 text-emerald-400"
@@ -948,9 +885,9 @@ export default function LandingPage() {
             />
 
             <DraggableFeatureBox
-              title="Llama 3.3 (Groq RAG)"
-              desc="State-of-the-art open-weight AI models providing real-time, context-aware generations directly inside your workspace."
-              deepDive="Inference running at 800+ tokens per second. Fully contextualized with your active canvas elements."
+              title={t("architecture.t3")}
+              desc={t("architecture.d3")}
+              deepDive={t("architecture.dd3")}
               icon={
                 <svg
                   className="w-6 h-6 text-indigo-400"
@@ -962,16 +899,16 @@ export default function LandingPage() {
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-.988-2.386l-.548-.547z"
                   />
                 </svg>
               }
             />
 
             <DraggableFeatureBox
-              title="Supabase & PostgreSQL"
-              desc="Dynamic canvas data stored seamlessly in JSONB structures, backed by Row Level Security (RLS) for strict multi-tenant isolation."
-              deepDive="Native vector embeddings and real-time subscriptions enabled on all core tables for instant client updates."
+              title={t("architecture.t4")}
+              desc={t("architecture.d4")}
+              deepDive={t("architecture.dd4")}
               icon={
                 <svg
                   className="w-6 h-6 text-green-400"
@@ -990,9 +927,9 @@ export default function LandingPage() {
             />
 
             <DraggableFeatureBox
-              title="Sentry APM"
-              desc="Enterprise-grade application performance monitoring and error tracking ensuring 99.99% uptime and immediate bug resolution."
-              deepDive="End-to-end distributed tracing connects Next.js frontend actions directly to Python backend queries."
+              title={t("architecture.t5")}
+              desc={t("architecture.d5")}
+              deepDive={t("architecture.dd5")}
               icon={
                 <svg
                   className="w-6 h-6 text-red-400"
@@ -1011,9 +948,9 @@ export default function LandingPage() {
             />
 
             <DraggableFeatureBox
-              title="Docker Containerized"
-              desc="Fully containerized infrastructure allowing consistent deployments and extreme scalability across any cloud environment."
-              deepDive="Multi-stage builds drastically reduce image sizes. 100% prepared for Kubernetes (K8s) auto-scaling clusters."
+              title={t("architecture.t6")}
+              desc={t("architecture.d6")}
+              deepDive={t("architecture.dd6")}
               icon={
                 <svg
                   className="w-6 h-6 text-blue-400"
@@ -1034,24 +971,24 @@ export default function LandingPage() {
         </section>
 
         <section className="py-24 lg:py-32 relative overflow-hidden border-t border-zinc-200/60 mt-10">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-zinc-100 via-transparent to-transparent -z-10"></div>
+
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
               <div className="w-full lg:w-5/12 space-y-8 z-10">
                 <div>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-xs font-bold text-blue-600 mb-6 shadow-sm">
                     <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
-                    Workspace Anatomy
+                    {t("anatomy.badge")}
                   </div>
                   <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight mb-5 leading-[1.1]">
-                    Everything you need, <br />
+                    {t("anatomy.title1")} <br />
                     <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
-                      in one view.
+                      {t("anatomy.title2")}
                     </span>
                   </h2>
                   <p className="text-lg text-zinc-500 leading-relaxed font-medium">
-                    No clutter, just pure productivity. We designed the
-                    interface to keep your focus exactly where it belongs: on
-                    your work. The canvas dynamically adapts to what you need.
+                    {t("anatomy.desc")}
                   </p>
                 </div>
 
@@ -1074,11 +1011,10 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-zinc-900">
-                        Dynamic Modules
+                        {t("anatomy.f1Title")}
                       </h4>
                       <p className="text-sm text-zinc-500 mt-1.5 leading-relaxed">
-                        Switch seamlessly between Canvas, Kanban, and Timeline
-                        views without losing your context.
+                        {t("anatomy.f1Desc")}
                       </p>
                     </div>
                   </div>
@@ -1101,11 +1037,10 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <h4 className="text-lg font-bold text-zinc-900">
-                        Always-on AI
+                        {t("anatomy.f2Title")}
                       </h4>
                       <p className="text-sm text-zinc-500 mt-1.5 leading-relaxed">
-                        Your context-aware AI assistant is always ready in the
-                        sidebar to summarize or generate blocks.
+                        {t("anatomy.f2Desc")}
                       </p>
                     </div>
                   </div>
@@ -1114,14 +1049,12 @@ export default function LandingPage() {
 
               <div className="w-full lg:w-7/12 relative z-10 group">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-blue-500/20 blur-[100px] rounded-full -z-10 transition-opacity duration-700 opacity-70 group-hover:opacity-100"></div>
-
                 <div className="relative w-full rounded-2xl md:rounded-3xl border border-zinc-200/80 shadow-2xl shadow-indigo-900/10 bg-white/60 backdrop-blur-xl p-2 md:p-3 transition-transform duration-700 hover:-translate-y-2">
                   <div className="flex items-center gap-1.5 px-2 pb-2 md:pb-3 pt-1">
                     <div className="w-2.5 h-2.5 rounded-full bg-zinc-300"></div>
                     <div className="w-2.5 h-2.5 rounded-full bg-zinc-300"></div>
                     <div className="w-2.5 h-2.5 rounded-full bg-zinc-300"></div>
                   </div>
-
                   <div className="rounded-lg md:rounded-xl border border-zinc-200/50 overflow-hidden bg-zinc-50 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -1130,7 +1063,6 @@ export default function LandingPage() {
                       className="w-full h-auto block"
                     />
                   </div>
-
                   <div className="absolute inset-0 ring-1 ring-inset ring-black/2 rounded-2xl md:rounded-3xl pointer-events-none"></div>
                 </div>
               </div>
@@ -1142,7 +1074,6 @@ export default function LandingPage() {
           <div className="relative w-full bg-zinc-950 rounded-4xl border border-zinc-800 p-8 md:p-12 overflow-hidden shadow-2xl group">
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 bg-indigo-500/20 rounded-full blur-[80px] group-hover:bg-indigo-500/30 transition-colors duration-700 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 bg-fuchsia-500/20 rounded-full blur-[80px] group-hover:bg-fuchsia-500/30 transition-colors duration-700 pointer-events-none"></div>
-
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#3f3f46_1px,transparent_1px),linear-gradient(to_bottom,#3f3f46_1px,transparent_1px)] bg-size-[3rem_3rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 pointer-events-none"></div>
 
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
@@ -1152,21 +1083,17 @@ export default function LandingPage() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                   </span>
-                  Early Adopter Special
+                  {t("promo.badge")}
                 </div>
-
                 <h3 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-4 leading-tight">
-                  Unlock the{" "}
+                  {t("promo.title1")}{" "}
                   <span className="text-transparent bg-clip-text bg-linear-to-r from-amber-200 via-yellow-400 to-amber-600">
-                    Pro Edition
+                    {t("promo.title2")}
                   </span>{" "}
-                  today.
+                  {t("promo.title3")}
                 </h3>
-
                 <p className="text-zinc-400 text-base md:text-lg font-medium max-w-xl leading-relaxed">
-                  Join the beta now and get lifetime access to the Llama 3.3 RAG
-                  engine, unlimited dynamic blocks, and priority support. No
-                  credit card required for the first 14 days.
+                  {t("promo.desc")}
                 </p>
               </div>
 
@@ -1175,7 +1102,7 @@ export default function LandingPage() {
                   href="/register"
                   className="w-full md:w-auto px-8 py-4 bg-white text-zinc-950 font-extrabold rounded-2xl hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-1"
                 >
-                  Claim Your Offer
+                  {t("promo.claim")}
                   <svg
                     className="w-5 h-5"
                     fill="none"
@@ -1190,7 +1117,6 @@ export default function LandingPage() {
                     />
                   </svg>
                 </Link>
-
                 <p className="text-center md:text-right text-[11px] text-zinc-500 mt-4 uppercase tracking-widest font-bold flex items-center gap-1.5">
                   <svg
                     className="w-3.5 h-3.5 text-zinc-500"
@@ -1205,7 +1131,7 @@ export default function LandingPage() {
                       d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  Limited spots available
+                  {t("promo.spots")}
                 </p>
               </div>
             </div>
@@ -1214,27 +1140,24 @@ export default function LandingPage() {
 
         <section className="py-32 px-6 max-w-7xl mx-auto border-t border-zinc-200/60 mt-10 relative overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-zinc-100 via-transparent to-transparent -z-10"></div>
-
           <div className="flex flex-col lg:flex-row gap-16 items-center">
             <div className="flex-1 space-y-8 lg:pr-10">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-xs font-bold text-zinc-600 shadow-sm">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                Personal Workspaces
+                {t("personal.badge")}
               </div>
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-zinc-900 tracking-tight leading-[1.05]">
-                Not just for teams. <br className="hidden md:block" />
+                {t("personal.title1")} <br className="hidden md:block" />
                 <span className="text-transparent bg-clip-text bg-linear-to-r from-zinc-400 to-zinc-600">
-                  Built for your life.
+                  {t("personal.title2")}
                 </span>
               </h2>
               <p className="text-lg md:text-xl text-zinc-500 leading-relaxed max-w-lg">
-                You don&lsquo;t need a company to harness the power of our
-                platform. Turn your workspace into a{" "}
+                {t("personal.desc1")}
                 <strong className="text-zinc-900 font-bold">
-                  Personal Second Brain
+                  {t("personal.descStrong")}
                 </strong>
-                . Organize your studies, plan your freelance projects, or track
-                your daily life with the same enterprise-grade tools.
+                {t("personal.desc2")}
               </p>
 
               <div className="pt-4 flex gap-6 items-center">
@@ -1243,14 +1166,14 @@ export default function LandingPage() {
                     100%
                   </span>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                    Private
+                    {t("personal.private")}
                   </span>
                 </div>
                 <div className="w-px h-10 bg-zinc-200"></div>
                 <div className="flex flex-col">
                   <span className="text-3xl font-black text-zinc-900">∞</span>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                    Blocks
+                    {t("personal.blocks")}
                   </span>
                 </div>
               </div>
@@ -1275,11 +1198,10 @@ export default function LandingPage() {
                   </svg>
                 </div>
                 <h4 className="text-xl font-bold text-zinc-900 mb-3">
-                  Students & Research
+                  {t("personal.t1")}
                 </h4>
                 <p className="text-sm text-zinc-500 leading-relaxed font-medium">
-                  Drop your notes onto the canvas and let our AI instantly quiz
-                  you or summarize complex chapters.
+                  {t("personal.d1")}
                 </p>
               </div>
 
@@ -1301,17 +1223,15 @@ export default function LandingPage() {
                   </svg>
                 </div>
                 <h4 className="text-xl font-bold text-zinc-900 mb-3">
-                  Freelancers
+                  {t("personal.t2")}
                 </h4>
                 <p className="text-sm text-zinc-500 leading-relaxed font-medium">
-                  Manage multiple clients, project timelines, and workflows in
-                  beautifully isolated personal workspaces.
+                  {t("personal.d2")}
                 </p>
               </div>
 
               <div className="group relative bg-zinc-950 p-8 sm:p-10 rounded-[2.5rem] border border-zinc-800 shadow-xl sm:col-span-2 hover:shadow-2xl hover:shadow-pink-500/10 transition-all duration-500 overflow-hidden mt-1 sm:mt-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#3f3f46_1px,transparent_1px),linear-gradient(to_bottom,#3f3f46_1px,transparent_1px)] bg-size-[2rem_2rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20"></div>
-
                 <div className="relative z-10 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
                   <div className="w-16 h-16 bg-zinc-800/80 backdrop-blur-md text-pink-400 rounded-3xl flex items-center justify-center shrink-0 border border-zinc-700/50 shadow-inner group-hover:scale-105 group-hover:text-pink-300 transition-all duration-500">
                     <svg
@@ -1330,16 +1250,13 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h4 className="text-2xl font-bold text-white mb-2">
-                      Life & Habit Organization
+                      {t("personal.t3")}
                     </h4>
                     <p className="text-zinc-400 leading-relaxed font-medium max-w-lg text-sm">
-                      Build your custom habit trackers, fitness logs, and travel
-                      itineraries with dynamic check-blocks and date widgets.
-                      Make it truly yours.
+                      {t("personal.d3")}
                     </p>
                   </div>
                 </div>
-
                 <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-pink-600 rounded-full blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
               </div>
             </div>
@@ -1351,17 +1268,16 @@ export default function LandingPage() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="relative z-10">
               <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tighter">
-                Ready to start the engine?
+                {t("cta.title")}
               </h2>
               <p className="text-zinc-400 mb-10 max-w-xl mx-auto text-lg font-medium">
-                No credit card required. Set up your workspace and invite your
-                team in seconds. Join the revolution.
+                {t("cta.desc")}
               </p>
               <Link
                 href="/register"
                 className="inline-flex items-center gap-2 px-10 py-5 bg-white text-zinc-950 rounded-2xl font-extrabold text-base hover:bg-zinc-100 transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(255,255,255,0.3)] hover:-translate-y-1"
               >
-                Create Free Account
+                {t("cta.button")}
                 <svg
                   width="20"
                   height="20"
