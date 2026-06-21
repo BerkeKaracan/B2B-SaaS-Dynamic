@@ -255,5 +255,28 @@
         "desc": "Why dynamic workflows are replacing traditional linear document management."
       }
     }
+  },
+  "CommunityPage": {
+    "back": "Go Back",
+    "badge": "Community Hub",
+    "title": "Join the SaaS Engine Developer Network",
+    "subtitle": "Connect with thousands of developers, share your workflows, and help us build the future of work.",
+    "cards": {
+      "discord": {
+        "title": "Discord Server",
+        "desc": "Join our official server. Chat with the core team, ask questions, and showcase your canvas setups.",
+        "btn": "Join Discord"
+      },
+      "github": {
+        "title": "GitHub Discussions",
+        "desc": "Found a bug or have a feature request? Hop into our GitHub repository and contribute.",
+        "btn": "View GitHub"
+      },
+      "forum": {
+        "title": "Community Forum",
+        "desc": "Read deep-dive tutorials, share custom templates, and read release notes.",
+        "btn": "Browse Forum"
+      }
+    }
   }
 }

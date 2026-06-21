@@ -97,7 +97,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/demo"
+                  href="/community"
                   className="hover:text-zinc-950 transition-colors"
                 >
                   {t("resources.community")}

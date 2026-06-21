@@ -255,5 +255,28 @@
         "desc": "Dinamik iş akışlarının neden geleneksel doğrusal belge yönetiminin yerini aldığına dair görüşlerimiz."
       }
     }
+  },
+  "CommunityPage": {
+    "back": "Geri Dön",
+    "badge": "Topluluk Merkezi",
+    "title": "SaaS Engine Geliştirici Ağına Katılın",
+    "subtitle": "Binlerce geliştiriciyle bağlantı kurun, iş akışlarınızı paylaşın ve işin geleceğini inşa etmemize yardımcı olun.",
+    "cards": {
+      "discord": {
+        "title": "Discord Sunucusu",
+        "desc": "Resmi sunucumuza katılın. Çekirdek ekiple sohbet edin, sorular sorun ve tuval kurulumlarınızı sergileyin.",
+        "btn": "Discord'a Katıl"
+      },
+      "github": {
+        "title": "GitHub Tartışmaları",
+        "desc": "Bir hata mı buldunuz veya özellik talebiniz mi var? GitHub depomuza girin ve katkıda bulunun.",
+        "btn": "GitHub'ı İncele"
+      },
+      "forum": {
+        "title": "Topluluk Forumu",
+        "desc": "Derinlemesine eğitimleri okuyun, özel şablonları paylaşın ve sürüm notlarını inceleyin.",
+        "btn": "Foruma Göz At"
+      }
+    }
   }
 }
