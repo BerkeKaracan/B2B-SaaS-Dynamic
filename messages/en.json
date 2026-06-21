@@ -352,5 +352,58 @@
       "subtitle": "We're always looking for talented engineers and designers to join our remote team.",
       "button": "View Open Roles"
     }
+  },
+  "CareersPage": {
+    "back": "Go Back",
+    "badge": "Join Us",
+    "title": "Help us build the ultimate workspace.",
+    "subtitle": "We're a fully remote, global team. Explore our open roles and find where you belong.",
+    "benefits": {
+      "title": "Why work with us?",
+      "b1": {
+        "title": "Remote First",
+        "desc": "Work from anywhere in the world. We care about output, not office hours."
+      },
+      "b2": {
+        "title": "Stock Options",
+        "desc": "Every team member gets equity. When the company wins, we all win."
+      },
+      "b3": {
+        "title": "Health & Wellness",
+        "desc": "Comprehensive health, dental, and vision coverage for you and your family."
+      },
+      "b4": {
+        "title": "Learning Budget",
+        "desc": "$2,000 annual budget for courses, books, and conferences."
+      }
+    },
+    "openings": {
+      "title": "Open Roles",
+      "engineering": "Engineering",
+      "design": "Design",
+      "roles": {
+        "r1": {
+          "title": "Senior Frontend Engineer",
+          "type": "Full-time",
+          "location": "Remote (EMEA)"
+        },
+        "r2": {
+          "title": "Backend/Data Engineer",
+          "type": "Full-time",
+          "location": "Remote (Global)"
+        },
+        "r3": {
+          "title": "Senior Product Designer",
+          "type": "Full-time",
+          "location": "Remote (Americas)"
+        }
+      },
+      "apply": "Apply Now"
+    },
+    "cta": {
+      "title": "Don't see a fit?",
+      "subtitle": "Send us your resume anyway. We're always looking for exceptional talent.",
+      "button": "Email Us"
+    }
   }
 }

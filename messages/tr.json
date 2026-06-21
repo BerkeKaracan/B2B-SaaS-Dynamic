@@ -352,5 +352,58 @@
       "subtitle": "Uzaktan çalışan ekibimize katılacak yetenekli mühendisler ve tasarımcılar arıyoruz.",
       "button": "Açık Pozisyonları İncele"
     }
+  },
+  "CareersPage": {
+    "back": "Geri Dön",
+    "badge": "Bize Katılın",
+    "title": "Nihai çalışma alanını inşa etmemize yardım edin.",
+    "subtitle": "Tamamen uzaktan çalışan küresel bir ekibiz. Açık pozisyonlarımızı inceleyin ve yerinizi bulun.",
+    "benefits": {
+      "title": "Neden bizimle çalışmalısınız?",
+      "b1": {
+        "title": "Önce Uzaktan",
+        "desc": "Dünyanın her yerinden çalışın. Mesai saatlerine değil, çıktıya önem veriyoruz."
+      },
+      "b2": {
+        "title": "Hisse Senedi (Opsiyon)",
+        "desc": "Her ekip üyesi hisse alır. Şirket kazandığında, hepimiz kazanırız."
+      },
+      "b3": {
+        "title": "Sağlık ve Zindelik",
+        "desc": "Siz ve aileniz için kapsamlı sağlık, diş ve göz bakımı sigortası."
+      },
+      "b4": {
+        "title": "Eğitim Bütçesi",
+        "desc": "Kurslar, kitaplar ve konferanslar için yıllık 2.000$ bütçe."
+      }
+    },
+    "openings": {
+      "title": "Açık Pozisyonlar",
+      "engineering": "Mühendislik",
+      "design": "Tasarım",
+      "roles": {
+        "r1": {
+          "title": "Kıdemli Frontend Mühendisi",
+          "type": "Tam Zamanlı",
+          "location": "Uzaktan (EMEA)"
+        },
+        "r2": {
+          "title": "Backend/Veri Mühendisi",
+          "type": "Tam Zamanlı",
+          "location": "Uzaktan (Küresel)"
+        },
+        "r3": {
+          "title": "Kıdemli Ürün Tasarımcısı",
+          "type": "Tam Zamanlı",
+          "location": "Uzaktan (Amerika)"
+        }
+      },
+      "apply": "Hemen Başvur"
+    },
+    "cta": {
+      "title": "Uygun bir pozisyon bulamadınız mı?",
+      "subtitle": "Yine de özgeçmişinizi gönderin. Her zaman olağanüstü yetenekler arıyoruz.",
+      "button": "Bize E-posta Gönder"
+    }
   }
 }
