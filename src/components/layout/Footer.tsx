@@ -1,7 +1,11 @@
+"use client";
 import React from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export default function Footer() {
+  const t = useTranslations("Footer");
+
   return (
     <footer className="pt-20 pb-10 border-t border-zinc-200/80 bg-white">
       <div className="max-w-6xl mx-auto px-6">
@@ -18,46 +22,45 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-zinc-500 text-sm leading-relaxed max-w-xs mb-6">
-              The ultimate operating system for your company. Build, manage, and
-              scale your workflows with absolute precision.
+              {t("description")}
             </p>
           </div>
 
           <div>
             <h4 className="text-xs font-black text-zinc-900 uppercase tracking-widest mb-4">
-              Product
+              {t("product.title")}
             </h4>
             <ul className="space-y-3 text-sm font-medium text-zinc-500">
               <li>
                 <Link
-                  href="#"
+                  href="/features"
                   className="hover:text-zinc-950 transition-colors"
                 >
-                  Features
+                  {t("product.features")}
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/docs"
                   className="hover:text-zinc-950 transition-colors"
                 >
-                  Integrations
+                  {t("product.integrations")}
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/pricing"
                   className="hover:text-zinc-950 transition-colors"
                 >
-                  Pricing
+                  {t("product.pricing")}
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/changelog"
                   className="hover:text-zinc-950 transition-colors"
                 >
-                  Changelog
+                  {t("product.changelog")}
                 </Link>
               </li>
             </ul>
@@ -65,39 +68,39 @@ export default function Footer() {
 
           <div>
             <h4 className="text-xs font-black text-zinc-900 uppercase tracking-widest mb-4">
-              Resources
+              {t("resources.title")}
             </h4>
             <ul className="space-y-3 text-sm font-medium text-zinc-500">
               <li>
                 <Link
-                  href="#"
+                  href="/docs"
                   className="hover:text-zinc-950 transition-colors"
                 >
-                  Documentation
+                  {t("resources.documentation")}
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/register"
                   className="hover:text-zinc-950 transition-colors"
                 >
-                  Template Gallery
+                  {t("resources.templateGallery")}
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/blog"
                   className="hover:text-zinc-950 transition-colors"
                 >
-                  Blog
+                  {t("resources.blog")}
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/demo"
                   className="hover:text-zinc-950 transition-colors"
                 >
-                  Community
+                  {t("resources.community")}
                 </Link>
               </li>
             </ul>
@@ -105,23 +108,23 @@ export default function Footer() {
 
           <div>
             <h4 className="text-xs font-black text-zinc-900 uppercase tracking-widest mb-4">
-              Company
+              {t("company.title")}
             </h4>
             <ul className="space-y-3 text-sm font-medium text-zinc-500">
               <li>
                 <Link
-                  href="#"
+                  href="/about"
                   className="hover:text-zinc-950 transition-colors"
                 >
-                  About Us
+                  {t("company.aboutUs")}
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/careers"
                   className="hover:text-zinc-950 transition-colors"
                 >
-                  Careers
+                  {t("company.careers")}
                 </Link>
               </li>
               <li>
@@ -129,7 +132,7 @@ export default function Footer() {
                   href="/contact"
                   className="hover:text-zinc-950 transition-colors"
                 >
-                  Contact
+                  {t("company.contact")}
                 </Link>
               </li>
             </ul>
@@ -138,20 +141,20 @@ export default function Footer() {
 
         <div className="pt-8 border-t border-zinc-100 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-zinc-400 text-sm font-medium">
-            © {new Date().getFullYear()} SaaS Engine Inc. All rights reserved.
+            © {new Date().getFullYear()} SaaS Engine Inc. {t("bottom.rights")}
           </p>
           <div className="flex gap-6 text-sm font-medium text-zinc-400">
             <Link
               href="/privacy"
               className="hover:text-zinc-900 transition-colors"
             >
-              Privacy Policy
+              {t("bottom.privacy")}
             </Link>
             <Link
               href="/terms"
               className="hover:text-zinc-900 transition-colors"
             >
-              Terms of Service
+              {t("bottom.terms")}
             </Link>
           </div>
         </div>

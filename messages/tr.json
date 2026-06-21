@@ -137,5 +137,59 @@
       "desc": "Kredi kartı gerekmez. Çalışma alanınızı kurun ve ekibinizi saniyeler içinde davet edin. Devrime katılın.",
       "button": "Ücretsiz Hesap Oluştur"
     }
+  },
+  "Footer": {
+    "description": "Şirketiniz için nihai işletim sistemi. İş akışlarınızı mutlak hassasiyetle oluşturun, yönetin ve ölçeklendirin.",
+    "product": {
+      "title": "Ürün",
+      "features": "Özellikler",
+      "integrations": "Entegrasyonlar",
+      "pricing": "Fiyatlandırma",
+      "changelog": "Sürüm Notları"
+    },
+    "resources": {
+      "title": "Kaynaklar",
+      "documentation": "Dokümantasyon",
+      "templateGallery": "Şablon Galerisi",
+      "blog": "Blog",
+      "community": "Topluluk"
+    },
+    "company": {
+      "title": "Şirket",
+      "aboutUs": "Hakkımızda",
+      "careers": "Kariyer",
+      "contact": "İletişim"
+    },
+    "bottom": {
+      "rights": "Tüm hakları saklıdır.",
+      "privacy": "Gizlilik Politikası",
+      "terms": "Hizmet Şartları"
+    }
+  },
+  "FeaturesPage": {
+    "back": "Geri Dön",
+    "badge": "Platform Özellikleri",
+    "title": "Ölçeklenmek için yapıldı. Hız için tasarlandı.",
+    "subtitle": "SaaS Engine'i şirketiniz için nihai işletim sistemi yapan güçlü araçları keşfedin.",
+    "canvas": {
+      "title": "Sonsuz Uzamsal Tuval",
+      "desc": "Doğrusal belgelerden kurtulun. Sonsuz bir vektör ızgarasında metinleri, görselleri, veritabanlarını ve kanban panolarını sürükleyin, bırakın ve bağlayın."
+    },
+    "realtime": {
+      "title": "Sıfır Gecikmeli Senkronizasyon",
+      "desc": "Gelişmiş WebSocket mimarimiz sayesinde her tuş vuruşu, her blok hareketi tüm ekibiniz arasında anında senkronize edilir."
+    },
+    "security": {
+      "title": "Kurumsal Düzey Yetkilendirme",
+      "desc": "Ayrıntılı rol tabanlı erişim kontrolü (RBAC). Belirli projeleri kimin görüntüleyebileceğini veya yönetebileceğini tam olarak belirleyin."
+    },
+    "ai": {
+      "title": "Bağlam Farkındalıklı AI",
+      "desc": "Tuvalinizle sohbet edin. Yerleşik Llama 3.3 motorumuz bloklarınızı okur; beyin fırtınası yapmanıza, özetlemenize ve içerik üretmenize yardımcı olur."
+    },
+    "cta": {
+      "title": "Farkı deneyimlemeye hazır mısınız?",
+      "button": "Ücretsiz Denemeyi Başlat"
+    }
   }
 }

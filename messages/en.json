@@ -137,5 +137,59 @@
       "desc": "No credit card required. Set up your workspace and invite your team in seconds. Join the revolution.",
       "button": "Create Free Account"
     }
+  },
+  "Footer": {
+    "description": "The ultimate operating system for your company. Build, manage, and scale your workflows with absolute precision.",
+    "product": {
+      "title": "Product",
+      "features": "Features",
+      "integrations": "Integrations",
+      "pricing": "Pricing",
+      "changelog": "Changelog"
+    },
+    "resources": {
+      "title": "Resources",
+      "documentation": "Documentation",
+      "templateGallery": "Template Gallery",
+      "blog": "Blog",
+      "community": "Community"
+    },
+    "company": {
+      "title": "Company",
+      "aboutUs": "About Us",
+      "careers": "Careers",
+      "contact": "Contact"
+    },
+    "bottom": {
+      "rights": "All rights reserved.",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
+    }
+  },
+  "FeaturesPage": {
+    "back": "Go Back",
+    "badge": "Platform Features",
+    "title": "Built for scale. Designed for speed.",
+    "subtitle": "Discover the powerful tools that make SaaS Engine the ultimate operating system for your company.",
+    "canvas": {
+      "title": "Infinite Spatial Canvas",
+      "desc": "Break free from linear documents. Drag, drop, and connect text, images, databases, and kanban boards on an infinite vector grid."
+    },
+    "realtime": {
+      "title": "Zero-Latency Real-Time Sync",
+      "desc": "Every keystroke, every block movement is synchronized instantly across your entire team using our advanced WebSocket architecture."
+    },
+    "security": {
+      "title": "Enterprise-Grade RBAC",
+      "desc": "Granular role-based access control. Define exactly who can view, edit, or manage specific projects and workspace settings."
+    },
+    "ai": {
+      "title": "Context-Aware AI",
+      "desc": "Chat with your canvas. Our built-in Llama 3.3 engine reads your blocks and helps you brainstorm, summarize, and generate content."
+    },
+    "cta": {
+      "title": "Ready to experience the difference?",
+      "button": "Start Free Trial"
+    }
   }
 }
