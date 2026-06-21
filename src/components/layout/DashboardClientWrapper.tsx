@@ -67,7 +67,7 @@ export default function DashboardClientWrapper({
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-white text-zinc-900 font-sans antialiased">
+    <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white text-zinc-900 font-sans antialiased">
       <Navbar
         tenantId={tenantId}
         onMenuToggle={togglePrimarySidebar}
