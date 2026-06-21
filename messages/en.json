@@ -405,5 +405,34 @@
       "subtitle": "Send us your resume anyway. We're always looking for exceptional talent.",
       "button": "Email Us"
     }
+  },
+  "ContactPage": {
+    "back": "Go Back",
+    "badge": "Get In Touch",
+    "title": "Let's build something great together.",
+    "subtitle": "Have a question about pricing, need a custom demo, or just want to say hi? We'd love to hear from you.",
+    "info": {
+      "email": {
+        "title": "Email Us",
+        "desc": "Our friendly team is here to help.",
+        "value": "hello@saasengine.com"
+      },
+      "location": {
+        "title": "Global HQ",
+        "desc": "We are a 100% remote company.",
+        "value": "Earth, Milky Way"
+      }
+    },
+    "form": {
+      "name": "Full Name",
+      "namePlaceholder": "John Doe",
+      "email": "Work Email",
+      "emailPlaceholder": "john@company.com",
+      "subject": "Subject",
+      "subjectPlaceholder": "How can we help?",
+      "message": "Message",
+      "messagePlaceholder": "Tell us a little about your project...",
+      "button": "Send Message"
+    }
   }
 }

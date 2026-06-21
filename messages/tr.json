@@ -405,5 +405,34 @@
       "subtitle": "Yine de özgeçmişinizi gönderin. Her zaman olağanüstü yetenekler arıyoruz.",
       "button": "Bize E-posta Gönder"
     }
+  },
+  "ContactPage": {
+    "back": "Geri Dön",
+    "badge": "Bize Ulaşın",
+    "title": "Birlikte harika bir şey inşa edelim.",
+    "subtitle": "Fiyatlandırma hakkında bir sorunuz mu var, özel bir demo mu istiyorsunuz veya sadece merhaba mı demek istiyorsunuz? Sizi dinlemeyi çok isteriz.",
+    "info": {
+      "email": {
+        "title": "Bize E-posta Gönderin",
+        "desc": "Dost canlısı ekibimiz yardıma hazır.",
+        "value": "merhaba@saasengine.com"
+      },
+      "location": {
+        "title": "Küresel Merkez",
+        "desc": "%100 uzaktan çalışan bir şirketiz.",
+        "value": "Dünya, Samanyolu"
+      }
+    },
+    "form": {
+      "name": "Ad Soyad",
+      "namePlaceholder": "Ali Yılmaz",
+      "email": "İş E-postası",
+      "emailPlaceholder": "ali@sirket.com",
+      "subject": "Konu",
+      "subjectPlaceholder": "Size nasıl yardımcı olabiliriz?",
+      "message": "Mesajınız",
+      "messagePlaceholder": "Bize projenizden biraz bahsedin...",
+      "button": "Mesajı Gönder"
+    }
   }
 }

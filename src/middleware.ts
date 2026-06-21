@@ -57,6 +57,7 @@ export async function middleware(request: NextRequest) {
     "/integrations",
     "/about",
     "/careers",
+    "/contact",
   ];
 
   const isPublicPath = publicPaths.some((path) => basePath.startsWith(path));
