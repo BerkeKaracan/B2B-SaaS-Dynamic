@@ -54,6 +54,7 @@ export async function middleware(request: NextRequest) {
     "/templates",
     "/blog",
     "/community",
+    "/integrations",
   ];
 
   const isPublicPath = publicPaths.some((path) => basePath.startsWith(path));

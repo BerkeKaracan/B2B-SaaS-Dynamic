@@ -278,5 +278,30 @@
         "btn": "Browse Forum"
       }
     }
+  },
+  "IntegrationsPage": {
+    "back": "Go Back",
+    "badge": "Integrations",
+    "title": "Connect your favorite tools.",
+    "subtitle": "SaaS Engine works seamlessly with the tools your team already uses. No complex setup required.",
+    "cards": {
+      "notion": {
+        "title": "Notion",
+        "desc": "Export your dynamic canvas data and kanban boards directly to Notion pages with a single click."
+      },
+      "resend": {
+        "title": "Resend",
+        "desc": "Automate workspace invites and task assignment notifications with reliable, lightning-fast email delivery."
+      },
+      "github": {
+        "title": "GitHub",
+        "desc": "Link your repositories to workspace projects. Sync issues and manage pull requests right from your board."
+      }
+    },
+    "cta": {
+      "title": "Need a custom integration?",
+      "subtitle": "Our robust API and webhook system allows you to connect SaaS Engine to any internal tool.",
+      "button": "Read API Docs"
+    }
   }
 }

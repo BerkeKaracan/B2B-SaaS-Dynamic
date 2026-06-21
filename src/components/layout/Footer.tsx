@@ -41,7 +41,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/docs"
+                  href="/integrations"
                   className="hover:text-zinc-950 transition-colors"
                 >
                   {t("product.integrations")}

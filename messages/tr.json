@@ -278,5 +278,30 @@
         "btn": "Foruma Göz At"
       }
     }
+  },
+  "IntegrationsPage": {
+    "back": "Geri Dön",
+    "badge": "Entegrasyonlar",
+    "title": "Favori araçlarınızı bağlayın.",
+    "subtitle": "SaaS Engine, ekibinizin halihazırda kullandığı araçlarla sorunsuz çalışır. Karmaşık kurulum gerektirmez.",
+    "cards": {
+      "notion": {
+        "title": "Notion",
+        "desc": "Dinamik tuval verilerinizi ve kanban panolarınızı tek bir tıklamayla doğrudan Notion sayfalarına aktarın."
+      },
+      "resend": {
+        "title": "Resend",
+        "desc": "Çalışma alanı davetlerini ve görev atama bildirimlerini ışık hızında ve güvenilir e-posta teslimatıyla otomatikleştirin."
+      },
+      "github": {
+        "title": "GitHub",
+        "desc": "Depolarınızı projelere bağlayın. Sorunları (issues) senkronize edin ve PR'ları doğrudan panonuzdan yönetin."
+      }
+    },
+    "cta": {
+      "title": "Özel bir entegrasyona mı ihtiyacınız var?",
+      "subtitle": "Güçlü API ve webhook sistemimiz, SaaS Engine'i herhangi bir iç aracınıza bağlamanıza olanak tanır.",
+      "button": "API Dokümanlarını Oku"
+    }
   }
 }
