@@ -18,6 +18,8 @@ import {
   X,
   MoreHorizontal,
   Copy,
+  CloudUpload,
+  Loader2,
 } from "lucide-react";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { Calendar as CustomCalendar } from "@/components/ui/calendar";
@@ -48,7 +50,6 @@ export interface DatabaseSavedView {
   sortConfig: { propId: string; dir: "asc" | "desc" } | null;
 }
 
-// ÇÖZÜM: Saf olmayan (impure) fonksiyonları React bileşeninin dışına çıkardık.
 const generateId = (prefix: string) => {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 };
@@ -78,9 +79,12 @@ export default function DatabaseBoard({
   const [dbTitle, setDbTitle] = useState(
     (metadata?.databaseTitle as string) || "Untitled Database",
   );
-  const [isPropertyMenuOpen, setIsPropertyMenuOpen] = useState(false);
 
+  const [isPropertyMenuOpen, setIsPropertyMenuOpen] = useState(false);
   const [openRowMenu, setOpenRowMenu] = useState<string | null>(null);
+
+  // YENİ: Notion dışa aktarım süreci (Loading) state'i
+  const [isExporting, setIsExporting] = useState(false);
 
   const [filterQuery, setFilterQuery] = useState("");
   const [sortConfig, setSortConfig] = useState<{
@@ -255,6 +259,35 @@ export default function DatabaseBoard({
     }
   };
 
+  // YENİ: Notion'a Aktarım (Export) Fonksiyonu
+  const handleNotionExport = async () => {
+    setIsExporting(true);
+    const loadingToast = toast.loading("Creating Notion Database...");
+
+    try {
+      const res = await fetch("/api/notion-export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dbTitle, properties, rows }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        toast.success("Successfully exported to Notion!", { id: loadingToast });
+        if (data.url) window.open(data.url, "_blank"); // Başarılıysa Notion linkini yeni sekmede aç
+      } else {
+        toast.error(data.error || "Integration setup missing or failed.", {
+          id: loadingToast,
+        });
+      }
+    } catch (err) {
+      toast.error("An error occurred during export.", { id: loadingToast });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const getPropertyIcon = (type: PropertyType) => {
     switch (type) {
       case "text":
@@ -295,7 +328,9 @@ export default function DatabaseBoard({
 
   return (
     <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden font-sans relative z-10">
+      {/* HEADER KISMI */}
       <div className="px-4 py-2.5 border-b border-zinc-200 flex items-center justify-between bg-white select-none shrink-0 relative z-50">
+        {/* Sol Taraf: View Sekmeleri */}
         <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar hide-scrollbar-y pr-4 flex-1">
           <button
             onClick={() => applyView(null)}
@@ -329,6 +364,7 @@ export default function DatabaseBoard({
           ))}
         </div>
 
+        {/* Sağ Taraf: Aksiyon Butonları */}
         <div className="flex items-center gap-2 pl-4 border-l border-zinc-100 shrink-0">
           <div className="relative" ref={filterRef}>
             <button
@@ -359,7 +395,6 @@ export default function DatabaseBoard({
                     className="w-full pl-8 pr-3 py-1.5 text-xs font-medium border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
-
                 <div className="pt-2 mt-2 border-t border-zinc-100 flex flex-col gap-1.5">
                   <button
                     onClick={handleSaveView}
@@ -445,15 +480,30 @@ export default function DatabaseBoard({
             )}
           </div>
 
+          {/* YENİ: Notion'a Aktar Butonu */}
+          <button
+            onClick={handleNotionExport}
+            disabled={isExporting}
+            className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-sm disabled:opacity-70"
+          >
+            {isExporting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <CloudUpload className="w-3.5 h-3.5" />
+            )}
+            Export to Notion
+          </button>
+
           <button
             onClick={handleAddRow}
-            className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors ml-2 shadow-sm"
+            className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors shadow-sm ml-1"
           >
             New
           </button>
         </div>
       </div>
 
+      {/* TABLO KISMI */}
       <div className="flex-1 overflow-auto bg-white p-8 pt-10 relative custom-scrollbar z-10">
         <div className="mb-8 max-w-3xl">
           <input

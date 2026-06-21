@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
+    "@notionhq/client": "^5.22.0",
     "@radix-ui/react-popover": "^1.1.15",
     "@react-email/components": "^1.0.12",
     "@sentry/nextjs": "^10.57.0",
