@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { fetchAPI } from "@/services/api";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -116,6 +117,7 @@ export default function StaticKanbanBoard({
 }: {
   projectId: string;
 }) {
+  const t = useTranslations("KanbanBoard");
   const params = useParams();
   const tenantId = params?.tenantId as string;
 
@@ -550,19 +552,20 @@ export default function StaticKanbanBoard({
   if (!isClient) return null;
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-zinc-50 overflow-hidden">
-      <div className="flex flex-col bg-white border-b border-zinc-200 shrink-0 z-10 shadow-xs">
+    <div className="absolute inset-0 flex flex-col bg-zinc-50 dark:bg-zinc-950 overflow-hidden transition-colors duration-300">
+      {/* Header Bar */}
+      <div className="flex flex-col bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shrink-0 z-10 shadow-xs transition-colors duration-300">
         <div className="flex items-center justify-between p-4 md:px-6 py-4">
           <div className="flex items-center gap-3 md:gap-4">
-            <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 tracking-tight">
-              Project Board
+            <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
+              {t("title")}
             </h2>
             {linkedRepo && (
               <a
                 href={`https://github.com/${linkedRepo}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-zinc-100 border border-zinc-200 rounded-md text-[10px] font-bold text-zinc-600 hover:text-zinc-900 transition-colors"
+                className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-[10px] font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
               >
                 <CustomGithubIcon className="w-3 h-3" />
                 {linkedRepo.split("/")[1]}
@@ -571,25 +574,26 @@ export default function StaticKanbanBoard({
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
+            {/* Filter */}
             <div className="relative" ref={filterRef}>
               <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={`hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isFilterOpen || filterQuery || filterPriority !== "ALL" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"}`}
+                className={`hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isFilterOpen || filterQuery || filterPriority !== "ALL" ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800" : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800"}`}
               >
-                <Filter className="w-3.5 h-3.5" /> Filter
+                <Filter className="w-3.5 h-3.5" /> {t("filter")}
                 {(filterQuery || filterPriority !== "ALL") && (
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
                 )}
               </button>
               {isFilterOpen && (
-                <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-zinc-200 shadow-xl rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
+                <div className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
                   <div className="space-y-3">
                     <div>
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
+                      <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1.5 block">
                         Search Content
                       </label>
                       <div className="relative">
-                        <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-zinc-400" />
+                        <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" />
                         <input
                           type="text"
                           value={filterQuery}
@@ -597,14 +601,14 @@ export default function StaticKanbanBoard({
                             setFilterQuery(e.target.value);
                             setActiveViewId(null);
                           }}
-                          placeholder="Title or Assignee..."
-                          className="w-full pl-8 pr-3 py-1.5 text-xs font-medium border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          placeholder={t("searchPlaceholder")}
+                          className="w-full pl-8 pr-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
-                        Priority Filter
+                      <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1.5 block">
+                        {t("priorityFilter")}
                       </label>
                       <select
                         value={filterPriority}
@@ -614,9 +618,9 @@ export default function StaticKanbanBoard({
                           );
                           setActiveViewId(null);
                         }}
-                        className="w-full px-2 py-1.5 text-xs font-bold border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                        className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       >
-                        <option value="ALL">All Priorities</option>
+                        <option value="ALL">{t("allPriorities")}</option>
                         {Object.keys(PRIORITIES).map((p) => (
                           <option key={p} value={p}>
                             {p}
@@ -625,19 +629,19 @@ export default function StaticKanbanBoard({
                       </select>
                     </div>
 
-                    <div className="pt-2 border-t border-zinc-100 flex flex-col gap-1.5">
+                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-1.5">
                       <button
                         onClick={handleSaveView}
-                        className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                        className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
                       >
-                        <BookmarkPlus className="w-3 h-3" /> Save as Custom View
+                        <BookmarkPlus className="w-3 h-3" /> {t("saveView")}
                       </button>
                       {(filterQuery || filterPriority !== "ALL") && (
                         <button
                           onClick={() => applyView(null)}
-                          className="w-full py-1.5 text-[10px] font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                          className="w-full py-1.5 text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
                         >
-                          Clear Filters
+                          {t("clearFilters")}
                         </button>
                       )}
                     </div>
@@ -646,18 +650,19 @@ export default function StaticKanbanBoard({
               )}
             </div>
 
+            {/* Sort */}
             <div className="relative" ref={sortRef}>
               <button
                 onClick={() => setIsSortOpen(!isSortOpen)}
-                className={`hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isSortOpen || sortBy !== "manual" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"}`}
+                className={`hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isSortOpen || sortBy !== "manual" ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800" : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800"}`}
               >
-                <ArrowUpDown className="w-3.5 h-3.5" /> Sort
+                <ArrowUpDown className="w-3.5 h-3.5" /> {t("sort")}
                 {sortBy !== "manual" && (
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
                 )}
               </button>
               {isSortOpen && (
-                <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-zinc-200 shadow-xl rounded-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2">
+                <div className="absolute top-full mt-2 right-0 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2">
                   <div className="flex flex-col">
                     <button
                       onClick={() => {
@@ -665,9 +670,9 @@ export default function StaticKanbanBoard({
                         setActiveViewId(null);
                         setIsSortOpen(false);
                       }}
-                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "manual" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "manual" ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400" : "hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"}`}
                     >
-                      Manual (Drag & Drop)
+                      {t("sortManual")}
                     </button>
                     <button
                       onClick={() => {
@@ -675,9 +680,9 @@ export default function StaticKanbanBoard({
                         setActiveViewId(null);
                         setIsSortOpen(false);
                       }}
-                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "priority" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "priority" ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400" : "hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"}`}
                     >
-                      Priority (High to Low)
+                      {t("sortPriority")}
                     </button>
                     <button
                       onClick={() => {
@@ -685,44 +690,45 @@ export default function StaticKanbanBoard({
                         setActiveViewId(null);
                         setIsSortOpen(false);
                       }}
-                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "deadline" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "deadline" ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400" : "hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"}`}
                     >
-                      Deadline (Soonest First)
+                      {t("sortDeadline")}
                     </button>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="hidden sm:block w-px h-6 bg-zinc-200 mx-1"></div>
+            <div className="hidden sm:block w-px h-6 bg-zinc-200 dark:bg-zinc-700 mx-1"></div>
             <button
               onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-              className={`flex items-center gap-2 px-3 h-8 rounded-md transition-colors font-bold text-xs border ${isDrawerOpen ? "bg-zinc-900 text-white border-zinc-900" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 border-zinc-200"}`}
+              className={`flex items-center gap-2 px-3 h-8 rounded-md transition-colors font-bold text-xs border ${isDrawerOpen ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border-zinc-200 dark:border-zinc-700"}`}
             >
-              <Activity className="w-3.5 h-3.5" /> History
+              <Activity className="w-3.5 h-3.5" /> {t("history")}
             </button>
           </div>
         </div>
 
+        {/* View Tabs */}
         <div className="flex items-center gap-1 px-4 md:px-6 pb-2 overflow-x-auto custom-scrollbar hide-scrollbar-y">
           <button
             onClick={() => applyView(null)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === null ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === null ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"}`}
           >
-            <LayoutDashboard className="w-3.5 h-3.5" /> Default View
+            <LayoutDashboard className="w-3.5 h-3.5" /> {t("defaultView")}
           </button>
 
           {savedViews.map((view) => (
             <div key={view.id} className="flex items-center group relative">
               <button
                 onClick={() => applyView(view.id)}
-                className={`flex items-center pr-6 pl-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === view.id ? "bg-indigo-600 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+                className={`flex items-center pr-6 pl-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === view.id ? "bg-indigo-600 dark:bg-indigo-500 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"}`}
               >
                 {view.name}
               </button>
               <button
                 onClick={(e) => handleDeleteView(e, view.id)}
-                className={`absolute right-1.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? "hover:bg-indigo-700 text-white" : "hover:bg-red-500 hover:text-white text-zinc-400"}`}
+                className={`absolute right-1.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? "hover:bg-indigo-700 text-white" : "hover:bg-red-500 hover:text-white text-zinc-400 dark:text-zinc-500"}`}
               >
                 <X className="w-2.5 h-2.5" />
               </button>
@@ -770,10 +776,10 @@ export default function StaticKanbanBoard({
                 return (
                   <div
                     key={col.id}
-                    className="w-[85vw] sm:w-[340px] shrink-0 flex flex-col max-h-full bg-zinc-100/50 rounded-xl border border-zinc-200"
+                    className="w-[85vw] sm:w-[340px] shrink-0 flex flex-col max-h-full bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800"
                   >
                     <div
-                      className="p-3 md:p-4 rounded-t-xl border-b border-zinc-200/50 flex items-center justify-between shadow-sm shrink-0"
+                      className="p-3 md:p-4 rounded-t-xl border-b border-zinc-200/50 dark:border-zinc-800/50 flex items-center justify-between shadow-sm shrink-0"
                       style={{ backgroundColor: col.color }}
                     >
                       <h3 className="font-black text-white tracking-wider text-sm md:text-base">
@@ -787,7 +793,7 @@ export default function StaticKanbanBoard({
                     <Droppable droppableId={col.id}>
                       {(provided, snapshot) => (
                         <div
-                          className={`flex-1 overflow-y-auto p-2 md:p-3 flex flex-col gap-2 md:gap-3 custom-scrollbar transition-colors ${snapshot.isDraggingOver ? "bg-zinc-200/30" : ""}`}
+                          className={`flex-1 overflow-y-auto p-2 md:p-3 flex flex-col gap-2 md:gap-3 custom-scrollbar transition-colors ${snapshot.isDraggingOver ? "bg-zinc-200/30 dark:bg-zinc-800/30" : ""}`}
                           ref={provided.innerRef}
                           {...provided.droppableProps}
                         >
@@ -827,6 +833,7 @@ export default function StaticKanbanBoard({
                                     className={`rounded-xl shadow-xs flex flex-col overflow-visible cursor-grab active:cursor-grabbing hover:-translate-y-0.5 transition-all ${snapshot.isDragging ? "shadow-2xl scale-105 z-[60] opacity-100" : "opacity-100 scale-100"} ${textColor}`}
                                   >
                                     <div className="p-3 md:p-4 flex flex-col gap-2 md:gap-3 relative">
+                                      {/* Menu Toggle */}
                                       <div className="absolute top-2 right-2">
                                         <button
                                           className={`task-menu-trigger p-1.5 rounded-md transition-colors ${isDarkBg ? "hover:bg-white/20 text-white" : "hover:bg-zinc-200/50 text-zinc-500"}`}
@@ -844,7 +851,7 @@ export default function StaticKanbanBoard({
                                         </button>
 
                                         {openTaskMenu === task.id && (
-                                          <div className="task-dropdown-menu absolute right-0 top-full mt-1 w-40 bg-white shadow-xl border border-zinc-200 rounded-lg p-1 z-[70] animate-in fade-in zoom-in-95">
+                                          <div className="task-dropdown-menu absolute right-0 top-full mt-1 w-40 bg-white dark:bg-zinc-800 shadow-xl border border-zinc-200 dark:border-zinc-700 rounded-lg p-1 z-[70] animate-in fade-in zoom-in-95">
                                             <button
                                               onClick={(e) => {
                                                 e.preventDefault();
@@ -852,10 +859,10 @@ export default function StaticKanbanBoard({
                                                 handleEditTask(task);
                                                 setOpenTaskMenu(null);
                                               }}
-                                              className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
+                                              className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 rounded-md transition-colors"
                                             >
                                               <Edit2 className="w-3.5 h-3.5" />{" "}
-                                              Edit Task
+                                              {t("editTask")}
                                             </button>
                                             <button
                                               onClick={(e) => {
@@ -863,12 +870,12 @@ export default function StaticKanbanBoard({
                                                 e.stopPropagation();
                                                 handleDuplicateTask(task);
                                               }}
-                                              className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
+                                              className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 rounded-md transition-colors"
                                             >
                                               <Copy className="w-3.5 h-3.5" />{" "}
-                                              Duplicate
+                                              {t("duplicate")}
                                             </button>
-                                            <div className="w-full h-px bg-zinc-100 my-1"></div>
+                                            <div className="w-full h-px bg-zinc-100 dark:bg-zinc-700 my-1"></div>
                                             <button
                                               onClick={(e) => {
                                                 e.preventDefault();
@@ -878,10 +885,10 @@ export default function StaticKanbanBoard({
                                                   task.title,
                                                 );
                                               }}
-                                              className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                              className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
                                             >
                                               <Trash2 className="w-3.5 h-3.5" />{" "}
-                                              Delete
+                                              {t("delete")}
                                             </button>
                                           </div>
                                         )}
@@ -906,7 +913,7 @@ export default function StaticKanbanBoard({
                                         <span
                                           className={`text-[8px] md:text-[9px] font-bold px-2 py-0.5 rounded-full border ${isDarkBg ? "bg-white/10 border-white/20" : "bg-zinc-200/50 border-zinc-200"}`}
                                         >
-                                          For{" "}
+                                          {t("for")}{" "}
                                           {task.assignee.includes("@")
                                             ? task.assignee.split("@")[0]
                                             : task.assignee}
@@ -929,7 +936,7 @@ export default function StaticKanbanBoard({
                                           <span
                                             className={`text-[8px] md:text-[9px] font-medium ${mutedTextColor}`}
                                           >
-                                            Created by{" "}
+                                            {t("createdBy")}{" "}
                                             <span className="font-bold">
                                               {task.createdBy}
                                             </span>
@@ -937,7 +944,7 @@ export default function StaticKanbanBoard({
                                           <span
                                             className={`text-[8px] md:text-[9px] font-medium ${mutedTextColor}`}
                                           >
-                                            Updated by{" "}
+                                            {t("updatedBy")}{" "}
                                             <span className="font-bold">
                                               {task.updatedBy}
                                             </span>
@@ -946,12 +953,12 @@ export default function StaticKanbanBoard({
                                         <div className="flex flex-col items-end gap-0.5 text-[9px] md:text-[10px] font-bold">
                                           {task.startDate && (
                                             <span className={mutedTextColor}>
-                                              Start: {task.startDate}
+                                              {t("start")}: {task.startDate}
                                             </span>
                                           )}
                                           {task.deadline && (
                                             <span className={mutedTextColor}>
-                                              Deadline: {task.deadline}
+                                              {t("deadline")}: {task.deadline}
                                             </span>
                                           )}
                                         </div>
@@ -965,9 +972,9 @@ export default function StaticKanbanBoard({
                           {provided.placeholder}
                           <button
                             onClick={() => handleOpenAddModal(col.id)}
-                            className="mt-1 md:mt-2 w-full flex items-center justify-center gap-2 py-2 md:py-3 rounded-xl text-xs font-extrabold text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50 transition-all border border-dashed border-zinc-300 hover:border-zinc-400"
+                            className="mt-1 md:mt-2 w-full flex items-center justify-center gap-2 py-2 md:py-3 rounded-xl text-xs font-extrabold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 transition-all border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
                           >
-                            + Add Task
+                            {t("addTask")}
                           </button>
                         </div>
                       )}
@@ -979,57 +986,58 @@ export default function StaticKanbanBoard({
           </DragDropContext>
         </div>
 
+        {/* History Drawer */}
         {isDrawerOpen && (
-          <div className="w-[85vw] sm:w-80 shrink-0 bg-white border-l border-zinc-200 shadow-2xl flex flex-col h-full absolute md:relative right-0 z-40 animate-in slide-in-from-right duration-300">
-            <div className="p-2 border-b border-zinc-100 bg-zinc-50/50 shrink-0 flex items-center justify-between">
-              <div className="flex items-center gap-1 bg-zinc-200/50 p-1 rounded-lg">
+          <div className="w-[85vw] sm:w-80 shrink-0 bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col h-full absolute md:relative right-0 z-40 animate-in slide-in-from-right duration-300">
+            <div className="p-2 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50 shrink-0 flex items-center justify-between">
+              <div className="flex items-center gap-1 bg-zinc-200/50 dark:bg-zinc-800 p-1 rounded-lg">
                 <button
                   onClick={() => setDrawerTab("activity")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${drawerTab === "activity" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${drawerTab === "activity" ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"}`}
                 >
-                  <Activity className="w-3.5 h-3.5" /> Activity
+                  <Activity className="w-3.5 h-3.5" /> {t("activity")}
                 </button>
                 <button
                   onClick={() => setDrawerTab("github")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${drawerTab === "github" ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${drawerTab === "github" ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"}`}
                 >
-                  <GitCommitHorizontal className="w-3.5 h-3.5" /> Commits
+                  <GitCommitHorizontal className="w-3.5 h-3.5" /> {t("commits")}
                 </button>
               </div>
               <button
                 onClick={() => setIsDrawerOpen(false)}
-                className="flex items-center justify-center w-7 h-7 mr-1 bg-white border border-zinc-200 text-zinc-400 rounded-md hover:text-zinc-900 transition-colors shadow-sm"
+                className="flex items-center justify-center w-7 h-7 mr-1 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500 rounded-md hover:text-zinc-900 dark:hover:text-white transition-colors shadow-sm"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-5 flex-1 overflow-y-auto bg-white custom-scrollbar relative">
+            <div className="p-5 flex-1 overflow-y-auto bg-white dark:bg-zinc-900 custom-scrollbar relative">
               {drawerTab === "activity" && (
                 <div className="space-y-5 relative">
                   {activityLogs.length === 0 ? (
-                    <div className="text-center text-xs font-medium text-zinc-500 mt-10 bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-                      No activity recorded yet. Start moving tasks!
+                    <div className="text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 mt-10 bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                      {t("noActivity")}
                     </div>
                   ) : (
                     <>
-                      <div className="absolute left-4 top-2 bottom-2 w-px bg-zinc-100"></div>
+                      <div className="absolute left-4 top-2 bottom-2 w-px bg-zinc-100 dark:bg-zinc-800"></div>
                       {activityLogs.map((log) => (
                         <div key={log.id} className="relative flex gap-3 group">
-                          <div className="w-8 h-8 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center text-[10px] font-black text-zinc-600 shrink-0 z-10">
+                          <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-[10px] font-black text-zinc-600 dark:text-zinc-400 shrink-0 z-10">
                             {log.user.charAt(0).toUpperCase()}
                           </div>
                           <div className="pt-1.5">
-                            <p className="text-[11px] text-zinc-600 leading-relaxed">
-                              <span className="font-bold text-zinc-900">
+                            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                              <span className="font-bold text-zinc-900 dark:text-white">
                                 {log.user}
                               </span>{" "}
                               {log.action}{" "}
-                              <span className="font-semibold text-zinc-800">
+                              <span className="font-semibold text-zinc-800 dark:text-zinc-300">
                                 {log.target}
                               </span>
                             </p>
-                            <p className="text-[9px] font-bold text-zinc-400 mt-1 uppercase tracking-wider">
+                            <p className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 mt-1 uppercase tracking-wider">
                               {formatActivityDate(log.date)}
                             </p>
                           </div>
@@ -1043,16 +1051,15 @@ export default function StaticKanbanBoard({
               {drawerTab === "github" && (
                 <div className="space-y-4">
                   {!linkedRepo ? (
-                    <div className="flex flex-col items-center text-center mt-6 bg-zinc-50 p-5 rounded-2xl border border-zinc-200">
-                      <div className="w-10 h-10 bg-indigo-50 border border-indigo-100 rounded-full flex items-center justify-center mb-3">
-                        <Link2 className="w-5 h-5 text-indigo-600" />
+                    <div className="flex flex-col items-center text-center mt-6 bg-zinc-50 dark:bg-zinc-950 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                      <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-full flex items-center justify-center mb-3">
+                        <Link2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                       </div>
-                      <h4 className="text-xs font-extrabold text-zinc-900">
-                        Link Repository
+                      <h4 className="text-xs font-extrabold text-zinc-900 dark:text-white">
+                        {t("linkRepo")}
                       </h4>
-                      <p className="text-[11px] font-medium text-zinc-500 mt-1.5 mb-4 leading-relaxed">
-                        Connect this project to a repository to track live
-                        commits.
+                      <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1.5 mb-4 leading-relaxed">
+                        {t("linkRepoDesc")}
                       </p>
                       <div className="w-full space-y-2">
                         <input
@@ -1060,48 +1067,48 @@ export default function StaticKanbanBoard({
                           value={repoInput}
                           onChange={(e) => setRepoInput(e.target.value)}
                           placeholder="owner/repo"
-                          className="w-full text-xs font-medium px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full text-xs font-medium px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                         <button
                           onClick={handleConnectRepo}
                           disabled={!repoInput}
-                          className="w-full py-2 bg-zinc-900 text-white text-xs font-bold rounded-lg hover:bg-zinc-800 disabled:opacity-50"
+                          className="w-full py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50"
                         >
-                          Connect
+                          {t("connect")}
                         </button>
                       </div>
                     </div>
                   ) : (
                     <>
-                      <div className="mb-4 flex items-center justify-between bg-zinc-50 px-3 py-2.5 rounded-xl border border-zinc-200">
+                      <div className="mb-4 flex items-center justify-between bg-zinc-50 dark:bg-zinc-950 px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800">
                         <div className="flex flex-col truncate">
-                          <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">
-                            Connected To
+                          <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+                            {t("connectedTo")}
                           </span>
-                          <span className="text-[11px] font-bold text-zinc-900 truncate">
+                          <span className="text-[11px] font-bold text-zinc-900 dark:text-white truncate">
                             {linkedRepo}
                           </span>
                         </div>
                         <button
                           onClick={handleUnlinkRepo}
-                          className="p-1.5 text-zinc-400 hover:text-red-500 bg-white border border-zinc-200 rounded-lg shadow-sm"
+                          className="p-1.5 text-zinc-400 hover:text-red-500 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-sm"
                         >
                           <Unlink className="w-3.5 h-3.5" />
                         </button>
                       </div>
 
                       <div className="space-y-5 relative">
-                        <div className="absolute left-[11px] top-4 bottom-4 w-px bg-zinc-100"></div>
+                        <div className="absolute left-[11px] top-4 bottom-4 w-px bg-zinc-100 dark:bg-zinc-800"></div>
                         {isCommitsLoading ? (
-                          <div className="flex flex-col items-center justify-center py-10 text-zinc-400">
+                          <div className="flex flex-col items-center justify-center py-10 text-zinc-400 dark:text-zinc-500">
                             <Loader2 className="w-5 h-5 animate-spin mb-2" />
                             <span className="text-[10px] font-bold uppercase tracking-widest">
-                              Fetching...
+                              {t("fetching")}
                             </span>
                           </div>
                         ) : commits.length === 0 ? (
-                          <div className="text-center text-xs font-medium text-zinc-500 bg-zinc-50 p-4 rounded-xl border border-zinc-100">
-                            No commits found.
+                          <div className="text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                            {t("noCommits")}
                           </div>
                         ) : (
                           commits.map((commit) => (
@@ -1109,16 +1116,16 @@ export default function StaticKanbanBoard({
                               key={commit.sha}
                               className="flex gap-3 group relative z-10"
                             >
-                              <div className="w-6 h-6 rounded-full bg-white border-2 border-zinc-200 flex items-center justify-center text-zinc-400 shrink-0 mt-0.5">
+                              <div className="w-6 h-6 rounded-full bg-white dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 shrink-0 mt-0.5">
                                 <GitCommitHorizontal className="w-3 h-3" />
                               </div>
                               <div>
-                                <p className="text-[11px] font-bold text-zinc-900 break-words line-clamp-2">
+                                <p className="text-[11px] font-bold text-zinc-900 dark:text-white break-words line-clamp-2">
                                   {commit.message}
                                 </p>
-                                <p className="text-[9px] font-medium text-zinc-500 mt-1">
+                                <p className="text-[9px] font-medium text-zinc-500 dark:text-zinc-400 mt-1">
                                   by{" "}
-                                  <b className="text-zinc-700">
+                                  <b className="text-zinc-700 dark:text-zinc-300">
                                     {commit.author}
                                   </b>{" "}
                                   •{" "}
@@ -1141,18 +1148,19 @@ export default function StaticKanbanBoard({
         )}
       </div>
 
+      {/* Add/Edit Modal */}
       {isAddModalOpen && isClient && typeof document !== "undefined"
         ? createPortal(
             <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-zinc-950/60 backdrop-blur-sm sm:p-4">
-              <div className="bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
-                <div className="p-5 md:p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50 shrink-0">
-                  <h2 className="text-lg md:text-xl font-extrabold text-zinc-900">
-                    {editingTaskId ? "Edit Task" : "Add New Task"}
+              <div className="bg-white dark:bg-zinc-900 rounded-t-[32px] sm:rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 border border-zinc-200 dark:border-zinc-800">
+                <div className="p-5 md:p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-950/50 shrink-0">
+                  <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 dark:text-white">
+                    {editingTaskId ? t("modalTitleEdit") : t("modalTitleNew")}
                   </h2>
                   <button
                     onClick={() => setIsAddModalOpen(false)}
                     type="button"
-                    className="text-zinc-400 hover:text-zinc-950 bg-white hover:bg-zinc-200 border border-zinc-200 rounded-full transition-colors p-1.5 shadow-sm"
+                    className="text-zinc-400 hover:text-zinc-950 dark:hover:text-white bg-white dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 rounded-full transition-colors p-1.5 shadow-sm"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -1163,8 +1171,8 @@ export default function StaticKanbanBoard({
                   className="p-4 md:p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar pb-8 sm:pb-6"
                 >
                   <div>
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                      Title
+                    <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+                      {t("modalTitle")}
                     </label>
                     <input
                       required
@@ -1172,35 +1180,33 @@ export default function StaticKanbanBoard({
                       autoFocus
                       value={newTaskTitle}
                       onChange={(e) => setNewTaskTitle(e.target.value)}
-                      className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none"
-                      placeholder="Task title..."
+                      className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                      Description
+                    <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+                      {t("modalDesc")}
                     </label>
                     <textarea
                       rows={2}
                       value={newTaskDescription}
                       onChange={(e) => setNewTaskDescription(e.target.value)}
-                      className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 focus:outline-none"
-                      placeholder="Task details..."
+                      className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:outline-none"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
                     <div>
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                        Priority
+                      <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+                        {t("modalPriority")}
                       </label>
                       <select
                         value={newTaskPriority}
                         onChange={(e) =>
                           setNewTaskPriority(e.target.value as TaskPriority)
                         }
-                        className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-bold focus:outline-none bg-white"
+                        className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-bold focus:outline-none"
                       >
                         {Object.keys(PRIORITIES).map((p) => (
                           <option key={p} value={p}>
@@ -1211,8 +1217,8 @@ export default function StaticKanbanBoard({
                     </div>
 
                     <div className="relative">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                        Assignee
+                      <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+                        {t("modalAssignee")}
                       </label>
                       <input
                         type="text"
@@ -1222,11 +1228,11 @@ export default function StaticKanbanBoard({
                         onBlur={() =>
                           setTimeout(() => setShowAssigneeDropdown(false), 200)
                         }
-                        className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                        placeholder="Search user..."
+                        className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
+                        placeholder={t("modalAssigneePlaceholder")}
                       />
                       {showAssigneeDropdown && collaborators.length > 0 && (
-                        <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-zinc-200 shadow-xl rounded-xl overflow-hidden z-50 max-h-40 overflow-y-auto">
+                        <div className="absolute top-full mt-1 left-0 right-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl overflow-hidden z-50 max-h-40 overflow-y-auto">
                           {collaborators
                             .filter((c) =>
                               c.email
@@ -1240,10 +1246,10 @@ export default function StaticKanbanBoard({
                                   setNewTaskAssignee(c.email);
                                   setShowAssigneeDropdown(false);
                                 }}
-                                className="px-3 py-3 sm:py-2 hover:bg-zinc-100 cursor-pointer text-xs font-semibold text-zinc-700 flex justify-between items-center"
+                                className="px-3 py-3 sm:py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex justify-between items-center"
                               >
                                 <span className="truncate">{c.email}</span>
-                                <span className="text-[9px] uppercase bg-zinc-200 px-1.5 py-0.5 rounded ml-2">
+                                <span className="text-[9px] uppercase bg-zinc-200 dark:bg-zinc-700 px-1.5 py-0.5 rounded ml-2">
                                   {c.role}
                                 </span>
                               </div>
@@ -1252,16 +1258,16 @@ export default function StaticKanbanBoard({
                       )}
                     </div>
 
-                    <div className="col-span-1 md:col-span-2 bg-zinc-50 p-3 rounded-xl border border-zinc-200">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                        Linked Commit (Optional)
+                    <div className="col-span-1 md:col-span-2 bg-zinc-50 dark:bg-zinc-950/50 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                      <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
+                        {t("modalCommit")}
                       </label>
 
                       {linkedRepo && commits.length > 0 ? (
                         <select
                           value={newTaskCommit}
                           onChange={(e) => setNewTaskCommit(e.target.value)}
-                          className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-300 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
+                          className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900"
                         >
                           <option value="" className="font-sans">
                             -- Select a recent commit --
@@ -1280,17 +1286,17 @@ export default function StaticKanbanBoard({
                           type="text"
                           value={newTaskCommit}
                           onChange={(e) => setNewTaskCommit(e.target.value)}
-                          className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-300 rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
-                          placeholder="e.g. 1A9F43B"
+                          className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                          placeholder={t("modalCommitPlaceholder")}
                         />
                       )}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-100 pt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
                     <div className="relative">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">
-                        Start (Optional)
+                      <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">
+                        {t("modalStart")}
                       </label>
                       <button
                         type="button"
@@ -1298,7 +1304,7 @@ export default function StaticKanbanBoard({
                           setShowStartCalendar(!showStartCalendar);
                           setShowDeadlineCalendar(false);
                         }}
-                        className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-xs font-semibold text-left bg-zinc-50 hover:bg-zinc-100 flex justify-between items-center"
+                        className="w-full mt-1 px-3 py-3 sm:py-2 bg-zinc-50 dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-xs font-semibold text-left flex justify-between items-center transition-colors"
                       >
                         <span>
                           {startDateObj
@@ -1318,7 +1324,7 @@ export default function StaticKanbanBoard({
                         )}
                       </button>
                       {showStartCalendar && (
-                        <div className="mt-2 bg-white border border-zinc-200 shadow-sm rounded-2xl p-2 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
+                        <div className="mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm rounded-2xl p-2 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
                           <Calendar
                             mode="single"
                             selected={startDateObj}
@@ -1332,8 +1338,8 @@ export default function StaticKanbanBoard({
                     </div>
 
                     <div className="relative">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block">
-                        Deadline (Optional)
+                      <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">
+                        {t("modalDeadline")}
                       </label>
                       <button
                         type="button"
@@ -1341,7 +1347,7 @@ export default function StaticKanbanBoard({
                           setShowDeadlineCalendar(!showDeadlineCalendar);
                           setShowStartCalendar(false);
                         }}
-                        className="w-full mt-1 px-3 py-3 sm:py-2 border border-zinc-200 rounded-xl sm:rounded-lg text-xs font-semibold text-left bg-zinc-50 hover:bg-zinc-100 flex justify-between items-center"
+                        className="w-full mt-1 px-3 py-3 sm:py-2 bg-zinc-50 dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-xs font-semibold text-left flex justify-between items-center transition-colors"
                       >
                         <span>
                           {deadlineObj
@@ -1361,7 +1367,7 @@ export default function StaticKanbanBoard({
                         )}
                       </button>
                       {showDeadlineCalendar && (
-                        <div className="mt-2 bg-white border border-zinc-200 shadow-sm rounded-2xl p-2 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
+                        <div className="mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm rounded-2xl p-2 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
                           <Calendar
                             mode="single"
                             selected={deadlineObj}
@@ -1375,19 +1381,19 @@ export default function StaticKanbanBoard({
                     </div>
                   </div>
 
-                  <div className="pt-4 mt-4 border-t border-zinc-100 flex justify-end gap-3 shrink-0 sticky bottom-0 bg-white">
+                  <div className="pt-4 mt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-end gap-3 shrink-0 sticky bottom-0 bg-white dark:bg-zinc-900">
                     <button
                       type="button"
                       onClick={() => setIsAddModalOpen(false)}
-                      className="px-5 py-3 sm:py-2 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
+                      className="px-5 py-3 sm:py-2 text-sm font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                     >
-                      Cancel
+                      {t("cancel")}
                     </button>
                     <button
                       type="submit"
-                      className="px-8 sm:px-6 py-3 sm:py-2 bg-zinc-900 text-white text-sm font-bold rounded-xl hover:bg-zinc-800 shadow-md flex-1 sm:flex-none"
+                      className="px-8 sm:px-6 py-3 sm:py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-bold rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-100 shadow-md flex-1 sm:flex-none transition-colors"
                     >
-                      {editingTaskId ? "Save" : "Create"}
+                      {editingTaskId ? t("save") : t("create")}
                     </button>
                   </div>
                 </form>

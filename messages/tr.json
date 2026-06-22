@@ -490,5 +490,119 @@
       }
     },
     "contact": "Profesyonel talepler, iş fırsatları veya mimari sorularınız için lütfen İletişim sayfasını ziyaret edin."
+  },
+  "KanbanBoard": {
+    "title": "Proje Panosu",
+    "filter": "Filtrele",
+    "searchPlaceholder": "Başlık veya Kişi...",
+    "priorityFilter": "Öncelik Filtresi",
+    "allPriorities": "Tüm Öncelikler",
+    "saveView": "Özel Görünüm Olarak Kaydet",
+    "clearFilters": "Filtreleri Temizle",
+    "sort": "Sırala",
+    "sortManual": "Manuel (Sürükle & Bırak)",
+    "sortPriority": "Öncelik (Yüksekten Düşüğe)",
+    "sortDeadline": "Teslim Tarihi (Yakın Olan Önce)",
+    "history": "Geçmiş",
+    "defaultView": "Varsayılan Görünüm",
+    "addTask": "+ Görev Ekle",
+    "activity": "Aktivite",
+    "commits": "Commit'ler",
+    "noActivity": "Henüz aktivite kaydedilmedi. Görevleri taşımaya başlayın!",
+    "linkRepo": "Depoyu Bağla",
+    "linkRepoDesc": "Canlı commit'leri izlemek için bu projeyi bir Github deposuna bağlayın.",
+    "connect": "Bağla",
+    "connectedTo": "Bağlı Depo",
+    "fetching": "Getiriliyor...",
+    "noCommits": "Commit bulunamadı.",
+    "editTask": "Görevi Düzenle",
+    "duplicate": "Çoğalt",
+    "delete": "Sil",
+    "for": "Atanan:",
+    "createdBy": "Oluşturan:",
+    "updatedBy": "Güncelleyen:",
+    "start": "Başlangıç",
+    "deadline": "Teslim",
+    "modalTitleNew": "Yeni Görev Ekle",
+    "modalTitleEdit": "Görevi Düzenle",
+    "modalTitle": "Başlık",
+    "modalDesc": "Açıklama",
+    "modalPriority": "Öncelik",
+    "modalAssignee": "Atanan Kişi",
+    "modalAssigneePlaceholder": "Kullanıcı ara...",
+    "modalCommit": "Bağlı Commit (Opsiyonel)",
+    "modalCommitPlaceholder": "örn. 1A9F43B",
+    "modalStart": "Başlangıç (Opsiyonel)",
+    "modalDeadline": "Teslim Tarihi (Opsiyonel)",
+    "cancel": "İptal",
+    "save": "Kaydet",
+    "create": "Oluştur"
+  },
+  "EngineToolkit": {
+    "title": "Motor Araç Kutusu",
+    "search": "Blok veya şablon ara...",
+    "intelligence": "Yapay Zeka",
+    "aiGenerator": "AI Oluşturucu",
+    "generatePrompt": "Komut ile bloklar oluştur",
+    "buildingBlocks": "Yapı Blokları",
+    "pageFrames": "Sayfa Şablonları",
+    "dropToCanvas": "Tuvale Bırak",
+    "aiPlaceholder": "örn. Ürün lansmanı için bir Kanban panosu oluştur...",
+    "pressEnter": "Göndermek için Enter, iptal için Esc",
+    "cancel": "İptal",
+    "generate": "Oluştur",
+    "building": "İnşa ediliyor...",
+    "blocks": {
+      "text": {
+        "label": "Metin Bloğu",
+        "desc": "Notlar veya açıklamalar için düz metin"
+      },
+      "form": {
+        "label": "Form Alanı",
+        "desc": "Veritabanı eşlemeli dinamik veri girişi"
+      },
+      "date": {
+        "label": "Tarih Seçici",
+        "desc": "Hedef veya operasyonel tarihleri seçin"
+      },
+      "dropdown": {
+        "label": "Açılır Menü",
+        "desc": "Önceden tanımlanmış seçilebilir liste"
+      },
+      "toggle": {
+        "label": "Aç/Kapat Butonu",
+        "desc": "Etkileşimli durum yönetimi"
+      },
+      "badge": {
+        "label": "Etiket Seçici",
+        "desc": "Çoklu ayrık seçim ızgarası"
+      },
+      "asset": {
+        "label": "Dosya Akışı",
+        "desc": "Bulut dosyalarını izlemek için yükleme motoru"
+      }
+    },
+    "frames": {
+      "empty": {
+        "label": "Boş Sayfa",
+        "desc": "Çalışma alanınıza standart bir A4 çerçevesi ekleyin"
+      },
+      "kanban": {
+        "label": "Kanban Panosu",
+        "desc": "Yapılacaklar, Sürüyor ve Bitti sütunlarını içeren yatay şablon"
+      },
+      "notes": {
+        "label": "Not Alanı",
+        "desc": "Notlar ve öncelik seçicileri içeren dikey çalışma alanı"
+      },
+      "agenda": {
+        "label": "Gündem Çizelgesi",
+        "desc": "Sprint teslim tarihlerini eşleyen yol haritası şablonu"
+      },
+      "database": {
+        "label": "Yapılandırılmış Veritabanı",
+        "desc": "Müşteri verilerini eşleyen doğrulama çalışma alanı"
+      }
+    }
   }
 }

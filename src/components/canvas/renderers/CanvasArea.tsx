@@ -20,6 +20,8 @@ import ToggleSwitchBlock from "./ToggleSwitchBlock";
 import BadgeSelectorBlock from "./BadgeSelectorBlock";
 import AssetStreamBlock from "./AssetStreamBlock";
 import BlockResizer from "./BlockResizer";
+// YENİ: Universal Kanban bileşenimizi import ediyoruz!
+import StaticKanbanBoard from "@/components/kanban/StaticKanbanBoard";
 import { Sparkles, Minus, Plus, Maximize, MousePointer2 } from "lucide-react";
 
 export default function CanvasArea() {
@@ -458,8 +460,8 @@ export default function CanvasArea() {
 
   if (isLoading) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-[#F9F9FB] z-50">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-indigo-600" />
+      <div className="absolute inset-0 flex items-center justify-center bg-[#F9F9FB] dark:bg-zinc-950 z-50 transition-colors duration-300">
+        <span className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 dark:border-zinc-700 border-t-indigo-600 dark:border-t-indigo-500" />
       </div>
     );
   }
@@ -706,7 +708,7 @@ export default function CanvasArea() {
           )}
         </div>
         {isActive && hasOptions && (
-          <div className="mt-2 pt-2 border-t border-zinc-100 flex flex-col gap-1.5 animate-in fade-in duration-100">
+          <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-1.5 animate-in fade-in duration-100">
             <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
               Manage Choices (Comma Separated):
             </label>
@@ -719,7 +721,7 @@ export default function CanvasArea() {
                 })
               }
               placeholder="e.g. Critical, High, Normal"
-              className="text-[11px] font-medium bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 w-full text-zinc-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all"
+              className="text-[11px] font-medium bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 w-full text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all"
             />
           </div>
         )}
@@ -735,12 +737,12 @@ export default function CanvasArea() {
   return (
     <div
       ref={containerRef}
-      className={`canvas-bg absolute inset-0 overflow-hidden select-none touch-none bg-[#F9F9FB] ${cursorStyle}`}
+      className={`canvas-bg absolute inset-0 overflow-hidden select-none touch-none bg-[#F9F9FB] dark:bg-zinc-950 transition-colors duration-300 ${cursorStyle}`}
       onPointerDown={handlePointerDown}
       onWheel={handleWheel}
     >
       <div
-        className="canvas-bg absolute inset-0 infinite-grid-layer pointer-events-none"
+        className="canvas-bg absolute inset-0 infinite-grid-layer pointer-events-none opacity-100 dark:opacity-20 transition-opacity duration-300"
         style={{
           backgroundImage: `linear-gradient(to right, #e4e4e7 1px, transparent 1px), linear-gradient(to bottom, #e4e4e7 1px, transparent 1px)`,
           backgroundSize: `${40 * (zoom / 100)}px ${40 * (zoom / 100)}px`,
@@ -749,15 +751,15 @@ export default function CanvasArea() {
       />
 
       {/* Radar UI - Enterprise Polish */}
-      <div className="absolute top-6 left-6 z-50 bg-white/80 backdrop-blur-md px-4 py-2 rounded-xl border border-zinc-200/60 shadow-sm pointer-events-none hidden sm:flex items-center gap-4 animate-in fade-in duration-300">
+      <div className="absolute top-6 left-6 z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 shadow-sm pointer-events-none hidden sm:flex items-center gap-4 animate-in fade-in duration-300 transition-colors">
         <div className="flex items-center gap-1.5">
-          <MousePointer2 className="w-3.5 h-3.5 text-indigo-500" />
-          <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+          <MousePointer2 className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+          <span className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
             Radar
           </span>
         </div>
-        <div className="h-3 w-px bg-zinc-200"></div>
-        <div className="flex items-center gap-3 text-[11px] font-mono font-bold text-zinc-600">
+        <div className="h-3 w-px bg-zinc-200 dark:bg-zinc-700"></div>
+        <div className="flex items-center gap-3 text-[11px] font-mono font-bold text-zinc-600 dark:text-zinc-400">
           <span>X: {Math.round(panX)}</span>
           <span>Y: {Math.round(panY)}</span>
         </div>
@@ -765,7 +767,7 @@ export default function CanvasArea() {
 
       {contextMenu && (
         <div
-          className="absolute z-50 bg-white/95 backdrop-blur-xl border border-zinc-200/80 rounded-xl shadow-xl py-1.5 min-w-[180px] animate-in fade-in zoom-in-95 duration-100"
+          className="absolute z-50 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl shadow-xl py-1.5 min-w-[180px] animate-in fade-in zoom-in-95 duration-100 transition-colors"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onPointerDown={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.preventDefault()}
@@ -777,12 +779,12 @@ export default function CanvasArea() {
                 setAiMenu(contextMenu);
                 setContextMenu(null);
               }}
-              className="w-full text-left px-3 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 transition-colors"
+              className="w-full text-left px-3 py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-center gap-2 transition-colors"
             >
               <Sparkles className="w-4 h-4" /> Generate with AI
             </button>
           ) : (
-            <div className="px-4 py-2 text-xs font-medium text-zinc-500">
+            <div className="px-4 py-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
               Select a frame first to generate AI blocks.
             </div>
           )}
@@ -792,12 +794,12 @@ export default function CanvasArea() {
       {/* AI Menu - Enterprise Polish */}
       {aiMenu && (
         <div
-          className="absolute z-50 bg-white/95 backdrop-blur-xl border border-zinc-200 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] p-4 rounded-2xl flex flex-col gap-3 w-80 animate-in zoom-in-95 slide-in-from-bottom-2 duration-150"
+          className="absolute z-50 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] p-4 rounded-2xl flex flex-col gap-3 w-80 animate-in zoom-in-95 slide-in-from-bottom-2 duration-150 transition-colors"
           style={{ left: aiMenu.x, top: aiMenu.y }}
           onPointerDown={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.preventDefault()}
         >
-          <div className="flex items-center gap-1.5 text-indigo-600 font-bold text-[10px] uppercase tracking-wider px-1">
+          <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-bold text-[10px] uppercase tracking-wider px-1">
             <Sparkles className="w-3.5 h-3.5" /> AI Architect
           </div>
           <textarea
@@ -805,7 +807,7 @@ export default function CanvasArea() {
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
             placeholder="e.g. Create a Kanban board for a product launch..."
-            className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-sm text-zinc-800 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all placeholder:text-zinc-400"
+            className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm text-zinc-800 dark:text-zinc-200 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
             rows={3}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -817,17 +819,17 @@ export default function CanvasArea() {
           <div className="flex justify-between items-center mt-1">
             <button
               onClick={() => setAiMenu(null)}
-              className="text-xs font-bold text-zinc-500 hover:text-zinc-900 px-2 transition-colors"
+              className="text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white px-2 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleAiGenerate}
               disabled={isAiGenerating || !aiPrompt.trim()}
-              className="bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 text-white text-xs font-bold py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center gap-2"
+              className="bg-zinc-900 dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50 text-white dark:text-zinc-900 text-xs font-bold py-2 px-4 rounded-lg transition-all active:scale-95 flex items-center gap-2"
             >
               {isAiGenerating ? (
-                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
               ) : null}
               {isAiGenerating ? "Building..." : "Generate"}
             </button>
@@ -855,6 +857,7 @@ export default function CanvasArea() {
           const isPageActive = activePageId === page.id;
           const px = page.x ?? 150;
           const py = page.y ?? 150;
+          // Eğer karanlık moddaysan ve sayfa rengi default (beyaz) ise biraz koyulaştır. Özel renk seçtiyse ellemiyoruz.
           const pageBgColor =
             (page.settings?.backgroundColor as string) || "#ffffff";
 
@@ -878,29 +881,33 @@ export default function CanvasArea() {
               onDragEnter={handleDragOverPage}
               onDragOver={handleDragOverPage}
               onDrop={(e) => handleDropOnPage(e, page)}
-              className={`canvas-bg absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] rounded-2xl pointer-events-auto transition-shadow focus:outline-none ${
+              className={`canvas-bg absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] rounded-2xl pointer-events-auto transition-shadow focus:outline-none flex flex-col ${
                 isPageActive
                   ? "ring-2 ring-indigo-500 shadow-2xl z-40"
-                  : "ring-1 ring-zinc-200/80 hover:shadow-xl z-0"
+                  : "ring-1 ring-zinc-200/80 dark:ring-zinc-800/80 hover:shadow-xl z-0"
               }`}
               style={{
                 left: `${px}px`,
                 top: `${py}px`,
                 width: `${page.width}px`,
                 minHeight: `${page.height}px`,
-                backgroundColor: pageBgColor,
+                // Karanlık mod class'ları eklendiği için default #ffffff rengini es geçmek için CSS değişkeni kullanabilirsin ama inline style pratik:
+                backgroundColor: pageBgColor === "#ffffff" ? "" : pageBgColor,
               }}
             >
+              {/* Sayfa arkaplan rengi için Tailwind sınıfları (Eğer color picker'dan renk seçilmediyse devreye girer) */}
+              <div className="absolute inset-0 rounded-2xl bg-white dark:bg-zinc-900 -z-10 pointer-events-none transition-colors duration-300"></div>
+
               {isPageActive && !activeBlockId ? (
-                <div className="absolute -top-14 left-0 flex items-center gap-2 bg-white border border-zinc-200 p-1.5 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-150 z-50">
+                <div className="absolute -top-14 left-0 flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-1.5 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-150 z-50 transition-colors">
                   <input
                     type="text"
                     value={page.title}
                     onChange={(e) => updatePageTitle(page.id, e.target.value)}
-                    className="bg-zinc-50 text-zinc-900 text-[11px] font-bold px-3 py-1.5 rounded-lg outline-none w-32 sm:w-40 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                    className="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 text-[11px] font-bold px-3 py-1.5 rounded-lg outline-none w-32 sm:w-40 focus:ring-2 focus:ring-indigo-500/20 transition-all border border-transparent dark:border-zinc-800"
                   />
-                  <div className="w-px h-5 bg-zinc-200 mx-1" />
-                  <div className="relative flex items-center justify-center p-1 rounded-lg hover:bg-zinc-100 transition-colors cursor-pointer overflow-hidden w-7 h-7 border border-zinc-200">
+                  <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+                  <div className="relative flex items-center justify-center p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer overflow-hidden w-7 h-7 border border-zinc-200 dark:border-zinc-700">
                     <input
                       type="color"
                       value={pageBgColor}
@@ -916,7 +923,7 @@ export default function CanvasArea() {
               ) : (
                 <div
                   onPointerDown={(e) => startPageDrag(e, page.id, px, py)}
-                  className="absolute -top-8 left-0 flex items-center gap-2 text-zinc-400 font-bold text-[10px] uppercase tracking-widest cursor-move px-2 py-1 rounded hover:bg-zinc-200/50 transition-colors"
+                  className="absolute -top-8 left-0 flex items-center gap-2 text-zinc-400 font-bold text-[10px] uppercase tracking-widest cursor-move px-2 py-1 rounded hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 transition-colors"
                 >
                   <span># {page.title}</span>
                 </div>
@@ -962,32 +969,56 @@ export default function CanvasArea() {
                 </>
               )}
 
-              <div className="canvas-bg relative w-full h-full p-6 overflow-visible">
-                {page.blocks.map((block) => {
-                  const isBlockActive =
-                    activeBlockId === block.id ||
-                    selectedBlocks.includes(block.id);
-                  const bx = block.x ?? 20;
-                  const by = block.y ?? 20;
-                  const bw = block.width ?? 320;
-                  const bh = block.height ?? 120;
+              {/* İŞTE KİLİT NOKTA: KANBAN İSE BİLEŞENİ GÖSTER, DEĞİLSE BLOKLARI DÖN */}
+              {page.type === "kanban" ? (
+                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl">
+                  {/* projectId olarak çerçevenin ID'sini (page.id) gönderiyoruz */}
+                  <StaticKanbanBoard projectId={page.id} />
+                </div>
+              ) : (
+                <div className="canvas-bg relative w-full h-full p-6 flex-1 overflow-visible">
+                  {page.blocks.map((block) => {
+                    const isBlockActive =
+                      activeBlockId === block.id ||
+                      selectedBlocks.includes(block.id);
+                    const bx = block.x ?? 20;
+                    const by = block.y ?? 20;
+                    const bw = block.width ?? 320;
+                    const bh = block.height ?? 120;
 
-                  return (
-                    <div
-                      key={block.id}
-                      onClick={(e) => {
-                        if (
-                          !isSpacePressed &&
-                          !isSpacePanning &&
-                          activePointers.current.size < 2
-                        ) {
-                          e.stopPropagation();
-                          setActivePage(page.id);
-                          setActiveBlock(block.id);
+                    return (
+                      <div
+                        key={block.id}
+                        onClick={(e) => {
+                          if (
+                            !isSpacePressed &&
+                            !isSpacePanning &&
+                            activePointers.current.size < 2
+                          ) {
+                            e.stopPropagation();
+                            setActivePage(page.id);
+                            setActiveBlock(block.id);
+                            if (
+                              connectingFrom &&
+                              connectingFrom.blockId !== block.id
+                            ) {
+                              addConnection({
+                                id: crypto.randomUUID(),
+                                fromPage: connectingFrom.pageId,
+                                fromBlock: connectingFrom.blockId,
+                                toPage: page.id,
+                                toBlock: block.id,
+                              });
+                              setConnectingFrom(null);
+                            }
+                          }
+                        }}
+                        onPointerUp={(e) => {
                           if (
                             connectingFrom &&
                             connectingFrom.blockId !== block.id
                           ) {
+                            e.stopPropagation();
                             addConnection({
                               id: crypto.randomUUID(),
                               fromPage: connectingFrom.pageId,
@@ -997,141 +1028,129 @@ export default function CanvasArea() {
                             });
                             setConnectingFrom(null);
                           }
-                        }
-                      }}
-                      onPointerUp={(e) => {
-                        if (
-                          connectingFrom &&
-                          connectingFrom.blockId !== block.id
-                        ) {
-                          e.stopPropagation();
-                          addConnection({
-                            id: crypto.randomUUID(),
-                            fromPage: connectingFrom.pageId,
-                            fromBlock: connectingFrom.blockId,
-                            toPage: page.id,
-                            toBlock: block.id,
-                          });
-                          setConnectingFrom(null);
-                        }
-                      }}
-                      className={`absolute bg-white border border-zinc-200/80 rounded-2xl p-5 pt-10 sm:pt-8 cursor-default select-text group transition-shadow ${
-                        isBlockActive
-                          ? "ring-2 ring-indigo-500 shadow-xl z-50"
-                          : "shadow-sm hover:shadow-md z-10"
-                      } ${connectingFrom && connectingFrom.blockId !== block.id ? "hover:ring-2 hover:ring-indigo-400" : ""}`}
-                      style={{
-                        left: `${bx}px`,
-                        top: `${by}px`,
-                        width: `${bw}px`,
-                        minHeight: `${bh}px`,
-                      }}
-                    >
-                      {isBlockActive && (
-                        <BlockResizer
-                          pageId={page.id}
-                          blockId={block.id}
-                          x={bx}
-                          y={by}
-                          width={bw}
-                          height={bh}
-                        />
-                      )}
-
-                      <div
-                        onPointerDown={(e) => {
-                          if (!connectingFrom)
-                            startBlockDrag(
-                              e,
-                              page.id,
-                              block.id,
-                              px,
-                              py,
-                              bx,
-                              by,
-                            );
                         }}
-                        className="absolute top-0 left-0 right-0 h-8 sm:h-6 bg-transparent hover:bg-zinc-50/80 rounded-t-2xl flex items-center justify-center cursor-move transition-colors select-none z-40 touch-none"
+                        className={`absolute bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 pt-10 sm:pt-8 cursor-default select-text group transition-shadow ${
+                          isBlockActive
+                            ? "ring-2 ring-indigo-500 shadow-xl z-50"
+                            : "shadow-sm hover:shadow-md z-10"
+                        } ${connectingFrom && connectingFrom.blockId !== block.id ? "hover:ring-2 hover:ring-indigo-400" : ""}`}
+                        style={{
+                          left: `${bx}px`,
+                          top: `${by}px`,
+                          width: `${bw}px`,
+                          minHeight: `${bh}px`,
+                        }}
                       >
-                        <div className="flex gap-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                          <span className="w-1 h-1 bg-zinc-300 rounded-full" />
-                          <span className="w-1 h-1 bg-zinc-300 rounded-full" />
-                          <span className="w-1 h-1 bg-zinc-300 rounded-full" />
+                        {isBlockActive && (
+                          <BlockResizer
+                            pageId={page.id}
+                            blockId={block.id}
+                            x={bx}
+                            y={by}
+                            width={bw}
+                            height={bh}
+                          />
+                        )}
+
+                        <div
+                          onPointerDown={(e) => {
+                            if (!connectingFrom)
+                              startBlockDrag(
+                                e,
+                                page.id,
+                                block.id,
+                                px,
+                                py,
+                                bx,
+                                by,
+                              );
+                          }}
+                          className="absolute top-0 left-0 right-0 h-8 sm:h-6 bg-transparent hover:bg-zinc-50/80 dark:hover:bg-zinc-800/50 rounded-t-2xl flex items-center justify-center cursor-move transition-colors select-none z-40 touch-none"
+                        >
+                          <div className="flex gap-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full" />
+                            <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full" />
+                            <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full" />
+                          </div>
+                        </div>
+
+                        {activeBlockId === block.id && (
+                          <div className="absolute -top-4 -right-4 sm:-top-3 sm:-right-3 flex gap-1.5 sm:gap-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (connectingFrom?.blockId === block.id)
+                                  setConnectingFrom(null);
+                                else
+                                  setConnectingFrom({
+                                    pageId: page.id,
+                                    blockId: block.id,
+                                  });
+                              }}
+                              className={`w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center bg-white dark:bg-zinc-800 border rounded-full shadow-md transition-colors cursor-pointer select-none ${
+                                connectingFrom?.blockId === block.id
+                                  ? "border-indigo-500 text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30"
+                                  : "border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-indigo-400"
+                              }`}
+                            >
+                              <svg
+                                className="w-4 h-4 sm:w-3 sm:h-3"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                              </svg>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeBlockFromPage(page.id, block.id);
+                              }}
+                              className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full text-zinc-400 dark:text-zinc-500 hover:text-red-500 hover:border-red-200 dark:hover:border-red-500/50 hover:bg-red-50 dark:hover:bg-red-900/20 shadow-md transition-colors cursor-pointer select-none"
+                            >
+                              <svg
+                                className="w-4 h-4 sm:w-3 sm:h-3"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                              >
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+
+                        <div
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className="h-full"
+                        >
+                          {renderBlock(page.id, block, isBlockActive)}
                         </div>
                       </div>
-
-                      {activeBlockId === block.id && (
-                        <div className="absolute -top-4 -right-4 sm:-top-3 sm:-right-3 flex gap-1.5 sm:gap-1 z-30 animate-in fade-in zoom-in-95 duration-100">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (connectingFrom?.blockId === block.id)
-                                setConnectingFrom(null);
-                              else
-                                setConnectingFrom({
-                                  pageId: page.id,
-                                  blockId: block.id,
-                                });
-                            }}
-                            className={`w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center bg-white border rounded-full shadow-md transition-colors cursor-pointer select-none ${connectingFrom?.blockId === block.id ? "border-indigo-500 text-indigo-500 bg-indigo-50" : "border-zinc-200 text-zinc-400 hover:text-indigo-500"}`}
-                          >
-                            <svg
-                              className="w-4 h-4 sm:w-3 sm:h-3"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                            </svg>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeBlockFromPage(page.id, block.id);
-                            }}
-                            className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center bg-white border border-zinc-200 rounded-full text-zinc-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 shadow-md transition-colors cursor-pointer select-none"
-                          >
-                            <svg
-                              className="w-4 h-4 sm:w-3 sm:h-3"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                            >
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
-
-                      <div
-                        onPointerDown={(e) => e.stopPropagation()}
-                        className="h-full"
-                      >
-                        {renderBlock(page.id, block, isBlockActive)}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </section>
           );
         })}
       </div>
 
       {/* Floating Toolbar - Enterprise Polish */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center bg-white/80 backdrop-blur-xl border border-zinc-200/60 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-1.5 pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/60 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-1.5 pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300 transition-colors">
         <button
           onClick={undo}
-          className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
+          className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
           title="Undo"
         >
           <svg
@@ -1148,7 +1167,7 @@ export default function CanvasArea() {
         </button>
         <button
           onClick={redo}
-          className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
+          className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
           title="Redo"
         >
           <svg
@@ -1164,29 +1183,29 @@ export default function CanvasArea() {
           </svg>
         </button>
 
-        <div className="w-px h-5 bg-zinc-200 mx-2" />
+        <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-2" />
 
         <button
           onClick={() => setZoom(zoom - 10)}
-          className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
+          className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
         >
           <Minus className="w-4 h-4" />
         </button>
-        <span className="text-[11px] font-black text-zinc-700 min-w-[48px] text-center tracking-widest px-1">
+        <span className="text-[11px] font-black text-zinc-700 dark:text-zinc-300 min-w-[48px] text-center tracking-widest px-1">
           {zoom}%
         </span>
         <button
           onClick={() => setZoom(zoom + 10)}
-          className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
+          className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
         >
           <Plus className="w-4 h-4" />
         </button>
 
-        <div className="w-px h-5 bg-zinc-200 mx-2" />
+        <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-2" />
 
         <button
           onClick={() => setPan(0, 0)}
-          className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all"
+          className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-full transition-all"
           title="Reset View"
         >
           <Maximize className="w-4 h-4" />

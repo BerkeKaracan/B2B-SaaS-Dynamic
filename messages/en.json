@@ -490,5 +490,119 @@
       }
     },
     "contact": "For professional inquiries, job opportunities, or architectural questions, please visit the Contact page."
+  },
+  "KanbanBoard": {
+    "title": "Project Board",
+    "filter": "Filter",
+    "searchPlaceholder": "Title or Assignee...",
+    "priorityFilter": "Priority Filter",
+    "allPriorities": "All Priorities",
+    "saveView": "Save as Custom View",
+    "clearFilters": "Clear Filters",
+    "sort": "Sort",
+    "sortManual": "Manual (Drag & Drop)",
+    "sortPriority": "Priority (High to Low)",
+    "sortDeadline": "Deadline (Soonest First)",
+    "history": "History",
+    "defaultView": "Default View",
+    "addTask": "+ Add Task",
+    "activity": "Activity",
+    "commits": "Commits",
+    "noActivity": "No activity recorded yet. Start moving tasks!",
+    "linkRepo": "Link Repository",
+    "linkRepoDesc": "Connect this project to a repository to track live commits.",
+    "connect": "Connect",
+    "connectedTo": "Connected To",
+    "fetching": "Fetching...",
+    "noCommits": "No commits found.",
+    "editTask": "Edit Task",
+    "duplicate": "Duplicate",
+    "delete": "Delete",
+    "for": "For",
+    "createdBy": "Created by",
+    "updatedBy": "Updated by",
+    "start": "Start",
+    "deadline": "Deadline",
+    "modalTitleNew": "Add New Task",
+    "modalTitleEdit": "Edit Task",
+    "modalTitle": "Title",
+    "modalDesc": "Description",
+    "modalPriority": "Priority",
+    "modalAssignee": "Assignee",
+    "modalAssigneePlaceholder": "Search user...",
+    "modalCommit": "Linked Commit (Optional)",
+    "modalCommitPlaceholder": "e.g. 1A9F43B",
+    "modalStart": "Start (Optional)",
+    "modalDeadline": "Deadline (Optional)",
+    "cancel": "Cancel",
+    "save": "Save",
+    "create": "Create"
+  },
+  "EngineToolkit": {
+    "title": "Engine Toolkit",
+    "search": "Search blocks or frames...",
+    "intelligence": "Intelligence",
+    "aiGenerator": "AI Generator",
+    "generatePrompt": "Generate blocks via prompt",
+    "buildingBlocks": "Building Blocks",
+    "pageFrames": "Page Frames",
+    "dropToCanvas": "Drop to Canvas",
+    "aiPlaceholder": "e.g. Create a Kanban board for a product launch...",
+    "pressEnter": "Press Enter to send, Esc to cancel",
+    "cancel": "Cancel",
+    "generate": "Generate",
+    "building": "Building...",
+    "blocks": {
+      "text": {
+        "label": "Text Block",
+        "desc": "Plain text for notes or descriptions"
+      },
+      "form": {
+        "label": "Form Field",
+        "desc": "Dynamic database-mapped data input"
+      },
+      "date": {
+        "label": "Date Picker",
+        "desc": "Select target or operational dates"
+      },
+      "dropdown": {
+        "label": "Dropdown Menu",
+        "desc": "Pre-defined selectable option list"
+      },
+      "toggle": {
+        "label": "Toggle Switch",
+        "desc": "State handling with interactive checklist option"
+      },
+      "badge": {
+        "label": "Badge Selector",
+        "desc": "Multiple discrete choice selection grid"
+      },
+      "asset": {
+        "label": "Asset Stream",
+        "desc": "Upload engine for tracking cloud file assets"
+      }
+    },
+    "frames": {
+      "empty": {
+        "label": "Empty Page",
+        "desc": "Insert a blank standard A4 frame to your workspace"
+      },
+      "kanban": {
+        "label": "Kanban Board",
+        "desc": "Pre-loaded landscape frame with ToDo, InProgress, Done columns"
+      },
+      "notes": {
+        "label": "Notes Workspace",
+        "desc": "Pre-loaded portrait workspace with notes and priority selectors"
+      },
+      "agenda": {
+        "label": "Agenda Timeline",
+        "desc": "Pre-loaded roadmap frame mapping sprint deadlines"
+      },
+      "database": {
+        "label": "Structured Database",
+        "desc": "Pre-loaded validation workspace mapping client data"
+      }
+    }
   }
 }
