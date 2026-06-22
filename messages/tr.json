@@ -602,7 +602,28 @@
       "database": {
         "label": "Yapılandırılmış Veritabanı",
         "desc": "Müşteri verilerini eşleyen doğrulama çalışma alanı"
+      },
+      "whiteboard": {
+        "label": "Beyaz Tahta",
+        "desc": "Serbest çizim ve karalama alanı"
       }
     }
+  },
+  "DocumentBoard": {
+    "titlePlaceholder": "İsimsiz Doküman",
+    "contentPlaceholder": "Komutlar için '/' tuşuna basın veya yazmaya başlayın...",
+    "addCover": "Kapak Ekle",
+    "addIcon": "İkon Ekle",
+    "addComment": "Yorum Ekle",
+    "lastEdited": "Son düzenleme az önce",
+    "wordCount": "kelime",
+    "share": "Paylaş",
+    "publish": "Yayınla"
+  },
+  "WhiteboardBoard": {
+    "clear": "Temizle",
+    "eraser": "Silgi",
+    "draw": "Çiz",
+    "color": "Renk"
   }
 }

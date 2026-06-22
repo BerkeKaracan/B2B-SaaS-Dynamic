@@ -21,7 +21,14 @@ export interface BlockContent {
 
 export interface PageContent {
   id: string;
-  type: "empty" | "kanban" | "notes" | "agenda" | "database";
+  type:
+    | "empty"
+    | "kanban"
+    | "notes"
+    | "document"
+    | "agenda"
+    | "database"
+    | "whiteboard";
   title: string;
   x: number;
   y: number;

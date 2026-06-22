@@ -602,7 +602,28 @@
       "database": {
         "label": "Structured Database",
         "desc": "Pre-loaded validation workspace mapping client data"
+      },
+      "whiteboard": {
+        "label": "Whiteboard",
+        "desc": "Free-form drawing and sketching area"
       }
     }
+  },
+  "DocumentBoard": {
+    "titlePlaceholder": "Untitled Document",
+    "contentPlaceholder": "Type '/' for commands or start typing...",
+    "addCover": "Add Cover",
+    "addIcon": "Add Icon",
+    "addComment": "Add Comment",
+    "lastEdited": "Last edited just now",
+    "wordCount": "words",
+    "share": "Share",
+    "publish": "Publish"
+  },
+  "WhiteboardBoard": {
+    "clear": "Clear",
+    "eraser": "Eraser",
+    "draw": "Draw",
+    "color": "Color"
   }
 }

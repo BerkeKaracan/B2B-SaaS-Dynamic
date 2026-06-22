@@ -12,6 +12,8 @@ import TimelineBoard from "@/components/timeline/TimelineBoard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LoadingSpinner } from "@/components/ui/loading";
 import DatabaseBoard from "@/components/database/DatabaseBoard";
+import DocumentBoard from "@/components/document/DocumentBoard";
+import WhiteboardBoard from "@/components/whiteboard/WhiteBoard";
 
 type Collaborator = {
   email: string;
@@ -56,6 +58,8 @@ export default function ProjectDesignPage() {
           if (
             data.record_data?.template === "kanban" ||
             data.record_data?.template === "notepad" ||
+            data.record_data?.template === "document" ||
+            data.record_data?.template === "whiteboard" ||
             data.record_data?.template === "timeline" ||
             data.record_data?.template === "database"
           ) {
@@ -247,8 +251,11 @@ export default function ProjectDesignPage() {
             </div>
           ) : projectTemplate === "kanban" ? (
             <StaticKanbanBoard projectId={projectId} />
-          ) : projectTemplate === "notepad" ? (
-            <NotepadBoard projectId={projectId} />
+          ) : projectTemplate === "notepad" ||
+            projectTemplate === "document" ? (
+            <DocumentBoard projectId={projectId} />
+          ) : projectTemplate === "whiteboard" ? (
+            <WhiteboardBoard projectId={projectId} />
           ) : projectTemplate === "timeline" ? (
             <TimelineBoard projectId={projectId} />
           ) : projectTemplate === "database" ? (

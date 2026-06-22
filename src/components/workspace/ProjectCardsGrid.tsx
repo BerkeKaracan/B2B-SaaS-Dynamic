@@ -24,6 +24,8 @@ import {
   Trash2,
   AlertTriangle,
   Database,
+  PenTool,
+  FileText,
 } from "lucide-react";
 
 type ProjectRecord = {
@@ -368,36 +370,42 @@ export default function ProjectCardsGrid({
     }, [projects, isAdmin, showArchived, searchQuery]);
 
   return (
-    <div className="flex-1 w-full relative">
+    <div className="flex-1 w-full relative transition-colors duration-300">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white p-5 rounded-xl border border-zinc-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center gap-2 text-zinc-500 mb-2">
+        <div className="bg-white dark:bg-zinc-900 p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between transition-colors duration-300">
+          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 mb-2">
             <Briefcase className="w-4 h-4" />
             <span className="text-xs font-semibold uppercase tracking-wider">
               Active Projects
             </span>
           </div>
-          <p className="text-2xl font-bold text-zinc-900">{activeCount}</p>
+          <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+            {activeCount}
+          </p>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-zinc-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center gap-2 text-zinc-500 mb-2">
-            <Shield className="w-4 h-4 text-indigo-500" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
+        <div className="bg-white dark:bg-zinc-900 p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between transition-colors duration-300">
+          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 mb-2">
+            <Shield className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
               Private Workspaces
             </span>
           </div>
-          <p className="text-2xl font-bold text-zinc-900">{privateCount}</p>
+          <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+            {privateCount}
+          </p>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-zinc-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center gap-2 text-zinc-500 mb-2">
+        <div className="bg-white dark:bg-zinc-900 p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between transition-colors duration-300">
+          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 mb-2">
             <Archive className="w-4 h-4" />
             <span className="text-xs font-semibold uppercase tracking-wider">
               Archived
             </span>
           </div>
-          <p className="text-2xl font-bold text-zinc-900">{archivedCount}</p>
+          <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+            {archivedCount}
+          </p>
         </div>
       </div>
 
@@ -412,7 +420,7 @@ export default function ProjectCardsGrid({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="w-4 h-4 text-zinc-400 group-focus-within:text-zinc-900 transition-colors duration-300"
+              className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors duration-300"
             >
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -423,7 +431,7 @@ export default function ProjectCardsGrid({
             placeholder="Search projects..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="relative z-0 w-full pl-10 pr-4 py-2.5 bg-zinc-50/60 backdrop-blur-sm border border-zinc-200/60 rounded-xl text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-4 focus:ring-zinc-900/5 focus:border-zinc-300 transition-all shadow-sm"
+            className="relative z-0 w-full pl-10 pr-4 py-2.5 bg-zinc-50/60 dark:bg-zinc-900/60 backdrop-blur-sm border border-zinc-200/60 dark:border-zinc-800/60 rounded-xl text-sm font-medium text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500 transition-all shadow-sm"
           />
         </div>
 
@@ -431,7 +439,11 @@ export default function ProjectCardsGrid({
           {isAdmin && (
             <button
               onClick={() => setShowArchived(!showArchived)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all transform-gpu active:scale-95 ${showArchived ? "bg-zinc-100 text-zinc-900 border border-zinc-200" : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50 shadow-sm"}`}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all transform-gpu active:scale-95 ${
+                showArchived
+                  ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700"
+                  : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 shadow-sm"
+              }`}
             >
               {showArchived ? "Active" : "Archived"}
             </button>
@@ -440,7 +452,7 @@ export default function ProjectCardsGrid({
           {!showArchived && isAdmin && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-950 text-white font-semibold text-sm rounded-lg hover:bg-zinc-800 transition-all shadow-sm transform-gpu active:scale-95"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 font-semibold text-sm rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all shadow-sm transform-gpu active:scale-95"
             >
               <FolderPlus className="w-4 h-4" />
               New Project
@@ -470,9 +482,9 @@ export default function ProjectCardsGrid({
               const isOpen = openMenuId === project.id;
 
               const baseClasses =
-                "group relative rounded-xl bg-white flex flex-col transition-all duration-200 transform-gpu will-change-transform border border-zinc-200 shadow-sm hover:shadow-md";
+                "group relative rounded-xl bg-white dark:bg-zinc-900 flex flex-col transition-all duration-200 transform-gpu will-change-transform border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-md";
               const hoverClasses = !showArchived
-                ? "hover:-translate-y-0.5 hover:border-zinc-300 cursor-pointer"
+                ? "hover:-translate-y-0.5 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer"
                 : "opacity-75 grayscale";
               const cardClasses = `${baseClasses} ${hoverClasses} ${isOpen ? "z-50" : "z-10"}`;
 
@@ -481,17 +493,26 @@ export default function ProjectCardsGrid({
                   <div className="p-5 flex-1 flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-zinc-900 truncate group-hover:text-zinc-700 transition-colors">
+                        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 truncate group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors">
                           {displayName}
                         </h3>
-                        <div className="flex items-center gap-1.5 mt-1 text-xs text-zinc-500">
+                        <div className="flex items-center gap-1.5 mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                           {templateType === "database" ? (
                             <Database className="w-3.5 h-3.5" />
+                          ) : templateType === "whiteboard" ? (
+                            <PenTool className="w-3.5 h-3.5" />
+                          ) : templateType === "document" ||
+                            templateType === "notepad" ? (
+                            <FileText className="w-3.5 h-3.5" />
                           ) : (
                             <LayoutTemplate className="w-3.5 h-3.5" />
                           )}
                           <span className="capitalize">
-                            {templateType} Template
+                            {templateType === "document" ||
+                            templateType === "notepad"
+                              ? "Document"
+                              : templateType}{" "}
+                            Template
                           </span>
                         </div>
                       </div>
@@ -506,12 +527,12 @@ export default function ProjectCardsGrid({
                                 openMenuId === project.id ? null : project.id,
                               );
                             }}
-                            className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 transition-colors transform-gpu"
+                            className="p-1.5 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors transform-gpu"
                           >
                             <MoreVertical className="w-4 h-4" />
                           </button>
                           {isOpen && (
-                            <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-zinc-200 shadow-lg rounded-lg py-1.5 z-[100] transform-gpu">
+                            <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-lg rounded-lg py-1.5 z-[100] transform-gpu">
                               {!showArchived ? (
                                 <>
                                   <button
@@ -523,7 +544,7 @@ export default function ProjectCardsGrid({
                                         "public",
                                       )
                                     }
-                                    className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                                    className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                                   >
                                     Make Workspace Public
                                   </button>
@@ -536,12 +557,12 @@ export default function ProjectCardsGrid({
                                         "just_admin",
                                       )
                                     }
-                                    className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-900 hover:bg-zinc-50"
+                                    className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                                   >
                                     Make Admin Only
                                   </button>
 
-                                  <div className="h-px bg-zinc-100 my-1" />
+                                  <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
 
                                   <button
                                     onClick={(e) =>
@@ -551,7 +572,11 @@ export default function ProjectCardsGrid({
                                         project.record_data,
                                       )
                                     }
-                                    className={`w-full px-4 py-2 text-xs font-medium flex items-center justify-between ${isGlobalShared ? "text-rose-600 hover:bg-rose-50" : "text-blue-600 hover:bg-blue-50"}`}
+                                    className={`w-full px-4 py-2 text-xs font-medium flex items-center justify-between ${
+                                      isGlobalShared
+                                        ? "text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                                        : "text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                    }`}
                                   >
                                     {isGlobalShared
                                       ? "Remove from Hub"
@@ -559,7 +584,7 @@ export default function ProjectCardsGrid({
                                     <Globe className="w-3.5 h-3.5" />
                                   </button>
 
-                                  <div className="h-px bg-zinc-100 my-1" />
+                                  <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
 
                                   <button
                                     onClick={(e) =>
@@ -569,7 +594,7 @@ export default function ProjectCardsGrid({
                                         project.record_data,
                                       )
                                     }
-                                    className="w-full text-left px-4 py-2 text-xs font-medium text-amber-600 hover:bg-amber-50"
+                                    className="w-full text-left px-4 py-2 text-xs font-medium text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                                   >
                                     Archive Project
                                   </button>
@@ -584,16 +609,16 @@ export default function ProjectCardsGrid({
                                         project.record_data,
                                       )
                                     }
-                                    className="w-full text-left px-4 py-2 text-xs font-medium text-emerald-600 hover:bg-emerald-50"
+                                    className="w-full text-left px-4 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                                   >
                                     Restore Project
                                   </button>
-                                  <div className="h-px bg-zinc-100 my-1" />
+                                  <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
                                   <button
                                     onClick={(e) =>
                                       deletePermanently(e, project.id)
                                     }
-                                    className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 hover:bg-red-50"
+                                    className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                                   >
                                     Delete Permanently
                                   </button>
@@ -606,25 +631,25 @@ export default function ProjectCardsGrid({
                     </div>
                   </div>
 
-                  <div className="px-5 py-3 bg-zinc-50/50 border-t border-zinc-100 rounded-b-xl flex items-center justify-between text-[11px] font-medium text-zinc-500">
+                  <div className="px-5 py-3 bg-zinc-50/50 dark:bg-zinc-950/50 border-t border-zinc-100 dark:border-zinc-800 rounded-b-xl flex items-center justify-between text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
                     <div className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                      <Clock className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" />
                       {timeAgo}
                     </div>
                     <div className="flex items-center gap-2">
                       {isGlobalShared && (
-                        <div className="flex items-center gap-1 text-blue-600 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-800">
                           <Globe className="w-3 h-3" />
                           HUB
                         </div>
                       )}
                       {isJustAdmin ? (
-                        <div className="flex items-center gap-1 text-zinc-700">
+                        <div className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300">
                           <Shield className="w-3 h-3" />
                           Private
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1 text-emerald-600">
+                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                           Team
                         </div>
                       )}
@@ -649,13 +674,13 @@ export default function ProjectCardsGrid({
             })}
 
             {displayedProjects.length === 0 && (
-              <div className="col-span-full py-16 flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50">
-                <Search className="w-6 h-6 text-zinc-400 mb-3" />
-                <p className="text-sm text-zinc-900 font-semibold">
+              <div className="col-span-full py-16 flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50">
+                <Search className="w-6 h-6 text-zinc-400 dark:text-zinc-500 mb-3" />
+                <p className="text-sm text-zinc-900 dark:text-zinc-100 font-semibold">
                   No workspaces found.
                 </p>
                 {searchQuery && (
-                  <p className="text-xs text-zinc-500 mt-1">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                     Try clearing your search.
                   </p>
                 )}
@@ -666,19 +691,19 @@ export default function ProjectCardsGrid({
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/20 backdrop-blur-sm p-4 transform-gpu">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md border border-zinc-200 transform-gpu will-change-transform">
-            <div className="p-6 border-b border-zinc-100">
-              <h2 className="text-lg font-bold text-zinc-900">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm p-4 transform-gpu">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md border border-zinc-200 dark:border-zinc-800 transform-gpu will-change-transform">
+            <div className="p-6 border-b border-zinc-100 dark:border-zinc-800">
+              <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
                 Create Workspace
               </h2>
-              <p className="text-xs text-zinc-500 mt-1">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                 Initialize a new dynamic environment.
               </p>
             </div>
             <form onSubmit={handleCreateSubmit} className="p-6 space-y-5">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-700">
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   Workspace Name
                 </label>
                 <input
@@ -688,27 +713,28 @@ export default function ProjectCardsGrid({
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   placeholder="e.g. Q4 Strategy"
-                  className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 transition-all shadow-sm"
+                  className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 dark:focus:ring-indigo-500 transition-all shadow-sm"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-700">
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   Engine Template
                 </label>
                 <select
                   value={selectedTemplate}
                   onChange={(e) => setSelectedTemplate(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:border-zinc-400 focus:ring-1 focus:ring-zinc-400 transition-all shadow-sm cursor-pointer"
+                  className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 dark:focus:ring-indigo-500 transition-all shadow-sm cursor-pointer"
                 >
                   <option value="blank">Infinite Canvas</option>
                   <option value="kanban">Kanban Board</option>
-                  <option value="notepad">Notepad</option>
+                  <option value="document">Document / Notes</option>
+                  <option value="whiteboard">Whiteboard (Drawing)</option>
                   <option value="timeline">Timeline</option>
                   <option value="database">Database / Table</option>
                 </select>
               </div>
               {createError && (
-                <p className="text-xs text-red-600 font-medium bg-red-50 p-2 rounded-lg border border-red-100">
+                <p className="text-xs text-red-600 dark:text-red-400 font-medium bg-red-50 dark:bg-red-900/20 p-2 rounded-lg border border-red-100 dark:border-red-900/50">
                   {createError}
                 </p>
               )}
@@ -716,14 +742,14 @@ export default function ProjectCardsGrid({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors active:scale-95 transform-gpu"
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold text-zinc-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors active:scale-95 transform-gpu"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 shadow-sm transition-colors active:scale-95 transform-gpu"
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-zinc-900 dark:bg-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 shadow-sm transition-colors active:scale-95 transform-gpu"
                 >
                   {isCreating ? "Creating..." : "Create"}
                 </button>
@@ -734,11 +760,15 @@ export default function ProjectCardsGrid({
       )}
 
       {confirmDialog?.isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-zinc-900/20 backdrop-blur-sm p-4 transform-gpu">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm border border-zinc-200 transform-gpu will-change-transform overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm p-4 transform-gpu">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-full max-w-sm border border-zinc-200 dark:border-zinc-800 transform-gpu will-change-transform overflow-hidden flex flex-col">
             <div className="p-6">
               <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${confirmDialog.type === "danger" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"}`}
+                className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
+                  confirmDialog.type === "danger"
+                    ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
+                    : "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"
+                }`}
               >
                 {confirmDialog.type === "danger" ? (
                   <Trash2 className="w-6 h-6" />
@@ -746,23 +776,27 @@ export default function ProjectCardsGrid({
                   <AlertTriangle className="w-6 h-6" />
                 )}
               </div>
-              <h2 className="text-lg font-bold text-zinc-900">
+              <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
                 {confirmDialog.title}
               </h2>
-              <p className="text-sm text-zinc-500 mt-2 leading-relaxed">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 leading-relaxed">
                 {confirmDialog.message}
               </p>
             </div>
-            <div className="px-6 py-4 bg-zinc-50 border-t border-zinc-100 flex items-center gap-3 justify-end">
+            <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-950/50 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-3 justify-end">
               <button
                 onClick={() => setConfirmDialog(null)}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors active:scale-95 transform-gpu"
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-zinc-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors active:scale-95 transform-gpu"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDialog.onConfirm}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-sm transition-colors active:scale-95 transform-gpu ${confirmDialog.type === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-amber-600 hover:bg-amber-700"}`}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-sm transition-colors active:scale-95 transform-gpu ${
+                  confirmDialog.type === "danger"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-amber-600 hover:bg-amber-700"
+                }`}
               >
                 {confirmDialog.confirmText}
               </button>
