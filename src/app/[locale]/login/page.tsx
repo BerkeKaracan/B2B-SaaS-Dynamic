@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import ColdStartAlert from "@/components/ColdStartAlert";
 import Cookies from "js-cookie";
 
 export default function LoginPage() {
@@ -175,7 +174,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-zinc-50 font-sans text-zinc-900 selection:bg-blue-200 overflow-hidden relative">
-      <ColdStartAlert />
       <div className="hidden lg:flex flex-col justify-between w-[45%] bg-zinc-950 text-white p-12 relative overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none"></div>

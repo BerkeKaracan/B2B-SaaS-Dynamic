@@ -23,6 +23,7 @@ import LandingChatbot from "@/components/chat/LandingChatbot";
 import DraggableFeatureBox from "@/components/ui/DraggableFeatureBox";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
+import ColdStartAlert from "@/components/ColdStartAlert";
 
 export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -33,6 +34,7 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-screen bg-[#fafafb] text-zinc-900 font-sans antialiased selection:bg-zinc-200 flex flex-col overflow-hidden">
+      <ColdStartAlert />
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center transform-gpu will-change-transform">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] opacity-[0.3] transform-gpu"></div>
         <svg
