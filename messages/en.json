@@ -415,7 +415,7 @@
       "email": {
         "title": "Email Us",
         "desc": "Our friendly team is here to help.",
-        "value": "hello@saasengine.com"
+        "value": "berkekaracan1113@gmail.com"
       },
       "location": {
         "title": "Global HQ",
@@ -460,5 +460,35 @@
       }
     },
     "contact": "If you are a recruiter or a fellow developer and have questions about this architecture, feel free to reach out via the Contact page."
+  },
+  "TermsPage": {
+    "back": "Go Back",
+    "badge": "Legal",
+    "title": "Terms of Service",
+    "lastUpdated": "Last Updated: June 2026",
+    "disclaimer": "PORTFOLIO NOTICE: This website (SaaS Engine) is a software engineering portfolio project created by Berke Karacan. It is not a real commercial entity. By using this site, you acknowledge that it is for demonstration purposes only and no real services are provided.",
+    "sections": {
+      "1": {
+        "title": "1. Acceptance of Terms",
+        "content": "By accessing or creating an account on this demonstration platform, you agree to be bound by these portfolio terms. If you are just browsing to evaluate my code or design skills, welcome! Feel free to test the boundaries of the application."
+      },
+      "2": {
+        "title": "2. Description of Service",
+        "content": "SaaS Engine is a full-stack portfolio piece demonstrating advanced architectural concepts, including real-time PostgreSQL synchronization, spatial canvas rendering, and modern authentication flows. It is provided 'as is' without any warranty."
+      },
+      "3": {
+        "title": "3. User Accounts & Dummy Data",
+        "content": "You are welcome to create a test account to explore the dashboard. Please do not use your real passwords or upload sensitive business data. The database may be wiped periodically to maintain performance for all reviewers."
+      },
+      "4": {
+        "title": "4. Intellectual Property",
+        "content": "The codebase, architecture, and UI/UX design of this specific application are part of Berke Karacan's portfolio. While you are welcome to inspect the public GitHub repository (if available) and learn from it, direct commercial cloning of this exact interface is discouraged."
+      },
+      "5": {
+        "title": "5. Limitation of Liability",
+        "content": "Since this is a free, non-commercial demonstration, the creator of this project shall not be held liable for any data loss, service interruptions, or other issues arising from the use of this test environment."
+      }
+    },
+    "contact": "For professional inquiries, job opportunities, or architectural questions, please visit the Contact page."
   }
 }

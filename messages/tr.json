@@ -460,5 +460,35 @@
       }
     },
     "contact": "Eğer bir İK uzmanıysanız veya meslektaşımsanız ve bu mimari hakkında sorularınız varsa, İletişim sayfası üzerinden bana ulaşmaktan çekinmeyin."
+  },
+  "TermsPage": {
+    "back": "Geri Dön",
+    "badge": "Yasal",
+    "title": "Kullanım Koşulları",
+    "lastUpdated": "Son Güncelleme: Haziran 2026",
+    "disclaimer": "PORTFOLYO BİLDİRİMİ: Bu web sitesi (SaaS Engine), Berke Karacan tarafından oluşturulmuş bir yazılım mühendisliği portfolyo projesidir. Gerçek bir ticari kuruluş değildir. Bu siteyi kullanarak, sitenin yalnızca demonstrasyon amaçlı olduğunu ve gerçek bir hizmet sunulmadığını kabul etmiş olursunuz.",
+    "sections": {
+      "1": {
+        "title": "1. Koşulların Kabulü",
+        "content": "Bu demonstrasyon platformuna erişerek veya bir hesap oluşturarak, bu portfolyo koşullarına bağlı kalmayı kabul edersiniz. Yalnızca kodumu veya tasarım becerilerimi değerlendirmek için göz atıyorsanız, hoş geldiniz! Uygulamanın sınırlarını test etmekten çekinmeyin."
+      },
+      "2": {
+        "title": "2. Hizmetin Tanımı",
+        "content": "SaaS Engine; gerçek zamanlı PostgreSQL senkronizasyonu, uzamsal tuval işleme ve modern kimlik doğrulama akışları gibi gelişmiş mimari konseptleri sergileyen bir full-stack portfolyo çalışmasıdır. Herhangi bir garanti olmaksızın 'olduğu gibi' sunulmaktadır."
+      },
+      "3": {
+        "title": "3. Kullanıcı Hesapları ve Test Verileri",
+        "content": "Kontrol panelini keşfetmek için bir test hesabı oluşturabilirsiniz. Lütfen gerçek şifrelerinizi kullanmayın veya hassas iş verilerinizi yüklemeyin. Veritabanı, tüm inceleyiciler için performansı korumak amacıyla periyodik olarak temizlenebilir."
+      },
+      "4": {
+        "title": "4. Fikri Mülkiyet",
+        "content": "Bu özel uygulamanın kod tabanı, mimarisi ve UI/UX tasarımı Berke Karacan'ın portfolyosunun bir parçasıdır. (Eğer mevcutsa) herkese açık GitHub deposunu inceleyip ondan bir şeyler öğrenebilirsiniz, ancak bu arayüzün doğrudan ticari olarak kopyalanması tavsiye edilmez."
+      },
+      "5": {
+        "title": "5. Sorumlulukların Sınırlandırılması",
+        "content": "Bu ücretsiz ve ticari olmayan bir demonstrasyon olduğundan, bu projenin yaratıcısı veri kaybı, hizmet kesintileri veya bu test ortamının kullanımından kaynaklanan diğer sorunlardan sorumlu tutulamaz."
+      }
+    },
+    "contact": "Profesyonel talepler, iş fırsatları veya mimari sorularınız için lütfen İletişim sayfasını ziyaret edin."
   }
 }
