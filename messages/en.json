@@ -434,5 +434,31 @@
       "messagePlaceholder": "Tell us a little about your project...",
       "button": "Send Message"
     }
+  },
+  "PrivacyPage": {
+    "back": "Go Back",
+    "badge": "Legal",
+    "title": "Privacy Policy",
+    "lastUpdated": "Last Updated: June 2026",
+    "disclaimer": "PORTFOLIO NOTICE: This website (SaaS Engine) is a software engineering portfolio project created by Berke Karacan. It is not a real commercial entity, and no real commercial services are offered. The following policy is provided for demonstration purposes to showcase full-stack development capabilities.",
+    "sections": {
+      "1": {
+        "title": "1. Information We Collect",
+        "content": "For the purpose of this demonstration, we collect standard authentication data (such as your email address when you create an account) and dummy workspace data to showcase the real-time database and canvas features. We do not process real payments or collect sensitive personal information."
+      },
+      "2": {
+        "title": "2. How We Use Your Information",
+        "content": "The information collected is used solely to demonstrate the functionality of this application. Your session data is used to provide you with a personalized dashboard experience and to test the real-time collaboration features of the spatial canvas."
+      },
+      "3": {
+        "title": "3. Data Security",
+        "content": "Even though this is a portfolio project, we take security seriously. All user authentication is handled securely via Supabase Auth, and Row Level Security (RLS) policies are in place to ensure you can only access your own dummy workspace data."
+      },
+      "4": {
+        "title": "4. Third-Party Services",
+        "content": "This application integrates with third-party APIs (like Resend for emails and Notion for exports) strictly for technical demonstration. We do not sell, rent, or share your testing data with any third parties for marketing purposes."
+      }
+    },
+    "contact": "If you are a recruiter or a fellow developer and have questions about this architecture, feel free to reach out via the Contact page."
   }
 }

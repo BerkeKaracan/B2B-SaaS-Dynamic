@@ -3,14 +3,29 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui;
-  --color-indigo-50: #f0f2ff;
-  --color-indigo-600: #4f46e5;
-  --color-indigo-700: #4338ca;
+  --color-ana-arkaplan: var(--bg);
+  --color-ana-metin: var(--text);
+  --color-kutu-arkaplan: var(--card-bg);
+  --color-kutu-border: var(--card-border);
 }
 
 @layer base {
+  :root {
+    --bg: #fafafb;      
+    --text: #18181b;  
+    --card-bg: #ffffff;  
+    --card-border: #e4e4e7;
+  }
+
+  .dark {
+    --bg: #09090b;    
+    --text: #fafafa;   
+    --card-bg: #18181b;
+    --card-border: #27272a;
+  }
+
   body {
-    @apply bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-50 antialiased;
+    background-color: var(--bg);
+    color: var(--text);
   }
 }

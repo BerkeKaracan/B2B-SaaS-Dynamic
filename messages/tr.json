@@ -434,5 +434,31 @@
       "messagePlaceholder": "Bize projenizden biraz bahsedin...",
       "button": "Mesajı Gönder"
     }
+  },
+  "PrivacyPage": {
+    "back": "Geri Dön",
+    "badge": "Yasal",
+    "title": "Gizlilik Politikası",
+    "lastUpdated": "Son Güncelleme: Haziran 2026",
+    "disclaimer": "PORTFOLYO BİLDİRİMİ: Bu web sitesi (SaaS Engine), Berke Karacan tarafından oluşturulmuş bir yazılım mühendisliği portfolyo projesidir. Gerçek bir ticari kuruluş değildir ve gerçek bir ticari hizmet sunulmamaktadır. Aşağıdaki politika, full-stack geliştirme yeteneklerini sergilemek ve demonstrasyon amacıyla hazırlanmıştır.",
+    "sections": {
+      "1": {
+        "title": "1. Topladığımız Bilgiler",
+        "content": "Bu demonstrasyon projesi kapsamında, yalnızca standart kimlik doğrulama verilerini (hesap oluştururken kullandığınız e-posta adresi gibi) ve gerçek zamanlı veritabanı ile tuval özelliklerini sergilemek için test amaçlı çalışma alanı verilerini topluyoruz. Gerçek ödemeler işlemiyor veya hassas kişisel bilgiler toplamıyoruz."
+      },
+      "2": {
+        "title": "2. Bilgilerinizi Nasıl Kullanıyoruz",
+        "content": "Toplanan bilgiler yalnızca bu uygulamanın işlevselliğini göstermek amacıyla kullanılır. Oturum verileriniz, size kişiselleştirilmiş bir kontrol paneli deneyimi sunmak ve uzamsal tuvalin gerçek zamanlı ortak çalışma özelliklerini test etmek için kullanılır."
+      },
+      "3": {
+        "title": "3. Veri Güvenliği",
+        "content": "Bu bir portfolyo projesi olmasına rağmen güvenliği ciddiye alıyoruz. Tüm kullanıcı kimlik doğrulamaları Supabase Auth üzerinden güvenli bir şekilde gerçekleştirilir ve yalnızca kendi test verilerinize erişebilmenizi sağlamak için Satır Düzeyi Güvenlik (RLS) politikaları uygulanmaktadır."
+      },
+      "4": {
+        "title": "4. Üçüncü Taraf Hizmetler",
+        "content": "Bu uygulama, üçüncü taraf API'lerle (e-postalar için Resend ve dışa aktarımlar için Notion gibi) tamamen teknik demonstrasyon amacıyla entegre çalışır. Test verilerinizi pazarlama amacıyla hiçbir üçüncü tarafa satmaz, kiralamaz veya paylaşmayız."
+      }
+    },
+    "contact": "Eğer bir İK uzmanıysanız veya meslektaşımsanız ve bu mimari hakkında sorularınız varsa, İletişim sayfası üzerinden bana ulaşmaktan çekinmeyin."
   }
 }
