@@ -83,3 +83,7 @@ def get_public_record_by_id(record_id: UUID):
         print(f"CRITICAL ERROR in get_public_record_by_id: {str(e)}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Database or Parsing Error: {str(e)}")
+
+@router.get("/ping")
+async def ping():
+    return {"status": "awake"}

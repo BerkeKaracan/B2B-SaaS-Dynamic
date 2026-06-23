@@ -8,6 +8,7 @@ import CookieConsent from "@/components/CookieConsent";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import WakeUpBackend from "@/components/WakeUpBackend";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,6 +39,7 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
+            <WakeUpBackend />
             {children}
           </ThemeProvider>
         </NextIntlClientProvider>
