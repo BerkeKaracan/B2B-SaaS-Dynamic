@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   Plus,
   Target,
@@ -9,6 +9,7 @@ import {
   Download,
   GripHorizontal,
 } from "lucide-react";
+import { useCanvasStore } from "@/store/useCanvasStore";
 
 type MindNode = {
   id: string;
@@ -21,17 +22,25 @@ type MindNode = {
 
 export default function MindMapBoard({ projectId }: { projectId: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { metadata, updateMetadata } = useCanvasStore();
 
-  const [nodes, setNodes] = useState<MindNode[]>([
-    {
-      id: "root",
-      text: "Central Idea",
-      x: typeof window !== "undefined" ? window.innerWidth / 2 - 100 : 400,
-      y: typeof window !== "undefined" ? window.innerHeight / 2 - 100 : 300,
-      parentId: null,
-      color: "bg-indigo-600",
-    },
-  ]);
+  const [nodes, setNodes] = useState<MindNode[]>(
+    (metadata.mindmapNodes as MindNode[]) || [
+      {
+        id: "root",
+        text: "Central Idea",
+        x: typeof window !== "undefined" ? window.innerWidth / 2 - 100 : 400,
+        y: typeof window !== "undefined" ? window.innerHeight / 2 - 100 : 300,
+        parentId: null,
+        color: "bg-indigo-600",
+      },
+    ],
+  );
+
+  const saveNodes = (newNodes: MindNode[]) => {
+    setNodes(newNodes);
+    updateMetadata({ mindmapNodes: newNodes });
+  };
 
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -58,7 +67,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
       const dx = (e.clientX - dragStart.x) / zoom;
       const dy = (e.clientY - dragStart.y) / zoom;
 
-      setNodes(
+      saveNodes(
         nodes.map((n) =>
           n.id === draggingNodeId ? { ...n, x: n.x + dx, y: n.y + dy } : n,
         ),
@@ -67,13 +76,11 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
     } else if (isDraggingCanvas) {
       const dx = e.clientX - dragStart.x;
       const dy = e.clientY - dragStart.y;
-
       setPan({ x: pan.x + dx, y: pan.y + dy });
       setDragStart({ x: e.clientX, y: e.clientY });
     }
   };
 
-  // Sürüklemeyi Bırak
   const handlePointerUp = () => {
     setIsDraggingCanvas(false);
     setDraggingNodeId(null);
@@ -82,14 +89,13 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
   const addChildNode = (parentId: string, parentX: number, parentY: number) => {
     const newId = `node-${Date.now()}`;
     const siblingsCount = nodes.filter((n) => n.parentId === parentId).length;
-
     const angle = siblingsCount * 45 * (Math.PI / 180);
     const radius = 220;
 
     const newX = parentX + radius * Math.cos(angle);
     const newY = parentY + radius * Math.sin(angle);
 
-    setNodes([
+    saveNodes([
       ...nodes,
       {
         id: newId,
@@ -104,7 +110,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
   };
 
   const updateNodeText = (id: string, newText: string) => {
-    setNodes(nodes.map((n) => (n.id === id ? { ...n, text: newText } : n)));
+    saveNodes(nodes.map((n) => (n.id === id ? { ...n, text: newText } : n)));
   };
 
   return (

@@ -26,6 +26,12 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
   const databaseRows = metadata?.databaseRows;
   const databaseTitle = metadata?.databaseTitle;
 
+  const whiteboardStrokes = metadata?.whiteboardStrokes;
+  const whiteboardTexts = metadata?.whiteboardTexts;
+  const whiteboardTitle = metadata?.whiteboardTitle;
+
+  const mindmapNodes = metadata?.mindmapNodes;
+
   useEffect(() => {
     if (!recordId) return;
 
@@ -55,11 +61,15 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
     notepadStrokes,
     notepadTexts,
     notepadTitle,
-    tasks, 
-    timelineEvents, 
+    tasks,
+    timelineEvents,
     databaseProperties,
     databaseRows,
-    databaseTitle
+    databaseTitle,
+    whiteboardStrokes,
+    whiteboardTexts,
+    whiteboardTitle,
+    mindmapNodes,
   ]);
 
   useEffect(() => {
