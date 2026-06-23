@@ -645,5 +645,14 @@
     "addCard": "Add a card...",
     "typeAndEnter": "Type and press Enter",
     "votes": "votes"
+  },
+  "MindMapBoard": {
+    "title": "Mind Map",
+    "centralIdea": "Central Idea",
+    "newNode": "New Node",
+    "typePlaceholder": "Type...",
+    "addNode": "Add connected node",
+    "exportMap": "Export Map",
+    "dragNode": "Drag Node"
   }
 }

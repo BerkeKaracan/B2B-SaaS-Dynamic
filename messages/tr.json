@@ -645,5 +645,14 @@
     "addCard": "Bir kart ekle...",
     "typeAndEnter": "Yazın ve Enter'a basın",
     "votes": "oy"
+  },
+  "MindMapBoard": {
+    "title": "Zihin Haritası",
+    "centralIdea": "Ana Fikir",
+    "newNode": "Yeni Düğüm",
+    "typePlaceholder": "Yazın...",
+    "addNode": "Bağlı düğüm ekle",
+    "exportMap": "Haritayı Dışa Aktar",
+    "dragNode": "Düğümü Taşı"
   }
 }

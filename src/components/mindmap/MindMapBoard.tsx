@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import { useTranslations } from "next-intl";
 import {
   Plus,
   Target,
@@ -21,6 +22,7 @@ type MindNode = {
 };
 
 export default function MindMapBoard({ projectId }: { projectId: string }) {
+  const t = useTranslations("MindMapBoard");
   const containerRef = useRef<HTMLDivElement>(null);
   const { metadata, updateMetadata } = useCanvasStore();
 
@@ -28,7 +30,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
     (metadata.mindmapNodes as MindNode[]) || [
       {
         id: "root",
-        text: "Central Idea",
+        text: t("centralIdea"),
         x: typeof window !== "undefined" ? window.innerWidth / 2 - 100 : 400,
         y: typeof window !== "undefined" ? window.innerHeight / 2 - 100 : 300,
         parentId: null,
@@ -99,7 +101,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
       ...nodes,
       {
         id: newId,
-        text: "New Node",
+        text: t("newNode"),
         x: newX,
         y: newY,
         parentId,
@@ -121,7 +123,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
             <Target className="w-5 h-5" />
           </div>
           <span className="text-sm font-bold text-zinc-900 dark:text-white">
-            Mind Map
+            {t("title")}
           </span>
         </div>
 
@@ -144,7 +146,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
           <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800 mx-2"></div>
           <button
             className="p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-            title="Export Map"
+            title={t("exportMap")}
           >
             <Download className="w-4 h-4" />
           </button>
@@ -228,7 +230,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
                 <div
                   onPointerDown={(e) => handleNodePointerDown(e, node.id)}
                   className="absolute -top-3 right-2 bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-full p-1 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity shadow-sm text-zinc-400 hover:text-indigo-500"
-                  title="Drag Node"
+                  title={t("dragNode")}
                 >
                   <GripHorizontal size={12} />
                 </div>
@@ -243,7 +245,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
                       e.key === "Enter" && setEditingNodeId(null)
                     }
                     className="w-full bg-transparent text-center font-bold text-sm outline-none"
-                    placeholder="Type..."
+                    placeholder={t("typePlaceholder")}
                   />
                 ) : (
                   <span
@@ -261,7 +263,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
                   addChildNode(node.id, node.x, node.y);
                 }}
                 className="absolute -left-3 -bottom-3 bg-indigo-50 dark:bg-indigo-900/50 border-2 border-indigo-200 dark:border-indigo-500 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 dark:hover:text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md z-20"
-                title="Add connected node"
+                title={t("addNode")}
               >
                 <Plus size={16} strokeWidth={3} />
               </button>
