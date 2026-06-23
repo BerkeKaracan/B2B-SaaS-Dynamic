@@ -654,5 +654,9 @@
     "addNode": "Add connected node",
     "exportMap": "Export Map",
     "dragNode": "Drag Node"
+  },
+  "ProjectsPage": {
+    "title": "Active Workspaces",
+    "description": "Select a live record to load into the engine canvas framework."
   }
 }

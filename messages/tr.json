@@ -654,5 +654,9 @@
     "addNode": "Bağlı düğüm ekle",
     "exportMap": "Haritayı Dışa Aktar",
     "dragNode": "Düğümü Taşı"
+  },
+  "ProjectsPage": {
+    "title": "Aktif Çalışma Alanları",
+    "description": "Motor tuval çerçevesine yüklemek için canlı bir kayıt seçin."
   }
 }
