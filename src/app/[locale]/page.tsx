@@ -70,7 +70,7 @@ export default function LandingPage() {
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-white rounded-full blur-[100px] opacity-80 transform-gpu will-change-transform"></div>
       </div>
 
-      <header className="fixed top-0 left-0 right-0 h-16 border-b border-zinc-200/50 bg-white/70 backdrop-blur-xl z-50 px-6 lg:px-10 flex items-center justify-between transition-all">
+      <header className="fixed top-0 left-0 right-0 h-16 border-b border-zinc-200/50 bg-white/70 backdrop-blur-xl z-50 px-4 md:px-6 lg:px-10 flex items-center justify-between transition-all">
         <Link
           href="/"
           className="flex items-center gap-3 shrink-0 group transform-gpu active:scale-95 transition-transform"
@@ -315,7 +315,7 @@ export default function LandingPage() {
           <div className="h-4 w-px bg-zinc-200 hidden md:block"></div>
           <Link
             href="/register"
-            className="text-[13px] font-extrabold bg-zinc-950 text-white px-5 py-2.5 rounded-xl hover:bg-zinc-800 transition-all shadow-[0_4px_14px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] flex items-center gap-2 transform-gpu hover:-translate-y-0.5 active:scale-95"
+            className="hidden md:flex text-[13px] font-extrabold bg-zinc-950 text-white px-5 py-2.5 rounded-xl hover:bg-zinc-800 transition-all shadow-[0_4px_14px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] items-center gap-2 transform-gpu hover:-translate-y-0.5 active:scale-95"
           >
             {t("nav.deployWorkspace")}
             <svg
@@ -414,14 +414,21 @@ export default function LandingPage() {
                   <ArrowRight className="w-4 h-4 text-zinc-300" />
                 </Link>
               </div>
-              <div className="h-px bg-zinc-200/80 w-full"></div>
-              <div className="flex flex-col space-y-4">
+              <div className="h-px bg-zinc-200/80 w-full my-2"></div>
+              <div className="flex flex-col space-y-3 pb-4">
                 <Link
                   href="/login"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="text-base font-bold text-zinc-600 flex items-center justify-between"
+                  className="w-full py-3.5 bg-zinc-100 text-zinc-900 text-center font-extrabold rounded-xl"
                 >
                   {t("nav.signIn")}
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full py-3.5 bg-zinc-950 text-white text-center font-extrabold rounded-xl shadow-lg"
+                >
+                  {t("nav.deployWorkspace")}
                 </Link>
               </div>
             </div>
@@ -430,27 +437,27 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1 relative z-10">
-        <section className="pt-40 pb-20 px-6 flex flex-col items-center text-center max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-zinc-200/80 text-xs font-semibold text-zinc-600 mb-8 shadow-sm">
+        <section className="pt-32 pb-12 md:pt-40 md:pb-20 px-4 md:px-6 flex flex-col items-center text-center max-w-4xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-zinc-200/80 text-xs font-semibold text-zinc-600 mb-6 md:mb-8 shadow-sm">
             <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
             {t("hero.versionLive")}
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 mb-6 leading-[1.1]">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 mb-4 md:mb-6 leading-[1.1]">
             {t("hero.title1")}{" "}
             <span className="text-transparent bg-clip-text bg-linear-to-r from-zinc-900 to-zinc-500">
               {t("hero.title2")}
             </span>
           </h1>
 
-          <p className="text-lg md:text-xl text-zinc-500 mb-10 max-w-2xl leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl text-zinc-500 mb-8 md:mb-10 max-w-2xl leading-relaxed">
             {t("hero.subtitle")}
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
+          <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full justify-center px-4 sm:px-0">
             <Link
               href="/register"
-              className="w-full sm:w-auto px-8 py-4 bg-zinc-900 text-white rounded-xl font-bold text-base hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 py-4 md:px-8 bg-zinc-900 text-white rounded-xl font-bold text-[15px] md:text-base hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2"
             >
               {t("hero.createWorkspace")}
               <svg
@@ -469,22 +476,22 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/demo"
-              className="w-full sm:w-auto px-8 py-4 bg-white text-zinc-900 border-2 border-zinc-200 rounded-2xl font-bold text-base hover:border-zinc-300 hover:bg-zinc-50 transition-all flex items-center justify-center gap-2 shadow-sm"
+              className="w-full sm:w-auto px-6 py-4 md:px-8 bg-white text-zinc-900 border-2 border-zinc-200 rounded-xl font-bold text-[15px] md:text-base hover:border-zinc-300 hover:bg-zinc-50 transition-all flex items-center justify-center gap-2 shadow-sm"
             >
               {t("hero.viewDemo")}
             </Link>
           </div>
         </section>
 
-        <section className="py-10 border-y border-zinc-200/60 bg-white/60 backdrop-blur-md overflow-hidden flex flex-col relative">
-          <p className="text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-8 relative z-20">
+        <section className="py-6 md:py-10 border-y border-zinc-200/60 bg-white/60 backdrop-blur-md overflow-hidden flex flex-col relative">
+          <p className="text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-6 md:mb-8 relative z-20">
             {t("hero.trustedBy")}
           </p>
-          <div className="absolute left-0 top-0 bottom-0 w-32 bg-linear-to-r from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-32 bg-linear-to-l from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 bg-linear-to-r from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-linear-to-l from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
 
           <div className="flex whitespace-nowrap overflow-hidden group">
-            <div className="flex items-center gap-16 animate-marquee group-hover:[animation-play-state:paused] px-8">
+            <div className="flex items-center gap-12 md:gap-16 animate-marquee group-hover:[animation-play-state:paused] px-4 md:px-8">
               {[
                 { name: "Lethal Company IC.", style: "font-serif font-black" },
                 { name: "ACME Corp.", style: "tracking-tighter font-bold" },
@@ -513,7 +520,7 @@ export default function LandingPage() {
               ].map((company, i) => (
                 <span
                   key={i}
-                  className={`text-xl text-zinc-400 hover:text-zinc-900 transition-colors cursor-default ${company.style}`}
+                  className={`text-lg md:text-xl text-zinc-400 hover:text-zinc-900 transition-colors cursor-default ${company.style}`}
                 >
                   {company.name}
                 </span>
@@ -521,7 +528,7 @@ export default function LandingPage() {
             </div>
 
             <div
-              className="flex items-center gap-16 animate-marquee group-hover:[animation-play-state:paused] px-8"
+              className="flex items-center gap-12 md:gap-16 animate-marquee group-hover:[animation-play-state:paused] px-4 md:px-8"
               aria-hidden="true"
             >
               {[
@@ -552,7 +559,7 @@ export default function LandingPage() {
               ].map((company, i) => (
                 <span
                   key={`copy-${i}`}
-                  className={`text-xl text-zinc-400 hover:text-zinc-900 transition-colors cursor-default ${company.style}`}
+                  className={`text-lg md:text-xl text-zinc-400 hover:text-zinc-900 transition-colors cursor-default ${company.style}`}
                 >
                   {company.name}
                 </span>
@@ -575,9 +582,9 @@ export default function LandingPage() {
           />
         </section>
 
-        <section className="py-24 px-6 max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center gap-16">
-            <div className="flex-1 space-y-6">
+        <section className="py-12 md:py-24 px-4 md:px-6 max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
+            <div className="flex-1 space-y-5 md:space-y-6">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-bold text-indigo-600 mb-2 shadow-sm">
                 <svg
                   className="w-4 h-4"
@@ -594,30 +601,30 @@ export default function LandingPage() {
                 </svg>
                 {t("ai.badge")}
               </div>
-              <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight leading-[1.1]">
+              <h2 className="text-3xl md:text-5xl font-black text-zinc-900 tracking-tight leading-[1.1]">
                 {t("ai.title1")} <br className="hidden md:block" />
                 <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-500 to-violet-600">
                   {t("ai.title2")}
                 </span>
               </h2>
-              <p className="text-lg text-zinc-500 leading-relaxed">
+              <p className="text-base md:text-lg text-zinc-500 leading-relaxed">
                 {t("ai.desc")}
               </p>
 
-              <ul className="space-y-4 mt-8">
-                <li className="flex items-center gap-4 text-zinc-700 font-bold text-sm">
+              <ul className="space-y-3 md:space-y-4 mt-6 md:mt-8">
+                <li className="flex items-center gap-4 text-zinc-700 font-bold text-[13px] md:text-sm">
                   <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
                     ✓
                   </div>
                   {t("ai.feat1")}
                 </li>
-                <li className="flex items-center gap-4 text-zinc-700 font-bold text-sm">
+                <li className="flex items-center gap-4 text-zinc-700 font-bold text-[13px] md:text-sm">
                   <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 shrink-0">
                     ✓
                   </div>
                   {t("ai.feat2")}
                 </li>
-                <li className="flex items-center gap-4 text-zinc-700 font-bold text-sm">
+                <li className="flex items-center gap-4 text-zinc-700 font-bold text-[13px] md:text-sm">
                   <div className="w-8 h-8 rounded-full bg-fuchsia-100 flex items-center justify-center text-fuchsia-600 shrink-0">
                     ✓
                   </div>
@@ -626,23 +633,23 @@ export default function LandingPage() {
               </ul>
             </div>
 
-            <div className="flex-1 w-full bg-zinc-950 rounded-4xl p-3 shadow-2xl rotate-1 hover:rotate-0 transition-transform duration-500 hover:shadow-indigo-500/20">
-              <div className="bg-zinc-900 rounded-3xl border border-zinc-800 p-5 md:p-6 flex flex-col h-[400px]">
-                <div className="flex items-center gap-2 mb-6 pb-4 border-b border-zinc-800/80">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="ml-2 text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+            <div className="flex-1 w-full bg-zinc-950 rounded-3xl md:rounded-4xl p-2 md:p-3 shadow-2xl rotate-1 hover:rotate-0 transition-transform duration-500 hover:shadow-indigo-500/20">
+              <div className="bg-zinc-900 rounded-[20px] md:rounded-3xl border border-zinc-800 p-4 md:p-6 flex flex-col h-auto md:h-[400px]">
+                <div className="flex items-center gap-2 mb-4 md:mb-6 pb-3 md:pb-4 border-b border-zinc-800/80">
+                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500"></div>
+                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-500"></div>
+                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500"></div>
+                  <span className="ml-2 text-[9px] md:text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
                     RAG_Engine_Active
                   </span>
                 </div>
 
-                <div className="flex flex-col gap-5 flex-1 overflow-hidden font-sans">
-                  <div className="self-end bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm text-[13px] shadow-sm max-w-[85%] font-medium">
+                <div className="flex flex-col gap-4 md:gap-5 flex-1 overflow-hidden font-sans">
+                  <div className="self-end bg-indigo-600 text-white px-3 md:px-4 py-2.5 md:py-3 rounded-2xl rounded-tr-sm text-xs md:text-[13px] shadow-sm max-w-[85%] font-medium">
                     {t("ai.chatQ")}
                   </div>
 
-                  <div className="self-start flex gap-3 max-w-[90%]">
+                  <div className="self-start flex gap-2 md:gap-3 max-w-[95%] md:max-w-[90%]">
                     <div className="w-6 h-6 rounded-md bg-linear-to-br from-indigo-500 to-violet-600 shrink-0 flex items-center justify-center">
                       <svg
                         className="w-3.5 h-3.5 text-white"
@@ -658,7 +665,7 @@ export default function LandingPage() {
                         />
                       </svg>
                     </div>
-                    <div className="bg-zinc-800 text-zinc-300 px-4 py-3 rounded-2xl rounded-tl-sm text-[13px] shadow-sm border border-zinc-700/50 leading-relaxed">
+                    <div className="bg-zinc-800 text-zinc-300 px-3 md:px-4 py-3 rounded-2xl rounded-tl-sm text-xs md:text-[13px] shadow-sm border border-zinc-700/50 leading-relaxed">
                       {t("ai.chatA1")}
                       <br />
                       <br />
@@ -686,20 +693,22 @@ export default function LandingPage() {
 
         <LandingChatbot />
 
-        <section className="py-24 px-6 max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-zinc-900 tracking-tight">
+        <section className="py-12 md:py-24 px-4 md:px-6 max-w-6xl mx-auto">
+          <div className="text-center mb-10 md:mb-16">
+            <h2 className="text-2xl md:text-3xl font-bold text-zinc-900 tracking-tight">
               {t("features.title")}
             </h2>
-            <p className="text-zinc-500 mt-4">{t("features.subtitle")}</p>
+            <p className="text-zinc-500 mt-3 md:mt-4 text-sm md:text-base">
+              {t("features.subtitle")}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all duration-300 transform hover:-translate-y-2 hover:border-zinc-300 hover:shadow-xl group">
-              <div className="w-12 h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
+            <div className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
                 <svg
-                  width="24"
-                  height="24"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -710,19 +719,19 @@ export default function LandingPage() {
                   <line x1="9" y1="21" x2="9" y2="9"></line>
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-zinc-900 mb-2">
+              <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-2">
                 {t("features.f1Title")}
               </h3>
-              <p className="text-zinc-500 leading-relaxed text-sm">
+              <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
                 {t("features.f1Desc")}
               </p>
             </div>
 
-            <div className="p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all duration-300 transform hover:-translate-y-2 hover:border-zinc-300 hover:shadow-xl group">
-              <div className="w-12 h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+            <div className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
                 <svg
-                  width="24"
-                  height="24"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -731,19 +740,19 @@ export default function LandingPage() {
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-zinc-900 mb-2">
+              <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-2">
                 {t("features.f2Title")}
               </h3>
-              <p className="text-zinc-500 leading-relaxed text-sm">
+              <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
                 {t("features.f2Desc")}
               </p>
             </div>
 
-            <div className="p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all duration-300 transform hover:-translate-y-2 hover:border-zinc-300 hover:shadow-xl group">
-              <div className="w-12 h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+            <div className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
                 <svg
-                  width="24"
-                  height="24"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -753,19 +762,19 @@ export default function LandingPage() {
                   <polyline points="17 6 23 6 23 12"></polyline>
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-zinc-900 mb-2">
+              <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-2">
                 {t("features.f3Title")}
               </h3>
-              <p className="text-zinc-500 leading-relaxed text-sm">
+              <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
                 {t("features.f3Desc")}
               </p>
             </div>
 
-            <div className="p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all duration-300 transform hover:-translate-y-2 hover:border-zinc-300 hover:shadow-xl group">
-              <div className="w-12 h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+            <div className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
                 <svg
-                  width="24"
-                  height="24"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -779,19 +788,19 @@ export default function LandingPage() {
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-zinc-900 mb-2">
+              <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-2">
                 {t("features.f4Title")}
               </h3>
-              <p className="text-zinc-500 leading-relaxed text-sm">
+              <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
                 {t("features.f4Desc")}
               </p>
             </div>
 
-            <div className="p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all duration-300 transform hover:-translate-y-2 hover:border-zinc-300 hover:shadow-xl group">
-              <div className="w-12 h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+            <div className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
                 <svg
-                  width="24"
-                  height="24"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -803,19 +812,19 @@ export default function LandingPage() {
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-zinc-900 mb-2">
+              <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-2">
                 {t("features.f5Title")}
               </h3>
-              <p className="text-zinc-500 leading-relaxed text-sm">
+              <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
                 {t("features.f5Desc")}
               </p>
             </div>
 
-            <div className="p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all duration-300 transform hover:-translate-y-2 hover:border-zinc-300 hover:shadow-xl group">
-              <div className="w-12 h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+            <div className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
                 <svg
-                  width="24"
-                  height="24"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -828,35 +837,35 @@ export default function LandingPage() {
                   <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-zinc-900 mb-2">
+              <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-2">
                 {t("features.f6Title")}
               </h3>
-              <p className="text-zinc-500 leading-relaxed text-sm">
+              <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
                 {t("features.f6Desc")}
               </p>
             </div>
           </div>
         </section>
 
-        <section className="py-24 px-6 max-w-6xl mx-auto border-t border-zinc-200/60 mt-10">
-          <div className="text-center mb-16">
+        <section className="py-12 md:py-24 px-4 md:px-6 max-w-6xl mx-auto border-t border-zinc-200/60 mt-6 md:mt-10">
+          <div className="text-center mb-10 md:mb-16">
             <h2 className="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">
               {t("architecture.title1")} <br className="hidden sm:block" />
               <span className="text-zinc-400">{t("architecture.title2")}</span>
             </h2>
-            <p className="text-zinc-500 mt-4 max-w-2xl mx-auto text-lg leading-relaxed">
+            <p className="text-zinc-500 mt-3 md:mt-4 max-w-2xl mx-auto text-sm md:text-lg leading-relaxed">
               {t("architecture.desc")}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
             <DraggableFeatureBox
               title={t("architecture.t1")}
               desc={t("architecture.d1")}
               deepDive={t("architecture.dd1")}
               icon={
                 <svg
-                  className="w-6 h-6"
+                  className="w-5 h-5 md:w-6 md:h-6"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >
@@ -871,7 +880,7 @@ export default function LandingPage() {
               deepDive={t("architecture.dd2")}
               icon={
                 <svg
-                  className="w-6 h-6 text-emerald-400"
+                  className="w-5 h-5 md:w-6 md:h-6 text-emerald-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -892,7 +901,7 @@ export default function LandingPage() {
               deepDive={t("architecture.dd3")}
               icon={
                 <svg
-                  className="w-6 h-6 text-indigo-400"
+                  className="w-5 h-5 md:w-6 md:h-6 text-indigo-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -913,7 +922,7 @@ export default function LandingPage() {
               deepDive={t("architecture.dd4")}
               icon={
                 <svg
-                  className="w-6 h-6 text-green-400"
+                  className="w-5 h-5 md:w-6 md:h-6 text-green-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -934,7 +943,7 @@ export default function LandingPage() {
               deepDive={t("architecture.dd5")}
               icon={
                 <svg
-                  className="w-6 h-6 text-red-400"
+                  className="w-5 h-5 md:w-6 md:h-6 text-red-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -955,7 +964,7 @@ export default function LandingPage() {
               deepDive={t("architecture.dd6")}
               icon={
                 <svg
-                  className="w-6 h-6 text-blue-400"
+                  className="w-5 h-5 md:w-6 md:h-6 text-blue-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -972,33 +981,33 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-24 lg:py-32 relative overflow-hidden border-t border-zinc-200/60 mt-10">
+        <section className="py-12 lg:py-32 relative overflow-hidden border-t border-zinc-200/60 mt-6 md:mt-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-zinc-100 via-transparent to-transparent -z-10"></div>
 
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-              <div className="w-full lg:w-5/12 space-y-8 z-10">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+              <div className="w-full lg:w-5/12 space-y-6 md:space-y-8 z-10">
                 <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-xs font-bold text-blue-600 mb-6 shadow-sm">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-[11px] md:text-xs font-bold text-blue-600 mb-4 md:mb-6 shadow-sm">
                     <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
                     {t("anatomy.badge")}
                   </div>
-                  <h2 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight mb-5 leading-[1.1]">
+                  <h2 className="text-3xl md:text-5xl font-black text-zinc-900 tracking-tight mb-4 md:mb-5 leading-[1.1]">
                     {t("anatomy.title1")} <br />
                     <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
                       {t("anatomy.title2")}
                     </span>
                   </h2>
-                  <p className="text-lg text-zinc-500 leading-relaxed font-medium">
+                  <p className="text-base md:text-lg text-zinc-500 leading-relaxed font-medium">
                     {t("anatomy.desc")}
                   </p>
                 </div>
 
-                <div className="space-y-6 pt-2">
+                <div className="space-y-4 md:space-y-6 pt-2">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 mt-1 shadow-sm">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 mt-1 shadow-sm">
                       <svg
-                        className="w-6 h-6"
+                        className="w-5 h-5 md:w-6 md:h-6"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -1012,19 +1021,19 @@ export default function LandingPage() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-zinc-900">
+                      <h4 className="text-base md:text-lg font-bold text-zinc-900">
                         {t("anatomy.f1Title")}
                       </h4>
-                      <p className="text-sm text-zinc-500 mt-1.5 leading-relaxed">
+                      <p className="text-xs md:text-sm text-zinc-500 mt-1.5 leading-relaxed">
                         {t("anatomy.f1Desc")}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shrink-0 mt-1 shadow-sm">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600 shrink-0 mt-1 shadow-sm">
                       <svg
-                        className="w-6 h-6"
+                        className="w-5 h-5 md:w-6 md:h-6"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -1038,10 +1047,10 @@ export default function LandingPage() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-zinc-900">
+                      <h4 className="text-base md:text-lg font-bold text-zinc-900">
                         {t("anatomy.f2Title")}
                       </h4>
-                      <p className="text-sm text-zinc-500 mt-1.5 leading-relaxed">
+                      <p className="text-xs md:text-sm text-zinc-500 mt-1.5 leading-relaxed">
                         {t("anatomy.f2Desc")}
                       </p>
                     </div>
@@ -1072,29 +1081,29 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-12 px-6 max-w-5xl mx-auto mt-10">
-          <div className="relative w-full bg-zinc-950 rounded-4xl border border-zinc-800 p-8 md:p-12 overflow-hidden shadow-2xl group">
+        <section className="py-8 md:py-12 px-4 md:px-6 max-w-5xl mx-auto mt-6 md:mt-10">
+          <div className="relative w-full bg-zinc-950 rounded-3xl md:rounded-4xl border border-zinc-800 p-6 md:p-12 overflow-hidden shadow-2xl group">
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 bg-indigo-500/20 rounded-full blur-[80px] group-hover:bg-indigo-500/30 transition-colors duration-700 pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 bg-fuchsia-500/20 rounded-full blur-[80px] group-hover:bg-fuchsia-500/30 transition-colors duration-700 pointer-events-none"></div>
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#3f3f46_1px,transparent_1px),linear-gradient(to_bottom,#3f3f46_1px,transparent_1px)] bg-size-[3rem_3rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 pointer-events-none"></div>
 
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-10">
               <div className="text-left flex-1">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-full text-[10px] font-black text-zinc-300 uppercase tracking-widest mb-6 shadow-sm">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-700 rounded-full text-[10px] font-black text-zinc-300 uppercase tracking-widest mb-4 md:mb-6 shadow-sm">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                   </span>
                   {t("promo.badge")}
                 </div>
-                <h3 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-4 leading-tight">
+                <h3 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3 md:mb-4 leading-tight">
                   {t("promo.title1")}{" "}
                   <span className="text-transparent bg-clip-text bg-linear-to-r from-amber-200 via-yellow-400 to-amber-600">
                     {t("promo.title2")}
                   </span>{" "}
                   {t("promo.title3")}
                 </h3>
-                <p className="text-zinc-400 text-base md:text-lg font-medium max-w-xl leading-relaxed">
+                <p className="text-zinc-400 text-sm md:text-lg font-medium max-w-xl leading-relaxed">
                   {t("promo.desc")}
                 </p>
               </div>
@@ -1102,7 +1111,7 @@ export default function LandingPage() {
               <div className="shrink-0 w-full md:w-auto flex flex-col items-center md:items-end">
                 <Link
                   href="/register"
-                  className="w-full md:w-auto px-8 py-4 bg-white text-zinc-950 font-extrabold rounded-2xl hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-1"
+                  className="w-full md:w-auto px-6 py-4 md:px-8 bg-white text-zinc-950 font-extrabold rounded-2xl hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-1"
                 >
                   {t("promo.claim")}
                   <svg
@@ -1140,21 +1149,21 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-32 px-6 max-w-7xl mx-auto border-t border-zinc-200/60 mt-10 relative overflow-hidden">
+        <section className="py-16 md:py-32 px-4 md:px-6 max-w-7xl mx-auto border-t border-zinc-200/60 mt-8 md:mt-10 relative overflow-hidden">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-zinc-100 via-transparent to-transparent -z-10"></div>
-          <div className="flex flex-col lg:flex-row gap-16 items-center">
-            <div className="flex-1 space-y-8 lg:pr-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-xs font-bold text-zinc-600 shadow-sm">
+          <div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-center">
+            <div className="flex-1 space-y-6 md:space-y-8 lg:pr-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-[11px] md:text-xs font-bold text-zinc-600 shadow-sm">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
                 {t("personal.badge")}
               </div>
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-zinc-900 tracking-tight leading-[1.05]">
+              <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-zinc-900 tracking-tight leading-[1.05]">
                 {t("personal.title1")} <br className="hidden md:block" />
                 <span className="text-transparent bg-clip-text bg-linear-to-r from-zinc-400 to-zinc-600">
                   {t("personal.title2")}
                 </span>
               </h2>
-              <p className="text-lg md:text-xl text-zinc-500 leading-relaxed max-w-lg">
+              <p className="text-base md:text-xl text-zinc-500 leading-relaxed max-w-lg">
                 {t("personal.desc1")}
                 <strong className="text-zinc-900 font-bold">
                   {t("personal.descStrong")}
@@ -1162,31 +1171,33 @@ export default function LandingPage() {
                 {t("personal.desc2")}
               </p>
 
-              <div className="pt-4 flex gap-6 items-center">
+              <div className="pt-2 md:pt-4 flex gap-6 items-center">
                 <div className="flex flex-col">
-                  <span className="text-3xl font-black text-zinc-900">
+                  <span className="text-2xl md:text-3xl font-black text-zinc-900">
                     100%
                   </span>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                  <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-zinc-500">
                     {t("personal.private")}
                   </span>
                 </div>
-                <div className="w-px h-10 bg-zinc-200"></div>
+                <div className="w-px h-8 md:h-10 bg-zinc-200"></div>
                 <div className="flex flex-col">
-                  <span className="text-3xl font-black text-zinc-900">∞</span>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                  <span className="text-2xl md:text-3xl font-black text-zinc-900">
+                    ∞
+                  </span>
+                  <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-zinc-500">
                     {t("personal.blocks")}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="group relative bg-white p-8 rounded-4xl border border-zinc-200 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1">
+            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
+              <div className="group relative bg-white p-5 md:p-8 rounded-3xl md:rounded-4xl border border-zinc-200 shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden hover:-translate-y-1">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-orange-100/80 rounded-full blur-3xl -z-10 group-hover:bg-orange-200 transition-colors duration-500 translate-x-1/2 -translate-y-1/2"></div>
-                <div className="w-14 h-14 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200 text-orange-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-sm">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200 text-orange-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 transition-transform duration-500 shadow-sm">
                   <svg
-                    className="w-7 h-7"
+                    className="w-6 h-6 md:w-7 md:h-7"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -1199,19 +1210,19 @@ export default function LandingPage() {
                     />
                   </svg>
                 </div>
-                <h4 className="text-xl font-bold text-zinc-900 mb-3">
+                <h4 className="text-lg md:text-xl font-bold text-zinc-900 mb-2 md:mb-3">
                   {t("personal.t1")}
                 </h4>
-                <p className="text-sm text-zinc-500 leading-relaxed font-medium">
+                <p className="text-[13px] md:text-sm text-zinc-500 leading-relaxed font-medium">
                   {t("personal.d1")}
                 </p>
               </div>
 
-              <div className="group relative bg-white p-8 rounded-4xl border border-zinc-200 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1">
+              <div className="group relative bg-white p-5 md:p-8 rounded-3xl md:rounded-4xl border border-zinc-200 shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden hover:-translate-y-1">
                 <div className="absolute bottom-0 right-0 w-40 h-40 bg-sky-100/80 rounded-full blur-3xl -z-10 group-hover:bg-sky-200 transition-colors duration-500 translate-x-1/2 translate-y-1/2"></div>
-                <div className="w-14 h-14 bg-linear-to-br from-sky-50 to-sky-100 border border-sky-200 text-sky-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-sm">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-linear-to-br from-sky-50 to-sky-100 border border-sky-200 text-sky-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 transition-transform duration-500 shadow-sm">
                   <svg
-                    className="w-7 h-7"
+                    className="w-6 h-6 md:w-7 md:h-7"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -1224,20 +1235,20 @@ export default function LandingPage() {
                     />
                   </svg>
                 </div>
-                <h4 className="text-xl font-bold text-zinc-900 mb-3">
+                <h4 className="text-lg md:text-xl font-bold text-zinc-900 mb-2 md:mb-3">
                   {t("personal.t2")}
                 </h4>
-                <p className="text-sm text-zinc-500 leading-relaxed font-medium">
+                <p className="text-[13px] md:text-sm text-zinc-500 leading-relaxed font-medium">
                   {t("personal.d2")}
                 </p>
               </div>
 
-              <div className="group relative bg-zinc-950 p-8 sm:p-10 rounded-[2.5rem] border border-zinc-800 shadow-xl sm:col-span-2 hover:shadow-2xl hover:shadow-pink-500/10 transition-all duration-500 overflow-hidden mt-1 sm:mt-0">
+              <div className="group relative bg-zinc-950 p-6 sm:p-10 rounded-3xl md:rounded-[2.5rem] border border-zinc-800 shadow-xl sm:col-span-2 hover:shadow-2xl hover:shadow-pink-500/10 transition-all duration-500 overflow-hidden mt-1 sm:mt-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#3f3f46_1px,transparent_1px),linear-gradient(to_bottom,#3f3f46_1px,transparent_1px)] bg-size-[2rem_2rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20"></div>
-                <div className="relative z-10 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-                  <div className="w-16 h-16 bg-zinc-800/80 backdrop-blur-md text-pink-400 rounded-3xl flex items-center justify-center shrink-0 border border-zinc-700/50 shadow-inner group-hover:scale-105 group-hover:text-pink-300 transition-all duration-500">
+                <div className="relative z-10 flex flex-col sm:flex-row gap-5 md:gap-6 items-start sm:items-center">
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-zinc-800/80 backdrop-blur-md text-pink-400 rounded-2xl md:rounded-3xl flex items-center justify-center shrink-0 border border-zinc-700/50 shadow-inner group-hover:scale-105 group-hover:text-pink-300 transition-all duration-500">
                     <svg
-                      className="w-8 h-8"
+                      className="w-6 h-6 md:w-8 md:h-8"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -1251,10 +1262,10 @@ export default function LandingPage() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="text-2xl font-bold text-white mb-2">
+                    <h4 className="text-xl md:text-2xl font-bold text-white mb-2">
                       {t("personal.t3")}
                     </h4>
-                    <p className="text-zinc-400 leading-relaxed font-medium max-w-lg text-sm">
+                    <p className="text-zinc-400 leading-relaxed font-medium max-w-lg text-[13px] md:text-sm">
                       {t("personal.d3")}
                     </p>
                   </div>
@@ -1265,19 +1276,19 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-24 px-6 max-w-5xl mx-auto mb-10">
-          <div className="bg-zinc-900 rounded-3xl p-12 text-center relative overflow-hidden shadow-2xl">
+        <section className="py-16 md:py-24 px-4 md:px-6 max-w-5xl mx-auto mb-8 md:mb-10">
+          <div className="bg-zinc-900 rounded-[2rem] md:rounded-3xl p-8 md:p-12 text-center relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="relative z-10">
-              <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tighter">
+              <h2 className="text-3xl md:text-6xl font-black text-white mb-4 md:mb-6 tracking-tighter">
                 {t("cta.title")}
               </h2>
-              <p className="text-zinc-400 mb-10 max-w-xl mx-auto text-lg font-medium">
+              <p className="text-zinc-400 mb-8 md:mb-10 max-w-xl mx-auto text-sm md:text-lg font-medium">
                 {t("cta.desc")}
               </p>
               <Link
                 href="/register"
-                className="inline-flex items-center gap-2 px-10 py-5 bg-white text-zinc-950 rounded-2xl font-extrabold text-base hover:bg-zinc-100 transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(255,255,255,0.3)] hover:-translate-y-1"
+                className="inline-flex items-center gap-2 px-8 py-4 md:px-10 md:py-5 bg-white text-zinc-950 rounded-2xl font-extrabold text-[15px] md:text-base hover:bg-zinc-100 transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(255,255,255,0.3)] hover:-translate-y-1"
               >
                 {t("cta.button")}
                 <svg

@@ -1324,7 +1324,7 @@ export default function StaticKanbanBoard({
                         )}
                       </button>
                       {showStartCalendar && (
-                        <div className="mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm rounded-2xl p-2 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
+                        <div className="absolute top-full left-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl p-2 z-[100] animate-in fade-in zoom-in-95 duration-100 flex justify-center">
                           <Calendar
                             mode="single"
                             selected={startDateObj}
@@ -1367,7 +1367,7 @@ export default function StaticKanbanBoard({
                         )}
                       </button>
                       {showDeadlineCalendar && (
-                        <div className="mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm rounded-2xl p-2 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
+                        <div className="absolute top-full right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl p-2 z-[100] animate-in fade-in zoom-in-95 duration-100 flex justify-center">
                           <Calendar
                             mode="single"
                             selected={deadlineObj}
