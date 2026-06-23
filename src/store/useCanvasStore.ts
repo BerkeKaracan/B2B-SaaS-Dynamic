@@ -166,6 +166,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((state) => {
       const pageId = crypto.randomUUID();
 
+      let finalHeight = pageData.height || 800;
+
+      if (pageData.blocks && pageData.blocks.length > 0) {
+        const maxBottom = Math.max(
+          ...pageData.blocks.map((b) => (b.y || 0) + (b.height || 120)),
+        );
+        if (maxBottom + 100 > finalHeight) {
+          finalHeight = maxBottom + 100;
+        }
+      }
+
       const newPage: PageWithSettings = {
         id: pageId,
         type: pageData.type || "empty",
@@ -173,7 +184,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         x: pageData.x || 100,
         y: pageData.y || 100,
         width: pageData.width || 1000,
-        height: pageData.height || 800,
+        height: finalHeight,
         blocks: (pageData.blocks || []).map((b) => ({
           ...b,
           id: crypto.randomUUID(),
