@@ -24,6 +24,7 @@ import StaticKanbanBoard from "@/components/kanban/StaticKanbanBoard";
 import { Sparkles, Minus, Plus, Maximize, MousePointer2 } from "lucide-react";
 import DocumentBoard from "@/components/document/DocumentBoard";
 import WhiteboardBoard from "@/components/whiteboard/WhiteBoard";
+import MindMapBoard from "@/components/mindmap/MindMapBoard";
 
 export default function CanvasArea() {
   const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
@@ -976,6 +977,10 @@ export default function CanvasArea() {
               ) : page.type === "whiteboard" ? (
                 <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
                   <WhiteboardBoard projectId={page.id} />
+                </div>
+              ) : page.type === "mindmap" ? (
+                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
+                  <MindMapBoard projectId={page.id} />
                 </div>
               ) : (
                 <div className="canvas-bg relative w-full h-full p-6 flex-1 overflow-visible">

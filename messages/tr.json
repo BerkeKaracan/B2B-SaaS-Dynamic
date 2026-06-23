@@ -606,6 +606,10 @@
       "whiteboard": {
         "label": "Beyaz Tahta",
         "desc": "Serbest çizim ve karalama alanı"
+      },
+      "mindmap": {
+        "label": "Zihin Haritası",
+        "desc": "Beyin fırtınası ve akış diyagramları"
       }
     }
   },

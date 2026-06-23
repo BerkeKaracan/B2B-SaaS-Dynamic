@@ -399,6 +399,32 @@ export default function ItemSidebar() {
         </svg>
       ),
     },
+    {
+      type: "mindmap" as PageContent["type"],
+      label: t("frames.mindmap.label"),
+      description: t("frames.mindmap.desc"),
+      icon: (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <path d="M6.5 10v4" />
+          <path d="M17.5 10v4" />
+          <path d="M10 6.5h4" />
+          <path d="M10 17.5h4" />
+        </svg>
+      ),
+    },
   ];
 
   const handleTapToAddBlock = (type: BlockType) => {

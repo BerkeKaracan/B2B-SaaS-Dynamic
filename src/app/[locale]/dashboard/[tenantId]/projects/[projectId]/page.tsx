@@ -14,6 +14,7 @@ import { LoadingSpinner } from "@/components/ui/loading";
 import DatabaseBoard from "@/components/database/DatabaseBoard";
 import DocumentBoard from "@/components/document/DocumentBoard";
 import WhiteboardBoard from "@/components/whiteboard/WhiteBoard";
+import MindMapBoard from "@/components/mindmap/MindMapBoard";
 
 type Collaborator = {
   email: string;
@@ -61,7 +62,8 @@ export default function ProjectDesignPage() {
             data.record_data?.template === "document" ||
             data.record_data?.template === "whiteboard" ||
             data.record_data?.template === "timeline" ||
-            data.record_data?.template === "database"
+            data.record_data?.template === "database" ||
+            data.record_data?.template === "mindmap"
           ) {
             setShowEngineToolkit(false);
           } else {
@@ -256,6 +258,8 @@ export default function ProjectDesignPage() {
             <DocumentBoard projectId={projectId} />
           ) : projectTemplate === "whiteboard" ? (
             <WhiteboardBoard projectId={projectId} />
+          ) : projectTemplate === "mindmap" ? (
+            <MindMapBoard projectId={projectId} />
           ) : projectTemplate === "timeline" ? (
             <TimelineBoard projectId={projectId} />
           ) : projectTemplate === "database" ? (

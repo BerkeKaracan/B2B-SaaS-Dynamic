@@ -606,6 +606,10 @@
       "whiteboard": {
         "label": "Whiteboard",
         "desc": "Free-form drawing and sketching area"
+      },
+      "mindmap": {
+        "label": "Mind Map",
+        "desc": "Brainstorming and flow diagramming"
       }
     }
   },

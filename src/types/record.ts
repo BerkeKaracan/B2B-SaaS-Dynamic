@@ -28,7 +28,8 @@ export interface PageContent {
     | "document"
     | "agenda"
     | "database"
-    | "whiteboard";
+    | "whiteboard"
+    | "mindmap";
   title: string;
   x: number;
   y: number;

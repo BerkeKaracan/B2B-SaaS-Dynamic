@@ -26,6 +26,7 @@ import {
   Database,
   PenTool,
   FileText,
+  Network,
 } from "lucide-react";
 
 type ProjectRecord = {
@@ -504,6 +505,8 @@ export default function ProjectCardsGrid({
                           ) : templateType === "document" ||
                             templateType === "notepad" ? (
                             <FileText className="w-3.5 h-3.5" />
+                          ) : templateType === "mindmap" ? (
+                            <Network className="w-3.5 h-3.5" />
                           ) : (
                             <LayoutTemplate className="w-3.5 h-3.5" />
                           )}
@@ -731,6 +734,7 @@ export default function ProjectCardsGrid({
                   <option value="whiteboard">Whiteboard (Drawing)</option>
                   <option value="timeline">Timeline</option>
                   <option value="database">Database / Table</option>
+                  <option value="mindmap">Mind Map / Flowchart</option>
                 </select>
               </div>
               {createError && (
