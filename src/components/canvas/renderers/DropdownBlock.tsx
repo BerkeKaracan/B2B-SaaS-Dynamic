@@ -36,12 +36,22 @@ export default function DropdownBlock({
 
   const label = (block.settings?.label as string) ?? "Select Option";
   const jsonKey = (block.settings?.jsonKey as string) ?? "custom_select";
-  const optionsString =
-    (block.settings?.options as string) ?? "Option 1, Option 2, Option 3";
-  const options = optionsString
-    .split(",")
-    .map((opt) => opt.trim())
-    .filter(Boolean);
+
+  let options: string[] = [];
+  const rawOptions = block.settings?.options;
+
+  if (Array.isArray(rawOptions)) {
+    options = rawOptions.map((opt) => String(opt).trim()).filter(Boolean);
+  } else if (typeof rawOptions === "string" && rawOptions.trim() !== "") {
+    options = rawOptions
+      .split(",")
+      .map((opt) => opt.trim())
+      .filter(Boolean);
+  } else {
+    options = ["Option 1", "Option 2", "Option 3"];
+  }
+
+  const optionsString = options.join(", ");
   const currentValue = (block.value as string) || "";
 
   return (

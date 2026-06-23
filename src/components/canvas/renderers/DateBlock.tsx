@@ -34,7 +34,14 @@ export default function DateBlock({
 
   const label = (block.settings?.label as string) ?? "Date Field";
   const jsonKey = (block.settings?.jsonKey as string) ?? "custom_date";
-  const dateValue = block.value ? new Date(block.value as string) : undefined;
+
+  let dateValue: Date | undefined = undefined;
+  if (block.value && typeof block.value === "string") {
+    const parsedDate = new Date(block.value);
+    if (!isNaN(parsedDate.getTime())) {
+      dateValue = parsedDate;
+    }
+  }
 
   return (
     <div className="relative w-full h-full flex flex-col justify-center group/block">

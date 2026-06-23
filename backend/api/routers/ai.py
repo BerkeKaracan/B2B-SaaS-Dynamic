@@ -76,22 +76,45 @@ async def generate_canvas(req: GenerateCanvasRequest):
 
     client = AsyncGroq(api_key=api_key)
     
-    system_prompt = f"""You are an expert AI Canvas Architect for a workspace app.
-    The user will give you a prompt. Return ONLY a valid JSON object.
-    It MUST have a single root key called 'blocks'.
-    'blocks' is an array of objects.
-    EACH BLOCK MUST HAVE EXACTLY THIS STRUCTURE:
+    system_prompt = f"""You are an expert AI Canvas Architect for a B2B SaaS application.
+    The user will describe a workspace, process, or dashboard they want to create.
+    You MUST return ONLY a valid JSON object representing a SINGLE Page.
+    
+    --- UNDERSTAND PAGE vs BLOCKS ---
+    1. PAGE TEMPLATES: If the request is for a standard workflow, process, or diagram, use one of these page types: 
+       "kanban", "notes", "document", "agenda", "database", "whiteboard", "mindmap", "retrospective". 
+       For these templates, you DO NOT need to generate blocks (leave "blocks" array empty).
+       
+    2. CUSTOM PAGES: If the request requires a custom layout (e.g., a survey form, a dashboard, a mix of text and inputs), 
+       use page type "empty" and add appropriate items to the "blocks" array.
+    
+    ALLOWED BLOCK TYPES: "text", "form", "date", "container", "dropdown", "checkbox", "badge_selector", "asset_stream"
+    
+    JSON STRUCTURE MUST BE EXACTLY THIS:
     {{
-        "type": "text",
-        "value": "Markdown text goes here.",
+        "type": "<PAGE_TYPE>",
+        "title": "<A suitable professional title for this board>",
         "x": {req.x},
         "y": {req.y},
-        "width": 300,
-        "height": 120,
-        "settings": {{"color": "#1e1e1e", "isBold": false}}
+        "width": 1000,
+        "height": 800,
+        "blocks": [
+// CRITICAL: Increment 'y' by EXACTLY 145 for each new block (e.g., first block y: 40, second y: 180, third y: 320). THEY MUST NOT OVERLAP!            {{
+                "type": "<BLOCK_TYPE>",
+                "value": "<Content or placeholder>",
+                "x": 40,
+                "y": 40, 
+                "width": 300,
+                "height": 100,
+                "settings": {{}}
+            }}
+        ]
     }}
-    Space the blocks out by incrementing X or Y so they don't overlap!
-    CRITICAL: NO MARKDOWN TAGS. ONLY RAW JSON. Do not wrap in markdown json tags.
+    
+    CRITICAL RULES: 
+    - Output RAW JSON ONLY. 
+    - DO NOT wrap the output in Markdown tags.
+    - DO NOT include IDs.
     """
     
     try:
@@ -101,29 +124,49 @@ async def generate_canvas(req: GenerateCanvasRequest):
                 {"role": "user", "content": req.prompt}
             ],
             model="llama-3.3-70b-versatile",
-            temperature=0.7,
+            temperature=0.3, 
             max_tokens=2048,
-            response_format={"type": "json_object"} 
+            response_format={"type": "json_object"}
         )
         
         result_text = chat_completion.choices[0].message.content.strip()
         
-        if result_text.startswith('`' * 3):
-            match = re.search(r'`{3}(?:json)?(.*?)`{3}', result_text, re.DOTALL)
-            if match:
-                result_text = match.group(1).strip()
+        result_text = re.sub(r'^`{3}(?:json)?|`{3}$', '', result_text, flags=re.IGNORECASE).strip()
+        
+        start_idx = -1
+        end_idx = -1
+        
+        for i, char in enumerate(result_text):
+            if char in ['{', '[']:
+                start_idx = i
+                break
+                
+        for i in range(len(result_text)-1, -1, -1):
+            if result_text[i] in ['}', ']']:
+                end_idx = i
+                break
+                
+        if start_idx != -1 and end_idx != -1:
+            result_text = result_text[start_idx:end_idx+1]
         
         parsed_json = json.loads(result_text)
         
+        if isinstance(parsed_json, list):
+            parsed_json = {
+                "type": "empty",
+                "title": "AI Generated Workspace",
+                "blocks": parsed_json
+            }
+            
         if "blocks" not in parsed_json:
-            if isinstance(parsed_json, list):
-                parsed_json = {"blocks": parsed_json}
-            else:
-                parsed_json = {"blocks": []}
+            parsed_json["blocks"] = []
+        if "type" not in parsed_json:
+            parsed_json["type"] = "empty"
                 
         return parsed_json
         
     except Exception as e:
+        print("--- AI PARSE ERROR ---")
         raise HTTPException(status_code=500, detail=f"AI Canvas Error: {str(e)}")
 
 @router.post("/chat")

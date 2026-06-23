@@ -110,6 +110,11 @@ interface CanvasState {
     pageId: string,
     newBlocks: Omit<BlockContent, "id">[],
   ) => void;
+  addGeneratedPage: (
+    pageData: Omit<PageContent, "id" | "blocks"> & {
+      blocks?: Omit<BlockContent, "id">[];
+    },
+  ) => void;
 }
 
 let saveTimeout: NodeJS.Timeout;
@@ -154,6 +159,36 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         };
       }),
     }));
+  },
+
+  addGeneratedPage: (pageData) => {
+    get().saveHistory();
+    set((state) => {
+      const pageId = crypto.randomUUID();
+
+      const newPage: PageWithSettings = {
+        id: pageId,
+        type: pageData.type || "empty",
+        title: pageData.title || "AI Generated Workspace",
+        x: pageData.x || 100,
+        y: pageData.y || 100,
+        width: pageData.width || 1000,
+        height: pageData.height || 800,
+        blocks: (pageData.blocks || []).map((b) => ({
+          ...b,
+          id: crypto.randomUUID(),
+        })) as BlockContent[],
+        settings: {
+          backgroundColor: pageData.type === "empty" ? "#ffffff" : "#f4f4f5",
+        },
+      };
+
+      return {
+        pages: [...state.pages, newPage],
+        activePageId: pageId,
+        selectedBlocks: [],
+      };
+    });
   },
 
   addConnection: (conn) => {

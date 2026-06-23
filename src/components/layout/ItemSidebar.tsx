@@ -34,7 +34,7 @@ export default function ItemSidebar() {
     addBlockToPage,
     setActivePage,
     activePageId,
-    addGeneratedBlocks,
+    addGeneratedPage,
   } = useCanvasStore();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,49 +72,59 @@ export default function ItemSidebar() {
     setIsAiGenerating(true);
 
     const state = useCanvasStore.getState();
-    let targetPageId = state.activePageId;
 
-    if (!targetPageId) {
-      const canvasContainer = document.querySelector(".canvas-bg");
-      const rect = canvasContainer
-        ? canvasContainer.getBoundingClientRect()
-        : { width: 1000, height: 800 };
-      const currentZoom = (state.zoom ?? 100) / 100;
-      const cx = (-(state.panX ?? 0) + rect.width / 2 - 200) / currentZoom;
-      const cy = (-(state.panY ?? 0) + rect.height / 2 - 200) / currentZoom;
+    const canvasContainer = document.querySelector(".canvas-bg");
+    const rect = canvasContainer
+      ? canvasContainer.getBoundingClientRect()
+      : { width: 1000, height: 800, left: 0, top: 0 };
 
-      state.addPage("empty", cx, cy);
+    const currentZoom = (state.zoom ?? 100) / 100;
 
-      const pages = useCanvasStore.getState().pages;
-      targetPageId = pages.length > 0 ? pages[pages.length - 1].id : null;
-    }
-
-    if (!targetPageId) {
-      alert("Error: Target page not found!");
-      setIsAiGenerating(false);
-      return;
-    }
+    const cx = (rect.width / 2 - (state.panX ?? 0)) / currentZoom - 500;
+    const cy = (rect.height / 2 - (state.panY ?? 0)) / currentZoom - 400;
 
     try {
       const res = await fetchAPI("/api/ai/generate-canvas", {
         method: "POST",
-        body: JSON.stringify({ prompt: aiPrompt, x: 40, y: 40 }),
+        body: JSON.stringify({ prompt: aiPrompt, x: cx, y: cy }),
       });
 
       if (res.ok) {
         const data = await res.json();
+        console.log("🚀 AI Output:", data);
 
-        if (data.blocks && Array.isArray(data.blocks)) {
+        const finalData = data.page || data;
+
+        if (finalData && finalData.type) {
           const store = useCanvasStore.getState();
-          if (store.addGeneratedBlocks) {
-            store.addGeneratedBlocks(targetPageId, data.blocks);
+          if (store.addGeneratedPage) {
+            store.addGeneratedPage({
+              ...finalData,
+              x: cx,
+              y: cy,
+            });
+
+            setTimeout(() => {
+              const ns = useCanvasStore.getState();
+              if (ns.pages.length > 0) {
+                ns.setActivePage(ns.pages[ns.pages.length - 1].id);
+              }
+            }, 50);
+
             setIsAiModalOpen(false);
             setAiPrompt("");
           }
+        } else {
+          alert(
+            "The AI ​​was unable to generate a valid template. Please rephrase your request using different words.",
+          );
         }
       }
     } catch (e: unknown) {
-      console.error(e);
+      console.error("AI Canvas Generation Error:", e);
+      alert(
+        "Communication with the AI ​engine could not be established. Check the backend logs in the terminal.",
+      );
     } finally {
       setIsAiGenerating(false);
     }
@@ -849,7 +859,9 @@ export default function ItemSidebar() {
               autoFocus
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder={t("aiPlaceholder")}
+              placeholder={
+                t("aiPlaceholder") || "Describe what you want to build..."
+              }
               className="w-full bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-indigo-500/50 shadow-inner"
               rows={4}
               onKeyDown={(e) => {
@@ -862,21 +874,23 @@ export default function ItemSidebar() {
             />
             <div className="flex justify-between items-center mt-1">
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono pl-1">
-                {t("pressEnter")}
+                {t("pressEnter") || "Press Enter to generate"}
               </span>
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsAiModalOpen(false)}
                   className="text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white px-3 py-2 rounded-lg transition-colors"
                 >
-                  {t("cancel")}
+                  {t("cancel") || "Cancel"}
                 </button>
                 <button
                   onClick={handleAiGenerate}
                   disabled={isAiGenerating || !aiPrompt.trim()}
                   className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white text-xs font-bold py-2 px-5 rounded-lg transition-all shadow-lg flex items-center gap-2"
                 >
-                  {isAiGenerating ? t("building") : t("generate")}
+                  {isAiGenerating
+                    ? t("building") || "Building..."
+                    : t("generate") || "Generate"}
                 </button>
               </div>
             </div>
