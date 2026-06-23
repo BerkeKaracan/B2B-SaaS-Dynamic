@@ -27,6 +27,7 @@ import {
   PenTool,
   FileText,
   Network,
+  MessageSquare,
 } from "lucide-react";
 
 type ProjectRecord = {
@@ -507,6 +508,8 @@ export default function ProjectCardsGrid({
                             <FileText className="w-3.5 h-3.5" />
                           ) : templateType === "mindmap" ? (
                             <Network className="w-3.5 h-3.5" />
+                          ) : templateType === "retrospective" ? (
+                            <MessageSquare className="w-3.5 h-3.5" />
                           ) : (
                             <LayoutTemplate className="w-3.5 h-3.5" />
                           )}
@@ -735,6 +738,7 @@ export default function ProjectCardsGrid({
                   <option value="timeline">Timeline</option>
                   <option value="database">Database / Table</option>
                   <option value="mindmap">Mind Map / Flowchart</option>
+                  <option value="retrospective">Agile Retrospective</option>
                 </select>
               </div>
               {createError && (

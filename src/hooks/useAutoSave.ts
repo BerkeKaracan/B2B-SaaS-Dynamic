@@ -31,6 +31,7 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
   const whiteboardTitle = metadata?.whiteboardTitle;
 
   const mindmapNodes = metadata?.mindmapNodes;
+  const retrospectiveCards = metadata?.retrospectiveCards;
 
   useEffect(() => {
     if (!recordId) return;
@@ -70,6 +71,7 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
     whiteboardTexts,
     whiteboardTitle,
     mindmapNodes,
+    retrospectiveCards,
   ]);
 
   useEffect(() => {

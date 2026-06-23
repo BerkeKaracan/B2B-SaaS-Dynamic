@@ -29,7 +29,8 @@ export interface PageContent {
     | "agenda"
     | "database"
     | "whiteboard"
-    | "mindmap";
+    | "mindmap"
+    | "retrospective";
   title: string;
   x: number;
   y: number;

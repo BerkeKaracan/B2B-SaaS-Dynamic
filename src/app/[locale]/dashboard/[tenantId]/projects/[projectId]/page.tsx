@@ -15,6 +15,7 @@ import DatabaseBoard from "@/components/database/DatabaseBoard";
 import DocumentBoard from "@/components/document/DocumentBoard";
 import WhiteboardBoard from "@/components/whiteboard/WhiteBoard";
 import MindMapBoard from "@/components/mindmap/MindMapBoard";
+import RetrospectiveBoard from "@/components/retrospective/RetrospectiveBoard";
 
 type Collaborator = {
   email: string;
@@ -63,7 +64,8 @@ export default function ProjectDesignPage() {
             data.record_data?.template === "whiteboard" ||
             data.record_data?.template === "timeline" ||
             data.record_data?.template === "database" ||
-            data.record_data?.template === "mindmap"
+            data.record_data?.template === "mindmap" ||
+            data.record_data?.template === "retrospective"
           ) {
             setShowEngineToolkit(false);
           } else {
@@ -264,6 +266,8 @@ export default function ProjectDesignPage() {
             <TimelineBoard projectId={projectId} />
           ) : projectTemplate === "database" ? (
             <DatabaseBoard projectId={projectId} />
+          ) : projectTemplate === "retrospective" ? (
+            <RetrospectiveBoard projectId={projectId} />
           ) : (
             <CanvasArea />
           )}

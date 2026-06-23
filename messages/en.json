@@ -610,6 +610,10 @@
       "mindmap": {
         "label": "Mind Map",
         "desc": "Brainstorming and flow diagramming"
+      },
+      "retrospective": {
+        "label": "Agile Retrospective",
+        "desc": "Sprint evaluation with Glad, Sad, Mad"
       }
     }
   },
@@ -629,5 +633,17 @@
     "eraser": "Eraser",
     "draw": "Draw",
     "color": "Color"
+  },
+  "RetrospectiveBoard": {
+    "title": "Sprint Retrospective",
+    "glad": "Glad 😃",
+    "gladDesc": "What went well?",
+    "sad": "Sad 😔",
+    "sadDesc": "What didn't go so well?",
+    "mad": "Mad 😡",
+    "madDesc": "What needs to change?",
+    "addCard": "Add a card...",
+    "typeAndEnter": "Type and press Enter",
+    "votes": "votes"
   }
 }

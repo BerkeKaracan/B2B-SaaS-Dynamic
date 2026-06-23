@@ -610,6 +610,10 @@
       "mindmap": {
         "label": "Zihin Haritası",
         "desc": "Beyin fırtınası ve akış diyagramları"
+      },
+      "retrospective": {
+        "label": "Çevik Retrospektif",
+        "desc": "Glad, Sad, Mad ile sprint değerlendirmesi"
       }
     }
   },
@@ -629,5 +633,17 @@
     "eraser": "Silgi",
     "draw": "Çiz",
     "color": "Renk"
+  },
+  "RetrospectiveBoard": {
+    "title": "Sprint Retrospektifi",
+    "glad": "Mutlu 😃",
+    "gladDesc": "Neler iyi gitti?",
+    "sad": "Üzgün 😔",
+    "sadDesc": "Neler pek iyi gitmedi?",
+    "mad": "Kızgın 😡",
+    "madDesc": "Nelerin değişmesi lazım?",
+    "addCard": "Bir kart ekle...",
+    "typeAndEnter": "Yazın ve Enter'a basın",
+    "votes": "oy"
   }
 }
