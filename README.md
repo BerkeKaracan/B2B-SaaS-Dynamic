@@ -65,6 +65,7 @@ The system relies on a strict separation of concerns. The Next.js frontend handl
 
 ## Project Directory Structure
 
+````
 .
 ├── backend/
 │ ├── api/ # FastAPI routers (Auth, Tenants, Records, Notifications)
@@ -78,4 +79,5 @@ The system relies on a strict separation of concerns. The Next.js frontend handl
 │ ├── types/ # TypeScript type definitions (including generated Supabase types)
 │ └── middleware.ts # Multi-tenant edge domain interceptor
 ├── k8s/ # Kubernetes deployment and Ingress manifests
-└── .github/ # CI/CD pipeline configurations
+└── .github/ # CI/CD pipeline configurations ```
+````
