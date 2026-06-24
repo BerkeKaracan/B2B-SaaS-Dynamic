@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Depends, Header
+from fastapi import APIRouter, HTTPException, Query, Depends, Header, BackgroundTasks
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, timezone
@@ -204,7 +204,7 @@ def get_record(record_id: UUID, user: dict = Depends(get_user_role)):
 
 
 @router.patch("/{record_id}", response_model=RecordResponse)
-def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(get_user_role)):
+def update_record(record_id: UUID, payload: RecordUpdate, background_tasks: BackgroundTasks, user: dict = Depends(get_user_role)):
     try:
         existing_res = user["client"].table("custom_records").select("record_data, tenant_id").eq("id", str(record_id)).execute()
         if not existing_res.data:
@@ -241,40 +241,35 @@ def update_record(record_id: UUID, payload: RecordUpdate, user: dict = Depends(g
         if "owner_email" not in payload_data and "owner_email" in current_record_data:
             payload_data["owner_email"] = current_record_data["owner_email"]
 
-        try:
-            raw_new_collabs = payload_data.get("collaborators", [])
-            raw_old_collabs = current_record_data.get("collaborators", [])
+        raw_new_collabs = payload_data.get("collaborators", [])
+        raw_old_collabs = current_record_data.get("collaborators", [])
+        
+        if not isinstance(raw_new_collabs, list): raw_new_collabs = []
+        if not isinstance(raw_old_collabs, list): raw_old_collabs = []
+        
+        old_emails = {str(c.get("email", "")).lower().strip() for c in raw_old_collabs if isinstance(c, dict) and c.get("email")}
+        added_collabs = [c for c in raw_new_collabs if isinstance(c, dict) and c.get("email") and str(c.get("email", "")).lower().strip() not in old_emails]
+        
+        notifications_to_insert = []
+        for collab in added_collabs:
+            target_email = str(collab.get("email")).lower().strip()
             
-            if not isinstance(raw_new_collabs, list): raw_new_collabs = []
-            if not isinstance(raw_old_collabs, list): raw_old_collabs = []
-            
-            old_emails = {str(c.get("email", "")).lower().strip() for c in raw_old_collabs if isinstance(c, dict) and c.get("email")}
-            added_collabs = [c for c in raw_new_collabs if isinstance(c, dict) and c.get("email") and str(c.get("email", "")).lower().strip() not in old_emails]
-            
-            notifications_to_insert = []
-            for collab in added_collabs:
-                target_email = str(collab.get("email")).lower().strip()
+            if target_email == user["email"]:
+                continue
                 
-                if target_email == user["email"]:
-                    continue
-                    
-                project_name = payload_data.get('name', payload_data.get('title', 'Untitled Canvas'))
-                inviter = user['full_name']
-                
-                notifications_to_insert.append({
-                    "target_email": target_email,
-                    "type": "invite",
-                    "title": "Project Invitation",
-                    "message": f"{inviter} invited you to collaborate on '{project_name}'.",
-                    "action_url": f"/dashboard/{rec_tenant}/projects/{str(record_id)}"
-                })
+            project_name = payload_data.get('name', payload_data.get('title', 'Untitled Canvas'))
+            inviter = user['full_name']
             
-            if notifications_to_insert:
-                from core.database import supabase_admin
-                supabase_admin.table("notifications").insert(notifications_to_insert).execute()
-                
-        except Exception as notif_err:
-            print(f"Notification processing error: {notif_err}") 
+            notifications_to_insert.append({
+                "target_email": target_email,
+                "type": "invite",
+                "title": "Project Invitation",
+                "message": f"{inviter} invited you to collaborate on '{project_name}'.",
+                "action_url": f"/dashboard/{rec_tenant}/projects/{str(record_id)}"
+            })
+        
+        if notifications_to_insert:
+            background_tasks.add_task(process_invite_notifications, notifications_to_insert)
         
         payload_data["updated_at"] = datetime.now(timezone.utc).isoformat()
         payload_data["updated_by"] = user["full_name"]
@@ -311,3 +306,13 @@ def delete_record(record_id: UUID, user: dict = Depends(get_user_role)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+def process_invite_notifications(notifications_to_insert: list):
+    if not notifications_to_insert:
+        return
+        
+    try:
+        from core.database import supabase_admin
+        supabase_admin.table("notifications").insert(notifications_to_insert).execute()
+    except Exception as notif_err:
+        print(f"Background notification processing error: {notif_err}")
