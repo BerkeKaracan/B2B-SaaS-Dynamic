@@ -23,7 +23,7 @@ export default function ChangelogPage() {
     const fetchChangelog = async () => {
       try {
         const res = await fetchAPI('/api/github/changelog?limit=30');
-        if (res.ok) {
+        if (res.ok) { 
           const data: ChangelogUpdate[] = await res.json();
           setUpdates(data);
         }
