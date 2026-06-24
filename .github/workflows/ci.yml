@@ -13,6 +13,9 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: "https://dummy12345.supabase.co"
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-anon-key-for-ci-build"
+
+      RESEND_API_KEY: "re_dummy1234567890"
+      SENTRY_AUTH_TOKEN: "dummy-sentry-token-for-ci"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
