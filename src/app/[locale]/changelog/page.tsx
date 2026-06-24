@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { fetchAPI } from "@/services/api";
-import { Loader2 } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { fetchAPI } from '@/services/api';
+import { Loader2 } from 'lucide-react';
 
 interface ChangelogUpdate {
   id: string;
@@ -22,13 +22,13 @@ export default function ChangelogPage() {
   useEffect(() => {
     const fetchChangelog = async () => {
       try {
-        const res = await fetchAPI("/api/github/changelog?limit=15");
+        const res = await fetchAPI('/api/github/changelog?limit=30');
         if (res.ok) {
           const data: ChangelogUpdate[] = await res.json();
           setUpdates(data);
         }
       } catch (error) {
-        console.error("Failed to fetch changelog:", error);
+        console.error('Failed to fetch changelog:', error);
       } finally {
         setIsLoading(false);
       }
@@ -39,25 +39,25 @@ export default function ChangelogPage() {
 
   const formatDate = (dateString: string) => {
     const d = new Date(dateString);
-    return d.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+    return d.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     });
   };
 
   const getLabelColor = (label: string) => {
     switch (label) {
-      case "Feature":
-        return "bg-indigo-50 text-indigo-600 border-indigo-100";
-      case "Bug Fix":
-        return "bg-red-50 text-red-600 border-red-100";
-      case "Improvement":
-        return "bg-blue-50 text-blue-600 border-blue-100";
-      case "Design":
-        return "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100";
+      case 'Feature':
+        return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+      case 'Bug Fix':
+        return 'bg-red-50 text-red-600 border-red-100';
+      case 'Improvement':
+        return 'bg-blue-50 text-blue-600 border-blue-100';
+      case 'Design':
+        return 'bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100';
       default:
-        return "bg-zinc-50 text-zinc-500 border-zinc-200";
+        return 'bg-zinc-50 text-zinc-500 border-zinc-200';
     }
   };
 
