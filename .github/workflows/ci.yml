@@ -10,6 +10,9 @@ jobs:
   frontend-ci:
     name: Frontend Build & Lint
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: "https://zxcvbnmasdfghjklqwerty.supabase.co"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-anon-key-for-ci-build"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,6 +35,11 @@ jobs:
   backend-ci:
     name: Backend Test Suite
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "sqlite:///./test.db"
+      SUPABASE_URL: "https://zxcvbnmasdfghjklqwerty.supabase.co"
+      SUPABASE_KEY: "dummy-service-key-for-ci"
+      PYTHONPATH: "."
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
