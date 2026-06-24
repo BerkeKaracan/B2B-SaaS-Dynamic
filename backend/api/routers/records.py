@@ -3,8 +3,11 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, timezone
 import time
+import json
+import redis
 
-from core.database import supabase, supabase_admin
+from core.config import settings
+from core.database import supabase, supabase_admin, get_auth_client
 from models.record import RecordCreate, RecordUpdate, RecordResponse
 
 router = APIRouter(
@@ -12,32 +15,25 @@ router = APIRouter(
     tags=["Dynamic Records"]
 )
 
-AUTH_CACHE = {}
-CACHE_TTL_SECONDS = 10
+redis_client = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
+CACHE_TTL_SECONDS = 300
 
 def get_user_role(authorization: str = Header(None)) -> dict:
     if not authorization:
         raise HTTPException(status_code=401, detail="Missing Authorization header")
     
     token = authorization.replace("Bearer ", "")
-    current_time = time.time()
     
-    if token in AUTH_CACHE:
-        cached_data, timestamp = AUTH_CACHE[token]
-        if current_time - timestamp < CACHE_TTL_SECONDS:
-            from core.database import get_auth_client
-            result_copy = cached_data.copy()
-            result_copy["client"] = get_auth_client(token)
-            return result_copy
-            
-    if len(AUTH_CACHE) > 1000:
-        oldest_keys = sorted(AUTH_CACHE.keys(), key=lambda k: AUTH_CACHE[k][1])[:200]
-        for k in oldest_keys:
-            del AUTH_CACHE[k]
+    try:
+        cached_data_str = redis_client.get(f"auth_token:{token}")
+        if cached_data_str:
+            cached_data = json.loads(cached_data_str)
+            cached_data["client"] = get_auth_client(token) 
+            return cached_data
+    except Exception as e:
+        print(f"Redis Read Error: {str(e)}")
 
     try:
-        from core.database import supabase, get_auth_client, supabase_admin
-        
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="Invalid session")
@@ -63,10 +59,13 @@ def get_user_role(authorization: str = Header(None)) -> dict:
             "tenant_roles": tenant_roles,
         }
         
-        AUTH_CACHE[token] = (result, current_time)
-        user_client = get_auth_client(token)
+        try:
+            redis_client.setex(f"auth_token:{token}", CACHE_TTL_SECONDS, json.dumps(result))
+        except Exception as e:
+            print(f"Redis Write Error: {str(e)}")
+        
         result_copy = result.copy()
-        result_copy["client"] = user_client
+        result_copy["client"] = get_auth_client(token)
         return result_copy
         
     except HTTPException:
