@@ -1,9 +1,9 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
-import { useCanvasStore } from "@/store/useCanvasStore";
-import { BlockType, PageContent } from "@/types/record";
-import { fetchAPI } from "@/services/api";
+'use client';
+import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
+import { useCanvasStore } from '@/store/useCanvasStore';
+import { BlockType, PageContent } from '@/types/record';
+import { fetchAPI } from '@/services/api';
 import {
   Search,
   ChevronDown,
@@ -11,7 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-} from "lucide-react";
+} from 'lucide-react';
 
 interface SidebarItem {
   type: BlockType;
@@ -21,14 +21,14 @@ interface SidebarItem {
 }
 
 interface TemplateItem {
-  type: PageContent["type"];
+  type: PageContent['type'];
   label: string;
   description: string;
   icon: React.ReactNode;
 }
 
 export default function ItemSidebar() {
-  const t = useTranslations("EngineToolkit");
+  const t = useTranslations('EngineToolkit');
   const {
     addPage,
     addBlockToPage,
@@ -37,14 +37,14 @@ export default function ItemSidebar() {
     addGeneratedPage,
   } = useCanvasStore();
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [isBlocksOpen, setIsBlocksOpen] = useState(true);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(true);
   const [isAiOpen, setIsAiOpen] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiPrompt, setAiPrompt] = useState('');
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   const [activeDrag, setActiveDrag] = useState<{
@@ -58,13 +58,13 @@ export default function ItemSidebar() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "j") {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j') {
         e.preventDefault();
         setIsAiModalOpen((prev) => !prev);
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const handleAiGenerate = async () => {
@@ -73,7 +73,7 @@ export default function ItemSidebar() {
 
     const state = useCanvasStore.getState();
 
-    const canvasContainer = document.querySelector(".canvas-bg");
+    const canvasContainer = document.querySelector('.canvas-bg');
     const rect = canvasContainer
       ? canvasContainer.getBoundingClientRect()
       : { width: 1000, height: 800, left: 0, top: 0 };
@@ -84,14 +84,14 @@ export default function ItemSidebar() {
     const cy = (rect.height / 2 - (state.panY ?? 0)) / currentZoom - 400;
 
     try {
-      const res = await fetchAPI("/api/ai/generate-canvas", {
-        method: "POST",
+      const res = await fetchAPI('/api/ai/generate-canvas', {
+        method: 'POST',
         body: JSON.stringify({ prompt: aiPrompt, x: cx, y: cy }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        console.log("🚀 AI Output:", data);
+        console.log('🚀 AI Output:', data);
 
         const finalData = data.page || data;
 
@@ -112,18 +112,18 @@ export default function ItemSidebar() {
             }, 50);
 
             setIsAiModalOpen(false);
-            setAiPrompt("");
+            setAiPrompt('');
           }
         } else {
           alert(
-            "The AI ​​was unable to generate a valid template. Please rephrase your request using different words.",
+            'The AI ​​was unable to generate a valid template. Please rephrase your request using different words.'
           );
         }
       }
     } catch (e: unknown) {
-      console.error("AI Canvas Generation Error:", e);
+      console.error('AI Canvas Generation Error:', e);
       alert(
-        "Communication with the AI ​engine could not be established. Check the backend logs in the terminal.",
+        'Communication with the AI ​engine could not be established. Check the backend logs in the terminal.'
       );
     } finally {
       setIsAiGenerating(false);
@@ -132,9 +132,9 @@ export default function ItemSidebar() {
 
   const menuItems: SidebarItem[] = [
     {
-      type: "text",
-      label: t("blocks.text.label"),
-      description: t("blocks.text.desc"),
+      type: 'text',
+      label: t('blocks.text.label'),
+      description: t('blocks.text.desc'),
       icon: (
         <svg
           width="14"
@@ -153,9 +153,9 @@ export default function ItemSidebar() {
       ),
     },
     {
-      type: "form",
-      label: t("blocks.form.label"),
-      description: t("blocks.form.desc"),
+      type: 'form',
+      label: t('blocks.form.label'),
+      description: t('blocks.form.desc'),
       icon: (
         <svg
           width="14"
@@ -173,9 +173,9 @@ export default function ItemSidebar() {
       ),
     },
     {
-      type: "date",
-      label: t("blocks.date.label"),
-      description: t("blocks.date.desc"),
+      type: 'date',
+      label: t('blocks.date.label'),
+      description: t('blocks.date.desc'),
       icon: (
         <svg
           width="14"
@@ -195,9 +195,9 @@ export default function ItemSidebar() {
       ),
     },
     {
-      type: "dropdown",
-      label: t("blocks.dropdown.label"),
-      description: t("blocks.dropdown.desc"),
+      type: 'dropdown',
+      label: t('blocks.dropdown.label'),
+      description: t('blocks.dropdown.desc'),
       icon: (
         <svg
           width="14"
@@ -219,9 +219,9 @@ export default function ItemSidebar() {
       ),
     },
     {
-      type: "checkbox",
-      label: t("blocks.toggle.label"),
-      description: t("blocks.toggle.desc"),
+      type: 'checkbox',
+      label: t('blocks.toggle.label'),
+      description: t('blocks.toggle.desc'),
       icon: (
         <svg
           width="14"
@@ -239,9 +239,9 @@ export default function ItemSidebar() {
       ),
     },
     {
-      type: "badge_selector",
-      label: t("blocks.badge.label"),
-      description: t("blocks.badge.desc"),
+      type: 'badge_selector',
+      label: t('blocks.badge.label'),
+      description: t('blocks.badge.desc'),
       icon: (
         <svg
           width="14"
@@ -260,9 +260,9 @@ export default function ItemSidebar() {
       ),
     },
     {
-      type: "asset_stream",
-      label: t("blocks.asset.label"),
-      description: t("blocks.asset.desc"),
+      type: 'asset_stream',
+      label: t('blocks.asset.label'),
+      description: t('blocks.asset.desc'),
       icon: (
         <svg
           width="14"
@@ -286,9 +286,9 @@ export default function ItemSidebar() {
 
   const templateItems: TemplateItem[] = [
     {
-      type: "empty",
-      label: t("frames.empty.label"),
-      description: t("frames.empty.desc"),
+      type: 'empty',
+      label: t('frames.empty.label'),
+      description: t('frames.empty.desc'),
       icon: (
         <svg
           width="14"
@@ -306,9 +306,9 @@ export default function ItemSidebar() {
       ),
     },
     {
-      type: "kanban",
-      label: t("frames.kanban.label"),
-      description: t("frames.kanban.desc"),
+      type: 'kanban',
+      label: t('frames.kanban.label'),
+      description: t('frames.kanban.desc'),
       icon: (
         <svg
           width="14"
@@ -327,9 +327,9 @@ export default function ItemSidebar() {
       ),
     },
     {
-      type: "notes",
-      label: t("frames.notes.label"),
-      description: t("frames.notes.desc"),
+      type: 'notes',
+      label: t('frames.notes.label'),
+      description: t('frames.notes.desc'),
       icon: (
         <svg
           width="14"
@@ -347,9 +347,9 @@ export default function ItemSidebar() {
       ),
     },
     {
-      type: "agenda",
-      label: t("frames.agenda.label"),
-      description: t("frames.agenda.desc"),
+      type: 'timeline' as PageContent['type'],
+      label: t('frames.timeline.label'),
+      description: t('frames.timeline.desc'),
       icon: (
         <svg
           width="14"
@@ -361,15 +361,16 @@ export default function ItemSidebar() {
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <circle cx="7" cy="12" r="3" />
+          <circle cx="17" cy="12" r="3" />
         </svg>
       ),
     },
     {
-      type: "database",
-      label: t("frames.database.label"),
-      description: t("frames.database.desc"),
+      type: 'database',
+      label: t('frames.database.label'),
+      description: t('frames.database.desc'),
       icon: (
         <svg
           width="14"
@@ -388,9 +389,9 @@ export default function ItemSidebar() {
       ),
     },
     {
-      type: "whiteboard" as PageContent["type"],
-      label: t("frames.whiteboard.label"),
-      description: t("frames.whiteboard.desc"),
+      type: 'whiteboard' as PageContent['type'],
+      label: t('frames.whiteboard.label'),
+      description: t('frames.whiteboard.desc'),
       icon: (
         <svg
           width="14"
@@ -410,9 +411,9 @@ export default function ItemSidebar() {
       ),
     },
     {
-      type: "mindmap" as PageContent["type"],
-      label: t("frames.mindmap.label"),
-      description: t("frames.mindmap.desc"),
+      type: 'mindmap' as PageContent['type'],
+      label: t('frames.mindmap.label'),
+      description: t('frames.mindmap.desc'),
       icon: (
         <svg
           width="14"
@@ -436,9 +437,9 @@ export default function ItemSidebar() {
       ),
     },
     {
-      type: "retrospective" as PageContent["type"],
-      label: t("frames.retrospective.label"),
-      description: t("frames.retrospective.desc"),
+      type: 'retrospective' as PageContent['type'],
+      label: t('frames.retrospective.label'),
+      description: t('frames.retrospective.desc'),
       icon: (
         <svg
           width="14"
@@ -461,7 +462,7 @@ export default function ItemSidebar() {
     const targetPageId = state.activePageId || state.pages[0]?.id;
 
     if (!targetPageId) {
-      const canvasContainer = document.querySelector(".canvas-bg");
+      const canvasContainer = document.querySelector('.canvas-bg');
       const rect = canvasContainer
         ? canvasContainer.getBoundingClientRect()
         : {
@@ -474,7 +475,7 @@ export default function ItemSidebar() {
       const cx = (-(state.panX ?? 0) + rect.width / 2 - 200) / currentZoom;
       const cy = (-(state.panY ?? 0) + rect.height / 2 - 200) / currentZoom;
 
-      addPage("empty", cx, cy);
+      addPage('empty', cx, cy);
       setTimeout(() => {
         const newState = useCanvasStore.getState();
         if (newState.activePageId) {
@@ -491,9 +492,9 @@ export default function ItemSidebar() {
     setActivePage(targetPageId);
   };
 
-  const handleTapToAddPage = (type: PageContent["type"]) => {
+  const handleTapToAddPage = (type: PageContent['type']) => {
     const state = useCanvasStore.getState();
-    const canvasContainer = document.querySelector(".canvas-bg");
+    const canvasContainer = document.querySelector('.canvas-bg');
     const rect = canvasContainer
       ? canvasContainer.getBoundingClientRect()
       : {
@@ -516,7 +517,7 @@ export default function ItemSidebar() {
   const handlePointerDown = (
     e: React.PointerEvent,
     item: SidebarItem | TemplateItem,
-    isBlock: boolean,
+    isBlock: boolean
   ) => {
     const startX = e.clientX;
     const startY = e.clientY;
@@ -543,8 +544,8 @@ export default function ItemSidebar() {
     };
 
     const onPointerUp = (upEvent: PointerEvent) => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
 
       setActiveDrag(null);
       setTimeout(() => {
@@ -552,24 +553,24 @@ export default function ItemSidebar() {
           processDrop(item.type, isBlock, upEvent.clientX, upEvent.clientY);
         } else {
           if (isBlock) handleTapToAddBlock(item.type as BlockType);
-          else handleTapToAddPage(item.type as PageContent["type"]);
+          else handleTapToAddPage(item.type as PageContent['type']);
         }
       }, 0);
     };
 
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
   };
 
   const processDrop = (
     type: string,
     isBlock: boolean,
     clientX: number,
-    clientY: number,
+    clientY: number
   ) => {
     const state = useCanvasStore.getState();
     const sidebarRect = document
-      .getElementById("item-sidebar")
+      .getElementById('item-sidebar')
       ?.getBoundingClientRect();
 
     if (
@@ -581,7 +582,7 @@ export default function ItemSidebar() {
     )
       return;
 
-    const canvasContainer = document.querySelector(".canvas-bg");
+    const canvasContainer = document.querySelector('.canvas-bg');
     const rect = canvasContainer
       ? canvasContainer.getBoundingClientRect()
       : { left: 0, top: 0 };
@@ -591,7 +592,7 @@ export default function ItemSidebar() {
     const dropCanvasY = (clientY - rect.top - (state.panY ?? 0)) / currentZoom;
 
     if (!isBlock) {
-      state.addPage(type as PageContent["type"], dropCanvasX, dropCanvasY);
+      state.addPage(type as PageContent['type'], dropCanvasX, dropCanvasY);
       setTimeout(() => {
         const ns = useCanvasStore.getState();
         if (ns.activePageId) setActivePage(ns.activePageId);
@@ -618,11 +619,11 @@ export default function ItemSidebar() {
           targetPage.id,
           type as BlockType,
           dropCanvasX - targetPage.x - 50,
-          dropCanvasY - targetPage.y - 20,
+          dropCanvasY - targetPage.y - 20
         );
         setActivePage(targetPage.id);
       } else {
-        state.addPage("empty", dropCanvasX - 200, dropCanvasY - 50);
+        state.addPage('empty', dropCanvasX - 200, dropCanvasY - 50);
         setTimeout(() => {
           const newState = useCanvasStore.getState();
           if (newState.activePageId) {
@@ -630,7 +631,7 @@ export default function ItemSidebar() {
               newState.activePageId,
               type as BlockType,
               20,
-              20,
+              20
             );
             setActivePage(newState.activePageId);
           }
@@ -642,32 +643,32 @@ export default function ItemSidebar() {
   const filteredBlocks = menuItems.filter(
     (item) =>
       item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase()),
+      item.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
   const filteredTemplates = templateItems.filter(
     (item) =>
       item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase()),
+      item.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <>
       <div
         id="item-sidebar"
-        className={`h-[calc(100vh-5.5rem)] m-4 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/60 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden shrink-0 z-20 transition-all duration-300 ease-in-out ${isCollapsed ? "w-16" : "w-72"}`}
+        className={`h-[calc(100vh-5.5rem)] m-4 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/60 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden shrink-0 z-20 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-72'}`}
       >
         <div
-          className={`p-4 border-b border-zinc-100 dark:border-zinc-800/50 flex flex-col gap-2 shrink-0 ${isCollapsed ? "items-center px-2" : ""}`}
+          className={`p-4 border-b border-zinc-100 dark:border-zinc-800/50 flex flex-col gap-2 shrink-0 ${isCollapsed ? 'items-center px-2' : ''}`}
         >
           <div className="flex items-center justify-between w-full">
             {!isCollapsed && (
               <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest whitespace-nowrap overflow-hidden">
-                {t("title")}
+                {t('title')}
               </span>
             )}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className={`p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors ${isCollapsed ? "mx-auto" : ""}`}
+              className={`p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors ${isCollapsed ? 'mx-auto' : ''}`}
             >
               {isCollapsed ? (
                 <ChevronRight className="w-4 h-4" />
@@ -684,7 +685,7 @@ export default function ItemSidebar() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t("search")}
+                placeholder={t('search')}
                 className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-xs font-medium placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-950 dark:focus:ring-white focus:bg-white dark:focus:bg-zinc-950 transition-all text-zinc-900 dark:text-zinc-100"
               />
             </div>
@@ -701,7 +702,7 @@ export default function ItemSidebar() {
                 className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
               >
                 <span className="text-[10px] font-extrabold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3" /> {t("intelligence")}
+                  <Sparkles className="w-3 h-3" /> {t('intelligence')}
                 </span>
                 {isAiOpen ? (
                   <ChevronUp className="w-3 h-3 text-indigo-400 shrink-0" />
@@ -717,7 +718,7 @@ export default function ItemSidebar() {
               <div className="space-y-0.5">
                 <div
                   onClick={() => setIsAiModalOpen(true)}
-                  className={`w-full flex items-center ${isCollapsed ? "justify-center p-2" : "justify-start gap-3 p-2"} rounded-xl text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border border-indigo-100/50 dark:border-indigo-900/30 transition-all group shrink-0 cursor-pointer`}
+                  className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-start gap-3 p-2'} rounded-xl text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border border-indigo-100/50 dark:border-indigo-900/30 transition-all group shrink-0 cursor-pointer`}
                 >
                   <div className="p-1.5 bg-indigo-100/50 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-600 dark:group-hover:border-indigo-500 transition-all shrink-0">
                     <Sparkles className="w-4 h-4" />
@@ -726,14 +727,14 @@ export default function ItemSidebar() {
                     <div className="space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap animate-in fade-in duration-200 flex-1">
                       <div className="flex items-center justify-between">
                         <p className="text-[12px] font-bold text-indigo-700 dark:text-indigo-300 tracking-tight group-hover:text-indigo-900 dark:group-hover:text-indigo-100">
-                          {t("aiGenerator")}
+                          {t('aiGenerator')}
                         </p>
                         <span className="text-[9px] font-mono font-bold text-indigo-400/70 dark:text-indigo-500/70 bg-indigo-100/50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">
                           ⌘J
                         </span>
                       </div>
                       <p className="text-[10px] text-indigo-500/80 dark:text-indigo-400/80 leading-tight truncate">
-                        {t("generatePrompt")}
+                        {t('generatePrompt')}
                       </p>
                     </div>
                   )}
@@ -755,7 +756,7 @@ export default function ItemSidebar() {
                 className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
               >
                 <span className="text-[10px] font-extrabold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-                  {t("buildingBlocks")} ({filteredBlocks.length})
+                  {t('buildingBlocks')} ({filteredBlocks.length})
                 </span>
                 {isBlocksOpen ? (
                   <ChevronUp className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
@@ -773,7 +774,7 @@ export default function ItemSidebar() {
                   <div
                     key={item.type}
                     onPointerDown={(e) => handlePointerDown(e, item, true)}
-                    className={`w-full flex items-center ${isCollapsed ? "justify-center p-2" : "justify-start gap-3 p-2"} rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border border-transparent transition-all group shrink-0 cursor-grab active:cursor-grabbing`}
+                    className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-start gap-3 p-2'} rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border border-transparent transition-all group shrink-0 cursor-grab active:cursor-grabbing`}
                   >
                     <div className="p-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-950 dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-zinc-950 transition-all shrink-0 pointer-events-none">
                       {item.icon}
@@ -807,7 +808,7 @@ export default function ItemSidebar() {
                 className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
               >
                 <span className="text-[10px] font-extrabold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-                  {t("pageFrames")} ({filteredTemplates.length})
+                  {t('pageFrames')} ({filteredTemplates.length})
                 </span>
                 {isTemplatesOpen ? (
                   <ChevronUp className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
@@ -825,7 +826,7 @@ export default function ItemSidebar() {
                   <div
                     key={template.type}
                     onPointerDown={(e) => handlePointerDown(e, template, false)}
-                    className={`w-full flex items-center ${isCollapsed ? "justify-center p-2" : "justify-start gap-3 p-2"} rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border border-transparent transition-all group shrink-0 cursor-grab active:cursor-grabbing`}
+                    className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-start gap-3 p-2'} rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border border-transparent transition-all group shrink-0 cursor-grab active:cursor-grabbing`}
                   >
                     <div className="p-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-950 dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-zinc-950 transition-all shrink-0 pointer-events-none">
                       {template.icon}
@@ -853,35 +854,35 @@ export default function ItemSidebar() {
         <div className="fixed inset-0 z-[99999] flex items-center justify-center pointer-events-auto bg-black/50 dark:bg-black/70 backdrop-blur-sm">
           <div className="bg-white dark:bg-zinc-950 border border-indigo-200 dark:border-indigo-500/30 p-4 rounded-2xl shadow-2xl flex flex-col gap-3 w-96 animate-in zoom-in-95 fade-in">
             <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider px-1">
-              <Sparkles className="w-4 h-4" /> {t("aiGenerator")}
+              <Sparkles className="w-4 h-4" /> {t('aiGenerator')}
             </div>
             <textarea
               autoFocus
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
               placeholder={
-                t("aiPlaceholder") || "Describe what you want to build..."
+                t('aiPlaceholder') || 'Describe what you want to build...'
               }
               className="w-full bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-indigo-500/50 shadow-inner"
               rows={4}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   handleAiGenerate();
                 }
-                if (e.key === "Escape") setIsAiModalOpen(false);
+                if (e.key === 'Escape') setIsAiModalOpen(false);
               }}
             />
             <div className="flex justify-between items-center mt-1">
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono pl-1">
-                {t("pressEnter") || "Press Enter to generate"}
+                {t('pressEnter') || 'Press Enter to generate'}
               </span>
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsAiModalOpen(false)}
                   className="text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white px-3 py-2 rounded-lg transition-colors"
                 >
-                  {t("cancel") || "Cancel"}
+                  {t('cancel') || 'Cancel'}
                 </button>
                 <button
                   onClick={handleAiGenerate}
@@ -889,8 +890,8 @@ export default function ItemSidebar() {
                   className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white text-xs font-bold py-2 px-5 rounded-lg transition-all shadow-lg flex items-center gap-2"
                 >
                   {isAiGenerating
-                    ? t("building") || "Building..."
-                    : t("generate") || "Generate"}
+                    ? t('building') || 'Building...'
+                    : t('generate') || 'Generate'}
                 </button>
               </div>
             </div>
@@ -912,7 +913,7 @@ export default function ItemSidebar() {
               {activeDrag.label}
             </p>
             <p className="text-[10px] font-medium text-blue-600 dark:text-blue-400 uppercase tracking-widest">
-              {t("dropToCanvas")}
+              {t('dropToCanvas')}
             </p>
           </div>
         </div>

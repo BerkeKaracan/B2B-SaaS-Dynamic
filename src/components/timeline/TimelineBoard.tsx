@@ -1,14 +1,15 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
-import { useCanvasStore } from "@/store/useCanvasStore";
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useParams } from 'next/navigation';
+import { fetchAPI } from '@/services/api';
 import {
   DragDropContext,
   Droppable,
   Draggable,
   DropResult,
-} from "@hello-pangea/dnd";
+} from '@hello-pangea/dnd';
 import {
   MapPin,
   Clock,
@@ -24,17 +25,18 @@ import {
   Copy,
   Trash2,
   Edit2,
-} from "lucide-react";
-import toast from "react-hot-toast";
+  Loader2,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
 
-export type TaskPriority = "URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NO PRIORITY";
+export type TaskPriority = 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NO PRIORITY';
 
 const PRIORITIES: Record<TaskPriority, string> = {
-  URGENT: "#E3123B",
-  HIGH: "#7B323D",
-  MEDIUM: "#93B27D",
-  LOW: "#BEF109",
-  "NO PRIORITY": "#B2BAAE",
+  URGENT: '#E3123B',
+  HIGH: '#7B323D',
+  MEDIUM: '#93B27D',
+  LOW: '#BEF109',
+  'NO PRIORITY': '#B2BAAE',
 };
 
 const PRIORITY_WEIGHTS: Record<TaskPriority, number> = {
@@ -42,7 +44,7 @@ const PRIORITY_WEIGHTS: Record<TaskPriority, number> = {
   HIGH: 4,
   MEDIUM: 3,
   LOW: 2,
-  "NO PRIORITY": 1,
+  'NO PRIORITY': 1,
 };
 
 export interface TimelineEvent {
@@ -62,8 +64,8 @@ export interface TimelineSavedView {
   id: string;
   name: string;
   filterQuery: string;
-  filterPriority: TaskPriority | "ALL";
-  sortBy: "manual" | "priority";
+  filterPriority: TaskPriority | 'ALL';
+  sortBy: 'manual' | 'priority';
 }
 
 const generateNextDays = (daysCount = 30) => {
@@ -74,12 +76,12 @@ const generateNextDays = (daysCount = 30) => {
     const current = new Date(
       today.getFullYear(),
       today.getMonth(),
-      today.getDate() + i,
+      today.getDate() + i
     );
-    const dayName = current.toLocaleString("en-US", { weekday: "short" });
-    const monthName = current.toLocaleString("en-US", { month: "short" });
-    const dayNum = String(current.getDate()).padStart(2, "0");
-    const monthNum = String(current.getMonth() + 1).padStart(2, "0");
+    const dayName = current.toLocaleString('en-US', { weekday: 'short' });
+    const monthName = current.toLocaleString('en-US', { month: 'short' });
+    const dayNum = String(current.getDate()).padStart(2, '0');
+    const monthNum = String(current.getMonth() + 1).padStart(2, '0');
     const year = current.getFullYear();
 
     days.push({
@@ -94,17 +96,15 @@ const generateNextDays = (daysCount = 30) => {
   return days;
 };
 
-export default function TimelineBoard({
-  projectId: _projectId,
-}: {
-  projectId: string;
-}) {
-  const { metadata, updateMetadata } = useCanvasStore();
-  const [events, setEvents] = useState<TimelineEvent[]>(
-    (metadata.timelineEvents as TimelineEvent[]) || [],
-  );
+export default function TimelineBoard({ projectId }: { projectId: string }) {
+  const params = useParams();
+  const tenantId = params.tenantId as string;
 
-  const savedViews = (metadata.timelineSavedViews as TimelineSavedView[]) || [];
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [savedViews, setSavedViews] = useState<TimelineSavedView[]>([]);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [timelineRecordId, setTimelineRecordId] = useState<string | null>(null);
 
   const [columns] = useState(generateNextDays(30));
   const [isClient, setIsClient] = useState(false);
@@ -114,17 +114,17 @@ export default function TimelineBoard({
   const [openEventMenu, setOpenEventMenu] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<TimelineEvent>>({
-    title: "",
-    priority: "NO PRIORITY",
+    title: '',
+    priority: 'NO PRIORITY',
     isDetailed: false,
   });
-  const [activeMonthKey, setActiveMonthKey] = useState<string>("");
+  const [activeMonthKey, setActiveMonthKey] = useState<string>('');
 
-  const [filterQuery, setFilterQuery] = useState("");
-  const [filterPriority, setFilterPriority] = useState<TaskPriority | "ALL">(
-    "ALL",
+  const [filterQuery, setFilterQuery] = useState('');
+  const [filterPriority, setFilterPriority] = useState<TaskPriority | 'ALL'>(
+    'ALL'
   );
-  const [sortBy, setSortBy] = useState<"manual" | "priority">("manual");
+  const [sortBy, setSortBy] = useState<'manual' | 'priority'>('manual');
 
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
 
@@ -136,7 +136,66 @@ export default function TimelineBoard({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsClient(true);
-  }, []);
+    const fetchTimelineData = async () => {
+      if (!tenantId || !projectId) return;
+      try {
+        const res = await fetchAPI(
+          `/api/records?tenant_id=${tenantId}&module_name=timeline_data_${projectId}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            const record = data[0];
+            setTimelineRecordId(record.id);
+            setEvents(record.record_data.events || []);
+            setSavedViews(record.record_data.savedViews || []);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch timeline data', err);
+        toast.error('Failed to load timeline events from database.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTimelineData();
+  }, [tenantId, projectId]);
+
+  const syncDataToDB = async (
+    newEvents: TimelineEvent[],
+    newViews: TimelineSavedView[]
+  ) => {
+    const payload = {
+      tenant_id: tenantId,
+      module_name: `timeline_data_${projectId}`,
+      record_data: {
+        projectId,
+        events: newEvents,
+        savedViews: newViews,
+      },
+    };
+
+    try {
+      if (timelineRecordId) {
+        await fetchAPI(`/api/records/${timelineRecordId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+      } else {
+        const res = await fetchAPI(`/api/records`, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const newRecord = await res.json();
+          setTimelineRecordId(newRecord.id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync timeline data', err);
+      toast.error('Failed to sync with database.');
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -147,22 +206,27 @@ export default function TimelineBoard({
       if (sortRef.current && !sortRef.current.contains(target as Node))
         setIsSortOpen(false);
 
-      if (target && typeof target.closest === "function") {
+      if (target && typeof target.closest === 'function') {
         if (
-          !target.closest(".event-dropdown-menu") &&
-          !target.closest(".event-menu-trigger")
+          !target.closest('.event-dropdown-menu') &&
+          !target.closest('.event-menu-trigger')
         ) {
           setOpenEventMenu(null);
         }
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const updateEvents = (newEvents: TimelineEvent[]) => {
     setEvents(newEvents);
-    updateMetadata({ timelineEvents: newEvents });
+    syncDataToDB(newEvents, savedViews);
+  };
+
+  const updateSavedViews = (newViews: TimelineSavedView[]) => {
+    setSavedViews(newViews);
+    syncDataToDB(events, newViews);
   };
 
   const handleDragEnd = (result: DropResult) => {
@@ -174,11 +238,11 @@ export default function TimelineBoard({
     )
       return;
 
-    if (sortBy !== "manual") {
-      setSortBy("manual");
+    if (sortBy !== 'manual') {
+      setSortBy('manual');
       setActiveViewId(null);
-      toast("Sort automatically reset to Manual for Drag & Drop", {
-        icon: "ℹ️",
+      toast('Sort automatically reset to Manual for Drag & Drop', {
+        icon: 'ℹ️',
       });
     }
 
@@ -189,7 +253,7 @@ export default function TimelineBoard({
     const updatedEvent = { ...draggedEvent, monthKey: destination.droppableId };
 
     const destColEvents = newEvents.filter(
-      (e) => e.monthKey === destination.droppableId,
+      (e) => e.monthKey === destination.droppableId
     );
     destColEvents.splice(destination.index, 0, updatedEvent);
 
@@ -209,13 +273,13 @@ export default function TimelineBoard({
     } else {
       setEditingEventId(null);
       setFormData({
-        title: "",
-        description: "",
-        place: "",
-        time: "",
-        notes: "",
-        assignee: "",
-        priority: "NO PRIORITY",
+        title: '',
+        description: '',
+        place: '',
+        time: '',
+        notes: '',
+        assignee: '',
+        priority: 'NO PRIORITY',
         isDetailed: false,
       });
     }
@@ -225,12 +289,12 @@ export default function TimelineBoard({
   const handleDuplicateEvent = (eventToDuplicate: TimelineEvent) => {
     const duplicatedEvent: TimelineEvent = {
       ...eventToDuplicate,
-      id: "evt-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+      id: 'evt-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       title: `${eventToDuplicate.title} (Copy)`,
     };
     const updatedEvents = [...events, duplicatedEvent];
     updateEvents(updatedEvents);
-    toast.success("Event duplicated successfully!");
+    toast.success('Event duplicated successfully!');
     setOpenEventMenu(null);
   };
 
@@ -238,14 +302,14 @@ export default function TimelineBoard({
     if (window.confirm(`Are you sure you want to delete "${eventTitle}"?`)) {
       const updatedEvents = events.filter((e) => e.id !== eventId);
       updateEvents(updatedEvents);
-      toast.success("Event deleted!");
+      toast.success('Event deleted!');
     }
     setOpenEventMenu(null);
   };
 
   const processSubmit = (addAnother: boolean = false) => {
     if (!formData.title?.trim()) {
-      toast.error("Event title is required!");
+      toast.error('Event title is required!');
       return;
     }
 
@@ -258,16 +322,16 @@ export default function TimelineBoard({
               id: editingEventId,
               monthKey: activeMonthKey,
             }
-          : ev,
+          : ev
       );
-      toast.success("Event updated!");
+      toast.success('Event updated!');
     } else {
       updatedEvents.push({
         ...(formData as TimelineEvent),
-        id: "evt-" + Date.now(),
+        id: 'evt-' + Date.now(),
         monthKey: activeMonthKey,
       });
-      toast.success("Event added!");
+      toast.success('Event added!');
     }
 
     updateEvents(updatedEvents);
@@ -276,12 +340,12 @@ export default function TimelineBoard({
       setEditingEventId(null);
       setFormData({
         ...formData,
-        title: "",
-        description: "",
-        place: "",
-        time: "",
-        notes: "",
-        assignee: "",
+        title: '',
+        description: '',
+        place: '',
+        time: '',
+        notes: '',
+        assignee: '',
       });
     } else {
       setIsModalOpen(false);
@@ -289,18 +353,18 @@ export default function TimelineBoard({
   };
 
   const handleSaveView = () => {
-    const viewName = prompt("Enter a name for this timeline view:");
+    const viewName = prompt('Enter a name for this timeline view:');
     if (!viewName?.trim()) return;
 
     const newView: TimelineSavedView = {
-      id: "view-tl-" + Date.now(),
+      id: 'view-tl-' + Date.now(),
       name: viewName,
       filterQuery,
       filterPriority,
       sortBy,
     };
     const updatedViews = [...savedViews, newView];
-    updateMetadata({ timelineSavedViews: updatedViews });
+    updateSavedViews(updatedViews);
     setActiveViewId(newView.id);
     setIsFilterOpen(false);
     toast.success(`View "${viewName}" saved!`);
@@ -309,9 +373,9 @@ export default function TimelineBoard({
   const applyView = (viewId: string | null) => {
     setActiveViewId(viewId);
     if (viewId === null) {
-      setFilterQuery("");
-      setFilterPriority("ALL");
-      setSortBy("manual");
+      setFilterQuery('');
+      setFilterPriority('ALL');
+      setSortBy('manual');
       return;
     }
     const view = savedViews.find((v) => v.id === viewId);
@@ -324,15 +388,28 @@ export default function TimelineBoard({
 
   const handleDeleteView = (e: React.MouseEvent, viewId: string) => {
     e.stopPropagation();
-    if (window.confirm("Delete this view?")) {
+    if (window.confirm('Delete this view?')) {
       const updatedViews = savedViews.filter((v) => v.id !== viewId);
-      updateMetadata({ timelineSavedViews: updatedViews });
+      updateSavedViews(updatedViews);
       if (activeViewId === viewId) applyView(null);
-      toast.success("View deleted.");
+      toast.success('View deleted.');
     }
   };
 
   if (!isClient) return null;
+
+  if (isLoading) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-zinc-50 z-50">
+        <div className="flex flex-col items-center gap-3 text-zinc-400">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+          <span className="text-sm font-bold uppercase tracking-widest">
+            Loading Timeline...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="absolute inset-0 flex flex-col bg-zinc-50 overflow-hidden select-none">
@@ -345,10 +422,10 @@ export default function TimelineBoard({
             <div className="relative" ref={filterRef}>
               <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isFilterOpen || filterQuery || filterPriority !== "ALL" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"}`}
+                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isFilterOpen || filterQuery || filterPriority !== 'ALL' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'}`}
               >
                 <Filter className="w-3.5 h-3.5" /> Filter
-                {(filterQuery || filterPriority !== "ALL") && (
+                {(filterQuery || filterPriority !== 'ALL') && (
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
                 )}
               </button>
@@ -381,7 +458,7 @@ export default function TimelineBoard({
                         value={filterPriority}
                         onChange={(e) => {
                           setFilterPriority(
-                            e.target.value as TaskPriority | "ALL",
+                            e.target.value as TaskPriority | 'ALL'
                           );
                           setActiveViewId(null);
                         }}
@@ -402,7 +479,7 @@ export default function TimelineBoard({
                       >
                         <BookmarkPlus className="w-3 h-3" /> Save as Custom View
                       </button>
-                      {(filterQuery || filterPriority !== "ALL") && (
+                      {(filterQuery || filterPriority !== 'ALL') && (
                         <button
                           onClick={() => applyView(null)}
                           className="w-full py-1.5 text-[10px] font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
@@ -419,10 +496,10 @@ export default function TimelineBoard({
             <div className="relative" ref={sortRef}>
               <button
                 onClick={() => setIsSortOpen(!isSortOpen)}
-                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isSortOpen || sortBy !== "manual" ? "bg-indigo-50 text-indigo-700 border-indigo-200" : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50"}`}
+                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isSortOpen || sortBy !== 'manual' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'}`}
               >
                 <ArrowUpDown className="w-3.5 h-3.5" /> Sort
-                {sortBy !== "manual" && (
+                {sortBy !== 'manual' && (
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
                 )}
               </button>
@@ -431,21 +508,21 @@ export default function TimelineBoard({
                   <div className="flex flex-col">
                     <button
                       onClick={() => {
-                        setSortBy("manual");
+                        setSortBy('manual');
                         setActiveViewId(null);
                         setIsSortOpen(false);
                       }}
-                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "manual" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === 'manual' ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-zinc-50 text-zinc-700'}`}
                     >
                       Manual (Drag & Drop)
                     </button>
                     <button
                       onClick={() => {
-                        setSortBy("priority");
+                        setSortBy('priority');
                         setActiveViewId(null);
                         setIsSortOpen(false);
                       }}
-                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "priority" ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === 'priority' ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-zinc-50 text-zinc-700'}`}
                     >
                       Priority (High to Low)
                     </button>
@@ -459,7 +536,7 @@ export default function TimelineBoard({
         <div className="flex items-center gap-1 px-4 md:px-6 pb-2 overflow-x-auto custom-scrollbar hide-scrollbar-y">
           <button
             onClick={() => applyView(null)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === null ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === null ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
           >
             <LayoutDashboard className="w-3.5 h-3.5" /> Default View
           </button>
@@ -468,13 +545,13 @@ export default function TimelineBoard({
             <div key={view.id} className="flex items-center group relative">
               <button
                 onClick={() => applyView(view.id)}
-                className={`flex items-center pr-6 pl-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === view.id ? "bg-indigo-600 text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"}`}
+                className={`flex items-center pr-6 pl-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === view.id ? 'bg-indigo-600 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
               >
                 {view.name}
               </button>
               <button
                 onClick={(e) => handleDeleteView(e, view.id)}
-                className={`absolute right-1.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? "hover:bg-indigo-700 text-white" : "hover:bg-red-500 hover:text-white text-zinc-400"}`}
+                className={`absolute right-1.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? 'hover:bg-indigo-700 text-white' : 'hover:bg-red-500 hover:text-white text-zinc-400'}`}
               >
                 <X className="w-2.5 h-2.5" />
               </button>
@@ -495,19 +572,19 @@ export default function TimelineBoard({
                       const q = filterQuery.toLowerCase();
                       if (
                         !e.title.toLowerCase().includes(q) &&
-                        !(e.assignee || "").toLowerCase().includes(q)
+                        !(e.assignee || '').toLowerCase().includes(q)
                       )
                         return false;
                     }
                     if (
-                      filterPriority !== "ALL" &&
+                      filterPriority !== 'ALL' &&
                       e.priority !== filterPriority
                     )
                       return false;
                     return true;
                   })
                   .sort((a, b) => {
-                    if (sortBy === "priority")
+                    if (sortBy === 'priority')
                       return (
                         PRIORITY_WEIGHTS[b.priority] -
                         PRIORITY_WEIGHTS[a.priority]
@@ -521,22 +598,22 @@ export default function TimelineBoard({
                     className="w-[85vw] sm:w-[320px] shrink-0 flex flex-col max-h-full"
                   >
                     <div
-                      className={`flex items-center justify-between p-3 mb-3 rounded-xl border-2 shadow-sm shrink-0 transition-colors ${col.isToday ? "bg-indigo-50 border-indigo-200" : "bg-white border-zinc-200"}`}
+                      className={`flex items-center justify-between p-3 mb-3 rounded-xl border-2 shadow-sm shrink-0 transition-colors ${col.isToday ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-zinc-200'}`}
                     >
                       <div className="flex flex-col">
                         <span
-                          className={`text-[10px] font-black uppercase tracking-widest ${col.isToday ? "text-indigo-500" : "text-zinc-400"}`}
+                          className={`text-[10px] font-black uppercase tracking-widest ${col.isToday ? 'text-indigo-500' : 'text-zinc-400'}`}
                         >
                           {col.monthName} {col.year}
                         </span>
                         <div className="flex items-end gap-1.5 mt-0.5">
                           <span
-                            className={`text-2xl font-black leading-none ${col.isToday ? "text-indigo-900" : "text-zinc-900"}`}
+                            className={`text-2xl font-black leading-none ${col.isToday ? 'text-indigo-900' : 'text-zinc-900'}`}
                           >
                             {col.dayNum}
                           </span>
                           <span
-                            className={`text-xs font-bold uppercase tracking-wider mb-0.5 ${col.isToday ? "text-indigo-600" : "text-zinc-500"}`}
+                            className={`text-xs font-bold uppercase tracking-wider mb-0.5 ${col.isToday ? 'text-indigo-600' : 'text-zinc-500'}`}
                           >
                             {col.dayName}
                           </span>
@@ -549,7 +626,7 @@ export default function TimelineBoard({
                           </span>
                         )}
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${col.isToday ? "bg-indigo-100 text-indigo-700" : "bg-zinc-100 text-zinc-500 border border-zinc-200"}`}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${col.isToday ? 'bg-indigo-100 text-indigo-700' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}
                         >
                           {colEvents.length}
                         </div>
@@ -559,25 +636,25 @@ export default function TimelineBoard({
                     <Droppable droppableId={col.key}>
                       {(provided, snapshot) => (
                         <div
-                          className={`flex-1 overflow-y-auto p-2 flex flex-col gap-3 custom-scrollbar rounded-xl transition-colors min-h-[150px] ${snapshot.isDraggingOver ? "bg-zinc-200/40" : "bg-transparent"}`}
+                          className={`flex-1 overflow-y-auto p-2 flex flex-col gap-3 custom-scrollbar rounded-xl transition-colors min-h-[150px] ${snapshot.isDraggingOver ? 'bg-zinc-200/40' : 'bg-transparent'}`}
                           ref={provided.innerRef}
                           {...provided.droppableProps}
                         >
                           {colEvents.map((event, index) => {
                             const isDarkBg = [
-                              "URGENT",
-                              "HIGH",
-                              "MEDIUM",
+                              'URGENT',
+                              'HIGH',
+                              'MEDIUM',
                             ].includes(event.priority);
                             const textColor = isDarkBg
-                              ? "text-white"
-                              : "text-zinc-900";
+                              ? 'text-white'
+                              : 'text-zinc-900';
                             const mutedColor = isDarkBg
-                              ? "text-white/70"
-                              : "text-zinc-600";
+                              ? 'text-white/70'
+                              : 'text-zinc-600';
                             const borderColor = isDarkBg
-                              ? "border-white/20"
-                              : "border-zinc-300";
+                              ? 'border-white/20'
+                              : 'border-zinc-300';
 
                             return (
                               <Draggable
@@ -591,7 +668,7 @@ export default function TimelineBoard({
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
                                     onClick={() => openModal(col.key, event)}
-                                    className={`rounded-xl shadow-sm flex flex-col cursor-grab active:cursor-grabbing hover:-translate-y-0.5 transition-transform ${snapshot.isDragging ? "shadow-2xl scale-105 z-50 ring-2 ring-zinc-400" : ""} ${textColor}`}
+                                    className={`rounded-xl shadow-sm flex flex-col cursor-grab active:cursor-grabbing hover:-translate-y-0.5 transition-transform ${snapshot.isDragging ? 'shadow-2xl scale-105 z-50 ring-2 ring-zinc-400' : ''} ${textColor}`}
                                     style={{
                                       ...provided.draggableProps.style,
                                       backgroundColor:
@@ -611,10 +688,10 @@ export default function TimelineBoard({
                                               setOpenEventMenu(
                                                 openEventMenu === event.id
                                                   ? null
-                                                  : event.id,
+                                                  : event.id
                                               );
                                             }}
-                                            className={`event-menu-trigger p-1 rounded-md transition-colors ${isDarkBg ? "hover:bg-white/20 text-white" : "hover:bg-zinc-200/50 text-zinc-500"}`}
+                                            className={`event-menu-trigger p-1 rounded-md transition-colors ${isDarkBg ? 'hover:bg-white/20 text-white' : 'hover:bg-zinc-200/50 text-zinc-500'}`}
                                           >
                                             <MoreHorizontal className="w-3.5 h-3.5" />
                                           </button>
@@ -637,7 +714,7 @@ export default function TimelineBoard({
                                                 }}
                                                 className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
                                               >
-                                                <Edit2 className="w-3.5 h-3.5" />{" "}
+                                                <Edit2 className="w-3.5 h-3.5" />{' '}
                                                 Edit
                                               </button>
                                               <button
@@ -648,7 +725,7 @@ export default function TimelineBoard({
                                                 }}
                                                 className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
                                               >
-                                                <Copy className="w-3.5 h-3.5" />{" "}
+                                                <Copy className="w-3.5 h-3.5" />{' '}
                                                 Duplicate
                                               </button>
                                               <div className="w-full h-px bg-zinc-100 my-0.5"></div>
@@ -658,12 +735,12 @@ export default function TimelineBoard({
                                                   e.stopPropagation();
                                                   handleDeleteEvent(
                                                     event.id,
-                                                    event.title,
+                                                    event.title
                                                   );
                                                 }}
                                                 className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-md transition-colors"
                                               >
-                                                <Trash2 className="w-3.5 h-3.5" />{" "}
+                                                <Trash2 className="w-3.5 h-3.5" />{' '}
                                                 Delete
                                               </button>
                                             </div>
@@ -686,10 +763,10 @@ export default function TimelineBoard({
                                               setOpenEventMenu(
                                                 openEventMenu === event.id
                                                   ? null
-                                                  : event.id,
+                                                  : event.id
                                               );
                                             }}
-                                            className={`event-menu-trigger p-1.5 rounded-md transition-colors ${isDarkBg ? "hover:bg-white/20 text-white" : "hover:bg-zinc-200/50 text-zinc-500"}`}
+                                            className={`event-menu-trigger p-1.5 rounded-md transition-colors ${isDarkBg ? 'hover:bg-white/20 text-white' : 'hover:bg-zinc-200/50 text-zinc-500'}`}
                                           >
                                             <MoreHorizontal className="w-4 h-4" />
                                           </button>
@@ -712,7 +789,7 @@ export default function TimelineBoard({
                                                 }}
                                                 className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
                                               >
-                                                <Edit2 className="w-3.5 h-3.5" />{" "}
+                                                <Edit2 className="w-3.5 h-3.5" />{' '}
                                                 Edit
                                               </button>
                                               <button
@@ -723,7 +800,7 @@ export default function TimelineBoard({
                                                 }}
                                                 className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
                                               >
-                                                <Copy className="w-3.5 h-3.5" />{" "}
+                                                <Copy className="w-3.5 h-3.5" />{' '}
                                                 Duplicate
                                               </button>
                                               <div className="w-full h-px bg-zinc-100 my-1"></div>
@@ -733,12 +810,12 @@ export default function TimelineBoard({
                                                   e.stopPropagation();
                                                   handleDeleteEvent(
                                                     event.id,
-                                                    event.title,
+                                                    event.title
                                                   );
                                                 }}
                                                 className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-md transition-colors"
                                               >
-                                                <Trash2 className="w-3.5 h-3.5" />{" "}
+                                                <Trash2 className="w-3.5 h-3.5" />{' '}
                                                 Delete
                                               </button>
                                             </div>
@@ -747,7 +824,7 @@ export default function TimelineBoard({
 
                                         {event.assignee && (
                                           <div
-                                            className={`text-[10px] font-bold px-2 py-1 w-max rounded-md mb-1 ${isDarkBg ? "bg-black/20" : "bg-white/50 border border-zinc-300"} ${textColor}`}
+                                            className={`text-[10px] font-bold px-2 py-1 w-max rounded-md mb-1 ${isDarkBg ? 'bg-black/20' : 'bg-white/50 border border-zinc-300'} ${textColor}`}
                                           >
                                             For: {event.assignee}
                                           </div>
@@ -787,7 +864,7 @@ export default function TimelineBoard({
                                               <FileText
                                                 size={12}
                                                 className="shrink-0 mt-0.5"
-                                              />{" "}
+                                              />{' '}
                                               <span className="line-clamp-2">
                                                 {event.notes}
                                               </span>
@@ -819,13 +896,13 @@ export default function TimelineBoard({
         </div>
       </div>
 
-      {isModalOpen && isClient && typeof document !== "undefined"
+      {isModalOpen && isClient && typeof document !== 'undefined'
         ? createPortal(
             <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-zinc-950/60 backdrop-blur-sm sm:p-4">
               <div className="bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
                 <div className="p-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50 shrink-0">
                   <h2 className="text-lg font-black text-zinc-900">
-                    {editingEventId ? "Edit Event" : "Add Timeline Event"}
+                    {editingEventId ? 'Edit Event' : 'Add Timeline Event'}
                   </h2>
                   <button
                     onClick={() => setIsModalOpen(false)}
@@ -846,7 +923,7 @@ export default function TimelineBoard({
                         onClick={() =>
                           setFormData({ ...formData, isDetailed: false })
                         }
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!formData.isDetailed ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200"}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!formData.isDetailed ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:bg-zinc-200'}`}
                       >
                         Simple Block
                       </button>
@@ -855,7 +932,7 @@ export default function TimelineBoard({
                         onClick={() =>
                           setFormData({ ...formData, isDetailed: true })
                         }
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${formData.isDetailed ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200"}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${formData.isDetailed ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:bg-zinc-200'}`}
                       >
                         Detailed Card
                       </button>
@@ -1010,10 +1087,10 @@ export default function TimelineBoard({
                         type="button"
                         onClick={() => {
                           updateEvents(
-                            events.filter((e) => e.id !== editingEventId),
+                            events.filter((e) => e.id !== editingEventId)
                           );
                           setIsModalOpen(false);
-                          toast.success("Event deleted!");
+                          toast.success('Event deleted!');
                         }}
                         className="px-4 py-2 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl mr-auto"
                       >
@@ -1044,13 +1121,13 @@ export default function TimelineBoard({
                       onClick={() => processSubmit(false)}
                       className="px-6 py-2 bg-zinc-900 text-white text-sm font-bold rounded-xl hover:bg-zinc-800 shadow-md"
                     >
-                      {editingEventId ? "Save Changes" : "Save & Close"}
+                      {editingEventId ? 'Save Changes' : 'Save & Close'}
                     </button>
                   </div>
                 </div>
               </div>
             </div>,
-            document.body,
+            document.body
           )
         : null}
     </div>

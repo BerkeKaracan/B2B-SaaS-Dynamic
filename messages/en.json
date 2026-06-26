@@ -595,9 +595,9 @@
         "label": "Notes Workspace",
         "desc": "Pre-loaded portrait workspace with notes and priority selectors"
       },
-      "agenda": {
-        "label": "Agenda Timeline",
-        "desc": "Pre-loaded roadmap frame mapping sprint deadlines"
+      "timeline": {
+        "label": "Timeline",
+        "desc": "Track project milestones and events"
       },
       "database": {
         "label": "Structured Database",

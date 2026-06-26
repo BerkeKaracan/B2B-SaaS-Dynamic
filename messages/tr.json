@@ -595,9 +595,9 @@
         "label": "Not Alanı",
         "desc": "Notlar ve öncelik seçicileri içeren dikey çalışma alanı"
       },
-      "agenda": {
-        "label": "Gündem Çizelgesi",
-        "desc": "Sprint teslim tarihlerini eşleyen yol haritası şablonu"
+      "timeline": {
+        "label": "Zaman Çizelgesi",
+        "desc": "Proje kilometre taşlarını ve etkinlikleri izleyin"
       },
       "database": {
         "label": "Yapılandırılmış Veritabanı",

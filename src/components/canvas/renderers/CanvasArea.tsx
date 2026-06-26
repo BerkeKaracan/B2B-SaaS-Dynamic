@@ -1,30 +1,31 @@
-"use client";
+'use client';
 import React, {
   useRef,
   useState,
   useEffect,
   DragEvent,
   PointerEvent as ReactPointerEvent,
-} from "react";
-import { useCanvasStore, PageWithSettings } from "@/store/useCanvasStore";
-import { BlockContent, BlockType, PageContent } from "@/types/record";
-import { ConnectionLayer } from "./ConnectionLayer";
-import { LassoLayer } from "./LassoLayer";
-import { fetchAPI } from "@/services/api";
+} from 'react';
+import { useCanvasStore, PageWithSettings } from '@/store/useCanvasStore';
+import { BlockContent, BlockType, PageContent } from '@/types/record';
+import { ConnectionLayer } from './ConnectionLayer';
+import { LassoLayer } from './LassoLayer';
+import { fetchAPI } from '@/services/api';
 
-import TextBlock from "./TextBlock";
-import FormBlock from "./FormBlock";
-import DateBlock from "./DateBlock";
-import DropdownBlock from "./DropdownBlock";
-import ToggleSwitchBlock from "./ToggleSwitchBlock";
-import BadgeSelectorBlock from "./BadgeSelectorBlock";
-import AssetStreamBlock from "./AssetStreamBlock";
-import BlockResizer from "./BlockResizer";
-import StaticKanbanBoard from "@/components/kanban/StaticKanbanBoard";
-import { Sparkles, Minus, Plus, Maximize, MousePointer2 } from "lucide-react";
-import DocumentBoard from "@/components/document/DocumentBoard";
-import WhiteboardBoard from "@/components/whiteboard/WhiteBoard";
-import MindMapBoard from "@/components/mindmap/MindMapBoard";
+import TextBlock from './TextBlock';
+import FormBlock from './FormBlock';
+import DateBlock from './DateBlock';
+import DropdownBlock from './DropdownBlock';
+import ToggleSwitchBlock from './ToggleSwitchBlock';
+import BadgeSelectorBlock from './BadgeSelectorBlock';
+import AssetStreamBlock from './AssetStreamBlock';
+import BlockResizer from './BlockResizer';
+import StaticKanbanBoard from '@/components/kanban/StaticKanbanBoard';
+import { Sparkles, Minus, Plus, Maximize, MousePointer2 } from 'lucide-react';
+import DocumentBoard from '@/components/document/DocumentBoard';
+import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
+import MindMapBoard from '@/components/mindmap/MindMapBoard';
+import TimelineBoard from '@/components/timeline/TimelineBoard';
 
 export default function CanvasArea() {
   const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
@@ -76,7 +77,7 @@ export default function CanvasArea() {
     canvasX: number;
     canvasY: number;
   } | null>(null);
-  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiPrompt, setAiPrompt] = useState('');
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   const [clipboardBlock, setClipboardBlock] = useState<{
@@ -106,10 +107,10 @@ export default function CanvasArea() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const [lassoStart, setLassoStart] = useState<{ x: number; y: number } | null>(
-    null,
+    null
   );
   const [lassoEnd, setLassoEnd] = useState<{ x: number; y: number } | null>(
-    null,
+    null
   );
 
   const [isSpacePressed, setIsSpacePressed] = useState(false);
@@ -126,8 +127,8 @@ export default function CanvasArea() {
     setIsAiGenerating(true);
 
     try {
-      const res = await fetchAPI("/api/ai/generate-canvas", {
-        method: "POST",
+      const res = await fetchAPI('/api/ai/generate-canvas', {
+        method: 'POST',
         body: JSON.stringify({
           prompt: aiPrompt,
           x: aiMenu.canvasX,
@@ -142,11 +143,11 @@ export default function CanvasArea() {
         }
       }
     } catch (e) {
-      console.error("AI Generation failed", e);
+      console.error('AI Generation failed', e);
     } finally {
       setIsAiGenerating(false);
       setAiMenu(null);
-      setAiPrompt("");
+      setAiPrompt('');
     }
   };
 
@@ -155,15 +156,15 @@ export default function CanvasArea() {
       const activeElement = document.activeElement as HTMLElement;
       const isInputActive =
         activeElement &&
-        ["INPUT", "TEXTAREA", "SELECT"].includes(activeElement.tagName);
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName);
 
       if (!isInputActive) {
-        if (e.code === "Space" && !e.repeat) {
+        if (e.code === 'Space' && !e.repeat) {
           e.preventDefault();
           setIsSpacePressed(true);
         }
 
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
           const state = useCanvasStore.getState();
           if (state.activeBlockId && state.activePageId) {
             setClipboardBlock({
@@ -175,24 +176,24 @@ export default function CanvasArea() {
 
         if (
           (e.ctrlKey || e.metaKey) &&
-          e.key.toLowerCase() === "v" &&
+          e.key.toLowerCase() === 'v' &&
           clipboardBlock
         ) {
           duplicateBlock(clipboardBlock.pageId, clipboardBlock.blockId, 40, 40);
         }
 
         if (e.ctrlKey || e.metaKey) {
-          if (e.key.toLowerCase() === "z") {
+          if (e.key.toLowerCase() === 'z') {
             e.preventDefault();
             if (e.shiftKey) redo();
             else undo();
-          } else if (e.key.toLowerCase() === "y") {
+          } else if (e.key.toLowerCase() === 'y') {
             e.preventDefault();
             redo();
           }
         }
 
-        if (e.key === "Delete" || e.key === "Backspace") {
+        if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault();
           const currentState = useCanvasStore.getState();
           if (currentState.selectedBlocks?.length > 0) {
@@ -205,7 +206,7 @@ export default function CanvasArea() {
           }
         }
 
-        if (e.key === "Escape") {
+        if (e.key === 'Escape') {
           setConnectingFrom(null);
           setContextMenu(null);
           setAiMenu(null);
@@ -214,17 +215,17 @@ export default function CanvasArea() {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === "Space") {
+      if (e.code === 'Space') {
         setIsSpacePressed(false);
         setIsSpacePanning(false);
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
   }, [
     undo,
@@ -306,18 +307,18 @@ export default function CanvasArea() {
         updatePagePosition(
           draggedPageId,
           mouseCanvasX - dragOffset.x,
-          mouseCanvasY - dragOffset.y,
+          mouseCanvasY - dragOffset.y
         );
       } else if (draggedBlockInfo) {
         const targetPage = state.pages.find(
-          (p) => p.id === draggedBlockInfo.pageId,
+          (p) => p.id === draggedBlockInfo.pageId
         );
         if (targetPage) {
           updateBlockPosition(
             draggedBlockInfo.pageId,
             draggedBlockInfo.blockId,
             mouseCanvasX - targetPage.x - dragOffset.x,
-            mouseCanvasY - targetPage.y - dragOffset.y,
+            mouseCanvasY - targetPage.y - dragOffset.y
           );
         }
       } else if (resizingPageId) {
@@ -325,12 +326,12 @@ export default function CanvasArea() {
           resizingPageId,
           Math.max(
             300,
-            resizeStart.width + (e.clientX - resizeStart.x) / currentZoom,
+            resizeStart.width + (e.clientX - resizeStart.x) / currentZoom
           ),
           Math.max(
             300,
-            resizeStart.height + (e.clientY - resizeStart.y) / currentZoom,
-          ),
+            resizeStart.height + (e.clientY - resizeStart.y) / currentZoom
+          )
         );
       }
     };
@@ -342,10 +343,10 @@ export default function CanvasArea() {
       if (draggedBlockInfo) {
         const state = useCanvasStore.getState();
         const sourcePage = state.pages.find(
-          (p) => p.id === draggedBlockInfo.pageId,
+          (p) => p.id === draggedBlockInfo.pageId
         );
         const block = sourcePage?.blocks.find(
-          (b) => b.id === draggedBlockInfo.blockId,
+          (b) => b.id === draggedBlockInfo.blockId
         );
 
         if (sourcePage && block) {
@@ -373,7 +374,7 @@ export default function CanvasArea() {
                 sourcePage.id,
                 targetPage.id,
                 newX,
-                newY,
+                newY
               );
           }
         }
@@ -411,22 +412,22 @@ export default function CanvasArea() {
       setAiMenu(null);
     };
 
-    window.addEventListener("pointermove", handleGlobalPointerMove);
-    window.addEventListener("pointerup", handleGlobalPointerUp);
-    window.addEventListener("pointercancel", handleGlobalPointerCancel);
-    window.addEventListener("touchend", handleTouchEndSync);
-    window.addEventListener("touchcancel", handleTouchEndSync);
-    window.addEventListener("blur", handleEmergencyCleanup);
-    window.addEventListener("contextmenu", handleEmergencyCleanup);
+    window.addEventListener('pointermove', handleGlobalPointerMove);
+    window.addEventListener('pointerup', handleGlobalPointerUp);
+    window.addEventListener('pointercancel', handleGlobalPointerCancel);
+    window.addEventListener('touchend', handleTouchEndSync);
+    window.addEventListener('touchcancel', handleTouchEndSync);
+    window.addEventListener('blur', handleEmergencyCleanup);
+    window.addEventListener('contextmenu', handleEmergencyCleanup);
 
     return () => {
-      window.removeEventListener("pointermove", handleGlobalPointerMove);
-      window.removeEventListener("pointerup", handleGlobalPointerUp);
-      window.removeEventListener("pointercancel", handleGlobalPointerCancel);
-      window.removeEventListener("touchend", handleTouchEndSync);
-      window.removeEventListener("touchcancel", handleTouchEndSync);
-      window.removeEventListener("blur", handleEmergencyCleanup);
-      window.removeEventListener("contextmenu", handleEmergencyCleanup);
+      window.removeEventListener('pointermove', handleGlobalPointerMove);
+      window.removeEventListener('pointerup', handleGlobalPointerUp);
+      window.removeEventListener('pointercancel', handleGlobalPointerCancel);
+      window.removeEventListener('touchend', handleTouchEndSync);
+      window.removeEventListener('touchcancel', handleTouchEndSync);
+      window.removeEventListener('blur', handleEmergencyCleanup);
+      window.removeEventListener('contextmenu', handleEmergencyCleanup);
     };
   }, [
     draggedPageId,
@@ -472,8 +473,8 @@ export default function CanvasArea() {
     const target = e.target as HTMLElement;
     const isCanvasBackground =
       target === containerRef.current ||
-      target.classList.contains("canvas-bg") ||
-      target.classList.contains("infinite-grid-layer");
+      target.classList.contains('canvas-bg') ||
+      target.classList.contains('infinite-grid-layer');
 
     if (isCanvasBackground) {
       setContextMenu(null);
@@ -490,12 +491,12 @@ export default function CanvasArea() {
       clientX: e.clientX,
       clientY: e.clientY,
     });
-    const isTouch = e.pointerType === "touch";
+    const isTouch = e.pointerType === 'touch';
     const activeEl = document.activeElement as HTMLElement;
 
     if (
       activeEl &&
-      ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl.tagName)
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName)
     ) {
       if (!activeEl.contains(target)) activeEl.blur();
     }
@@ -538,7 +539,7 @@ export default function CanvasArea() {
     e: ReactPointerEvent,
     pageId: string,
     currentX: number,
-    currentY: number,
+    currentY: number
   ) => {
     if (isSpacePressed || activePointers.current.size > 1) return;
     e.stopPropagation();
@@ -563,7 +564,7 @@ export default function CanvasArea() {
     pageX: number,
     pageY: number,
     blockX: number,
-    blockY: number,
+    blockY: number
   ) => {
     if (isSpacePressed || activePointers.current.size > 1) return;
     e.stopPropagation();
@@ -593,13 +594,13 @@ export default function CanvasArea() {
   const handleDragOverPage = (e: DragEvent<HTMLElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    e.dataTransfer.dropEffect = "copy";
+    e.dataTransfer.dropEffect = 'copy';
   };
 
   const handleDropOnPage = (e: DragEvent<HTMLElement>, page: PageContent) => {
     e.preventDefault();
     e.stopPropagation();
-    const type = e.dataTransfer.getData("text/plain") as BlockType;
+    const type = e.dataTransfer.getData('text/plain') as BlockType;
     if (!type || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const currentZoom = zoom / 100;
@@ -607,7 +608,7 @@ export default function CanvasArea() {
       page.id,
       type,
       (e.clientX - rect.left - panX) / currentZoom - page.x,
-      (e.clientY - rect.top - panY) / currentZoom - page.y,
+      (e.clientY - rect.top - panY) / currentZoom - page.y
     );
     setActivePage(page.id);
   };
@@ -615,17 +616,17 @@ export default function CanvasArea() {
   const renderBlock = (
     pageId: string,
     block: BlockContent,
-    isActive: boolean,
+    isActive: boolean
   ) => {
     const hasOptions =
-      block.type === "dropdown" || block.type === "badge_selector";
+      block.type === 'dropdown' || block.type === 'badge_selector';
     const currentOptions =
-      (block.settings?.options as string) ?? "Option 1, Option 2, Option 3";
+      (block.settings?.options as string) ?? 'Option 1, Option 2, Option 3';
 
     return (
       <div className="flex flex-col gap-3 w-full h-full">
         <div className="w-full h-auto min-h-[40px] overflow-visible relative">
-          {block.type === "text" && (
+          {block.type === 'text' && (
             <TextBlock
               block={block}
               onUpdate={(val: string) =>
@@ -636,7 +637,7 @@ export default function CanvasArea() {
               }
             />
           )}
-          {block.type === "form" && (
+          {block.type === 'form' && (
             <FormBlock
               block={block}
               onUpdate={(val: string) =>
@@ -648,7 +649,7 @@ export default function CanvasArea() {
               isActive={isActive}
             />
           )}
-          {block.type === "date" && (
+          {block.type === 'date' && (
             <DateBlock
               block={block}
               onUpdate={(val: string) =>
@@ -660,7 +661,7 @@ export default function CanvasArea() {
               isActive={isActive}
             />
           )}
-          {block.type === "dropdown" && (
+          {block.type === 'dropdown' && (
             <DropdownBlock
               block={block}
               onUpdate={(val: string) =>
@@ -672,7 +673,7 @@ export default function CanvasArea() {
               isActive={isActive}
             />
           )}
-          {block.type === "checkbox" && (
+          {block.type === 'checkbox' && (
             <ToggleSwitchBlock
               block={block}
               onUpdate={(val: boolean) =>
@@ -684,7 +685,7 @@ export default function CanvasArea() {
               isActive={isActive}
             />
           )}
-          {block.type === "badge_selector" && (
+          {block.type === 'badge_selector' && (
             <BadgeSelectorBlock
               block={block}
               onUpdate={(val: string) =>
@@ -696,7 +697,7 @@ export default function CanvasArea() {
               isActive={isActive}
             />
           )}
-          {block.type === "asset_stream" && (
+          {block.type === 'asset_stream' && (
             <AssetStreamBlock
               block={block}
               onUpdate={(val: string) =>
@@ -731,10 +732,10 @@ export default function CanvasArea() {
     );
   };
 
-  let cursorStyle = "cursor-default";
+  let cursorStyle = 'cursor-default';
   if (isSpacePressed || isSpacePanning)
-    cursorStyle = "cursor-grab active:cursor-grabbing";
-  else if (connectingFrom || lassoStart) cursorStyle = "cursor-crosshair";
+    cursorStyle = 'cursor-grab active:cursor-grabbing';
+  else if (connectingFrom || lassoStart) cursorStyle = 'cursor-crosshair';
 
   return (
     <div
@@ -810,7 +811,7 @@ export default function CanvasArea() {
             className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm text-zinc-800 dark:text-zinc-200 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
             rows={3}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleAiGenerate();
               }
@@ -831,7 +832,7 @@ export default function CanvasArea() {
               {isAiGenerating ? (
                 <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
               ) : null}
-              {isAiGenerating ? "Building..." : "Generate"}
+              {isAiGenerating ? 'Building...' : 'Generate'}
             </button>
           </div>
         </div>
@@ -841,7 +842,7 @@ export default function CanvasArea() {
         className="absolute inset-0 pointer-events-none"
         style={{
           transform: `translate(${panX}px, ${panY}px) scale(${zoom / 100})`,
-          transformOrigin: "0 0",
+          transformOrigin: '0 0',
         }}
       >
         <ConnectionLayer
@@ -858,7 +859,7 @@ export default function CanvasArea() {
           const px = page.x ?? 150;
           const py = page.y ?? 150;
           const pageBgColor =
-            (page.settings?.backgroundColor as string) || "#ffffff";
+            (page.settings?.backgroundColor as string) || '#ffffff';
 
           return (
             <section
@@ -882,15 +883,15 @@ export default function CanvasArea() {
               onDrop={(e) => handleDropOnPage(e, page)}
               className={`canvas-bg absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] rounded-2xl pointer-events-auto transition-shadow focus:outline-none flex flex-col ${
                 isPageActive
-                  ? "ring-2 ring-indigo-500 shadow-2xl z-40"
-                  : "ring-1 ring-zinc-200/80 dark:ring-zinc-800/80 hover:shadow-xl z-0"
+                  ? 'ring-2 ring-indigo-500 shadow-2xl z-40'
+                  : 'ring-1 ring-zinc-200/80 dark:ring-zinc-800/80 hover:shadow-xl z-0'
               }`}
               style={{
                 left: `${px}px`,
                 top: `${py}px`,
                 width: `${page.width}px`,
                 minHeight: `${page.height}px`,
-                backgroundColor: pageBgColor === "#ffffff" ? "" : pageBgColor,
+                backgroundColor: pageBgColor === '#ffffff' ? '' : pageBgColor,
               }}
             >
               <div className="absolute inset-0 rounded-2xl bg-white dark:bg-zinc-900 -z-10 pointer-events-none transition-colors duration-300"></div>
@@ -966,21 +967,25 @@ export default function CanvasArea() {
                 </>
               )}
 
-              {page.type === "kanban" ? (
+              {page.type === 'kanban' ? (
                 <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl">
                   <StaticKanbanBoard projectId={page.id} />
                 </div>
-              ) : page.type === "notes" || page.type === "document" ? (
+              ) : page.type === 'notes' || page.type === 'document' ? (
                 <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-[#191919] rounded-b-2xl">
                   <DocumentBoard projectId={page.id} />
                 </div>
-              ) : page.type === "whiteboard" ? (
+              ) : page.type === 'whiteboard' ? (
                 <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
                   <WhiteboardBoard projectId={page.id} />
                 </div>
-              ) : page.type === "mindmap" ? (
+              ) : page.type === 'mindmap' ? (
                 <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
                   <MindMapBoard projectId={page.id} />
+                </div>
+              ) : page.type === 'timeline' ? (
+                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
+                  <TimelineBoard projectId={page.id} />
                 </div>
               ) : (
                 <div className="canvas-bg relative w-full h-full p-6 flex-1 overflow-visible">
@@ -1038,9 +1043,9 @@ export default function CanvasArea() {
                         }}
                         className={`absolute bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 pt-10 sm:pt-8 cursor-default select-text group transition-shadow ${
                           isBlockActive
-                            ? "ring-2 ring-indigo-500 shadow-xl z-50"
-                            : "shadow-sm hover:shadow-md z-10"
-                        } ${connectingFrom && connectingFrom.blockId !== block.id ? "hover:ring-2 hover:ring-indigo-400" : ""}`}
+                            ? 'ring-2 ring-indigo-500 shadow-xl z-50'
+                            : 'shadow-sm hover:shadow-md z-10'
+                        } ${connectingFrom && connectingFrom.blockId !== block.id ? 'hover:ring-2 hover:ring-indigo-400' : ''}`}
                         style={{
                           left: `${bx}px`,
                           top: `${by}px`,
@@ -1069,7 +1074,7 @@ export default function CanvasArea() {
                                 px,
                                 py,
                                 bx,
-                                by,
+                                by
                               );
                           }}
                           className="absolute top-0 left-0 right-0 h-8 sm:h-6 bg-transparent hover:bg-zinc-50/80 dark:hover:bg-zinc-800/50 rounded-t-2xl flex items-center justify-center cursor-move transition-colors select-none z-40 touch-none"
@@ -1097,8 +1102,8 @@ export default function CanvasArea() {
                               }}
                               className={`w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center bg-white dark:bg-zinc-800 border rounded-full shadow-md transition-colors cursor-pointer select-none ${
                                 connectingFrom?.blockId === block.id
-                                  ? "border-indigo-500 text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30"
-                                  : "border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-indigo-400"
+                                  ? 'border-indigo-500 text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
+                                  : 'border-zinc-200 dark:border-zinc-700 text-zinc-400 dark:text-zinc-500 hover:text-indigo-500 dark:hover:text-indigo-400'
                               }`}
                             >
                               <svg

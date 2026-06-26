@@ -1,12 +1,12 @@
 export type BlockType =
-  | "text"
-  | "form"
-  | "date"
-  | "container"
-  | "dropdown"
-  | "checkbox"
-  | "badge_selector"
-  | "asset_stream";
+  | 'text'
+  | 'form'
+  | 'date'
+  | 'container'
+  | 'dropdown'
+  | 'checkbox'
+  | 'badge_selector'
+  | 'asset_stream';
 
 export interface BlockContent {
   id: string;
@@ -22,15 +22,15 @@ export interface BlockContent {
 export interface PageContent {
   id: string;
   type:
-    | "empty"
-    | "kanban"
-    | "notes"
-    | "document"
-    | "agenda"
-    | "database"
-    | "whiteboard"
-    | "mindmap"
-    | "retrospective";
+    | 'empty'
+    | 'kanban'
+    | 'notes'
+    | 'document'
+    | 'timeline'
+    | 'database'
+    | 'whiteboard'
+    | 'mindmap'
+    | 'retrospective';
   title: string;
   x: number;
   y: number;

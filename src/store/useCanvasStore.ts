@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import { BlockContent, BlockType, PageContent } from "@/types/record";
-import { WORKSPACE_MODULE } from "@/lib/workspace";
-import { fetchAPI } from "@/services/api";
+import { create } from 'zustand';
+import { BlockContent, BlockType, PageContent } from '@/types/record';
+import { WORKSPACE_MODULE } from '@/lib/workspace';
+import { fetchAPI } from '@/services/api';
 
 export type PageWithSettings = PageContent & {
   settings?: Record<string, unknown>;
@@ -42,18 +42,18 @@ interface CanvasState {
   saveHistory: () => void;
   undo: () => void;
   redo: () => void;
-  addPage: (type: PageContent["type"], x: number, y: number) => void;
+  addPage: (type: PageContent['type'], x: number, y: number) => void;
   removePage: (pageId: string) => void;
   updatePageTitle: (pageId: string, title: string) => void;
   updatePageSettings: (
     pageId: string,
-    settings: Record<string, unknown>,
+    settings: Record<string, unknown>
   ) => void;
   addBlockToPage: (
     pageId: string,
     type: BlockType,
     x: number,
-    y: number,
+    y: number
   ) => void;
   removeBlockFromPage: (pageId: string, blockId: string) => void;
   setActivePage: (id: string | null) => void;
@@ -62,14 +62,14 @@ interface CanvasState {
   updateBlockSettings: (
     pageId: string,
     blockId: string,
-    settings: Record<string, unknown>,
+    settings: Record<string, unknown>
   ) => void;
   updatePagePosition: (pageId: string, x: number, y: number) => void;
   updateBlockPosition: (
     pageId: string,
     blockId: string,
     x: number,
-    y: number,
+    y: number
   ) => void;
   updatePageDimensions: (pageId: string, width: number, height: number) => void;
   setTitle: (title: string) => void;
@@ -82,38 +82,38 @@ interface CanvasState {
   createProject: (
     tenantId: string,
     name?: string,
-    moduleName?: string,
+    moduleName?: string
   ) => Promise<string | null>;
   saveProject: (tenantId: string) => Promise<void>;
   updateBlockDimensions: (
     pageId: string,
     blockId: string,
     width: number,
-    height: number,
+    height: number
   ) => void;
   duplicateBlock: (
     pageId: string,
     blockId: string,
     offsetX?: number,
-    offsetY?: number,
+    offsetY?: number
   ) => void;
   transferBlockToPage: (
     blockId: string,
     sourcePageId: string,
     targetPageId: string,
     newX: number,
-    newY: number,
+    newY: number
   ) => void;
   updateMetadata: (newData: Record<string, unknown>) => void;
 
   addGeneratedBlocks: (
     pageId: string,
-    newBlocks: Omit<BlockContent, "id">[],
+    newBlocks: Omit<BlockContent, 'id'>[]
   ) => void;
   addGeneratedPage: (
-    pageData: Omit<PageContent, "id" | "blocks"> & {
-      blocks?: Omit<BlockContent, "id">[];
-    },
+    pageData: Omit<PageContent, 'id' | 'blocks'> & {
+      blocks?: Omit<BlockContent, 'id'>[];
+    }
   ) => void;
 }
 
@@ -128,9 +128,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   selectedBlocks: [],
   activePageId: null,
   activeBlockId: null,
-  title: "",
-  description: "",
-  date: "",
+  title: '',
+  description: '',
+  date: '',
   zoom: 100,
   panX: 0,
   panY: 0,
@@ -170,7 +170,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
       if (pageData.blocks && pageData.blocks.length > 0) {
         const maxBottom = Math.max(
-          ...pageData.blocks.map((b) => (b.y || 0) + (b.height || 120)),
+          ...pageData.blocks.map((b) => (b.y || 0) + (b.height || 120))
         );
         if (maxBottom + 100 > finalHeight) {
           finalHeight = maxBottom + 100;
@@ -179,8 +179,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
       const newPage: PageWithSettings = {
         id: pageId,
-        type: pageData.type || "empty",
-        title: pageData.title || "AI Generated Workspace",
+        type: pageData.type || 'empty',
+        title: pageData.title || 'AI Generated Workspace',
         x: pageData.x || 100,
         y: pageData.y || 100,
         width: pageData.width || 1000,
@@ -190,7 +190,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           id: crypto.randomUUID(),
         })) as BlockContent[],
         settings: {
-          backgroundColor: pageData.type === "empty" ? "#ffffff" : "#f4f4f5",
+          backgroundColor: pageData.type === 'empty' ? '#ffffff' : '#f4f4f5',
         },
       };
 
@@ -228,7 +228,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       }));
 
       const newConnections = state.connections.filter(
-        (c) => !selected.includes(c.fromBlock) && !selected.includes(c.toBlock),
+        (c) => !selected.includes(c.fromBlock) && !selected.includes(c.toBlock)
       );
 
       return {
@@ -283,107 +283,107 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       const pageId = crypto.randomUUID();
       let width = 800;
       let height = 1131;
-      let title = "New Frame";
-      let bgColor = "#ffffff";
+      let title = 'New Frame';
+      let bgColor = '#ffffff';
       let initialBlocks: BlockContent[] = [];
 
-      if (type === "kanban") {
+      if (type === 'kanban') {
         width = 1200;
         height = 800;
-        title = "Kanban Board";
-        bgColor = "#f4f4f5";
+        title = 'Kanban Board';
+        bgColor = '#f4f4f5';
         initialBlocks = [
           {
             id: crypto.randomUUID(),
-            type: "text",
-            value: "TO DO\n\n- Task 1",
+            type: 'text',
+            value: 'TO DO\n\n- Task 1',
             x: 40,
             y: 40,
             settings: {},
           },
           {
             id: crypto.randomUUID(),
-            type: "text",
-            value: "IN PROGRESS\n\n- Task 2",
+            type: 'text',
+            value: 'IN PROGRESS\n\n- Task 2',
             x: 440,
             y: 40,
             settings: {},
           },
           {
             id: crypto.randomUUID(),
-            type: "text",
-            value: "DONE\n\n- ",
+            type: 'text',
+            value: 'DONE\n\n- ',
             x: 840,
             y: 40,
             settings: {},
           },
         ];
-      } else if (type === "notes") {
+      } else if (type === 'notes') {
         width = 800;
         height = 1000;
-        title = "Notes Workspace";
-        bgColor = "#fffdf0";
+        title = 'Notes Workspace';
+        bgColor = '#fffdf0';
         initialBlocks = [
           {
             id: crypto.randomUUID(),
-            type: "text",
-            value: "# Meeting Notes\nDate:",
+            type: 'text',
+            value: '# Meeting Notes\nDate:',
             x: 40,
             y: 40,
             settings: {},
           },
           {
             id: crypto.randomUUID(),
-            type: "checkbox",
+            type: 'checkbox',
             value: false,
             x: 40,
             y: 200,
             settings: {},
           },
         ];
-      } else if (type === "agenda") {
+      } else if (type === 'timeline') {
         width = 1000;
         height = 600;
-        title = "Agenda Timeline";
+        title = 'Timeline';
         initialBlocks = [
           {
             id: crypto.randomUUID(),
-            type: "date",
-            value: "",
+            type: 'date',
+            value: '',
             x: 40,
             y: 40,
             settings: {},
           },
           {
             id: crypto.randomUUID(),
-            type: "text",
-            value: "Phase 1: Kickoff",
+            type: 'text',
+            value: 'Phase 1: Kickoff',
             x: 350,
             y: 40,
             settings: {},
           },
         ];
-      } else if (type === "database") {
+      } else if (type === 'database') {
         width = 1200;
         height = 800;
-        title = "Structured Database";
-        bgColor = "#f8fafc";
+        title = 'Structured Database';
+        bgColor = '#f8fafc';
         initialBlocks = [
           {
             id: crypto.randomUUID(),
-            type: "form",
-            value: "",
+            type: 'form',
+            value: '',
             x: 40,
             y: 40,
             settings: {},
           },
           {
             id: crypto.randomUUID(),
-            type: "badge_selector",
-            value: "",
+            type: 'badge_selector',
+            value: '',
             x: 350,
             y: 40,
-            settings: { options: "Active, Pending, Closed" },
+            settings: { options: 'Active, Pending, Closed' },
           },
         ];
       }
@@ -413,7 +413,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((state) => ({
       pages: state.pages.filter((p) => p.id !== pageId),
       connections: state.connections.filter(
-        (c) => c.fromPage !== pageId && c.toPage !== pageId,
+        (c) => c.fromPage !== pageId && c.toPage !== pageId
       ),
       activePageId: state.activePageId === pageId ? null : state.activePageId,
       selectedBlocks: [],
@@ -429,7 +429,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       pages: state.pages.map((p) =>
         p.id === pageId
           ? { ...p, settings: { ...(p.settings || {}), ...settings } }
-          : p,
+          : p
       ),
     })),
 
@@ -442,7 +442,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           ...p,
           blocks: [
             ...p.blocks,
-            { id: crypto.randomUUID(), type, value: "", x, y, settings: {} },
+            { id: crypto.randomUUID(), type, value: '', x, y, settings: {} },
           ],
         };
       }),
@@ -455,10 +455,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       pages: state.pages.map((p) =>
         p.id === pageId
           ? { ...p, blocks: p.blocks.filter((b) => b.id !== blockId) }
-          : p,
+          : p
       ),
       connections: state.connections.filter(
-        (c) => c.fromBlock !== blockId && c.toBlock !== blockId,
+        (c) => c.fromBlock !== blockId && c.toBlock !== blockId
       ),
       selectedBlocks: state.selectedBlocks.filter((id) => id !== blockId),
     }));
@@ -475,10 +475,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           ? {
               ...p,
               blocks: p.blocks.map((b) =>
-                b.id === blockId ? { ...b, value } : b,
+                b.id === blockId ? { ...b, value } : b
               ),
             }
-          : p,
+          : p
       ),
     }));
   },
@@ -493,10 +493,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               blocks: p.blocks.map((b) =>
                 b.id === blockId
                   ? { ...b, settings: { ...(b.settings || {}), ...settings } }
-                  : b,
+                  : b
               ),
             }
-          : p,
+          : p
       ),
     }));
   },
@@ -526,7 +526,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           const hasBlocksToMove = p.blocks.some(
             (b) =>
               (p.id === pageId && b.id === blockId) ||
-              (isMultiDrag && state.selectedBlocks.includes(b.id)),
+              (isMultiDrag && state.selectedBlocks.includes(b.id))
           );
 
           if (!hasBlocksToMove) return p;
@@ -558,17 +558,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           ? {
               ...p,
               blocks: p.blocks.map((b) =>
-                b.id === blockId ? { ...b, width, height } : b,
+                b.id === blockId ? { ...b, width, height } : b
               ),
             }
-          : p,
+          : p
       ),
     })),
   updatePageDimensions: (pageId, width, height) => {
     get().saveHistory();
     set((state) => ({
       pages: state.pages.map((p) =>
-        p.id === pageId ? { ...p, width, height } : p,
+        p.id === pageId ? { ...p, width, height } : p
       ),
     }));
   },
@@ -587,9 +587,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       future: [],
       connections: [],
       selectedBlocks: [],
-      title: "",
-      description: "",
-      date: "",
+      title: '',
+      description: '',
+      date: '',
       zoom: 100,
       panX: 0,
       panY: 0,
@@ -602,22 +602,22 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await fetchAPI(`/api/records/${recordId}`);
-      if (!response.ok) throw new Error("Fetch failed");
+      if (!response.ok) throw new Error('Fetch failed');
       const record = await response.json();
 
       if (record?.record_data) {
         set({
           recordId: record.id,
-          title: record.record_data.title || "",
-          description: record.record_data.description || "",
-          date: record.record_data.date || "",
+          title: record.record_data.title || '',
+          description: record.record_data.description || '',
+          date: record.record_data.date || '',
           pages: record.record_data.pages || [],
           connections: record.record_data.connections || [],
           metadata: record.record_data,
         });
       }
     } catch (e) {
-      console.error("Failed to load project:", e);
+      console.error('Failed to load project:', e);
     } finally {
       set({ isLoading: false });
     }
@@ -625,12 +625,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   createProject: async (
     tenantId,
-    name = "New Project",
-    moduleName = WORKSPACE_MODULE,
+    name = 'New Project',
+    moduleName = WORKSPACE_MODULE
   ) => {
     try {
       const response = await fetchAPI(`/api/records/`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({
           tenant_id: tenantId,
           module_name: moduleName,
@@ -638,7 +638,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             name,
             pages: [],
             connections: [],
-            visibility: "just_admin",
+            visibility: 'just_admin',
           },
         }),
       });
@@ -658,7 +658,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
     try {
       await fetchAPI(`/api/records/${recordId}`, {
-        method: "PATCH",
+        method: 'PATCH',
         body: JSON.stringify({
           record_data: {
             ...metadata,
@@ -699,7 +699,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
       return {
         pages: state.pages.map((p) =>
-          p.id === pageId ? { ...p, blocks: [...p.blocks, newBlock] } : p,
+          p.id === pageId ? { ...p, blocks: [...p.blocks, newBlock] } : p
         ),
         activeBlockId: newBlock.id,
         selectedBlocks: [newBlock.id],
