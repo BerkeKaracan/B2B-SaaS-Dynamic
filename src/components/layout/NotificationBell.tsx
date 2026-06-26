@@ -122,7 +122,7 @@ export default function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute -right-2 sm:right-0 mt-3 w-[300px] sm:w-[24rem] bg-white border border-zinc-200 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+        <div className="absolute -right-6 sm:right-0 mt-3 w-[300px] sm:w-[24rem] bg-white border border-zinc-200 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] rounded-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between bg-white/80 backdrop-blur-sm">
             <h3 className="font-bold text-zinc-900 text-sm flex items-center gap-2.5">
               Notifications
