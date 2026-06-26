@@ -1,16 +1,18 @@
-"use client";
-import React, { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useCanvasStore } from "@/store/useCanvasStore";
-import { useAuthStore } from "@/store/useAuthStore";
-import { useLayoutStore } from "@/store/useLayoutStore";
-import { useAutoSave } from "@/hooks/useAutoSave";
-import Navbar from "./Navbar";
-import WorkspaceSidebar from "./WorkspaceSidebar";
-import ItemSidebar from "./ItemSidebar";
-import DashboardFooter from "./DashboardFooter";
-import ProjectInfoPanel from "./ProjectInfoPanel";
-import AiChatbot from "@/components/chat/AiChatbot";
+'use client';
+import React, { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useCanvasStore } from '@/store/useCanvasStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useLayoutStore } from '@/store/useLayoutStore';
+import { useAutoSave } from '@/hooks/useAutoSave';
+import Navbar from './Navbar';
+import WorkspaceSidebar from './WorkspaceSidebar';
+import ItemSidebar from './ItemSidebar';
+import DashboardFooter from './DashboardFooter';
+import ProjectInfoPanel from './ProjectInfoPanel';
+import AiChatbot from '@/components/chat/AiChatbot';
+import { Toaster } from 'sonner';
+import RealtimeNotifier from '@/components/RealtimeNotifier';
 
 export default function DashboardClientWrapper({
   children,
@@ -26,7 +28,8 @@ export default function DashboardClientWrapper({
 
   const { loadProjectById, isLoading, clearCanvas, recordId } =
     useCanvasStore();
-  const { isCheckingAuth, isAuthenticated, fetchUser } = useAuthStore();
+
+  const { isCheckingAuth, isAuthenticated, fetchUser, user } = useAuthStore();
 
   const { isPrimarySidebarOpen, togglePrimarySidebar, showEngineToolkit } =
     useLayoutStore();
@@ -37,7 +40,7 @@ export default function DashboardClientWrapper({
 
   useEffect(() => {
     if (!isCheckingAuth && !isAuthenticated) {
-      router.replace("/login");
+      router.replace('/login');
     }
   }, [isCheckingAuth, isAuthenticated, router]);
 
@@ -68,6 +71,9 @@ export default function DashboardClientWrapper({
 
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white text-zinc-900 font-sans antialiased">
+      <Toaster richColors closeButton expand={false} position="bottom-right" />
+      {user?.email && <RealtimeNotifier userEmail={user.email} />}
+
       <Navbar
         tenantId={tenantId}
         onMenuToggle={togglePrimarySidebar}

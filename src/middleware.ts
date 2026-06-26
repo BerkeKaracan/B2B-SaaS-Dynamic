@@ -8,7 +8,6 @@ const handleI18nRouting = createIntlMiddleware(routing);
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const hostname = request.headers.get('host') || '';
-
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000';
 
   let subdomain = '';
@@ -16,25 +15,12 @@ export async function middleware(request: NextRequest) {
     subdomain = hostname.replace(`.${rootDomain}`, '');
   }
 
-  if (
-    url.pathname.startsWith('/_next') ||
-    url.pathname.startsWith('/api') ||
-    url.pathname.includes('.') ||
-    url.pathname === '/favicon.ico'
-  ) {
-    return NextResponse.next();
-  }
-
-  const pathnameIsMissingLocale = routing.locales.every(
-    (locale) =>
-      !url.pathname.startsWith(`/${locale}/`) && url.pathname !== `/${locale}`
-  );
-  const localePrefix = routing.locales.find(
+  const localeMatch = routing.locales.find(
     (locale) =>
       url.pathname.startsWith(`/${locale}/`) || url.pathname === `/${locale}`
   );
-  const basePath = localePrefix
-    ? url.pathname.replace(`/${localePrefix}`, '') || '/'
+  const basePath = localeMatch
+    ? url.pathname.replace(`/${localeMatch}`, '') || '/'
     : url.pathname;
 
   const publicPaths = [
@@ -60,35 +46,19 @@ export async function middleware(request: NextRequest) {
     '/terms',
   ];
 
-  const isPublicPath = publicPaths.some((path) => basePath.startsWith(path));
-
-  if (pathnameIsMissingLocale || isPublicPath || basePath === '/') {
-    return handleI18nRouting(request);
-  }
-
+  const isPublicPath = publicPaths.some(
+    (path) => basePath.startsWith(path) || basePath === path
+  );
   const token = request.cookies.get('token')?.value;
-  if (!token) {
-    url.pathname = `/${localePrefix || routing.defaultLocale}/login`;
+
+  if (!isPublicPath && basePath !== '/' && !token) {
+    url.pathname = localeMatch ? `/${localeMatch}/login` : '/login';
     return NextResponse.redirect(url);
   }
 
-  if (!subdomain || subdomain === 'www') {
-    return handleI18nRouting(request);
-  }
-
-  const dashboardUuidRegex =
-    /^\/dashboard\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-
-  if (dashboardUuidRegex.test(basePath)) {
-    const cleanPath = basePath.replace(dashboardUuidRegex, '');
-    url.pathname = `/${localePrefix || routing.defaultLocale}${cleanPath || '/'}`;
-    return NextResponse.redirect(url);
-  }
-
-  if (!basePath.startsWith('/dashboard')) {
+  if (subdomain && subdomain !== 'www' && !basePath.startsWith('/dashboard')) {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-
       const res = await fetch(`${apiUrl}/api/tenants/by-slug/${subdomain}`, {
         next: { revalidate: 3600 },
       });
@@ -96,16 +66,14 @@ export async function middleware(request: NextRequest) {
       if (res.ok) {
         const data = await res.json();
         const realTenantId = data.id;
-
-        url.pathname = `/${localePrefix || routing.defaultLocale}/dashboard/${realTenantId}${basePath}`;
+        url.pathname = `/${localeMatch || routing.defaultLocale}/dashboard/${realTenantId}${basePath === '/' ? '' : basePath}`;
         return NextResponse.rewrite(url);
       } else {
-        url.pathname = `/${localePrefix || routing.defaultLocale}/login`;
+        url.pathname = localeMatch ? `/${localeMatch}/login` : '/login';
         return NextResponse.redirect(url);
       }
     } catch (error) {
       console.error('Proxy fetch error:', error);
-      return handleI18nRouting(request);
     }
   }
 
