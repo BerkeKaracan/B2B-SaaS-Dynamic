@@ -1,6 +1,6 @@
-"use client";
-import { useEffect, useRef } from "react";
-import { useCanvasStore } from "@/store/useCanvasStore";
+'use client';
+import { useEffect, useRef } from 'react';
+import { useCanvasStore } from '@/store/useCanvasStore';
 
 export function useAutoSave(tenantId: string, recordId: string | null) {
   const {
@@ -21,6 +21,7 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
 
   const tasks = metadata?.tasks;
   const timelineEvents = metadata?.timelineEvents;
+  const timelineViews = metadata?.timelineViews; 
 
   const databaseProperties = metadata?.databaseProperties;
   const databaseRows = metadata?.databaseRows;
@@ -64,6 +65,7 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
     notepadTitle,
     tasks,
     timelineEvents,
+    timelineViews, // EKLENDİ
     databaseProperties,
     databaseRows,
     databaseTitle,
