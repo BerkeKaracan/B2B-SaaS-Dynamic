@@ -714,5 +714,34 @@
       "deleteMsg": "UYARI: Bu işlem geri alınamaz. Çalışma alanını ve tüm dinamik bloklarını kalıcı olarak silecektir. Kesinlikle emin misiniz?",
       "deleteBtn": "Sil"
     }
+  },
+  "WorkspaceSidebar": {
+    "header": "Çalışma Alanı",
+    "backToProjects": "Projelere Dön",
+    "menu": "Menü",
+    "projects": "Projeler",
+    "myTasks": "Görevlerim",
+    "aiAssistant": "Yapay Zeka Asistanı",
+    "communityHub": "Topluluk Merkezi",
+    "customModules": "Özel Modüller",
+    "addModule": "Modül Ekle",
+    "plans": {
+      "pro": "Pro Plan",
+      "advanced": "Gelişmiş Plan",
+      "free": "Ücretsiz Plan"
+    },
+    "usage": {
+      "of": "/",
+      "projectsUsed": "proje kullanıldı"
+    },
+    "settings": "Ayarlar",
+    "modal": {
+      "title": "Çalışma Alanı Modülü Oluştur",
+      "moduleName": "Modül Adı",
+      "placeholder": "örn. İK Paneli, Faturalar...",
+      "cancel": "İptal",
+      "create": "Modül Oluştur",
+      "creating": "Oluşturuluyor..."
+    }
   }
 }

@@ -714,5 +714,34 @@
       "deleteMsg": "WARNING: This action cannot be undone. This will permanently delete the workspace and all its dynamic blocks. Are you absolutely sure?",
       "deleteBtn": "Delete"
     }
+  },
+  "WorkspaceSidebar": {
+    "header": "Workspace",
+    "backToProjects": "Back to Projects",
+    "menu": "Menu",
+    "projects": "Projects",
+    "myTasks": "My Tasks",
+    "aiAssistant": "AI Assistant",
+    "communityHub": "Community Hub",
+    "customModules": "Custom Modules",
+    "addModule": "Add Module",
+    "plans": {
+      "pro": "Pro Plan",
+      "advanced": "Advanced Plan",
+      "free": "Free Plan"
+    },
+    "usage": {
+      "of": "of",
+      "projectsUsed": "projects used"
+    },
+    "settings": "Settings",
+    "modal": {
+      "title": "Create Workspace Module",
+      "moduleName": "Module Name",
+      "placeholder": "e.g. HR Dashboard, Invoices...",
+      "cancel": "Cancel",
+      "create": "Create Module",
+      "creating": "Creating..."
+    }
   }
 }

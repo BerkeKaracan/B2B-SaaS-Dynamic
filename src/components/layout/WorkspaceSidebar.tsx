@@ -1,8 +1,9 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import { useParams, usePathname, useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/useAuthStore";
+'use client';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useParams, usePathname, useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useTranslations } from 'next-intl';
 import {
   Plus,
   X,
@@ -12,9 +13,9 @@ import {
   Zap,
   Sparkles,
   CheckCircle,
-} from "lucide-react";
-import { fetchAPI } from "@/services/api";
-import { useTenantStore } from "@/store/useTenantStore";
+} from 'lucide-react';
+import { fetchAPI } from '@/services/api';
+import { useTenantStore } from '@/store/useTenantStore';
 
 type TenantInfo = {
   id: string;
@@ -34,8 +35,10 @@ export default function WorkspaceSidebar() {
   const tenantId = params.tenantId as string;
   const isOnProject = Boolean(params.projectId);
 
+  const t = useTranslations('WorkspaceSidebar');
+
   const { user } = useAuthStore();
-  const isAdmin = user?.role === "admin" || user?.role === "owner";
+  const isAdmin = user?.role === 'admin' || user?.role === 'owner';
 
   const { tenant, fetchTenant } = useTenantStore();
   const [projectsCount, setProjectsCount] = useState<number>(0);
@@ -44,7 +47,7 @@ export default function WorkspaceSidebar() {
 
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newModuleName, setNewModuleName] = useState("");
+  const [newModuleName, setNewModuleName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
@@ -56,7 +59,7 @@ export default function WorkspaceSidebar() {
 
         const [modulesRes, projectsRes] = await Promise.all([
           fetchAPI(
-            `/api/records?tenant_id=${tenantId}&module_name=workspace_modules`,
+            `/api/records?tenant_id=${tenantId}&module_name=workspace_modules`
           ),
           fetchAPI(`/api/records?tenant_id=${tenantId}`),
         ]);
@@ -66,8 +69,8 @@ export default function WorkspaceSidebar() {
           if (Array.isArray(data)) {
             setCustomModules(
               data.map(
-                (item: { record_data: CustomModule }) => item.record_data,
-              ),
+                (item: { record_data: CustomModule }) => item.record_data
+              )
             );
           }
         }
@@ -77,13 +80,13 @@ export default function WorkspaceSidebar() {
           if (Array.isArray(projData)) {
             const actualProjects = projData.filter(
               (item: { module_name: string }) =>
-                item.module_name !== "workspace_modules",
+                item.module_name !== 'workspace_modules'
             );
             setProjectsCount(actualProjects.length);
           }
         }
       } catch (error) {
-        console.error("Failed to fetch workspace data:", error);
+        console.error('Failed to fetch workspace data:', error);
       }
     };
 
@@ -99,13 +102,13 @@ export default function WorkspaceSidebar() {
       const slug = newModuleName
         .toLowerCase()
         .trim()
-        .replace(/[^a-z0-9]+/g, "-");
+        .replace(/[^a-z0-9]+/g, '-');
 
       const res = await fetchAPI(`/api/records`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify({
           tenant_id: tenantId,
-          module_name: "workspace_modules",
+          module_name: 'workspace_modules',
           record_data: { name: newModuleName.trim(), slug },
         }),
       });
@@ -116,12 +119,12 @@ export default function WorkspaceSidebar() {
           { name: newModuleName.trim(), slug },
         ]);
         setIsModalOpen(false);
-        setNewModuleName("");
+        setNewModuleName('');
 
         router.push(`/dashboard/${tenantId}/${slug}`);
       }
     } catch (error) {
-      console.error("Error creating module", error);
+      console.error('Error creating module', error);
     } finally {
       setIsCreating(false);
     }
@@ -129,70 +132,72 @@ export default function WorkspaceSidebar() {
 
   const getLinkStyle = (isActive: boolean) => {
     if (isActive) {
-      return "relative bg-white text-indigo-600 font-bold shadow-[0_1px_3px_rgba(0,0,0,0.04)] ring-1 ring-zinc-200/50 z-10";
+      return 'relative bg-white text-indigo-600 font-bold shadow-[0_1px_3px_rgba(0,0,0,0.04)] ring-1 ring-zinc-200/50 z-10 dark:bg-zinc-900 dark:ring-zinc-800 dark:text-indigo-400';
     }
-    return "text-zinc-500 font-medium hover:text-zinc-900 hover:bg-zinc-100/80";
+    return 'text-zinc-500 font-medium hover:text-zinc-900 hover:bg-zinc-100/80 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800/50';
   };
 
   const getIconStyle = (isActive: boolean) => {
-    return isActive ? "text-indigo-600" : "text-zinc-400";
+    return isActive
+      ? 'text-indigo-600 dark:text-indigo-400'
+      : 'text-zinc-400 dark:text-zinc-500';
   };
 
-  const currentTier = tenant?.tier || "basic";
+  const currentTier = tenant?.tier || 'basic';
   const tierName =
-    currentTier === "pro"
-      ? "Pro Plan"
-      : currentTier === "advanced"
-        ? "Advanced Plan"
-        : "Free Plan";
+    currentTier === 'pro'
+      ? t('plans.pro')
+      : currentTier === 'advanced'
+        ? t('plans.advanced')
+        : t('plans.free');
+
   const projectLimit =
-    currentTier === "pro" ? "Unlimited" : currentTier === "advanced" ? 50 : 3;
+    currentTier === 'pro' ? 'Unlimited' : currentTier === 'advanced' ? 50 : 3;
   const percentage =
-    projectLimit === "Unlimited"
+    projectLimit === 'Unlimited'
       ? 10
       : Math.min((projectsCount / (projectLimit as number)) * 100, 100);
 
   return (
     <>
-      <aside className="w-[240px] h-full flex flex-col bg-[#F8F9FA] border-r border-zinc-200/60 shrink-0 selection:bg-indigo-100">
-        {/* WORKSPACE HEADER */}
-        <div className="px-5 py-6 border-b border-zinc-200/50 shrink-0 relative overflow-hidden">
+      <aside className="w-[240px] h-full flex flex-col bg-[#F8F9FA] dark:bg-zinc-950 border-r border-zinc-200/60 dark:border-zinc-800/60 shrink-0 selection:bg-indigo-100">
+        <div className="px-5 py-6 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none"></div>
 
           <div className="flex items-center gap-3 relative z-10">
-            <div className="w-8 h-8 rounded-lg bg-zinc-950 text-white flex items-center justify-center font-bold text-sm shadow-md overflow-hidden relative">
+            <div className="w-8 h-8 rounded-lg bg-zinc-950 dark:bg-zinc-800 text-white flex items-center justify-center font-bold text-sm shadow-md overflow-hidden relative">
               {isClient ? (
                 tenant?.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={tenant.logo_url}
                     alt="Logo"
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  (tenant?.name?.charAt(0).toUpperCase() ?? "W")
+                  (tenant?.name?.charAt(0).toUpperCase() ?? 'W')
                 )
               ) : (
-                "W"
+                'W'
               )}
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none mb-1">
-                Workspace
+                {t('header')}
               </span>
-              <h2 className="font-bold text-sm truncate">
-                {isClient ? tenant?.name || "Workspace" : "Workspace"}
+              <h2 className="font-bold text-sm truncate dark:text-zinc-100">
+                {isClient ? tenant?.name || t('header') : t('header')}
               </h2>
             </div>
           </div>
         </div>
 
-        {/* NAVIGATION LINKS */}
-        <nav className="flex-1 px-3 py-5 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 px-3 py-5 space-y-1.5 overflow-y-auto custom-scrollbar">
           {isOnProject && (
-            <div className="mb-4 pb-2 border-b border-zinc-200/50">
+            <div className="mb-4 pb-2 border-b border-zinc-200/50 dark:border-zinc-800/50">
               <Link
                 href={`/dashboard/${tenantId}/projects`}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/80 transition-all"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/80 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800/50 transition-all"
               >
                 <svg
                   className="w-4 h-4"
@@ -207,73 +212,73 @@ export default function WorkspaceSidebar() {
                     d="M10 19l-7-7m0 0l7-7m-7 7h18"
                   />
                 </svg>
-                Back to Projects
+                {t('backToProjects')}
               </Link>
             </div>
           )}
 
           {!isOnProject && (
             <p className="px-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 mt-2">
-              Menu
+              {t('menu')}
             </p>
           )}
 
           <Link
             href={`/dashboard/${tenantId}/projects`}
-            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith("/projects") && !isOnProject)}`}
+            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith('/projects') && !isOnProject)}`}
           >
-            {pathname.endsWith("/projects") && !isOnProject && (
+            {pathname.endsWith('/projects') && !isOnProject && (
               <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
             )}
             <LayoutDashboard
-              className={`w-4 h-4 ${getIconStyle(pathname.endsWith("/projects") && !isOnProject)} group-hover:text-zinc-900 transition-colors`}
+              className={`w-4 h-4 ${getIconStyle(pathname.endsWith('/projects') && !isOnProject)} group-hover:text-zinc-900 dark:group-hover:text-white transition-colors`}
             />
-            Projects
+            {t('projects')}
           </Link>
 
           <Link
             href={`/dashboard/${tenantId}/my-tasks`}
-            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith("/my-tasks"))}`}
+            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith('/my-tasks'))}`}
           >
-            {pathname.endsWith("/my-tasks") && (
+            {pathname.endsWith('/my-tasks') && (
               <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
             )}
             <CheckCircle
-              className={`w-4 h-4 ${getIconStyle(pathname.endsWith("/my-tasks"))} group-hover:text-zinc-900 transition-colors`}
+              className={`w-4 h-4 ${getIconStyle(pathname.endsWith('/my-tasks'))} group-hover:text-zinc-900 dark:group-hover:text-white transition-colors`}
             />
-            My Tasks
+            {t('myTasks')}
           </Link>
 
           <Link
             href={`/dashboard/${tenantId}/ai`}
-            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith("/ai"))}`}
+            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith('/ai'))}`}
           >
-            {pathname.endsWith("/ai") && (
+            {pathname.endsWith('/ai') && (
               <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
             )}
             <Sparkles
-              className={`w-4 h-4 ${getIconStyle(pathname.endsWith("/ai"))} group-hover:text-zinc-900 transition-colors`}
+              className={`w-4 h-4 ${getIconStyle(pathname.endsWith('/ai'))} group-hover:text-zinc-900 dark:group-hover:text-white transition-colors`}
             />
-            AI Assistant
+            {t('aiAssistant')}
           </Link>
 
           <Link
             href={`/dashboard/${tenantId}/community`}
-            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith("/community"))}`}
+            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith('/community'))}`}
           >
-            {pathname.endsWith("/community") && (
+            {pathname.endsWith('/community') && (
               <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
             )}
             <Globe
-              className={`w-4 h-4 ${getIconStyle(pathname.endsWith("/community"))} group-hover:text-zinc-900 transition-colors`}
+              className={`w-4 h-4 ${getIconStyle(pathname.endsWith('/community'))} group-hover:text-zinc-900 dark:group-hover:text-white transition-colors`}
             />
-            Community Hub
+            {t('communityHub')}
           </Link>
 
           {customModules.length > 0 && (
             <div className="pt-4 pb-1">
               <p className="px-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">
-                Custom Modules
+                {t('customModules')}
               </p>
             </div>
           )}
@@ -290,7 +295,7 @@ export default function WorkspaceSidebar() {
                   <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
                 )}
                 <div
-                  className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" : "bg-zinc-300 group-hover:bg-zinc-400"} transition-colors`}
+                  className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]' : 'bg-zinc-300 dark:bg-zinc-600 group-hover:bg-zinc-400'} transition-colors`}
                 />
                 {mod.name}
               </Link>
@@ -300,31 +305,32 @@ export default function WorkspaceSidebar() {
           {isAdmin && !isOnProject && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="w-full mt-2 flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-zinc-300 rounded-xl text-xs font-bold text-zinc-500 hover:text-zinc-900 hover:border-zinc-400 hover:bg-zinc-50/80 transition-all"
+              className="w-full mt-2 flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50/80 dark:hover:bg-zinc-800/50 transition-all"
             >
-              <Plus className="w-3.5 h-3.5" /> Add Module
+              <Plus className="w-3.5 h-3.5" /> {t('addModule')}
             </button>
           )}
         </nav>
 
-        {/* BOTTOM SECTION: STORAGE & SETTINGS */}
         <div className="p-3 shrink-0 flex flex-col gap-2">
           {!isOnProject && (
-            <div className="p-4 rounded-2xl bg-linear-to-br from-white to-zinc-50 border border-zinc-200/60 shadow-sm relative overflow-hidden mb-2 group cursor-pointer hover:border-indigo-200 hover:shadow-md transition-all">
+            <div className="p-4 rounded-2xl bg-linear-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 border border-zinc-200/60 dark:border-zinc-800/60 shadow-sm relative overflow-hidden mb-2 group cursor-pointer hover:border-indigo-200 dark:hover:border-indigo-500/30 hover:shadow-md transition-all">
               <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all"></div>
 
               <div className="flex items-center justify-between mb-1.5 relative z-10">
-                <h3 className="text-[10px] font-black text-zinc-800 uppercase tracking-wider flex items-center gap-1">
+                <h3 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-wider flex items-center gap-1">
                   <Zap className="w-3 h-3 text-amber-500" /> {tierName}
                 </h3>
               </div>
 
-              <p className="text-[11px] font-medium text-zinc-500 mb-3 relative z-10">
-                <span className="text-zinc-900 font-bold">{projectsCount}</span>{" "}
-                of {projectLimit} projects used
+              <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-3 relative z-10">
+                <span className="text-zinc-900 dark:text-zinc-100 font-bold">
+                  {projectsCount}
+                </span>{' '}
+                {t('usage.of')} {projectLimit} {t('usage.projectsUsed')}
               </p>
 
-              <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden relative z-10">
+              <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden relative z-10">
                 <div
                   className="h-full bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-500"
                   style={{ width: `${percentage}%` }}
@@ -336,32 +342,31 @@ export default function WorkspaceSidebar() {
           {isAdmin && (
             <Link
               href={`/dashboard/${tenantId}/settings`}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.includes("/settings") || pathname.includes("/team"))}`}
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.includes('/settings') || pathname.includes('/team'))}`}
             >
-              {(pathname.includes("/settings") ||
-                pathname.includes("/team")) && (
+              {(pathname.includes('/settings') ||
+                pathname.includes('/team')) && (
                 <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
               )}
               <Settings
-                className={`w-4 h-4 ${getIconStyle(pathname.includes("/settings") || pathname.includes("/team"))} group-hover:text-zinc-900 transition-colors`}
+                className={`w-4 h-4 ${getIconStyle(pathname.includes('/settings') || pathname.includes('/team'))} group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors`}
               />
-              Settings
+              {t('settings')}
             </Link>
           )}
         </div>
       </aside>
 
-      {/* CREATE MODULE MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-zinc-200 overflow-hidden animate-in zoom-in-95 duration-200 relative">
-            <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
-              <h2 className="text-lg font-black text-zinc-950 tracking-tight">
-                Create Workspace Module
+          <div className="bg-white dark:bg-zinc-950 rounded-3xl w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden animate-in zoom-in-95 duration-200 relative">
+            <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800/50 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
+              <h2 className="text-lg font-black text-zinc-950 dark:text-zinc-100 tracking-tight">
+                {t('modal.title')}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-200/50 text-zinc-400 hover:text-zinc-900 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-200/50 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -370,39 +375,39 @@ export default function WorkspaceSidebar() {
             <form onSubmit={handleCreateModule} className="p-6">
               <div className="mb-6">
                 <label className="block text-[11px] font-black text-zinc-500 uppercase tracking-widest mb-2 ml-1">
-                  Module Name
+                  {t('modal.moduleName')}
                 </label>
                 <input
                   type="text"
                   required
                   autoFocus
-                  placeholder="e.g. HR Dashboard, Invoices..."
+                  placeholder={t('modal.placeholder')}
                   value={newModuleName}
                   onChange={(e) => setNewModuleName(e.target.value)}
-                  className="w-full px-4 py-3 bg-zinc-50/50 border border-zinc-200/80 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm placeholder:text-zinc-400 text-zinc-900"
+                  className="w-full px-4 py-3 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm placeholder:text-zinc-400 dark:text-zinc-100"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 text-sm font-bold text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors"
+                  className="px-5 py-2.5 text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
                 >
-                  Cancel
+                  {t('modal.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="bg-zinc-950 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 shadow-md hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
+                  className="bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 dark:hover:bg-zinc-200 shadow-md hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
                 >
                   {isCreating ? (
                     <>
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                      Creating...
+                      <span className="w-4 h-4 border-2 border-white/30 dark:border-zinc-900/30 border-t-white dark:border-t-zinc-950 rounded-full animate-spin"></span>
+                      {t('modal.creating')}
                     </>
                   ) : (
-                    "Create Module"
+                    t('modal.create')
                   )}
                 </button>
               </div>
