@@ -657,6 +657,62 @@
   },
   "ProjectsPage": {
     "title": "Aktif Çalışma Alanları",
-    "description": "Motor tuval çerçevesine yüklemek için canlı bir kayıt seçin."
+    "description": "Motor tuval çerçevesine yüklemek için canlı bir kayıt seçin.",
+    "activeProjects": "Aktif Projeler",
+    "privateWorkspaces": "Özel Alanlar",
+    "archived": "Arşivlenenler",
+    "searchPlaceholder": "Proje ara...",
+    "btnActive": "Aktif",
+    "btnArchived": "Arşivlenenler",
+    "btnNewProject": "Yeni Proje",
+    "noProjectsFound": "Proje bulunamadı.",
+    "clearSearch": "Aramanızı temizlemeyi deneyin.",
+    "createProject": "Proje Oluştur",
+    "initDesc": "Yeni bir dinamik ortam başlatın.",
+    "projectName": "Proje Adı",
+    "projectNamePlaceholder": "örn. Q4 Stratejisi",
+    "engineTemplate": "Motor Şablonu",
+    "cancel": "İptal",
+    "creating": "Oluşturuluyor...",
+    "createBtn": "Proje Oluştur",
+    "templates": {
+      "blank": "Sonsuz Tuval",
+      "kanban": "Kanban Panosu",
+      "document": "Doküman / Notlar",
+      "whiteboard": "Beyaz Tahta (Çizim)",
+      "timeline": "Zaman Çizelgesi",
+      "database": "Veritabanı / Tablo",
+      "mindmap": "Zihin Haritası / Akış",
+      "retrospective": "Çevik Retrospektif"
+    },
+    "menus": {
+      "makePublic": "Çalışma Alanını Herkese Aç",
+      "makeAdminOnly": "Sadece Yöneticilere Özel Yap",
+      "removeFromHub": "Merkezden Kaldır",
+      "publishToHub": "Merkeze Yayınla",
+      "archiveProject": "Projeyi Arşivle",
+      "restoreProject": "Projeyi Geri Yükle",
+      "deletePermanently": "Kalıcı Olarak Sil"
+    },
+    "tags": {
+      "hub": "MERKEZ",
+      "private": "Gizli",
+      "team": "Ekip",
+      "template": "Şablonu"
+    },
+    "dialogs": {
+      "removeFromHubTitle": "Topluluk Merkezinden Kaldır",
+      "publishToHubTitle": "Topluluk Merkezine Yayınla",
+      "removeFromHubMsg": "Bu işlem, çalışma alanınızı herkese açık Topluluk Merkezinden kaldıracaktır. Diğer şirketler artık onu göremeyecek.",
+      "publishToHubMsg": "UYARI: Bu, çalışma alanınızı internetteki herkesin görmesini sağlayacaktır. İçinde hassas şirket verileri olmadığından emin olun. Devam edilsin mi?",
+      "unpublishBtn": "Yayından Kaldır",
+      "publishBtn": "Dünyaya Yayınla",
+      "archiveTitle": "Çalışma Alanını Arşivle",
+      "archiveMsg": "Bu çalışma alanını arşive taşımak istediğinizden emin misiniz? Aktif projeler listesinde gizlenecek, ancak daha sonra geri yükleyebilirsiniz.",
+      "archiveBtn": "Arşivle",
+      "deleteTitle": "Kalıcı Olarak Sil",
+      "deleteMsg": "UYARI: Bu işlem geri alınamaz. Çalışma alanını ve tüm dinamik bloklarını kalıcı olarak silecektir. Kesinlikle emin misiniz?",
+      "deleteBtn": "Sil"
+    }
   }
 }

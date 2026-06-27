@@ -657,6 +657,62 @@
   },
   "ProjectsPage": {
     "title": "Active Workspaces",
-    "description": "Select a live record to load into the engine canvas framework."
+    "description": "Select a live record to load into the engine canvas framework.",
+    "activeProjects": "Active Projects",
+    "privateWorkspaces": "Private Workspaces",
+    "archived": "Archived",
+    "searchPlaceholder": "Search projects...",
+    "btnActive": "Active",
+    "btnArchived": "Archived",
+    "btnNewProject": "New Project",
+    "noProjectsFound": "No projects found.",
+    "clearSearch": "Try clearing your search.",
+    "createProject": "Create Project",
+    "initDesc": "Initialize a new dynamic environment.",
+    "projectName": "Project Name",
+    "projectNamePlaceholder": "e.g. Q4 Strategy",
+    "engineTemplate": "Engine Template",
+    "cancel": "Cancel",
+    "creating": "Creating...",
+    "createBtn": "Create Project",
+    "templates": {
+      "blank": "Infinite Canvas",
+      "kanban": "Kanban Board",
+      "document": "Document / Notes",
+      "whiteboard": "Whiteboard (Drawing)",
+      "timeline": "Timeline",
+      "database": "Database / Table",
+      "mindmap": "Mind Map / Flowchart",
+      "retrospective": "Agile Retrospective"
+    },
+    "menus": {
+      "makePublic": "Make Workspace Public",
+      "makeAdminOnly": "Make Admin Only",
+      "removeFromHub": "Remove from Hub",
+      "publishToHub": "Publish to Hub",
+      "archiveProject": "Archive Project",
+      "restoreProject": "Restore Project",
+      "deletePermanently": "Delete Permanently"
+    },
+    "tags": {
+      "hub": "HUB",
+      "private": "Private",
+      "team": "Team",
+      "template": "Template"
+    },
+    "dialogs": {
+      "removeFromHubTitle": "Remove from Community Hub",
+      "publishToHubTitle": "Publish to Community Hub",
+      "removeFromHubMsg": "This will remove your workspace from the public Community Hub. Other companies will no longer see it.",
+      "publishToHubMsg": "WARNING: This will make your workspace visible to everyone on the internet. Make sure you don't have any sensitive company data inside. Proceed?",
+      "unpublishBtn": "Unpublish",
+      "publishBtn": "Publish to World",
+      "archiveTitle": "Archive Workspace",
+      "archiveMsg": "Are you sure you want to move this workspace to the archive? It will be hidden from the active projects list, but you can restore it later.",
+      "archiveBtn": "Archive",
+      "deleteTitle": "Delete Permanently",
+      "deleteMsg": "WARNING: This action cannot be undone. This will permanently delete the workspace and all its dynamic blocks. Are you absolutely sure?",
+      "deleteBtn": "Delete"
+    }
   }
 }

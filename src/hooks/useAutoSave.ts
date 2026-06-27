@@ -21,7 +21,7 @@ export function useAutoSave(tenantId: string, recordId: string | null) {
 
   const tasks = metadata?.tasks;
   const timelineEvents = metadata?.timelineEvents;
-  const timelineViews = metadata?.timelineViews; 
+  const timelineViews = metadata?.timelineViews;
 
   const databaseProperties = metadata?.databaseProperties;
   const databaseRows = metadata?.databaseRows;
