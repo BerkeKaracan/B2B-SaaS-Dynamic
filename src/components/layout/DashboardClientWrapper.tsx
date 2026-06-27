@@ -8,7 +8,6 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import Navbar from './Navbar';
 import WorkspaceSidebar from './WorkspaceSidebar';
 import ItemSidebar from './ItemSidebar';
-import DashboardFooter from './DashboardFooter';
 import ProjectInfoPanel from './ProjectInfoPanel';
 import AiChatbot from '@/components/chat/AiChatbot';
 import { Toaster } from 'sonner';
@@ -81,23 +80,21 @@ export default function DashboardClientWrapper({
       />
       <div className="flex flex-1 overflow-hidden relative min-h-0">
         {isPrimarySidebarOpen && (
-          <div className="fixed lg:static inset-y-14 lg:inset-auto left-0 z-50 lg:z-auto h-[calc(100%-3.5rem)] lg:h-full shrink-0 animate-in slide-in-from-left duration-200">
+          <div className="fixed lg:static inset-y-16 lg:inset-auto left-0 z-50 lg:z-auto h-[calc(100%-4rem)] lg:h-full shrink-0 animate-in slide-in-from-left duration-200">
             <WorkspaceSidebar />
           </div>
         )}
         <div className="flex flex-1 min-w-0 overflow-hidden">
           {isDesignView && showEngineToolkit && <ItemSidebar />}
 
-          <div className="flex-1 flex flex-col min-w-0 bg-white relative">
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-0">
-              {children}
-              <AiChatbot />
-            </main>
-          </div>
+          <main className="flex-1 relative w-full h-full bg-white z-0 overflow-hidden min-w-0">
+            {children}
+            <AiChatbot />
+          </main>
+
           {isDesignView && <ProjectInfoPanel />}
         </div>
       </div>
-      <DashboardFooter />
     </div>
   );
 }

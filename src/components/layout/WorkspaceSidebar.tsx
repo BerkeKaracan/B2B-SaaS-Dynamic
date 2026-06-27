@@ -160,7 +160,7 @@ export default function WorkspaceSidebar() {
 
   return (
     <>
-      <aside className="w-[240px] h-full flex flex-col bg-[#F8F9FA] dark:bg-zinc-950 border-r border-zinc-200/60 dark:border-zinc-800/60 shrink-0 selection:bg-indigo-100">
+      <aside className="w-[240px] h-full flex flex-col bg-[#F8F9FA] dark:bg-zinc-950 border-r border-zinc-200/60 dark:border-zinc-800/60 shrink-0 selection:bg-indigo-100 overflow-hidden">
         <div className="px-5 py-6 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none"></div>
 
@@ -192,7 +192,7 @@ export default function WorkspaceSidebar() {
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-5 space-y-1.5 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-3 py-5 space-y-1.5 overflow-y-auto custom-scrollbar min-h-0">
           {isOnProject && (
             <div className="mb-4 pb-2 border-b border-zinc-200/50 dark:border-zinc-800/50">
               <Link
