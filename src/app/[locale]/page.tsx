@@ -778,7 +778,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
+            <div className="hidden md:block p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
                 <svg
                   width="20"
@@ -804,7 +804,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
+            <div className="hidden md:block p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
                 <svg
                   width="20"
@@ -828,7 +828,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
+            <div className="hidden md:block p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
                 <svg
                   width="20"
@@ -924,68 +924,74 @@ export default function LandingPage() {
               }
             />
 
-            <DraggableFeatureBox
-              title={t('architecture.t4')}
-              desc={t('architecture.d4')}
-              deepDive={t('architecture.dd4')}
-              icon={
-                <svg
-                  className="w-5 h-5 md:w-6 md:h-6 text-green-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
-                  />
-                </svg>
-              }
-            />
+            <div className="hidden md:block">
+              <DraggableFeatureBox
+                title={t('architecture.t4')}
+                desc={t('architecture.d4')}
+                deepDive={t('architecture.dd4')}
+                icon={
+                  <svg
+                    className="w-5 h-5 md:w-6 md:h-6 text-green-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                    />
+                  </svg>
+                }
+              />
+            </div>
 
-            <DraggableFeatureBox
-              title={t('architecture.t5')}
-              desc={t('architecture.d5')}
-              deepDive={t('architecture.dd5')}
-              icon={
-                <svg
-                  className="w-5 h-5 md:w-6 md:h-6 text-red-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                  />
-                </svg>
-              }
-            />
+            <div className="hidden md:block">
+              <DraggableFeatureBox
+                title={t('architecture.t5')}
+                desc={t('architecture.d5')}
+                deepDive={t('architecture.dd5')}
+                icon={
+                  <svg
+                    className="w-5 h-5 md:w-6 md:h-6 text-red-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                    />
+                  </svg>
+                }
+              />
+            </div>
 
-            <DraggableFeatureBox
-              title={t('architecture.t6')}
-              desc={t('architecture.d6')}
-              deepDive={t('architecture.dd6')}
-              icon={
-                <svg
-                  className="w-5 h-5 md:w-6 md:h-6 text-blue-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                  />
-                </svg>
-              }
-            />
+            <div className="hidden md:block">
+              <DraggableFeatureBox
+                title={t('architecture.t6')}
+                desc={t('architecture.d6')}
+                deepDive={t('architecture.dd6')}
+                icon={
+                  <svg
+                    className="w-5 h-5 md:w-6 md:h-6 text-blue-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                    />
+                  </svg>
+                }
+              />
+            </div>
           </div>
         </section>
 
