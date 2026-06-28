@@ -743,5 +743,17 @@
       "create": "Modül Oluştur",
       "creating": "Oluşturuluyor..."
     }
+  },
+  "chatbot": {
+    "title": "Yapay Zekaya Sorun",
+    "desc": "SaaS Engine'in nasıl çalıştığını merak mı ediyorsunuz? Yapay zekamız tüm dokümantasyonumuzla eğitildi. Hesap oluşturmadan önce 10'a kadar soruyu ücretsiz sorabilirsiniz!",
+    "poweredBy": "Altyapı",
+    "engine": "Llama 3.3 Engine",
+    "emptyState": "Merhaba! Bana özellikler, fiyatlandırma veya nasıl başlanacağı hakkında sorular sorabilirsiniz.",
+    "thinking": "Düşünüyor...",
+    "limitTitle": "Ücretsiz soru sorma sınırınıza ulaştınız.",
+    "limitButton": "Devam Etmek İçin Ücretsiz Hesap Oluşturun",
+    "placeholder": "Tuval (canvas) gerçek zamanlı ortak çalışmayı destekliyor mu?",
+    "error": "Şu anda sunucularıma bağlanmakta sorun yaşıyorum. Lütfen daha sonra tekrar deneyin."
   }
 }

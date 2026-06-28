@@ -743,5 +743,17 @@
       "create": "Create Module",
       "creating": "Creating..."
     }
+  },
+  "chatbot": {
+    "title": "Ask AI Anything",
+    "desc": "Curious about how SaaS Engine works? Our AI is trained on all our documentation. Ask up to 10 questions for free before creating your account!",
+    "poweredBy": "Powered by",
+    "engine": "Llama 3.3 Engine",
+    "emptyState": "Hello! Ask me about features, pricing, or how to get started.",
+    "thinking": "Thinking...",
+    "limitTitle": "You have reached your free question limit.",
+    "limitButton": "Create Free Account to Continue",
+    "placeholder": "Does the canvas support realtime collaboration?",
+    "error": "I'm having trouble connecting to my servers right now. Please try again later."
   }
 }
