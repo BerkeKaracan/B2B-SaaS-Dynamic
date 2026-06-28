@@ -1,13 +1,13 @@
-"use client";
-import React, { useState, useRef, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useLayoutStore } from "@/store/useLayoutStore";
-import { useCanvasStore } from "@/store/useCanvasStore";
-import { useAuthStore } from "@/store/useAuthStore";
-import NotificationBell from "@/components/layout/NotificationBell";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { User, Shield, Settings, LogOut, ChevronDown } from "lucide-react";
+'use client';
+import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useLayoutStore } from '@/store/useLayoutStore';
+import { useCanvasStore } from '@/store/useCanvasStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import NotificationBell from '@/components/layout/NotificationBell';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { User, Shield, Settings, LogOut, ChevronDown } from 'lucide-react';
 
 export default function Navbar({
   tenantId,
@@ -29,13 +29,13 @@ export default function Navbar({
   const [isFetchingRole, setIsFetchingRole] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const initials = user?.initials || "--";
-  const fullName = user?.full_name || "Loading...";
+  const initials = user?.initials || '--';
+  const fullName = user?.full_name || 'Loading...';
 
   const displayRole =
-    user?.role === "owner"
-      ? "Owner"
-      : user?.custom_role_name || user?.role || "Employee";
+    user?.role === 'owner'
+      ? 'Owner'
+      : user?.custom_role_name || user?.role || 'Employee';
 
   useEffect(() => {
     let isMounted = true;
@@ -64,8 +64,8 @@ export default function Navbar({
         setIsDropdownOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleSignOut = () => {
@@ -132,16 +132,16 @@ export default function Navbar({
             onClick={toggleSecondarySidebar}
             className={`flex items-center gap-2 px-4 py-2 text-xs font-extrabold bg-zinc-50 dark:bg-zinc-900 border hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all group ${
               isSecondarySidebarOpen
-                ? "border-zinc-300 dark:border-zinc-600 text-zinc-950 dark:text-white"
-                : "border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white"
+                ? 'border-zinc-300 dark:border-zinc-600 text-zinc-950 dark:text-white'
+                : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white'
             }`}
           >
             <div className="relative w-3.5 h-3.5 rounded-full border-[2px] border-current flex items-center justify-center shrink-0">
               <div
                 className={`absolute inset-0 flex items-start justify-center transition-all duration-300 ${
                   isSecondarySidebarOpen
-                    ? "animate-[spin_2s_linear_infinite]"
-                    : ""
+                    ? 'animate-[spin_2s_linear_infinite]'
+                    : ''
                 }`}
               >
                 <div className="w-1 h-1 bg-current rounded-full -mt-[1px]"></div>
@@ -161,8 +161,8 @@ export default function Navbar({
             }
             className={`flex items-center gap-2.5 pl-1.5 pr-2 py-1.5 rounded-xl transition-all focus:outline-none border border-transparent ${
               user && !isFetchingRole
-                ? "hover:bg-zinc-100/80 dark:hover:bg-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 cursor-pointer"
-                : "cursor-default"
+                ? 'hover:bg-zinc-100/80 dark:hover:bg-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 cursor-pointer'
+                : 'cursor-default'
             }`}
           >
             {!user || isFetchingRole ? (
@@ -191,7 +191,7 @@ export default function Navbar({
 
                 <ChevronDown
                   className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ml-1 ${
-                    isDropdownOpen ? "rotate-180" : ""
+                    isDropdownOpen ? 'rotate-180' : ''
                   }`}
                 />
               </>
@@ -215,7 +215,7 @@ export default function Navbar({
                   )}
                 </div>
                 <p className="text-xs text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
-                  {user?.email || "user@company.com"}
+                  {user?.email || 'user@company.com'}
                 </p>
               </div>
 
@@ -240,15 +240,6 @@ export default function Navbar({
                 >
                   <Shield className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-white" />
                   Security & Password
-                </Link>
-
-                <Link
-                  href={`/dashboard/${tenantId}/settings`}
-                  onClick={() => setIsDropdownOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors group"
-                >
-                  <Settings className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-white" />
-                  Workspace Settings
                 </Link>
               </div>
 
