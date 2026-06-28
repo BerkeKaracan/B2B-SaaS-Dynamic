@@ -434,43 +434,128 @@ export default function ProjectCardsGrid({
       };
     }, [projects, isAdmin, showArchived, searchQuery]);
 
+  const recentProject = useMemo(() => {
+    const activeProjects = projects.filter(
+      (p) => p.record_data?.status !== 'archived'
+    );
+    if (!activeProjects.length) return null;
+
+    return [...activeProjects].sort((a, b) => {
+      const dateA = new Date(a.record_data?.updated_at || 0).getTime();
+      const dateB = new Date(b.record_data?.updated_at || 0).getTime();
+      return dateB - dateA;
+    })[0];
+  }, [projects]);
+
   return (
     <div className="flex-1 w-full relative transition-colors duration-300">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white dark:bg-zinc-900 p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between transition-colors duration-300">
-          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 mb-2">
-            <Briefcase className="w-4 h-4" />
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              {t('activeProjects')}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+        {recentProject ? (
+          <Link
+            href={`/dashboard/${tenantId}/projects/${recentProject.id}`}
+            className="group relative overflow-hidden bg-zinc-950 dark:bg-white rounded-2xl p-5 border border-zinc-800 dark:border-zinc-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-[130px]"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-3xl -z-10 group-hover:bg-indigo-500/20 transition-colors"></div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-indigo-400 dark:text-indigo-600">
+                <Clock className="w-4 h-4" />
+                <span className="text-[11px] font-bold uppercase tracking-widest">
+                  {t('jumpBackIn')}
+                </span>
+              </div>
+              <div className="w-6 h-6 rounded-full bg-zinc-800 dark:bg-zinc-100 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <svg
+                  className="w-3 h-3 text-white dark:text-zinc-900"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white dark:text-zinc-900 truncate">
+                {getProjectDisplayName(
+                  recentProject.record_data ?? {},
+                  recentProject.id
+                )}
+              </h3>
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 font-medium">
+                {formatTimeAgo(recentProject.record_data?.updated_at)}{' '}
+                {t('updated')}
+              </p>
+            </div>
+          </Link>
+        ) : (
+          <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-5 border border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col justify-center items-center text-center h-[130px]">
+            <Briefcase className="w-6 h-6 text-zinc-400 mb-2" />
+            <p className="text-sm font-medium text-zinc-500">
+              {t('noActiveProject')}
+            </p>
+          </div>
+        )}
+
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between h-[130px]">
+          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+            <Database className="w-4 h-4 text-emerald-500" />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+              {t('workspaceUsage')}
             </span>
           </div>
-          <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            {activeCount}
-          </p>
+          <div>
+            <div className="flex items-end justify-between mb-2">
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-zinc-900 dark:text-white leading-none">
+                  {activeCount}
+                </span>
+                <span className="text-sm font-medium text-zinc-500">/ 50</span>
+              </div>
+              <span className="text-xs font-bold text-zinc-500">
+                {t('projectsLabel')}
+              </span>
+            </div>
+            <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
+                style={{ width: `${Math.min((activeCount / 50) * 100, 100)}%` }}
+              ></div>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between transition-colors duration-300">
-          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 mb-2">
-            <Shield className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-              {t('privateWorkspaces')}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between h-[130px]">
+          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 mb-3">
+            <Shield className="w-4 h-4 text-blue-500" />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400">
+              {t('securityOverview')}
             </span>
           </div>
-          <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            {privateCount}
-          </p>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-900 p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between transition-colors duration-300">
-          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 mb-2">
-            <Archive className="w-4 h-4" />
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              {t('archived')}
-            </span>
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                {t('teamPublic')}
+              </div>
+              <span className="text-sm font-bold text-zinc-900 dark:text-white">
+                {activeCount - privateCount}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                <div className="w-2 h-2 rounded-full bg-rose-500"></div>
+                {t('adminPrivate')}
+              </div>
+              <span className="text-sm font-bold text-zinc-900 dark:text-white">
+                {privateCount}
+              </span>
+            </div>
           </div>
-          <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            {archivedCount}
-          </p>
         </div>
       </div>
 
