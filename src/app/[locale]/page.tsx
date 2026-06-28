@@ -1,8 +1,8 @@
-"use client";
-import React, { useState } from "react";
-import Link from "next/link";
-import Footer from "@/components/layout/Footer";
-import { useTranslations } from "next-intl";
+'use client';
+import React, { useState } from 'react';
+import Link from 'next/link';
+import Footer from '@/components/layout/Footer';
+import { useTranslations } from 'next-intl';
 import {
   Layers,
   Database,
@@ -18,19 +18,19 @@ import {
   Menu,
   X,
   ArrowRight,
-} from "lucide-react";
-import LandingChatbot from "@/components/chat/LandingChatbot";
-import DraggableFeatureBox from "@/components/ui/DraggableFeatureBox";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/useAuthStore";
-import ColdStartAlert from "@/components/ColdStartAlert";
+} from 'lucide-react';
+import LandingChatbot from '@/components/chat/LandingChatbot';
+import DraggableFeatureBox from '@/components/ui/DraggableFeatureBox';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/useAuthStore';
+import ColdStartAlert from '@/components/ColdStartAlert';
 
 export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
   const { user } = useAuthStore();
 
-  const t = useTranslations("LandingPage");
+  const t = useTranslations('LandingPage');
 
   return (
     <div className="relative min-h-screen bg-[#fafafb] text-zinc-900 font-sans antialiased selection:bg-zinc-200 flex flex-col overflow-hidden">
@@ -89,7 +89,7 @@ export default function LandingPage() {
         <nav className="hidden md:flex items-center gap-2 h-full">
           <div className="relative group h-full flex items-center">
             <button className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-zinc-100/80">
-              {t("nav.platform")}
+              {t('nav.platform')}
               <svg
                 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
                 fill="none"
@@ -104,7 +104,7 @@ export default function LandingPage() {
             <div className="absolute top-[calc(100%+5px)] left-1/2 -translate-x-1/2 w-[650px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-4xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 z-50 overflow-hidden flex">
               <div className="w-2/3 p-6 grid grid-cols-1 gap-3 bg-white">
                 <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">
-                  {t("nav.coreCapabilities")}
+                  {t('nav.coreCapabilities')}
                 </span>
                 <Link
                   href="/docs?sec=canvas"
@@ -115,10 +115,10 @@ export default function LandingPage() {
                     <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-inner group-hover/feature:scale-110 transition-transform transform-gpu">
                       <Layers className="w-4 h-4" />
                     </div>
-                    {t("nav.spatialCanvas")}
+                    {t('nav.spatialCanvas')}
                   </h4>
                   <p className="text-[11px] text-zinc-500 font-medium leading-relaxed pl-11">
-                    {t("nav.spatialCanvasDesc")}
+                    {t('nav.spatialCanvasDesc')}
                   </p>
                 </Link>
                 <Link
@@ -130,16 +130,16 @@ export default function LandingPage() {
                     <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner group-hover/feature:scale-110 transition-transform transform-gpu">
                       <Database className="w-4 h-4" />
                     </div>
-                    {t("nav.realTimeSync")}
+                    {t('nav.realTimeSync')}
                   </h4>
                   <p className="text-[11px] text-zinc-500 font-medium leading-relaxed pl-11">
-                    {t("nav.realTimeSyncDesc")}
+                    {t('nav.realTimeSyncDesc')}
                   </p>
                 </Link>
               </div>
               <div className="w-1/3 bg-zinc-50/50 p-6 border-l border-zinc-100 flex flex-col gap-5">
                 <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
-                  {t("nav.securityData")}
+                  {t('nav.securityData')}
                 </span>
                 <Link
                   href="/docs?sec=rbac"
@@ -150,10 +150,10 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h4 className="text-[13px] font-bold text-zinc-900 group-hover/item:text-blue-600 transition-colors">
-                      {t("nav.enterpriseRbac")}
+                      {t('nav.enterpriseRbac')}
                     </h4>
                     <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
-                      {t("nav.enterpriseRbacDesc")}
+                      {t('nav.enterpriseRbacDesc')}
                     </p>
                   </div>
                 </Link>
@@ -166,10 +166,10 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h4 className="text-[13px] font-bold text-zinc-900 group-hover/item:text-purple-600 transition-colors">
-                      {t("nav.cloudStorage")}
+                      {t('nav.cloudStorage')}
                     </h4>
                     <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
-                      {t("nav.cloudStorageDesc")}
+                      {t('nav.cloudStorageDesc')}
                     </p>
                   </div>
                 </Link>
@@ -179,7 +179,7 @@ export default function LandingPage() {
 
           <div className="relative group h-full flex items-center">
             <button className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-zinc-100/80">
-              {t("nav.solutions")}
+              {t('nav.solutions')}
               <svg
                 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
                 fill="none"
@@ -193,7 +193,7 @@ export default function LandingPage() {
             <div className="absolute top-[calc(100%-10px)] left-0 w-full h-[20px] bg-transparent z-40"></div>
             <div className="absolute top-[calc(100%+5px)] left-1/2 -translate-x-1/2 w-[520px] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] ring-1 ring-black/5 rounded-4xl p-5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-300 transform-gpu origin-top -translate-y-2 group-hover:translate-y-0 grid grid-cols-2 gap-x-4 gap-y-2 z-50">
               <div className="col-span-2 px-3 py-2 text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 mb-2">
-                {t("nav.industryUseCases")}
+                {t('nav.industryUseCases')}
               </div>
               <Link
                 href="/solutions/engineering"
@@ -201,10 +201,10 @@ export default function LandingPage() {
               >
                 <h4 className="text-xs font-black text-zinc-900 flex items-center gap-2">
                   <GitMerge className="w-3.5 h-3.5 text-zinc-400 group-hover/sol:text-indigo-600" />
-                  {t("nav.engineeringProduct")}
+                  {t('nav.engineeringProduct')}
                 </h4>
                 <p className="text-[11px] text-zinc-500 font-medium mt-1 pl-5.5">
-                  {t("nav.engineeringProductDesc")}
+                  {t('nav.engineeringProductDesc')}
                 </p>
               </Link>
               <Link
@@ -213,10 +213,10 @@ export default function LandingPage() {
               >
                 <h4 className="text-xs font-black text-zinc-900 flex items-center gap-2">
                   <Users className="w-3.5 h-3.5 text-zinc-400 group-hover/sol:text-rose-600" />
-                  {t("nav.humanResources")}
+                  {t('nav.humanResources')}
                 </h4>
                 <p className="text-[11px] text-zinc-500 font-medium mt-1 pl-5.5">
-                  {t("nav.humanResourcesDesc")}
+                  {t('nav.humanResourcesDesc')}
                 </p>
               </Link>
               <Link
@@ -225,10 +225,10 @@ export default function LandingPage() {
               >
                 <h4 className="text-xs font-black text-zinc-900 flex items-center gap-2">
                   <TrendingUp className="w-3.5 h-3.5 text-zinc-400 group-hover/sol:text-emerald-600" />
-                  {t("nav.salesCrm")}
+                  {t('nav.salesCrm')}
                 </h4>
                 <p className="text-[11px] text-zinc-500 font-medium mt-1 pl-5.5">
-                  {t("nav.salesCrmDesc")}
+                  {t('nav.salesCrmDesc')}
                 </p>
               </Link>
               <Link
@@ -237,10 +237,10 @@ export default function LandingPage() {
               >
                 <h4 className="text-xs font-black text-zinc-900 flex items-center gap-2">
                   <Briefcase className="w-3.5 h-3.5 text-zinc-400 group-hover/sol:text-amber-600" />
-                  {t("nav.strategyOps")}
+                  {t('nav.strategyOps')}
                 </h4>
                 <p className="text-[11px] text-zinc-500 font-medium mt-1 pl-5.5">
-                  {t("nav.strategyOpsDesc")}
+                  {t('nav.strategyOpsDesc')}
                 </p>
               </Link>
             </div>
@@ -248,7 +248,7 @@ export default function LandingPage() {
 
           <div className="relative group h-full flex items-center">
             <button className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-zinc-100/80">
-              {t("nav.developers")}
+              {t('nav.developers')}
               <svg
                 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-950 group-hover:rotate-180 transition-transform duration-300"
                 fill="none"
@@ -267,7 +267,7 @@ export default function LandingPage() {
               >
                 <FileText className="w-4 h-4 text-zinc-400 group-hover/link:text-zinc-900" />
                 <span className="text-[13px] font-bold text-zinc-700 group-hover/link:text-zinc-950">
-                  {t("nav.documentation")}
+                  {t('nav.documentation')}
                 </span>
               </Link>
               <Link
@@ -277,11 +277,11 @@ export default function LandingPage() {
                 <div className="flex items-center gap-3">
                   <Activity className="w-4 h-4 text-zinc-400 group-hover/link:text-zinc-900" />
                   <span className="text-[13px] font-bold text-zinc-700 group-hover/link:text-zinc-950">
-                    {t("nav.changelog")}
+                    {t('nav.changelog')}
                   </span>
                 </div>
                 <span className="text-[9px] font-black bg-blue-50 border border-blue-100 text-blue-600 px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">
-                  {t("nav.new")}
+                  {t('nav.new')}
                 </span>
               </Link>
               <div className="h-px bg-zinc-100 my-1 mx-3"></div>
@@ -291,7 +291,7 @@ export default function LandingPage() {
               >
                 <Rocket className="w-4 h-4 text-zinc-400 group-hover/link:text-zinc-900" />
                 <span className="text-[13px] font-bold text-zinc-700 group-hover/link:text-zinc-950">
-                  {t("nav.communityHub")}
+                  {t('nav.communityHub')}
                 </span>
               </Link>
             </div>
@@ -301,7 +301,7 @@ export default function LandingPage() {
             href="/pricing"
             className="text-[13px] font-bold text-zinc-500 hover:text-zinc-950 transition-colors px-3 py-1.5 rounded-lg hover:bg-zinc-100/80"
           >
-            {t("nav.pricing")}
+            {t('nav.pricing')}
           </Link>
         </nav>
 
@@ -310,14 +310,14 @@ export default function LandingPage() {
             href="/login"
             className="hidden md:block text-[13px] font-extrabold text-zinc-500 hover:text-zinc-950 transition-colors"
           >
-            {t("nav.signIn")}
+            {t('nav.signIn')}
           </Link>
           <div className="h-4 w-px bg-zinc-200 hidden md:block"></div>
           <Link
             href="/register"
             className="hidden md:flex text-[13px] font-extrabold bg-zinc-950 text-white px-5 py-2.5 rounded-xl hover:bg-zinc-800 transition-all shadow-[0_4px_14px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] items-center gap-2 transform-gpu hover:-translate-y-0.5 active:scale-95"
           >
-            {t("nav.deployWorkspace")}
+            {t('nav.deployWorkspace')}
             <svg
               width="14"
               height="14"
@@ -332,6 +332,14 @@ export default function LandingPage() {
               <path d="m12 5 7 7-7 7"></path>
             </svg>
           </Link>
+
+          <Link
+            href="/login"
+            className="md:hidden flex items-center justify-center text-[12px] font-extrabold bg-zinc-900 text-white px-4 py-1.5 rounded-xl shadow-[0_4px_10px_rgba(0,0,0,0.1)] hover:bg-zinc-800 hover:-translate-y-0.5 hover:shadow-[0_6px_15px_rgba(0,0,0,0.15)] transition-all transform-gpu active:scale-95"
+          >
+            {t('nav.signIn')}
+          </Link>
+
           <button
             className="md:hidden flex items-center justify-center p-2 -mr-2 text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors focus:outline-none"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -353,13 +361,13 @@ export default function LandingPage() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="text-base font-bold text-zinc-900 flex items-center justify-between"
                 >
-                  {t("nav.platform")}{" "}
+                  {t('nav.platform')}{' '}
                   <ArrowRight className="w-4 h-4 text-zinc-300" />
                 </Link>
 
                 <div className="flex flex-col space-y-4 pt-2 pb-2">
                   <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100 pb-2">
-                    {t("nav.solutions")}
+                    {t('nav.solutions')}
                   </span>
                   <div className="flex flex-col space-y-4 pl-2">
                     <Link
@@ -367,32 +375,32 @@ export default function LandingPage() {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="text-sm font-bold text-zinc-700 flex items-center gap-3"
                     >
-                      <GitMerge className="w-4 h-4 text-indigo-500" />{" "}
-                      {t("nav.engineeringProduct")}
+                      <GitMerge className="w-4 h-4 text-indigo-500" />{' '}
+                      {t('nav.engineeringProduct')}
                     </Link>
                     <Link
                       href="/solutions/hr"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="text-sm font-bold text-zinc-700 flex items-center gap-3"
                     >
-                      <Users className="w-4 h-4 text-rose-500" />{" "}
-                      {t("nav.humanResources")}
+                      <Users className="w-4 h-4 text-rose-500" />{' '}
+                      {t('nav.humanResources')}
                     </Link>
                     <Link
                       href="/solutions/sales"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="text-sm font-bold text-zinc-700 flex items-center gap-3"
                     >
-                      <TrendingUp className="w-4 h-4 text-emerald-500" />{" "}
-                      {t("nav.salesCrm")}
+                      <TrendingUp className="w-4 h-4 text-emerald-500" />{' '}
+                      {t('nav.salesCrm')}
                     </Link>
                     <Link
                       href="/solutions/operations"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="text-sm font-bold text-zinc-700 flex items-center gap-3"
                     >
-                      <Briefcase className="w-4 h-4 text-amber-500" />{" "}
-                      {t("nav.strategyOps")}
+                      <Briefcase className="w-4 h-4 text-amber-500" />{' '}
+                      {t('nav.strategyOps')}
                     </Link>
                   </div>
                 </div>
@@ -402,7 +410,7 @@ export default function LandingPage() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="text-base font-bold text-zinc-900 flex items-center justify-between"
                 >
-                  {t("nav.developers")}{" "}
+                  {t('nav.developers')}{' '}
                   <ArrowRight className="w-4 h-4 text-zinc-300" />
                 </Link>
                 <Link
@@ -410,7 +418,7 @@ export default function LandingPage() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="text-base font-bold text-zinc-900 flex items-center justify-between"
                 >
-                  {t("nav.pricing")}{" "}
+                  {t('nav.pricing')}{' '}
                   <ArrowRight className="w-4 h-4 text-zinc-300" />
                 </Link>
               </div>
@@ -421,14 +429,14 @@ export default function LandingPage() {
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="w-full py-3.5 bg-zinc-100 text-zinc-900 text-center font-extrabold rounded-xl"
                 >
-                  {t("nav.signIn")}
+                  {t('nav.signIn')}
                 </Link>
                 <Link
                   href="/register"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="w-full py-3.5 bg-zinc-950 text-white text-center font-extrabold rounded-xl shadow-lg"
                 >
-                  {t("nav.deployWorkspace")}
+                  {t('nav.deployWorkspace')}
                 </Link>
               </div>
             </div>
@@ -440,18 +448,18 @@ export default function LandingPage() {
         <section className="pt-32 pb-12 md:pt-40 md:pb-20 px-4 md:px-6 flex flex-col items-center text-center max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-zinc-200/80 text-xs font-semibold text-zinc-600 mb-6 md:mb-8 shadow-sm">
             <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
-            {t("hero.versionLive")}
+            {t('hero.versionLive')}
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 mb-4 md:mb-6 leading-[1.1]">
-            {t("hero.title1")}{" "}
+            {t('hero.title1')}{' '}
             <span className="text-transparent bg-clip-text bg-linear-to-r from-zinc-900 to-zinc-500">
-              {t("hero.title2")}
+              {t('hero.title2')}
             </span>
           </h1>
 
           <p className="text-base sm:text-lg md:text-xl text-zinc-500 mb-8 md:mb-10 max-w-2xl leading-relaxed">
-            {t("hero.subtitle")}
+            {t('hero.subtitle')}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full justify-center px-4 sm:px-0">
@@ -459,7 +467,7 @@ export default function LandingPage() {
               href="/register"
               className="w-full sm:w-auto px-6 py-4 md:px-8 bg-zinc-900 text-white rounded-xl font-bold text-[15px] md:text-base hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2"
             >
-              {t("hero.createWorkspace")}
+              {t('hero.createWorkspace')}
               <svg
                 width="18"
                 height="18"
@@ -478,14 +486,14 @@ export default function LandingPage() {
               href="/demo"
               className="w-full sm:w-auto px-6 py-4 md:px-8 bg-white text-zinc-900 border-2 border-zinc-200 rounded-xl font-bold text-[15px] md:text-base hover:border-zinc-300 hover:bg-zinc-50 transition-all flex items-center justify-center gap-2 shadow-sm"
             >
-              {t("hero.viewDemo")}
+              {t('hero.viewDemo')}
             </Link>
           </div>
         </section>
 
         <section className="py-6 md:py-10 border-y border-zinc-200/60 bg-white/60 backdrop-blur-md overflow-hidden flex flex-col relative">
           <p className="text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-6 md:mb-8 relative z-20">
-            {t("hero.trustedBy")}
+            {t('hero.trustedBy')}
           </p>
           <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 bg-linear-to-r from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
           <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-linear-to-l from-[#fafafb] to-transparent z-10 pointer-events-none"></div>
@@ -493,30 +501,30 @@ export default function LandingPage() {
           <div className="flex whitespace-nowrap overflow-hidden group">
             <div className="flex items-center gap-12 md:gap-16 animate-marquee group-hover:[animation-play-state:paused] px-4 md:px-8">
               {[
-                { name: "Lethal Company IC.", style: "font-serif font-black" },
-                { name: "ACME Corp.", style: "tracking-tighter font-bold" },
+                { name: 'Lethal Company IC.', style: 'font-serif font-black' },
+                { name: 'ACME Corp.', style: 'tracking-tighter font-bold' },
                 {
-                  name: "Stark Ind.",
-                  style: "uppercase tracking-widest font-black",
+                  name: 'Stark Ind.',
+                  style: 'uppercase tracking-widest font-black',
                 },
-                { name: "Globex", style: "italic font-bold" },
-                { name: "InGen", style: "font-mono tracking-tight font-bold" },
-                { name: "Wayne Ent.", style: "font-serif italic font-bold" },
+                { name: 'Globex', style: 'italic font-bold' },
+                { name: 'InGen', style: 'font-mono tracking-tight font-bold' },
+                { name: 'Wayne Ent.', style: 'font-serif italic font-bold' },
                 {
-                  name: "Massive Dynamic",
-                  style: "uppercase font-medium tracking-[0.2em]",
+                  name: 'Massive Dynamic',
+                  style: 'uppercase font-medium tracking-[0.2em]',
                 },
                 {
-                  name: "Cyberdyne Systems",
-                  style: "font-black tracking-tighter",
+                  name: 'Cyberdyne Systems',
+                  style: 'font-black tracking-tighter',
                 },
-                { name: "Umbrella Corp.", style: "uppercase font-bold" },
-                { name: "Hooli", style: "lowercase font-black text-2xl" },
+                { name: 'Umbrella Corp.', style: 'uppercase font-bold' },
+                { name: 'Hooli', style: 'lowercase font-black text-2xl' },
                 {
-                  name: "Vandelay Ind.",
-                  style: "font-serif font-bold text-xl",
+                  name: 'Vandelay Ind.',
+                  style: 'font-serif font-bold text-xl',
                 },
-                { name: "Pied Piper", style: "font-mono font-bold" },
+                { name: 'Pied Piper', style: 'font-mono font-bold' },
               ].map((company, i) => (
                 <span
                   key={i}
@@ -532,30 +540,30 @@ export default function LandingPage() {
               aria-hidden="true"
             >
               {[
-                { name: "Lethal Company IC.", style: "font-serif font-black" },
-                { name: "ACME Corp.", style: "tracking-tighter font-bold" },
+                { name: 'Lethal Company IC.', style: 'font-serif font-black' },
+                { name: 'ACME Corp.', style: 'tracking-tighter font-bold' },
                 {
-                  name: "Stark Ind.",
-                  style: "uppercase tracking-widest font-black",
+                  name: 'Stark Ind.',
+                  style: 'uppercase tracking-widest font-black',
                 },
-                { name: "Globex", style: "italic font-bold" },
-                { name: "InGen", style: "font-mono tracking-tight font-bold" },
-                { name: "Wayne Ent.", style: "font-serif italic font-bold" },
+                { name: 'Globex', style: 'italic font-bold' },
+                { name: 'InGen', style: 'font-mono tracking-tight font-bold' },
+                { name: 'Wayne Ent.', style: 'font-serif italic font-bold' },
                 {
-                  name: "Massive Dynamic",
-                  style: "uppercase font-medium tracking-[0.2em]",
+                  name: 'Massive Dynamic',
+                  style: 'uppercase font-medium tracking-[0.2em]',
                 },
                 {
-                  name: "Cyberdyne Systems",
-                  style: "font-black tracking-tighter",
+                  name: 'Cyberdyne Systems',
+                  style: 'font-black tracking-tighter',
                 },
-                { name: "Umbrella Corp.", style: "uppercase font-bold" },
-                { name: "Hooli", style: "lowercase font-black text-2xl" },
+                { name: 'Umbrella Corp.', style: 'uppercase font-bold' },
+                { name: 'Hooli', style: 'lowercase font-black text-2xl' },
                 {
-                  name: "Vandelay Ind.",
-                  style: "font-serif font-bold text-xl",
+                  name: 'Vandelay Ind.',
+                  style: 'font-serif font-bold text-xl',
                 },
-                { name: "Pied Piper", style: "font-mono font-bold" },
+                { name: 'Pied Piper', style: 'font-mono font-bold' },
               ].map((company, i) => (
                 <span
                   key={`copy-${i}`}
@@ -599,16 +607,16 @@ export default function LandingPage() {
                     d="M13 10V3L4 14h7v7l9-11h-7z"
                   />
                 </svg>
-                {t("ai.badge")}
+                {t('ai.badge')}
               </div>
               <h2 className="text-3xl md:text-5xl font-black text-zinc-900 tracking-tight leading-[1.1]">
-                {t("ai.title1")} <br className="hidden md:block" />
+                {t('ai.title1')} <br className="hidden md:block" />
                 <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-500 to-violet-600">
-                  {t("ai.title2")}
+                  {t('ai.title2')}
                 </span>
               </h2>
               <p className="text-base md:text-lg text-zinc-500 leading-relaxed">
-                {t("ai.desc")}
+                {t('ai.desc')}
               </p>
 
               <ul className="space-y-3 md:space-y-4 mt-6 md:mt-8">
@@ -616,19 +624,19 @@ export default function LandingPage() {
                   <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
                     ✓
                   </div>
-                  {t("ai.feat1")}
+                  {t('ai.feat1')}
                 </li>
                 <li className="flex items-center gap-4 text-zinc-700 font-bold text-[13px] md:text-sm">
                   <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 shrink-0">
                     ✓
                   </div>
-                  {t("ai.feat2")}
+                  {t('ai.feat2')}
                 </li>
                 <li className="flex items-center gap-4 text-zinc-700 font-bold text-[13px] md:text-sm">
                   <div className="w-8 h-8 rounded-full bg-fuchsia-100 flex items-center justify-center text-fuchsia-600 shrink-0">
                     ✓
                   </div>
-                  {t("ai.feat3")}
+                  {t('ai.feat3')}
                 </li>
               </ul>
             </div>
@@ -646,7 +654,7 @@ export default function LandingPage() {
 
                 <div className="flex flex-col gap-4 md:gap-5 flex-1 overflow-hidden font-sans">
                   <div className="self-end bg-indigo-600 text-white px-3 md:px-4 py-2.5 md:py-3 rounded-2xl rounded-tr-sm text-xs md:text-[13px] shadow-sm max-w-[85%] font-medium">
-                    {t("ai.chatQ")}
+                    {t('ai.chatQ')}
                   </div>
 
                   <div className="self-start flex gap-2 md:gap-3 max-w-[95%] md:max-w-[90%]">
@@ -666,23 +674,23 @@ export default function LandingPage() {
                       </svg>
                     </div>
                     <div className="bg-zinc-800 text-zinc-300 px-3 md:px-4 py-3 rounded-2xl rounded-tl-sm text-xs md:text-[13px] shadow-sm border border-zinc-700/50 leading-relaxed">
-                      {t("ai.chatA1")}
+                      {t('ai.chatA1')}
                       <br />
                       <br />
                       <span className="text-white font-bold">
-                        {t("ai.chatA2")}
+                        {t('ai.chatA2')}
                       </span>
                       <br />
                       <span className="text-white font-bold">
-                        {t("ai.chatA3")}
+                        {t('ai.chatA3')}
                       </span>
                       <br />
                       <span className="text-white font-bold">
-                        {t("ai.chatA4")}
+                        {t('ai.chatA4')}
                       </span>
                       <br />
                       <br />
-                      {t("ai.chatA5")}
+                      {t('ai.chatA5')}
                     </div>
                   </div>
                 </div>
@@ -696,10 +704,10 @@ export default function LandingPage() {
         <section className="py-12 md:py-24 px-4 md:px-6 max-w-6xl mx-auto">
           <div className="text-center mb-10 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-zinc-900 tracking-tight">
-              {t("features.title")}
+              {t('features.title')}
             </h2>
             <p className="text-zinc-500 mt-3 md:mt-4 text-sm md:text-base">
-              {t("features.subtitle")}
+              {t('features.subtitle')}
             </p>
           </div>
 
@@ -720,10 +728,10 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-2">
-                {t("features.f1Title")}
+                {t('features.f1Title')}
               </h3>
               <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
-                {t("features.f1Desc")}
+                {t('features.f1Desc')}
               </p>
             </div>
 
@@ -741,10 +749,10 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-2">
-                {t("features.f2Title")}
+                {t('features.f2Title')}
               </h3>
               <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
-                {t("features.f2Desc")}
+                {t('features.f2Desc')}
               </p>
             </div>
 
@@ -763,10 +771,10 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-2">
-                {t("features.f3Title")}
+                {t('features.f3Title')}
               </h3>
               <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
-                {t("features.f3Desc")}
+                {t('features.f3Desc')}
               </p>
             </div>
 
@@ -789,10 +797,10 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-2">
-                {t("features.f4Title")}
+                {t('features.f4Title')}
               </h3>
               <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
-                {t("features.f4Desc")}
+                {t('features.f4Desc')}
               </p>
             </div>
 
@@ -813,10 +821,10 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-2">
-                {t("features.f5Title")}
+                {t('features.f5Title')}
               </h3>
               <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
-                {t("features.f5Desc")}
+                {t('features.f5Desc')}
               </p>
             </div>
 
@@ -838,10 +846,10 @@ export default function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-lg md:text-xl font-bold text-zinc-900 mb-2">
-                {t("features.f6Title")}
+                {t('features.f6Title')}
               </h3>
               <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
-                {t("features.f6Desc")}
+                {t('features.f6Desc')}
               </p>
             </div>
           </div>
@@ -850,19 +858,19 @@ export default function LandingPage() {
         <section className="py-12 md:py-24 px-4 md:px-6 max-w-6xl mx-auto border-t border-zinc-200/60 mt-6 md:mt-10">
           <div className="text-center mb-10 md:mb-16">
             <h2 className="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">
-              {t("architecture.title1")} <br className="hidden sm:block" />
-              <span className="text-zinc-400">{t("architecture.title2")}</span>
+              {t('architecture.title1')} <br className="hidden sm:block" />
+              <span className="text-zinc-400">{t('architecture.title2')}</span>
             </h2>
             <p className="text-zinc-500 mt-3 md:mt-4 max-w-2xl mx-auto text-sm md:text-lg leading-relaxed">
-              {t("architecture.desc")}
+              {t('architecture.desc')}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
             <DraggableFeatureBox
-              title={t("architecture.t1")}
-              desc={t("architecture.d1")}
-              deepDive={t("architecture.dd1")}
+              title={t('architecture.t1')}
+              desc={t('architecture.d1')}
+              deepDive={t('architecture.dd1')}
               icon={
                 <svg
                   className="w-5 h-5 md:w-6 md:h-6"
@@ -875,9 +883,9 @@ export default function LandingPage() {
             />
 
             <DraggableFeatureBox
-              title={t("architecture.t2")}
-              desc={t("architecture.d2")}
-              deepDive={t("architecture.dd2")}
+              title={t('architecture.t2')}
+              desc={t('architecture.d2')}
+              deepDive={t('architecture.dd2')}
               icon={
                 <svg
                   className="w-5 h-5 md:w-6 md:h-6 text-emerald-400"
@@ -896,9 +904,9 @@ export default function LandingPage() {
             />
 
             <DraggableFeatureBox
-              title={t("architecture.t3")}
-              desc={t("architecture.d3")}
-              deepDive={t("architecture.dd3")}
+              title={t('architecture.t3')}
+              desc={t('architecture.d3')}
+              deepDive={t('architecture.dd3')}
               icon={
                 <svg
                   className="w-5 h-5 md:w-6 md:h-6 text-indigo-400"
@@ -917,9 +925,9 @@ export default function LandingPage() {
             />
 
             <DraggableFeatureBox
-              title={t("architecture.t4")}
-              desc={t("architecture.d4")}
-              deepDive={t("architecture.dd4")}
+              title={t('architecture.t4')}
+              desc={t('architecture.d4')}
+              deepDive={t('architecture.dd4')}
               icon={
                 <svg
                   className="w-5 h-5 md:w-6 md:h-6 text-green-400"
@@ -938,9 +946,9 @@ export default function LandingPage() {
             />
 
             <DraggableFeatureBox
-              title={t("architecture.t5")}
-              desc={t("architecture.d5")}
-              deepDive={t("architecture.dd5")}
+              title={t('architecture.t5')}
+              desc={t('architecture.d5')}
+              deepDive={t('architecture.dd5')}
               icon={
                 <svg
                   className="w-5 h-5 md:w-6 md:h-6 text-red-400"
@@ -959,9 +967,9 @@ export default function LandingPage() {
             />
 
             <DraggableFeatureBox
-              title={t("architecture.t6")}
-              desc={t("architecture.d6")}
-              deepDive={t("architecture.dd6")}
+              title={t('architecture.t6')}
+              desc={t('architecture.d6')}
+              deepDive={t('architecture.dd6')}
               icon={
                 <svg
                   className="w-5 h-5 md:w-6 md:h-6 text-blue-400"
@@ -990,16 +998,16 @@ export default function LandingPage() {
                 <div>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-[11px] md:text-xs font-bold text-blue-600 mb-4 md:mb-6 shadow-sm">
                     <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
-                    {t("anatomy.badge")}
+                    {t('anatomy.badge')}
                   </div>
                   <h2 className="text-3xl md:text-5xl font-black text-zinc-900 tracking-tight mb-4 md:mb-5 leading-[1.1]">
-                    {t("anatomy.title1")} <br />
+                    {t('anatomy.title1')} <br />
                     <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-indigo-600">
-                      {t("anatomy.title2")}
+                      {t('anatomy.title2')}
                     </span>
                   </h2>
                   <p className="text-base md:text-lg text-zinc-500 leading-relaxed font-medium">
-                    {t("anatomy.desc")}
+                    {t('anatomy.desc')}
                   </p>
                 </div>
 
@@ -1022,10 +1030,10 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <h4 className="text-base md:text-lg font-bold text-zinc-900">
-                        {t("anatomy.f1Title")}
+                        {t('anatomy.f1Title')}
                       </h4>
                       <p className="text-xs md:text-sm text-zinc-500 mt-1.5 leading-relaxed">
-                        {t("anatomy.f1Desc")}
+                        {t('anatomy.f1Desc')}
                       </p>
                     </div>
                   </div>
@@ -1048,10 +1056,10 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <h4 className="text-base md:text-lg font-bold text-zinc-900">
-                        {t("anatomy.f2Title")}
+                        {t('anatomy.f2Title')}
                       </h4>
                       <p className="text-xs md:text-sm text-zinc-500 mt-1.5 leading-relaxed">
-                        {t("anatomy.f2Desc")}
+                        {t('anatomy.f2Desc')}
                       </p>
                     </div>
                   </div>
@@ -1094,17 +1102,17 @@ export default function LandingPage() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                   </span>
-                  {t("promo.badge")}
+                  {t('promo.badge')}
                 </div>
                 <h3 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-3 md:mb-4 leading-tight">
-                  {t("promo.title1")}{" "}
+                  {t('promo.title1')}{' '}
                   <span className="text-transparent bg-clip-text bg-linear-to-r from-amber-200 via-yellow-400 to-amber-600">
-                    {t("promo.title2")}
-                  </span>{" "}
-                  {t("promo.title3")}
+                    {t('promo.title2')}
+                  </span>{' '}
+                  {t('promo.title3')}
                 </h3>
                 <p className="text-zinc-400 text-sm md:text-lg font-medium max-w-xl leading-relaxed">
-                  {t("promo.desc")}
+                  {t('promo.desc')}
                 </p>
               </div>
 
@@ -1113,7 +1121,7 @@ export default function LandingPage() {
                   href="/register"
                   className="w-full md:w-auto px-6 py-4 md:px-8 bg-white text-zinc-950 font-extrabold rounded-2xl hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-1"
                 >
-                  {t("promo.claim")}
+                  {t('promo.claim')}
                   <svg
                     className="w-5 h-5"
                     fill="none"
@@ -1142,7 +1150,7 @@ export default function LandingPage() {
                       d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  {t("promo.spots")}
+                  {t('promo.spots')}
                 </p>
               </div>
             </div>
@@ -1155,20 +1163,20 @@ export default function LandingPage() {
             <div className="flex-1 space-y-6 md:space-y-8 lg:pr-10">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-[11px] md:text-xs font-bold text-zinc-600 shadow-sm">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                {t("personal.badge")}
+                {t('personal.badge')}
               </div>
               <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-zinc-900 tracking-tight leading-[1.05]">
-                {t("personal.title1")} <br className="hidden md:block" />
+                {t('personal.title1')} <br className="hidden md:block" />
                 <span className="text-transparent bg-clip-text bg-linear-to-r from-zinc-400 to-zinc-600">
-                  {t("personal.title2")}
+                  {t('personal.title2')}
                 </span>
               </h2>
               <p className="text-base md:text-xl text-zinc-500 leading-relaxed max-w-lg">
-                {t("personal.desc1")}
+                {t('personal.desc1')}
                 <strong className="text-zinc-900 font-bold">
-                  {t("personal.descStrong")}
+                  {t('personal.descStrong')}
                 </strong>
-                {t("personal.desc2")}
+                {t('personal.desc2')}
               </p>
 
               <div className="pt-2 md:pt-4 flex gap-6 items-center">
@@ -1177,7 +1185,7 @@ export default function LandingPage() {
                     100%
                   </span>
                   <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                    {t("personal.private")}
+                    {t('personal.private')}
                   </span>
                 </div>
                 <div className="w-px h-8 md:h-10 bg-zinc-200"></div>
@@ -1186,7 +1194,7 @@ export default function LandingPage() {
                     ∞
                   </span>
                   <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                    {t("personal.blocks")}
+                    {t('personal.blocks')}
                   </span>
                 </div>
               </div>
@@ -1211,10 +1219,10 @@ export default function LandingPage() {
                   </svg>
                 </div>
                 <h4 className="text-lg md:text-xl font-bold text-zinc-900 mb-2 md:mb-3">
-                  {t("personal.t1")}
+                  {t('personal.t1')}
                 </h4>
                 <p className="text-[13px] md:text-sm text-zinc-500 leading-relaxed font-medium">
-                  {t("personal.d1")}
+                  {t('personal.d1')}
                 </p>
               </div>
 
@@ -1236,10 +1244,10 @@ export default function LandingPage() {
                   </svg>
                 </div>
                 <h4 className="text-lg md:text-xl font-bold text-zinc-900 mb-2 md:mb-3">
-                  {t("personal.t2")}
+                  {t('personal.t2')}
                 </h4>
                 <p className="text-[13px] md:text-sm text-zinc-500 leading-relaxed font-medium">
-                  {t("personal.d2")}
+                  {t('personal.d2')}
                 </p>
               </div>
 
@@ -1263,10 +1271,10 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h4 className="text-xl md:text-2xl font-bold text-white mb-2">
-                      {t("personal.t3")}
+                      {t('personal.t3')}
                     </h4>
                     <p className="text-zinc-400 leading-relaxed font-medium max-w-lg text-[13px] md:text-sm">
-                      {t("personal.d3")}
+                      {t('personal.d3')}
                     </p>
                   </div>
                 </div>
@@ -1281,16 +1289,16 @@ export default function LandingPage() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
             <div className="relative z-10">
               <h2 className="text-3xl md:text-6xl font-black text-white mb-4 md:mb-6 tracking-tighter">
-                {t("cta.title")}
+                {t('cta.title')}
               </h2>
               <p className="text-zinc-400 mb-8 md:mb-10 max-w-xl mx-auto text-sm md:text-lg font-medium">
-                {t("cta.desc")}
+                {t('cta.desc')}
               </p>
               <Link
                 href="/register"
                 className="inline-flex items-center gap-2 px-8 py-4 md:px-10 md:py-5 bg-white text-zinc-950 rounded-2xl font-extrabold text-[15px] md:text-base hover:bg-zinc-100 transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(255,255,255,0.3)] hover:-translate-y-1"
               >
-                {t("cta.button")}
+                {t('cta.button')}
                 <svg
                   width="20"
                   height="20"
