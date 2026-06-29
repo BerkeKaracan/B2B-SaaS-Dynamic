@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -13,15 +13,13 @@ import {
   Zap,
   Sparkles,
   CheckCircle,
+  Users,
+  CreditCard,
+  ChevronRight,
+  ChevronUp,
 } from 'lucide-react';
 import { fetchAPI } from '@/services/api';
 import { useTenantStore } from '@/store/useTenantStore';
-
-type TenantInfo = {
-  id: string;
-  name: string;
-  tier?: string;
-};
 
 type CustomModule = {
   name: string;
@@ -42,13 +40,30 @@ export default function WorkspaceSidebar() {
 
   const { tenant, fetchTenant } = useTenantStore();
   const [projectsCount, setProjectsCount] = useState<number>(0);
-
   const [isClient, setIsClient] = useState(false);
-
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
+
+  // Modal & Popover States
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [newModuleName, setNewModuleName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Click-away listener for Settings Popover
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(event.target as Node)
+      ) {
+        setIsSettingsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -103,7 +118,6 @@ export default function WorkspaceSidebar() {
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9]+/g, '-');
-
       const res = await fetchAPI(`/api/records`, {
         method: 'POST',
         body: JSON.stringify({
@@ -120,7 +134,6 @@ export default function WorkspaceSidebar() {
         ]);
         setIsModalOpen(false);
         setNewModuleName('');
-
         router.push(`/dashboard/${tenantId}/${slug}`);
       }
     } catch (error) {
@@ -137,12 +150,6 @@ export default function WorkspaceSidebar() {
     return 'text-zinc-500 font-medium hover:text-zinc-900 hover:bg-zinc-100/80 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800/50';
   };
 
-  const getIconStyle = (isActive: boolean) => {
-    return isActive
-      ? 'text-indigo-600 dark:text-indigo-400'
-      : 'text-zinc-400 dark:text-zinc-500';
-  };
-
   const currentTier = tenant?.tier || 'basic';
   const tierName =
     currentTier === 'pro'
@@ -150,7 +157,6 @@ export default function WorkspaceSidebar() {
       : currentTier === 'advanced'
         ? t('plans.advanced')
         : t('plans.free');
-
   const projectLimit =
     currentTier === 'pro' ? 'Unlimited' : currentTier === 'advanced' ? 50 : 3;
   const percentage =
@@ -161,24 +167,19 @@ export default function WorkspaceSidebar() {
   return (
     <>
       <aside className="w-[240px] h-full flex flex-col bg-[#F8F9FA] dark:bg-zinc-950 border-r border-zinc-200/60 dark:border-zinc-800/60 shrink-0 selection:bg-indigo-100 overflow-hidden">
+        {/* HEADER SECTION */}
         <div className="px-5 py-6 border-b border-zinc-200/50 dark:border-zinc-800/50 shrink-0 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none"></div>
-
           <div className="flex items-center gap-3 relative z-10">
             <div className="w-8 h-8 rounded-lg bg-zinc-950 dark:bg-zinc-800 text-white flex items-center justify-center font-bold text-sm shadow-md overflow-hidden relative">
-              {isClient ? (
-                tenant?.logo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={tenant.logo_url}
-                    alt="Logo"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  (tenant?.name?.charAt(0).toUpperCase() ?? 'W')
-                )
+              {isClient && tenant?.logo_url ? (
+                <img
+                  src={tenant.logo_url}
+                  alt="Logo"
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                'W'
+                (tenant?.name?.charAt(0).toUpperCase() ?? 'W')
               )}
             </div>
             <div className="flex flex-col">
@@ -192,6 +193,7 @@ export default function WorkspaceSidebar() {
           </div>
         </div>
 
+        {/* NAVIGATION SECTION */}
         <nav className="flex-1 px-3 py-5 space-y-1.5 overflow-y-auto custom-scrollbar min-h-0">
           {isOnProject && (
             <div className="mb-4 pb-2 border-b border-zinc-200/50 dark:border-zinc-800/50">
@@ -199,19 +201,10 @@ export default function WorkspaceSidebar() {
                 href={`/dashboard/${tenantId}/projects`}
                 className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/80 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800/50 transition-all"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                  />
-                </svg>
+                <ChevronRight
+                  className="w-4 h-4 rotate-180"
+                  strokeWidth={2.5}
+                />
                 {t('backToProjects')}
               </Link>
             </div>
@@ -227,12 +220,7 @@ export default function WorkspaceSidebar() {
             href={`/dashboard/${tenantId}/projects`}
             className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith('/projects') && !isOnProject)}`}
           >
-            {pathname.endsWith('/projects') && !isOnProject && (
-              <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
-            )}
-            <LayoutDashboard
-              className={`w-4 h-4 ${getIconStyle(pathname.endsWith('/projects') && !isOnProject)} group-hover:text-zinc-900 dark:group-hover:text-white transition-colors`}
-            />
+            <LayoutDashboard className={`w-4 h-4 transition-colors`} />
             {t('projects')}
           </Link>
 
@@ -240,12 +228,7 @@ export default function WorkspaceSidebar() {
             href={`/dashboard/${tenantId}/my-tasks`}
             className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith('/my-tasks'))}`}
           >
-            {pathname.endsWith('/my-tasks') && (
-              <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
-            )}
-            <CheckCircle
-              className={`w-4 h-4 ${getIconStyle(pathname.endsWith('/my-tasks'))} group-hover:text-zinc-900 dark:group-hover:text-white transition-colors`}
-            />
+            <CheckCircle className={`w-4 h-4 transition-colors`} />
             {t('myTasks')}
           </Link>
 
@@ -253,12 +236,7 @@ export default function WorkspaceSidebar() {
             href={`/dashboard/${tenantId}/ai`}
             className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith('/ai'))}`}
           >
-            {pathname.endsWith('/ai') && (
-              <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
-            )}
-            <Sparkles
-              className={`w-4 h-4 ${getIconStyle(pathname.endsWith('/ai'))} group-hover:text-zinc-900 dark:group-hover:text-white transition-colors`}
-            />
+            <Sparkles className={`w-4 h-4 transition-colors`} />
             {t('aiAssistant')}
           </Link>
 
@@ -266,12 +244,7 @@ export default function WorkspaceSidebar() {
             href={`/dashboard/${tenantId}/community`}
             className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.endsWith('/community'))}`}
           >
-            {pathname.endsWith('/community') && (
-              <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
-            )}
-            <Globe
-              className={`w-4 h-4 ${getIconStyle(pathname.endsWith('/community'))} group-hover:text-zinc-900 dark:group-hover:text-white transition-colors`}
-            />
+            <Globe className={`w-4 h-4 transition-colors`} />
             {t('communityHub')}
           </Link>
 
@@ -283,24 +256,18 @@ export default function WorkspaceSidebar() {
             </div>
           )}
 
-          {customModules.map((mod) => {
-            const isActive = pathname.includes(`/${mod.slug}`) && !isOnProject;
-            return (
-              <Link
-                key={mod.slug}
-                href={`/dashboard/${tenantId}/${mod.slug}`}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(isActive)}`}
-              >
-                {isActive && (
-                  <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
-                )}
-                <div
-                  className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]' : 'bg-zinc-300 dark:bg-zinc-600 group-hover:bg-zinc-400'} transition-colors`}
-                />
-                {mod.name}
-              </Link>
-            );
-          })}
+          {customModules.map((mod) => (
+            <Link
+              key={mod.slug}
+              href={`/dashboard/${tenantId}/${mod.slug}`}
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.includes(`/${mod.slug}`) && !isOnProject)}`}
+            >
+              <div
+                className={`w-1.5 h-1.5 rounded-full ${pathname.includes(`/${mod.slug}`) && !isOnProject ? 'bg-indigo-500' : 'bg-zinc-300 dark:bg-zinc-600 group-hover:bg-zinc-400'} transition-colors`}
+              />
+              {mod.name}
+            </Link>
+          ))}
 
           {isAdmin && !isOnProject && (
             <button
@@ -312,24 +279,23 @@ export default function WorkspaceSidebar() {
           )}
         </nav>
 
-        <div className="p-3 shrink-0 flex flex-col gap-2">
+        {/* BOTTOM SECTION - SETTINGS POPOVER */}
+        <div
+          className="p-3 shrink-0 flex flex-col gap-2 relative"
+          ref={settingsRef}
+        >
           {!isOnProject && (
-            <div className="p-4 rounded-2xl bg-linear-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 border border-zinc-200/60 dark:border-zinc-800/60 shadow-sm relative overflow-hidden mb-2 group cursor-pointer hover:border-indigo-200 dark:hover:border-indigo-500/30 hover:shadow-md transition-all">
+            <div className="p-4 rounded-2xl bg-linear-to-br from-white to-zinc-50 dark:from-zinc-900 dark:to-zinc-950 border border-zinc-200/60 dark:border-zinc-800/60 shadow-sm relative overflow-hidden mb-1 group cursor-default transition-all">
               <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/20 transition-all"></div>
-
-              <div className="flex items-center justify-between mb-1.5 relative z-10">
-                <h3 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-wider flex items-center gap-1">
-                  <Zap className="w-3 h-3 text-amber-500" /> {tierName}
-                </h3>
-              </div>
-
+              <h3 className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-wider flex items-center gap-1 mb-1.5 relative z-10">
+                <Zap className="w-3 h-3 text-amber-500" /> {tierName}
+              </h3>
               <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-3 relative z-10">
                 <span className="text-zinc-900 dark:text-zinc-100 font-bold">
                   {projectsCount}
                 </span>{' '}
                 {t('usage.of')} {projectLimit} {t('usage.projectsUsed')}
               </p>
-
               <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden relative z-10">
                 <div
                   className="h-full bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-500"
@@ -340,23 +306,69 @@ export default function WorkspaceSidebar() {
           )}
 
           {isAdmin && (
-            <Link
-              href={`/dashboard/${tenantId}/settings`}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all group ${getLinkStyle(pathname.includes('/settings') || pathname.includes('/team'))}`}
-            >
-              {(pathname.includes('/settings') ||
-                pathname.includes('/team')) && (
-                <div className="absolute -left-px top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full shadow-[0_0_10px_rgba(99,102,241,0.4)]" />
+            <div className="relative">
+              {/* GEMINI STYLE POPOVER */}
+              {isSettingsOpen && (
+                <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <div className="p-2 space-y-1">
+                    <Link
+                      href={`/dashboard/${tenantId}/advanced`}
+                      onClick={() => setIsSettingsOpen(false)}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Settings className="w-4 h-4 text-zinc-400 group-hover:text-indigo-500 transition-colors" />
+                        {t('settings')}
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                    </Link>
+                    <Link
+                      href={`/dashboard/${tenantId}/team`}
+                      onClick={() => setIsSettingsOpen(false)}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Users className="w-4 h-4 text-zinc-400 group-hover:text-indigo-500 transition-colors" />
+                        Team
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                    </Link>
+                    <Link
+                      href={`/dashboard/${tenantId}/billing`}
+                      onClick={() => setIsSettingsOpen(false)}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <CreditCard className="w-4 h-4 text-zinc-400 group-hover:text-indigo-500 transition-colors" />
+                        Billing
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                    </Link>
+                  </div>
+                </div>
               )}
-              <Settings
-                className={`w-4 h-4 ${getIconStyle(pathname.includes('/settings') || pathname.includes('/team'))} group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors`}
-              />
-              {t('settings')}
-            </Link>
+
+              {/* TRIGGER BUTTON */}
+              <button
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-all group ${isSettingsOpen || pathname.includes('/settings') || pathname.includes('/team') ? 'bg-white dark:bg-zinc-900 text-indigo-600 font-bold shadow-sm ring-1 ring-zinc-200/50 dark:ring-zinc-800' : 'text-zinc-500 dark:text-zinc-400 font-medium hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Settings
+                    className={`w-4 h-4 ${isSettingsOpen || pathname.includes('/settings') || pathname.includes('/team') ? 'text-indigo-600' : 'text-zinc-400'} group-hover:text-zinc-900 dark:group-hover:text-white transition-colors`}
+                  />
+                  {t('settings')}
+                </div>
+                <ChevronUp
+                  className={`w-4 h-4 transition-transform duration-200 ${isSettingsOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+            </div>
           )}
         </div>
       </aside>
 
+      {/* CREATE MODULE MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-950 rounded-3xl w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden animate-in zoom-in-95 duration-200 relative">
@@ -371,7 +383,6 @@ export default function WorkspaceSidebar() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-
             <form onSubmit={handleCreateModule} className="p-6">
               <div className="mb-6">
                 <label className="block text-[11px] font-black text-zinc-500 uppercase tracking-widest mb-2 ml-1">
@@ -387,7 +398,6 @@ export default function WorkspaceSidebar() {
                   className="w-full px-4 py-3 bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm placeholder:text-zinc-400 dark:text-zinc-100"
                 />
               </div>
-
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
                 <button
                   type="button"
