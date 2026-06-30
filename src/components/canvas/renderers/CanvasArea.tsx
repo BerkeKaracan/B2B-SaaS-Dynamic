@@ -27,6 +27,10 @@ import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
 import MindMapBoard from '@/components/mindmap/MindMapBoard';
 import TimelineBoard from '@/components/timeline/TimelineBoard';
 
+import { useCanvasCollaboration } from '@/hooks/useCanvasCollaboration';
+import { useZustandYjsSync } from '@/hooks/useZustandYjsSync';
+import { LiveCursors } from '../LiveCursors';
+
 export default function CanvasArea() {
   const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
   const connections = useCanvasStore((s) => s.connections);
@@ -37,6 +41,22 @@ export default function CanvasArea() {
   const panX = useCanvasStore((s) => s.panX);
   const panY = useCanvasStore((s) => s.panY);
   const isLoading = useCanvasStore((s) => s.isLoading);
+
+  const [currentUser] = useState(() => {
+    const randomNum = Math.floor(Math.random() * 1000);
+    return {
+      name: `Test User ${randomNum}`,
+      color: randomNum % 2 === 0 ? '#ef4444' : '#10b981',
+    };
+  });
+
+  const projectId = activePageId || 'default-room';
+  const { doc, provider, cursors } = useCanvasCollaboration(
+    projectId,
+    currentUser
+  );
+
+  useZustandYjsSync(doc);
 
   const addBlockToPage = useCanvasStore((s) => s.addBlockToPage);
   const updateBlockValue = useCanvasStore((s) => s.updateBlockValue);
@@ -150,6 +170,42 @@ export default function CanvasArea() {
       setAiPrompt('');
     }
   };
+
+  useEffect(() => {
+    if (!provider) return;
+
+    let lastTrackTime = 0;
+    const throttleDelay = 50;
+
+    const handleMouseMove = (e: PointerEvent) => {
+      const now = Date.now();
+
+      if (now - lastTrackTime >= throttleDelay) {
+        const currentZoom = zoom / 100;
+        const rect = containerRef.current?.getBoundingClientRect() || {
+          left: 0,
+          top: 0,
+        };
+        const mouseCanvasX = (e.clientX - rect.left - panX) / currentZoom;
+        const mouseCanvasY = (e.clientY - rect.top - panY) / currentZoom;
+
+        provider.send({
+          type: 'broadcast',
+          event: 'cursor-move',
+          payload: {
+            userKey: currentUser.name,
+            cursor: { x: mouseCanvasX, y: mouseCanvasY },
+          },
+        });
+
+        lastTrackTime = now;
+      }
+    };
+
+    window.addEventListener('pointermove', handleMouseMove);
+
+    return () => window.removeEventListener('pointermove', handleMouseMove);
+  }, [provider, zoom, panX, panY, currentUser]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -853,6 +909,7 @@ export default function CanvasArea() {
           onRemoveConnection={removeConnection}
         />
         <LassoLayer lassoStart={lassoStart} lassoEnd={lassoEnd} />
+        <LiveCursors cursors={cursors} currentUserKey={currentUser.name} />
 
         {pages.map((page: PageWithSettings) => {
           const isPageActive = activePageId === page.id;
