@@ -110,6 +110,15 @@ async def generate_canvas(req: GenerateCanvasRequest):
             {{"id": "node-3", "text": "Sales", "x": 500, "y": 500, "parentId": "root", "color": "bg-white"}}
          ]
 
+      * NOTES / DOCUMENT Example Data Structure (Inside "metadata"):
+         "notepadTitle": "Q3 Marketing Strategy Notes",
+         "notepadTexts": [
+            {{"id": "text-1", "x": 100, "y": 100, "content": "1. Launch Campaign by Oct 15", "color": "#18181b", "size": 32, "font": "Inter"}},
+            {{"id": "text-2", "x": 100, "y": 160, "content": "Needs approval from CEO", "color": "#ef4444", "size": 24, "font": "Inter"}},
+            {{"id": "text-3", "x": 100, "y": 220, "content": "- Set budget: $50K\n- Assign team", "color": "#3b82f6", "size": 24, "font": "Inter"}}
+         ],
+         "notepadStrokes": []
+
     2. CUSTOM PAGES (Blank Canvas with Blocks): 
        - Use "type": "empty".
        - Populate the "blocks" array creatively.
