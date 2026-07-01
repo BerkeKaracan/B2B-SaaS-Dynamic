@@ -90,7 +90,6 @@ interface GithubCommit {
   url: string;
 }
 
-// AI'dan gelecek veriler için güvenli Type (Interface) tanımlamaları
 interface AIColumnData {
   id?: string;
   title?: string;

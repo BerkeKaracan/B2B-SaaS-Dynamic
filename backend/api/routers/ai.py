@@ -102,6 +102,14 @@ async def generate_canvas(req: GenerateCanvasRequest):
          "kanbanColumns": [{{"id": "col-1", "title": "To Do"}}, {{"id": "col-2", "title": "In Progress"}}],
          "kanbanTasks": [{{"id": "task-1", "columnId": "col-1", "content": "Design Homepage"}}]
 
+      * MINDMAP Example Data Structure (Inside "metadata"):
+         "mindmapNodes": [
+            {{"id": "root", "text": "SaaS Product Launch", "x": 500, "y": 300, "parentId": null, "color": "bg-indigo-600"}},
+            {{"id": "node-1", "text": "Marketing", "x": 300, "y": 150, "parentId": "root", "color": "bg-white"}},
+            {{"id": "node-2", "text": "Development", "x": 700, "y": 150, "parentId": "root", "color": "bg-white"}},
+            {{"id": "node-3", "text": "Sales", "x": 500, "y": 500, "parentId": "root", "color": "bg-white"}}
+         ]
+
     2. CUSTOM PAGES (Blank Canvas with Blocks): 
        - Use "type": "empty".
        - Populate the "blocks" array creatively.

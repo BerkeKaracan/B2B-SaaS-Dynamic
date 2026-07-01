@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState, useRef } from "react";
-import { useTranslations } from "next-intl";
+import React, { useState, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Plus,
   Target,
@@ -9,8 +9,8 @@ import {
   ZoomOut,
   Download,
   GripHorizontal,
-} from "lucide-react";
-import { useCanvasStore } from "@/store/useCanvasStore";
+} from 'lucide-react';
+import { useCanvasStore } from '@/store/useCanvasStore';
 
 type MindNode = {
   id: string;
@@ -22,22 +22,36 @@ type MindNode = {
 };
 
 export default function MindMapBoard({ projectId }: { projectId: string }) {
-  const t = useTranslations("MindMapBoard");
+  void projectId;
+
+  const t = useTranslations('MindMapBoard');
   const containerRef = useRef<HTMLDivElement>(null);
   const { metadata, updateMetadata } = useCanvasStore();
 
-  const [nodes, setNodes] = useState<MindNode[]>(
-    (metadata.mindmapNodes as MindNode[]) || [
-      {
-        id: "root",
-        text: t("centralIdea"),
-        x: typeof window !== "undefined" ? window.innerWidth / 2 - 100 : 400,
-        y: typeof window !== "undefined" ? window.innerHeight / 2 - 100 : 300,
-        parentId: null,
-        color: "bg-indigo-600",
-      },
-    ],
-  );
+  const [isMounted, setIsMounted] = useState(false);
+  const [nodes, setNodes] = useState<MindNode[]>([]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+    const aiNodes = metadata.mindmapNodes as MindNode[];
+
+    if (aiNodes && aiNodes.length > 0) {
+      setNodes(aiNodes);
+    } else {
+      setNodes([
+        {
+          id: 'root',
+          text: t('centralIdea'),
+          x: window.innerWidth / 2 - 100,
+          y: window.innerHeight / 2 - 100,
+          parentId: null,
+          color: 'bg-indigo-600',
+        },
+      ]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const saveNodes = (newNodes: MindNode[]) => {
     setNodes(newNodes);
@@ -53,7 +67,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const handleCanvasPointerDown = (e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest(".mind-node")) return;
+    if ((e.target as HTMLElement).closest('.mind-node')) return;
     setIsDraggingCanvas(true);
     setDragStart({ x: e.clientX, y: e.clientY });
   };
@@ -71,8 +85,8 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
 
       saveNodes(
         nodes.map((n) =>
-          n.id === draggingNodeId ? { ...n, x: n.x + dx, y: n.y + dy } : n,
-        ),
+          n.id === draggingNodeId ? { ...n, x: n.x + dx, y: n.y + dy } : n
+        )
       );
       setDragStart({ x: e.clientX, y: e.clientY });
     } else if (isDraggingCanvas) {
@@ -101,11 +115,11 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
       ...nodes,
       {
         id: newId,
-        text: t("newNode"),
+        text: t('newNode') || 'New Idea',
         x: newX,
         y: newY,
         parentId,
-        color: "bg-white dark:bg-zinc-800",
+        color: 'bg-white dark:bg-zinc-800',
       },
     ]);
     setEditingNodeId(newId);
@@ -115,6 +129,8 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
     saveNodes(nodes.map((n) => (n.id === id ? { ...n, text: newText } : n)));
   };
 
+  if (!isMounted) return null;
+
   return (
     <div className="absolute inset-0 flex flex-col bg-zinc-50/50 dark:bg-zinc-950 overflow-hidden transition-colors duration-300">
       <div className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-4 flex items-center justify-between z-20">
@@ -123,7 +139,9 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
             <Target className="w-5 h-5" />
           </div>
           <span className="text-sm font-bold text-zinc-900 dark:text-white">
-            {t("title")}
+            {typeof metadata.name === 'string' && metadata.name
+              ? metadata.name
+              : t('title')}
           </span>
         </div>
 
@@ -146,7 +164,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
           <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800 mx-2"></div>
           <button
             className="p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-            title={t("exportMap")}
+            title={t('exportMap')}
           >
             <Download className="w-4 h-4" />
           </button>
@@ -155,18 +173,18 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
 
       <div
         ref={containerRef}
-        className={`flex-1 w-full h-full relative overflow-hidden outline-none ${isDraggingCanvas ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`flex-1 w-full h-full relative overflow-hidden outline-none ${isDraggingCanvas ? 'cursor-grabbing' : 'cursor-grab'}`}
         onPointerDown={handleCanvasPointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
-        style={{ touchAction: "none" }}
+        style={{ touchAction: 'none' }}
       >
         <div
           className="absolute inset-0 opacity-20 dark:opacity-10 pointer-events-none"
           style={{
             backgroundImage:
-              "radial-gradient(#64748b 1.5px, transparent 1.5px)",
+              'radial-gradient(#64748b 1.5px, transparent 1.5px)',
             backgroundSize: `${40 * zoom}px ${40 * zoom}px`,
             backgroundPosition: `${pan.x}px ${pan.y}px`,
           }}
@@ -176,7 +194,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
           <g
             style={{
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-              transformOrigin: "0 0",
+              transformOrigin: '0 0',
             }}
           >
             {nodes.map((node) => {
@@ -209,7 +227,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
           className="absolute inset-0 z-10 pointer-events-none"
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: "0 0",
+            transformOrigin: '0 0',
           }}
         >
           {nodes.map((node) => (
@@ -220,17 +238,17 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
             >
               <div
                 className={`relative px-4 py-3 rounded-xl shadow-lg border-2 transition-all w-40 flex items-center justify-center
-                  ${draggingNodeId === node.id ? "scale-105 shadow-2xl z-50 ring-4 ring-indigo-500/20" : "hover:border-indigo-400"}
+                  ${draggingNodeId === node.id ? 'scale-105 shadow-2xl z-50 ring-4 ring-indigo-500/20' : 'hover:border-indigo-400'}
                   ${
                     node.parentId === null
-                      ? "bg-indigo-600 border-indigo-700 text-white"
-                      : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
+                      ? 'bg-indigo-600 border-indigo-700 text-white'
+                      : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100'
                   }`}
               >
                 <div
                   onPointerDown={(e) => handleNodePointerDown(e, node.id)}
                   className="absolute -top-3 right-2 bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-full p-1 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity shadow-sm text-zinc-400 hover:text-indigo-500"
-                  title={t("dragNode")}
+                  title={t('dragNode')}
                 >
                   <GripHorizontal size={12} />
                 </div>
@@ -242,10 +260,10 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
                     onChange={(e) => updateNodeText(node.id, e.target.value)}
                     onBlur={() => setEditingNodeId(null)}
                     onKeyDown={(e) =>
-                      e.key === "Enter" && setEditingNodeId(null)
+                      e.key === 'Enter' && setEditingNodeId(null)
                     }
                     className="w-full bg-transparent text-center font-bold text-sm outline-none"
-                    placeholder={t("typePlaceholder")}
+                    placeholder={t('typePlaceholder')}
                   />
                 ) : (
                   <span
@@ -263,7 +281,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
                   addChildNode(node.id, node.x, node.y);
                 }}
                 className="absolute -left-3 -bottom-3 bg-indigo-50 dark:bg-indigo-900/50 border-2 border-indigo-200 dark:border-indigo-500 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 dark:hover:text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md z-20"
-                title={t("addNode")}
+                title={t('addNode')}
               >
                 <Plus size={16} strokeWidth={3} />
               </button>
