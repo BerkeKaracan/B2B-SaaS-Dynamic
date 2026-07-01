@@ -11,6 +11,9 @@ backend/build/
 backend/dist/
 backend/*.egg-info/
 __pycache__
+__pycache__/
+*.py[cod]
+*$py.class
 
 # --- Node.js / Frontend ---
 node_modules/
