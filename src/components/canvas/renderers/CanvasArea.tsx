@@ -42,13 +42,19 @@ export default function CanvasArea() {
   const panY = useCanvasStore((s) => s.panY);
   const isLoading = useCanvasStore((s) => s.isLoading);
 
-  const [currentUser] = useState(() => {
+  const [currentUser, setCurrentUser] = useState({
+    name: 'Syncing User...',
+    color: '#ef4444',
+  });
+
+  useEffect(() => {
     const randomNum = Math.floor(Math.random() * 1000);
-    return {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCurrentUser({
       name: `Test User ${randomNum}`,
       color: randomNum % 2 === 0 ? '#ef4444' : '#10b981',
-    };
-  });
+    });
+  }, []);
 
   const projectId = activePageId || 'default-room';
   const { doc, provider, cursors } = useCanvasCollaboration(
@@ -313,7 +319,7 @@ export default function CanvasArea() {
           if (Math.abs(delta) > 2) {
             const currentStore = useCanvasStore.getState();
             const nextZoom = (currentStore.zoom ?? 100) + (delta > 0 ? 4 : -4);
-            setZoom(nextZoom);
+            setZoom(Math.max(10, Math.min(400, nextZoom)));
           }
         }
         prevTouchDistance.current = distance;
@@ -349,7 +355,9 @@ export default function CanvasArea() {
         const maxY = Math.max(lassoStart.y, mouseCanvasY);
 
         const newSelected: string[] = [];
-        pages.forEach((page) => {
+
+        const currentPages = useCanvasStore.getState().pages;
+        currentPages.forEach((page) => {
           page.blocks.forEach((block) => {
             const bx = page.x + block.x;
             const by = page.y + block.y;
@@ -497,7 +505,6 @@ export default function CanvasArea() {
     updateBlockPosition,
     updatePageDimensions,
     saveHistory,
-    pages,
     setSelectedBlocks,
     isSpacePanning,
     spacePanStart,
@@ -508,13 +515,16 @@ export default function CanvasArea() {
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
     const currentStore = useCanvasStore.getState();
+    let nextZoom = currentStore.zoom ?? 100;
+
     if (e.ctrlKey) {
-      const nextZoom = (currentStore.zoom ?? 100) - e.deltaY * 0.5;
-      setZoom(nextZoom);
+      nextZoom -= e.deltaY * 0.5;
     } else {
-      const nextZoom = (currentStore.zoom ?? 100) - e.deltaY * 0.1;
-      setZoom(nextZoom);
+      nextZoom -= e.deltaY * 0.1;
     }
+
+    const clampedZoom = Math.max(10, Math.min(400, nextZoom));
+    setZoom(clampedZoom);
   };
 
   if (isLoading) {
@@ -1254,7 +1264,7 @@ export default function CanvasArea() {
         <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-2" />
 
         <button
-          onClick={() => setZoom(zoom - 10)}
+          onClick={() => setZoom(Math.max(10, zoom - 10))}
           className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
         >
           <Minus className="w-4 h-4" />
@@ -1263,7 +1273,7 @@ export default function CanvasArea() {
           {zoom}%
         </span>
         <button
-          onClick={() => setZoom(zoom + 10)}
+          onClick={() => setZoom(Math.min(400, zoom + 10))}
           className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
         >
           <Plus className="w-4 h-4" />
