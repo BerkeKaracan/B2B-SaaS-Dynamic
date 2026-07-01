@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
-import { useParams } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { fetchAPI } from "@/services/api";
-import { useCanvasStore } from "@/store/useCanvasStore";
-import { useAuthStore } from "@/store/useAuthStore";
-import { Calendar } from "@/components/ui/calendar";
-import toast from "react-hot-toast";
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { fetchAPI } from '@/services/api';
+import { useCanvasStore } from '@/store/useCanvasStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Calendar } from '@/components/ui/calendar';
+import toast from 'react-hot-toast';
 import {
   Loader2,
   Link2,
@@ -25,13 +25,13 @@ import {
   Copy,
   Trash2,
   Edit2,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   DragDropContext,
   Droppable,
   Draggable,
   DropResult,
-} from "@hello-pangea/dnd";
+} from '@hello-pangea/dnd';
 
 const CustomGithubIcon = ({ className }: { className?: string }) => (
   <svg
@@ -49,8 +49,8 @@ const CustomGithubIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export type TaskStatus = "TO DO" | "IN PROGRESS" | "DONE";
-export type TaskPriority = "URGENT" | "HIGH" | "MEDIUM" | "LOW" | "NO PRIORITY";
+export type TaskStatus = string;
+export type TaskPriority = 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NO PRIORITY';
 
 export interface Task {
   id: string;
@@ -78,8 +78,8 @@ export interface SavedView {
   id: string;
   name: string;
   filterQuery: string;
-  filterPriority: TaskPriority | "ALL";
-  sortBy: "manual" | "priority" | "deadline";
+  filterPriority: TaskPriority | 'ALL';
+  sortBy: 'manual' | 'priority' | 'deadline';
 }
 
 interface GithubCommit {
@@ -90,26 +90,49 @@ interface GithubCommit {
   url: string;
 }
 
-const PRIORITIES: Record<TaskPriority, string> = {
-  URGENT: "#E3123B",
-  HIGH: "#7B323D",
-  MEDIUM: "#93B27D",
-  LOW: "#BEF109",
-  "NO PRIORITY": "#B2BAAE",
+// AI'dan gelecek veriler için güvenli Type (Interface) tanımlamaları
+interface AIColumnData {
+  id?: string;
+  title?: string;
+  color?: string;
+}
+
+interface AITaskData {
+  id?: string;
+  title?: string;
+  content?: string;
+  description?: string;
+  assignee?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  priority?: TaskPriority;
+  status?: string;
+  columnId?: string;
+  startDate?: string;
+  deadline?: string;
+  commitCode?: string;
+}
+
+const PRIORITIES: Record<string, string> = {
+  URGENT: '#E3123B',
+  HIGH: '#7B323D',
+  MEDIUM: '#93B27D',
+  LOW: '#BEF109',
+  'NO PRIORITY': '#B2BAAE',
 };
 
-const PRIORITY_WEIGHTS: Record<TaskPriority, number> = {
+const PRIORITY_WEIGHTS: Record<string, number> = {
   URGENT: 5,
   HIGH: 4,
   MEDIUM: 3,
   LOW: 2,
-  "NO PRIORITY": 1,
+  'NO PRIORITY': 1,
 };
 
-const COLUMNS: { id: TaskStatus; title: string; color: string }[] = [
-  { id: "TO DO", title: "TO DO", color: "#71C6C0" },
-  { id: "IN PROGRESS", title: "IN PROGRESS", color: "#6682FB" },
-  { id: "DONE", title: "DONE", color: "#89A841" },
+const DEFAULT_COLUMNS = [
+  { id: 'TO DO', title: 'TO DO', color: '#71C6C0' },
+  { id: 'IN PROGRESS', title: 'IN PROGRESS', color: '#6682FB' },
+  { id: 'DONE', title: 'DONE', color: '#89A841' },
 ];
 
 export default function StaticKanbanBoard({
@@ -117,24 +140,57 @@ export default function StaticKanbanBoard({
 }: {
   projectId: string;
 }) {
-  const t = useTranslations("KanbanBoard");
+  const t = useTranslations('KanbanBoard');
   const params = useParams();
   const tenantId = params?.tenantId as string;
 
   const { metadata, updateMetadata } = useCanvasStore();
-  const tasks = (metadata.tasks as Task[]) || [];
+
+  const columns = useMemo(() => {
+    const aiCols = (metadata.kanbanColumns as AIColumnData[]) || [];
+    if (aiCols && aiCols.length > 0) {
+      return aiCols.map((c, i) => ({
+        id: c.id || c.title || `col-${i}`,
+        title: c.title || `Column ${i + 1}`,
+        color: c.color || DEFAULT_COLUMNS[i % DEFAULT_COLUMNS.length].color,
+      }));
+    }
+    return DEFAULT_COLUMNS;
+  }, [metadata.kanbanColumns]);
+
+  const tasks = useMemo(() => {
+    const rawTasks = (metadata.tasks ||
+      metadata.kanbanTasks ||
+      []) as AITaskData[];
+    return rawTasks.map((t, i) => ({
+      // eslint-disable-next-line react-hooks/purity
+      id: t.id || `ai-task-${i}-${Date.now()}`,
+      title: t.title || t.content || 'Untitled Task',
+      description: t.description || '',
+      assignee: t.assignee || 'Unassigned',
+      createdBy: t.createdBy || 'AI Assistant',
+      updatedBy: t.updatedBy || 'AI Assistant',
+      priority:
+        t.priority && PRIORITIES[t.priority] ? t.priority : 'NO PRIORITY',
+      status: t.status || t.columnId || columns[0].id,
+      startDate: t.startDate || undefined,
+      deadline: t.deadline || undefined,
+      commitCode: t.commitCode || undefined,
+    })) as Task[];
+  }, [metadata.tasks, metadata.kanbanTasks, columns]);
+
   const collaborators =
     (metadata.collaborators as { email: string; role: string }[]) || [];
-  const linkedRepo = (metadata.githubRepo as string) || "";
+  const linkedRepo = (metadata.githubRepo as string) || '';
   const activityLogs = (metadata.activityLogs as ActivityLog[]) || [];
   const savedViews = (metadata.savedViews as SavedView[]) || [];
 
   const { user } = useAuthStore();
   const currentUserName =
-    user?.full_name || user?.email?.split("@")[0] || "System User";
+    user?.full_name || user?.email?.split('@')[0] || 'System User';
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [drawerTab, setDrawerTab] = useState<"activity" | "github">("activity");
+  const [drawerTab, setDrawerTab] = useState<'activity' | 'github'>('activity');
 
   const [isClient, setIsClient] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -142,13 +198,13 @@ export default function StaticKanbanBoard({
 
   const [openTaskMenu, setOpenTaskMenu] = useState<string | null>(null);
 
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskDescription, setNewTaskDescription] = useState("");
-  const [newTaskAssignee, setNewTaskAssignee] = useState("");
-  const [newTaskCommit, setNewTaskCommit] = useState("");
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskAssignee, setNewTaskAssignee] = useState('');
+  const [newTaskCommit, setNewTaskCommit] = useState('');
   const [newTaskPriority, setNewTaskPriority] =
-    useState<TaskPriority>("NO PRIORITY");
-  const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>("TO DO");
+    useState<TaskPriority>('NO PRIORITY');
+  const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>(columns[0].id);
 
   const [startDateObj, setStartDateObj] = useState<Date | undefined>(undefined);
   const [deadlineObj, setDeadlineObj] = useState<Date | undefined>(undefined);
@@ -158,14 +214,14 @@ export default function StaticKanbanBoard({
 
   const [commits, setCommits] = useState<GithubCommit[]>([]);
   const [isCommitsLoading, setIsCommitsLoading] = useState(false);
-  const [repoInput, setRepoInput] = useState("");
+  const [repoInput, setRepoInput] = useState('');
 
-  const [filterQuery, setFilterQuery] = useState("");
-  const [filterPriority, setFilterPriority] = useState<TaskPriority | "ALL">(
-    "ALL",
+  const [filterQuery, setFilterQuery] = useState('');
+  const [filterPriority, setFilterPriority] = useState<TaskPriority | 'ALL'>(
+    'ALL'
   );
-  const [sortBy, setSortBy] = useState<"manual" | "priority" | "deadline">(
-    "manual",
+  const [sortBy, setSortBy] = useState<'manual' | 'priority' | 'deadline'>(
+    'manual'
   );
 
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
@@ -183,28 +239,26 @@ export default function StaticKanbanBoard({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-
       if (filterRef.current && !filterRef.current.contains(target as Node))
         setIsFilterOpen(false);
       if (sortRef.current && !sortRef.current.contains(target as Node))
         setIsSortOpen(false);
-
-      if (target && typeof target.closest === "function") {
+      if (target && typeof target.closest === 'function') {
         if (
-          !target.closest(".task-dropdown-menu") &&
-          !target.closest(".task-menu-trigger")
+          !target.closest('.task-dropdown-menu') &&
+          !target.closest('.task-menu-trigger')
         ) {
           setOpenTaskMenu(null);
         }
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const logActivity = (action: string, target: string) => {
     const newLog: ActivityLog = {
-      id: "log-" + Date.now(),
+      id: 'log-' + Date.now(),
       user: currentUserName,
       action,
       target,
@@ -216,17 +270,17 @@ export default function StaticKanbanBoard({
 
   useEffect(() => {
     if (linkedRepo) {
-      const [owner, repo] = linkedRepo.split("/");
+      const [owner, repo] = linkedRepo.split('/');
       if (!owner || !repo) return;
       const fetchCommits = async () => {
         setIsCommitsLoading(true);
         try {
           const res = await fetchAPI(
-            `/api/github/commits?owner=${owner}&repo=${repo}&limit=15`,
+            `/api/github/commits?owner=${owner}&repo=${repo}&limit=15`
           );
           if (res.ok) setCommits(await res.json());
           else setCommits([]);
-        } catch (error) {
+        } catch {
           setCommits([]);
         } finally {
           setIsCommitsLoading(false);
@@ -237,33 +291,35 @@ export default function StaticKanbanBoard({
   }, [linkedRepo]);
 
   const handleConnectRepo = () => {
-    if (!repoInput.includes("/"))
-      return toast.error("Format must be: owner/repo");
+    if (!repoInput.includes('/'))
+      return toast.error('Format must be: owner/repo');
     updateMetadata({ githubRepo: repoInput });
-    logActivity("connected GitHub repository", repoInput);
-    toast.success("GitHub repository linked!");
-    setRepoInput("");
+    logActivity('connected GitHub repository', repoInput);
+    toast.success('GitHub repository linked!');
+    setRepoInput('');
   };
 
   const handleUnlinkRepo = () => {
-    if (window.confirm("Are you sure you want to unlink this repository?")) {
-      updateMetadata({ githubRepo: "" });
-      logActivity("unlinked GitHub repository", linkedRepo);
+    if (window.confirm('Are you sure you want to unlink this repository?')) {
+      updateMetadata({ githubRepo: '' });
+      logActivity('unlinked GitHub repository', linkedRepo);
       setCommits([]);
     }
   };
 
-  const mapStatusToBackend = (status: TaskStatus) => {
-    if (status === "IN PROGRESS") return "in_progress";
-    if (status === "DONE") return "done";
-    return "todo";
+  const mapStatusToBackend = (status: string) => {
+    const s = status.toUpperCase();
+    if (s.includes('PROGRESS')) return 'in_progress';
+    if (s.includes('DONE') || s.includes('COMPLETE') || s.includes('FINISH'))
+      return 'done';
+    return 'todo';
   };
 
   const syncTasksToBackend = async (currentTasks: Task[]) => {
     if (!tenantId || !projectId) return;
     const formattedTasks = currentTasks.map((t) => ({
       project_id: projectId,
-      project_name: (metadata.name as string) || "Project Board",
+      project_name: (metadata.name as string) || 'Project Board',
       title: t.title,
       status: mapStatusToBackend(t.status),
       priority: t.priority,
@@ -271,8 +327,8 @@ export default function StaticKanbanBoard({
       assigned_to: t.assignee,
     }));
     try {
-      await fetchAPI("/api/tasks/sync", {
-        method: "POST",
+      await fetchAPI('/api/tasks/sync', {
+        method: 'POST',
         body: JSON.stringify({
           tenant_id: tenantId,
           project_id: projectId,
@@ -280,7 +336,7 @@ export default function StaticKanbanBoard({
         }),
       });
     } catch (error) {
-      console.error("Failed to sync tasks:", error);
+      console.error('Failed to sync tasks:', error);
     }
   };
 
@@ -292,11 +348,11 @@ export default function StaticKanbanBoard({
   const handleOpenAddModal = (status: TaskStatus) => {
     setEditingTaskId(null);
     setNewTaskStatus(status);
-    setNewTaskTitle("");
-    setNewTaskDescription("");
-    setNewTaskAssignee("");
-    setNewTaskCommit("");
-    setNewTaskPriority("NO PRIORITY");
+    setNewTaskTitle('');
+    setNewTaskDescription('');
+    setNewTaskAssignee('');
+    setNewTaskCommit('');
+    setNewTaskPriority('NO PRIORITY');
     setStartDateObj(undefined);
     setDeadlineObj(undefined);
     setIsAddModalOpen(true);
@@ -308,18 +364,18 @@ export default function StaticKanbanBoard({
     setNewTaskTitle(task.title);
     setNewTaskDescription(task.description);
     setNewTaskAssignee(task.assignee);
-    setNewTaskCommit(task.commitCode || "");
+    setNewTaskCommit(task.commitCode || '');
     setNewTaskPriority(task.priority);
     if (task.startDate) {
-      const [day, month] = task.startDate.split("/");
+      const [day, month] = task.startDate.split('/');
       setStartDateObj(
-        new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day)),
+        new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day))
       );
     } else setStartDateObj(undefined);
     if (task.deadline) {
-      const [day, month] = task.deadline.split("/");
+      const [day, month] = task.deadline.split('/');
       setDeadlineObj(
-        new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day)),
+        new Date(new Date().getFullYear(), parseInt(month) - 1, parseInt(day))
       );
     } else setDeadlineObj(undefined);
     setIsAddModalOpen(true);
@@ -328,25 +384,22 @@ export default function StaticKanbanBoard({
   const handleDuplicateTask = (taskToDuplicate: Task) => {
     const duplicatedTask: Task = {
       ...taskToDuplicate,
-      id: "t-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+      id: 't-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       title: `${taskToDuplicate.title} (Copy)`,
       createdBy: currentUserName,
       updatedBy: currentUserName,
     };
-
-    const updatedTasks = [...tasks, duplicatedTask];
-    updateTasks(updatedTasks);
-    logActivity("duplicated task", taskToDuplicate.title);
-    toast.success("Task duplicated successfully!");
+    updateTasks([...tasks, duplicatedTask]);
+    logActivity('duplicated task', taskToDuplicate.title);
+    toast.success('Task duplicated successfully!');
     setOpenTaskMenu(null);
   };
 
   const handleDeleteTask = (taskId: string, taskTitle: string) => {
     if (window.confirm(`Are you sure you want to delete "${taskTitle}"?`)) {
-      const updatedTasks = tasks.filter((t) => t.id !== taskId);
-      updateTasks(updatedTasks);
-      logActivity("deleted task", taskTitle);
-      toast.success("Task deleted!");
+      updateTasks(tasks.filter((t) => t.id !== taskId));
+      logActivity('deleted task', taskTitle);
+      toast.success('Task deleted!');
     }
     setOpenTaskMenu(null);
   };
@@ -356,15 +409,15 @@ export default function StaticKanbanBoard({
     if (!newTaskTitle.trim()) return;
 
     const formattedStart = startDateObj
-      ? startDateObj.toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "2-digit",
+      ? startDateObj.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
         })
       : undefined;
     const formattedDeadline = deadlineObj
-      ? deadlineObj.toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "2-digit",
+      ? deadlineObj.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
         })
       : undefined;
 
@@ -378,24 +431,24 @@ export default function StaticKanbanBoard({
               title: newTaskTitle,
               description: newTaskDescription,
               commitCode: newTaskCommit || undefined,
-              assignee: newTaskAssignee || "Unassigned",
+              assignee: newTaskAssignee || 'Unassigned',
               updatedBy: currentUserName,
               startDate: formattedStart,
               deadline: formattedDeadline,
               priority: newTaskPriority,
               status: newTaskStatus,
             }
-          : task,
+          : task
       );
-      logActivity("updated task", newTaskTitle);
-      toast.success("Task updated!");
+      logActivity('updated task', newTaskTitle);
+      toast.success('Task updated!');
     } else {
       updatedTasks.push({
-        id: "t-" + Date.now(),
+        id: 't-' + Date.now(),
         title: newTaskTitle,
         description: newTaskDescription,
         commitCode: newTaskCommit || undefined,
-        assignee: newTaskAssignee || "Unassigned",
+        assignee: newTaskAssignee || 'Unassigned',
         createdBy: currentUserName,
         updatedBy: currentUserName,
         startDate: formattedStart,
@@ -403,36 +456,23 @@ export default function StaticKanbanBoard({
         priority: newTaskPriority,
         status: newTaskStatus,
       });
-      logActivity("created new task", newTaskTitle);
-      toast.success("New task created!");
+      logActivity('created new task', newTaskTitle);
+      toast.success('New task created!');
 
-      if (newTaskAssignee.includes("@")) {
+      if (newTaskAssignee.includes('@')) {
         try {
-          const loadingToast = toast.loading("Sending email notification...");
-
-          fetch("/api/send-email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+          fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               email: newTaskAssignee,
               taskTitle: newTaskTitle,
-              assigneeName: newTaskAssignee.split("@")[0],
+              assigneeName: newTaskAssignee.split('@')[0],
               assignedBy: currentUserName,
             }),
-          }).then(async (res) => {
-            const response = await res.json();
-            if (res.ok && response.success) {
-              toast.success(`Email notification sent to ${newTaskAssignee}!`, {
-                id: loadingToast,
-              });
-            } else {
-              toast.error("Failed to send email notification.", {
-                id: loadingToast,
-              });
-            }
           });
         } catch (error) {
-          console.error("Email trigger failed", error);
+          console.error('Email trigger failed', error);
         }
       }
     }
@@ -450,11 +490,11 @@ export default function StaticKanbanBoard({
     )
       return;
 
-    if (sortBy !== "manual") {
-      setSortBy("manual");
+    if (sortBy !== 'manual') {
+      setSortBy('manual');
       setActiveViewId(null);
-      toast("Sort method automatically reset to Manual for Drag & Drop", {
-        icon: "ℹ️",
+      toast('Sort method automatically reset to Manual for Drag & Drop', {
+        icon: 'ℹ️',
       });
     }
 
@@ -469,18 +509,22 @@ export default function StaticKanbanBoard({
     };
 
     const destColTasks = newTasks.filter(
-      (t) => t.status === destination.droppableId,
+      (t) => t.status === destination.droppableId
     );
     destColTasks.splice(destination.index, 0, updatedTask);
 
     const finalTasks: Task[] = [];
-    for (const col of COLUMNS) {
+    for (const col of columns) {
       if (col.id === destination.droppableId) finalTasks.push(...destColTasks);
       else finalTasks.push(...newTasks.filter((t) => t.status === col.id));
     }
 
     if (source.droppableId !== destination.droppableId)
-      logActivity(`moved to ${destination.droppableId}`, draggedTask.title);
+      logActivity(
+        `moved to ${columns.find((c) => c.id === destination.droppableId)?.title || 'column'}`,
+        draggedTask.title
+      );
+
     updateTasks(finalTasks);
   };
 
@@ -488,15 +532,15 @@ export default function StaticKanbanBoard({
     const d = new Date(dateString);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - d.getTime()) / 60000);
-    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const parseDateStr = (dateStr?: string) => {
     if (!dateStr) return Infinity;
-    const parts = dateStr.split("/");
+    const parts = dateStr.split('/');
     if (parts.length === 3)
       return new Date(+parts[2], +parts[1] - 1, +parts[0]).getTime();
     return Infinity;
@@ -504,31 +548,30 @@ export default function StaticKanbanBoard({
 
   const handleSaveView = () => {
     const viewName = prompt(
-      "Enter a name for this view (e.g. My Urgent Tasks):",
+      'Enter a name for this view (e.g. My Urgent Tasks):'
     );
     if (!viewName?.trim()) return;
 
     const newView: SavedView = {
-      id: "view-" + Date.now(),
+      id: 'view-' + Date.now(),
       name: viewName,
       filterQuery,
       filterPriority,
       sortBy,
     };
-    const updatedViews = [...savedViews, newView];
-    updateMetadata({ savedViews: updatedViews });
+    updateMetadata({ savedViews: [...savedViews, newView] });
     setActiveViewId(newView.id);
     setIsFilterOpen(false);
     toast.success(`View "${viewName}" saved successfully!`);
-    logActivity("created custom view", viewName);
+    logActivity('created custom view', viewName);
   };
 
   const applyView = (viewId: string | null) => {
     setActiveViewId(viewId);
     if (viewId === null) {
-      setFilterQuery("");
-      setFilterPriority("ALL");
-      setSortBy("manual");
+      setFilterQuery('');
+      setFilterPriority('ALL');
+      setSortBy('manual');
       return;
     }
     const view = savedViews.find((v) => v.id === viewId);
@@ -541,11 +584,10 @@ export default function StaticKanbanBoard({
 
   const handleDeleteView = (e: React.MouseEvent, viewId: string) => {
     e.stopPropagation();
-    if (window.confirm("Are you sure you want to delete this custom view?")) {
-      const updatedViews = savedViews.filter((v) => v.id !== viewId);
-      updateMetadata({ savedViews: updatedViews });
+    if (window.confirm('Are you sure you want to delete this custom view?')) {
+      updateMetadata({ savedViews: savedViews.filter((v) => v.id !== viewId) });
       if (activeViewId === viewId) applyView(null);
-      toast.success("View deleted.");
+      toast.success('View deleted.');
     }
   };
 
@@ -553,12 +595,13 @@ export default function StaticKanbanBoard({
 
   return (
     <div className="absolute inset-0 flex flex-col bg-zinc-50 dark:bg-zinc-950 overflow-hidden transition-colors duration-300">
-      {/* Header Bar */}
       <div className="flex flex-col bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shrink-0 z-10 shadow-xs transition-colors duration-300">
         <div className="flex items-center justify-between p-4 md:px-6 py-4">
           <div className="flex items-center gap-3 md:gap-4">
             <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
-              {t("title")}
+              {typeof metadata.name === 'string' && metadata.name
+                ? metadata.name
+                : t('title')}
             </h2>
             {linkedRepo && (
               <a
@@ -568,20 +611,19 @@ export default function StaticKanbanBoard({
                 className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md text-[10px] font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
               >
                 <CustomGithubIcon className="w-3 h-3" />
-                {linkedRepo.split("/")[1]}
+                {linkedRepo.split('/')[1]}
               </a>
             )}
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
-            {/* Filter */}
             <div className="relative" ref={filterRef}>
               <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={`hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isFilterOpen || filterQuery || filterPriority !== "ALL" ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800" : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800"}`}
+                className={`hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isFilterOpen || filterQuery || filterPriority !== 'ALL' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800' : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
               >
-                <Filter className="w-3.5 h-3.5" /> {t("filter")}
-                {(filterQuery || filterPriority !== "ALL") && (
+                <Filter className="w-3.5 h-3.5" /> {t('filter')}
+                {(filterQuery || filterPriority !== 'ALL') && (
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
                 )}
               </button>
@@ -601,26 +643,26 @@ export default function StaticKanbanBoard({
                             setFilterQuery(e.target.value);
                             setActiveViewId(null);
                           }}
-                          placeholder={t("searchPlaceholder")}
+                          placeholder={t('searchPlaceholder')}
                           className="w-full pl-8 pr-3 py-1.5 text-xs font-medium bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1.5 block">
-                        {t("priorityFilter")}
+                        {t('priorityFilter')}
                       </label>
                       <select
                         value={filterPriority}
                         onChange={(e) => {
                           setFilterPriority(
-                            e.target.value as TaskPriority | "ALL",
+                            e.target.value as TaskPriority | 'ALL'
                           );
                           setActiveViewId(null);
                         }}
                         className="w-full px-2 py-1.5 text-xs font-bold bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       >
-                        <option value="ALL">{t("allPriorities")}</option>
+                        <option value="ALL">{t('allPriorities')}</option>
                         {Object.keys(PRIORITIES).map((p) => (
                           <option key={p} value={p}>
                             {p}
@@ -628,20 +670,19 @@ export default function StaticKanbanBoard({
                         ))}
                       </select>
                     </div>
-
                     <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-1.5">
                       <button
                         onClick={handleSaveView}
                         className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
                       >
-                        <BookmarkPlus className="w-3 h-3" /> {t("saveView")}
+                        <BookmarkPlus className="w-3 h-3" /> {t('saveView')}
                       </button>
-                      {(filterQuery || filterPriority !== "ALL") && (
+                      {(filterQuery || filterPriority !== 'ALL') && (
                         <button
                           onClick={() => applyView(null)}
                           className="w-full py-1.5 text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
                         >
-                          {t("clearFilters")}
+                          {t('clearFilters')}
                         </button>
                       )}
                     </div>
@@ -650,14 +691,13 @@ export default function StaticKanbanBoard({
               )}
             </div>
 
-            {/* Sort */}
             <div className="relative" ref={sortRef}>
               <button
                 onClick={() => setIsSortOpen(!isSortOpen)}
-                className={`hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isSortOpen || sortBy !== "manual" ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800" : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800"}`}
+                className={`hidden sm:flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-xs border ${isSortOpen || sortBy !== 'manual' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800' : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
               >
-                <ArrowUpDown className="w-3.5 h-3.5" /> {t("sort")}
-                {sortBy !== "manual" && (
+                <ArrowUpDown className="w-3.5 h-3.5" /> {t('sort')}
+                {sortBy !== 'manual' && (
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
                 )}
               </button>
@@ -666,33 +706,33 @@ export default function StaticKanbanBoard({
                   <div className="flex flex-col">
                     <button
                       onClick={() => {
-                        setSortBy("manual");
+                        setSortBy('manual');
                         setActiveViewId(null);
                         setIsSortOpen(false);
                       }}
-                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "manual" ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400" : "hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"}`}
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === 'manual' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
                     >
-                      {t("sortManual")}
+                      {t('sortManual')}
                     </button>
                     <button
                       onClick={() => {
-                        setSortBy("priority");
+                        setSortBy('priority');
                         setActiveViewId(null);
                         setIsSortOpen(false);
                       }}
-                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "priority" ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400" : "hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"}`}
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === 'priority' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
                     >
-                      {t("sortPriority")}
+                      {t('sortPriority')}
                     </button>
                     <button
                       onClick={() => {
-                        setSortBy("deadline");
+                        setSortBy('deadline');
                         setActiveViewId(null);
                         setIsSortOpen(false);
                       }}
-                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === "deadline" ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400" : "hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"}`}
+                      className={`px-3 py-2 text-xs font-bold rounded-lg text-left transition-colors ${sortBy === 'deadline' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
                     >
-                      {t("sortDeadline")}
+                      {t('sortDeadline')}
                     </button>
                   </div>
                 </div>
@@ -702,33 +742,31 @@ export default function StaticKanbanBoard({
             <div className="hidden sm:block w-px h-6 bg-zinc-200 dark:bg-zinc-700 mx-1"></div>
             <button
               onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-              className={`flex items-center gap-2 px-3 h-8 rounded-md transition-colors font-bold text-xs border ${isDrawerOpen ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border-zinc-200 dark:border-zinc-700"}`}
+              className={`flex items-center gap-2 px-3 h-8 rounded-md transition-colors font-bold text-xs border ${isDrawerOpen ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-zinc-900 dark:border-zinc-100' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border-zinc-200 dark:border-zinc-700'}`}
             >
-              <Activity className="w-3.5 h-3.5" /> {t("history")}
+              <Activity className="w-3.5 h-3.5" /> {t('history')}
             </button>
           </div>
         </div>
 
-        {/* View Tabs */}
         <div className="flex items-center gap-1 px-4 md:px-6 pb-2 overflow-x-auto custom-scrollbar hide-scrollbar-y">
           <button
             onClick={() => applyView(null)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === null ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === null ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
           >
-            <LayoutDashboard className="w-3.5 h-3.5" /> {t("defaultView")}
+            <LayoutDashboard className="w-3.5 h-3.5" /> {t('defaultView')}
           </button>
-
           {savedViews.map((view) => (
             <div key={view.id} className="flex items-center group relative">
               <button
                 onClick={() => applyView(view.id)}
-                className={`flex items-center pr-6 pl-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === view.id ? "bg-indigo-600 dark:bg-indigo-500 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"}`}
+                className={`flex items-center pr-6 pl-3 py-1.5 text-[11px] font-bold rounded-full transition-colors whitespace-nowrap ${activeViewId === view.id ? 'bg-indigo-600 dark:bg-indigo-500 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'}`}
               >
                 {view.name}
               </button>
               <button
                 onClick={(e) => handleDeleteView(e, view.id)}
-                className={`absolute right-1.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? "hover:bg-indigo-700 text-white" : "hover:bg-red-500 hover:text-white text-zinc-400 dark:text-zinc-500"}`}
+                className={`absolute right-1.5 w-4 h-4 rounded-full flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? 'hover:bg-indigo-700 text-white' : 'hover:bg-red-500 hover:text-white text-zinc-400 dark:text-zinc-500'}`}
               >
                 <X className="w-2.5 h-2.5" />
               </button>
@@ -741,7 +779,7 @@ export default function StaticKanbanBoard({
         <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar h-full">
           <DragDropContext onDragEnd={handleDragEnd}>
             <div className="flex gap-4 md:gap-6 p-4 md:p-6 items-start h-full w-max">
-              {COLUMNS.map((col) => {
+              {columns.map((col) => {
                 const colTasks = tasks
                   .filter((t) => t.status === col.id)
                   .filter((t) => {
@@ -754,19 +792,19 @@ export default function StaticKanbanBoard({
                         return false;
                     }
                     if (
-                      filterPriority !== "ALL" &&
+                      filterPriority !== 'ALL' &&
                       t.priority !== filterPriority
                     )
                       return false;
                     return true;
                   })
                   .sort((a, b) => {
-                    if (sortBy === "priority")
+                    if (sortBy === 'priority')
                       return (
-                        PRIORITY_WEIGHTS[b.priority] -
-                        PRIORITY_WEIGHTS[a.priority]
+                        (PRIORITY_WEIGHTS[b.priority] || 0) -
+                        (PRIORITY_WEIGHTS[a.priority] || 0)
                       );
-                    if (sortBy === "deadline")
+                    if (sortBy === 'deadline')
                       return (
                         parseDateStr(a.deadline) - parseDateStr(b.deadline)
                       );
@@ -793,25 +831,28 @@ export default function StaticKanbanBoard({
                     <Droppable droppableId={col.id}>
                       {(provided, snapshot) => (
                         <div
-                          className={`flex-1 overflow-y-auto p-2 md:p-3 flex flex-col gap-2 md:gap-3 custom-scrollbar transition-colors ${snapshot.isDraggingOver ? "bg-zinc-200/30 dark:bg-zinc-800/30" : ""}`}
+                          className={`flex-1 overflow-y-auto p-2 md:p-3 flex flex-col gap-2 md:gap-3 custom-scrollbar transition-colors ${snapshot.isDraggingOver ? 'bg-zinc-200/30 dark:bg-zinc-800/30' : ''}`}
                           ref={provided.innerRef}
                           {...provided.droppableProps}
                         >
                           {colTasks.map((task, index) => {
                             const isDarkBg = [
-                              "URGENT",
-                              "HIGH",
-                              "MEDIUM",
+                              'URGENT',
+                              'HIGH',
+                              'MEDIUM',
                             ].includes(task.priority);
                             const textColor = isDarkBg
-                              ? "text-white"
-                              : "text-zinc-900";
+                              ? 'text-white'
+                              : 'text-zinc-900';
                             const mutedTextColor = isDarkBg
-                              ? "text-white/80"
-                              : "text-zinc-500";
+                              ? 'text-white/80'
+                              : 'text-zinc-500';
                             const borderColor = isDarkBg
-                              ? "border-white/20"
-                              : "border-zinc-200";
+                              ? 'border-white/20'
+                              : 'border-zinc-200';
+                            const bgColor =
+                              PRIORITIES[task.priority] ||
+                              PRIORITIES['NO PRIORITY'];
 
                             return (
                               <Draggable
@@ -827,31 +868,28 @@ export default function StaticKanbanBoard({
                                     onClick={() => handleEditTask(task)}
                                     style={{
                                       ...provided.draggableProps.style,
-                                      backgroundColor:
-                                        PRIORITIES[task.priority],
+                                      backgroundColor: bgColor,
                                     }}
-                                    className={`rounded-xl shadow-xs flex flex-col overflow-visible cursor-grab active:cursor-grabbing hover:-translate-y-0.5 transition-all ${snapshot.isDragging ? "shadow-2xl scale-105 z-[60] opacity-100" : "opacity-100 scale-100"} ${textColor}`}
+                                    className={`rounded-xl shadow-xs flex flex-col overflow-visible cursor-grab active:cursor-grabbing hover:-translate-y-0.5 transition-all ${snapshot.isDragging ? 'shadow-2xl scale-105 z-60 opacity-100' : 'opacity-100 scale-100'} ${textColor}`}
                                   >
                                     <div className="p-3 md:p-4 flex flex-col gap-2 md:gap-3 relative">
-                                      {/* Menu Toggle */}
                                       <div className="absolute top-2 right-2">
                                         <button
-                                          className={`task-menu-trigger p-1.5 rounded-md transition-colors ${isDarkBg ? "hover:bg-white/20 text-white" : "hover:bg-zinc-200/50 text-zinc-500"}`}
+                                          className={`task-menu-trigger p-1.5 rounded-md transition-colors ${isDarkBg ? 'hover:bg-white/20 text-white' : 'hover:bg-zinc-200/50 text-zinc-500'}`}
                                           onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
                                             setOpenTaskMenu(
                                               openTaskMenu === task.id
                                                 ? null
-                                                : task.id,
+                                                : task.id
                                             );
                                           }}
                                         >
                                           <MoreHorizontal className="w-4 h-4" />
                                         </button>
-
                                         {openTaskMenu === task.id && (
-                                          <div className="task-dropdown-menu absolute right-0 top-full mt-1 w-40 bg-white dark:bg-zinc-800 shadow-xl border border-zinc-200 dark:border-zinc-700 rounded-lg p-1 z-[70] animate-in fade-in zoom-in-95">
+                                          <div className="task-dropdown-menu absolute right-0 top-full mt-1 w-40 bg-white dark:bg-zinc-800 shadow-xl border border-zinc-200 dark:border-zinc-700 rounded-lg p-1 z-70 animate-in fade-in zoom-in-95">
                                             <button
                                               onClick={(e) => {
                                                 e.preventDefault();
@@ -861,8 +899,8 @@ export default function StaticKanbanBoard({
                                               }}
                                               className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 rounded-md transition-colors"
                                             >
-                                              <Edit2 className="w-3.5 h-3.5" />{" "}
-                                              {t("editTask")}
+                                              <Edit2 className="w-3.5 h-3.5" />{' '}
+                                              {t('editTask')}
                                             </button>
                                             <button
                                               onClick={(e) => {
@@ -872,8 +910,8 @@ export default function StaticKanbanBoard({
                                               }}
                                               className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700/50 rounded-md transition-colors"
                                             >
-                                              <Copy className="w-3.5 h-3.5" />{" "}
-                                              {t("duplicate")}
+                                              <Copy className="w-3.5 h-3.5" />{' '}
+                                              {t('duplicate')}
                                             </button>
                                             <div className="w-full h-px bg-zinc-100 dark:bg-zinc-700 my-1"></div>
                                             <button
@@ -882,13 +920,13 @@ export default function StaticKanbanBoard({
                                                 e.stopPropagation();
                                                 handleDeleteTask(
                                                   task.id,
-                                                  task.title,
+                                                  task.title
                                                 );
                                               }}
                                               className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
                                             >
-                                              <Trash2 className="w-3.5 h-3.5" />{" "}
-                                              {t("delete")}
+                                              <Trash2 className="w-3.5 h-3.5" />{' '}
+                                              {t('delete')}
                                             </button>
                                           </div>
                                         )}
@@ -911,16 +949,16 @@ export default function StaticKanbanBoard({
 
                                       <div className="flex flex-col items-start gap-1.5 shrink-0 mt-1">
                                         <span
-                                          className={`text-[8px] md:text-[9px] font-bold px-2 py-0.5 rounded-full border ${isDarkBg ? "bg-white/10 border-white/20" : "bg-zinc-200/50 border-zinc-200"}`}
+                                          className={`text-[8px] md:text-[9px] font-bold px-2 py-0.5 rounded-full border ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-zinc-200/50 border-zinc-200'}`}
                                         >
-                                          {t("for")}{" "}
-                                          {task.assignee.includes("@")
-                                            ? task.assignee.split("@")[0]
+                                          {t('for')}{' '}
+                                          {task.assignee.includes('@')
+                                            ? task.assignee.split('@')[0]
                                             : task.assignee}
                                         </span>
                                         {task.commitCode && (
                                           <span
-                                            className={`px-1.5 py-0.5 rounded text-[8px] md:text-[9px] font-mono font-bold border ${isDarkBg ? "bg-white/10 border-white/20" : "bg-white/50 border-zinc-300"}`}
+                                            className={`px-1.5 py-0.5 rounded text-[8px] md:text-[9px] font-mono font-bold border ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-white/50 border-zinc-300'}`}
                                           >
                                             {task.commitCode}
                                           </span>
@@ -936,7 +974,7 @@ export default function StaticKanbanBoard({
                                           <span
                                             className={`text-[8px] md:text-[9px] font-medium ${mutedTextColor}`}
                                           >
-                                            {t("createdBy")}{" "}
+                                            {t('createdBy')}{' '}
                                             <span className="font-bold">
                                               {task.createdBy}
                                             </span>
@@ -944,7 +982,7 @@ export default function StaticKanbanBoard({
                                           <span
                                             className={`text-[8px] md:text-[9px] font-medium ${mutedTextColor}`}
                                           >
-                                            {t("updatedBy")}{" "}
+                                            {t('updatedBy')}{' '}
                                             <span className="font-bold">
                                               {task.updatedBy}
                                             </span>
@@ -953,12 +991,12 @@ export default function StaticKanbanBoard({
                                         <div className="flex flex-col items-end gap-0.5 text-[9px] md:text-[10px] font-bold">
                                           {task.startDate && (
                                             <span className={mutedTextColor}>
-                                              {t("start")}: {task.startDate}
+                                              {t('start')}: {task.startDate}
                                             </span>
                                           )}
                                           {task.deadline && (
                                             <span className={mutedTextColor}>
-                                              {t("deadline")}: {task.deadline}
+                                              {t('deadline')}: {task.deadline}
                                             </span>
                                           )}
                                         </div>
@@ -974,7 +1012,7 @@ export default function StaticKanbanBoard({
                             onClick={() => handleOpenAddModal(col.id)}
                             className="mt-1 md:mt-2 w-full flex items-center justify-center gap-2 py-2 md:py-3 rounded-xl text-xs font-extrabold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 transition-all border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
                           >
-                            {t("addTask")}
+                            {t('addTask')}
                           </button>
                         </div>
                       )}
@@ -986,22 +1024,21 @@ export default function StaticKanbanBoard({
           </DragDropContext>
         </div>
 
-        {/* History Drawer */}
         {isDrawerOpen && (
           <div className="w-[85vw] sm:w-80 shrink-0 bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col h-full absolute md:relative right-0 z-40 animate-in slide-in-from-right duration-300">
             <div className="p-2 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50 shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-1 bg-zinc-200/50 dark:bg-zinc-800 p-1 rounded-lg">
                 <button
-                  onClick={() => setDrawerTab("activity")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${drawerTab === "activity" ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"}`}
+                  onClick={() => setDrawerTab('activity')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${drawerTab === 'activity' ? 'bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                 >
-                  <Activity className="w-3.5 h-3.5" /> {t("activity")}
+                  <Activity className="w-3.5 h-3.5" /> {t('activity')}
                 </button>
                 <button
-                  onClick={() => setDrawerTab("github")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${drawerTab === "github" ? "bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"}`}
+                  onClick={() => setDrawerTab('github')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all ${drawerTab === 'github' ? 'bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                 >
-                  <GitCommitHorizontal className="w-3.5 h-3.5" /> {t("commits")}
+                  <GitCommitHorizontal className="w-3.5 h-3.5" /> {t('commits')}
                 </button>
               </div>
               <button
@@ -1011,13 +1048,12 @@ export default function StaticKanbanBoard({
                 <X className="w-4 h-4" />
               </button>
             </div>
-
             <div className="p-5 flex-1 overflow-y-auto bg-white dark:bg-zinc-900 custom-scrollbar relative">
-              {drawerTab === "activity" && (
+              {drawerTab === 'activity' && (
                 <div className="space-y-5 relative">
                   {activityLogs.length === 0 ? (
                     <div className="text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 mt-10 bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700">
-                      {t("noActivity")}
+                      {t('noActivity')}
                     </div>
                   ) : (
                     <>
@@ -1031,8 +1067,8 @@ export default function StaticKanbanBoard({
                             <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
                               <span className="font-bold text-zinc-900 dark:text-white">
                                 {log.user}
-                              </span>{" "}
-                              {log.action}{" "}
+                              </span>{' '}
+                              {log.action}{' '}
                               <span className="font-semibold text-zinc-800 dark:text-zinc-300">
                                 {log.target}
                               </span>
@@ -1047,8 +1083,7 @@ export default function StaticKanbanBoard({
                   )}
                 </div>
               )}
-
-              {drawerTab === "github" && (
+              {drawerTab === 'github' && (
                 <div className="space-y-4">
                   {!linkedRepo ? (
                     <div className="flex flex-col items-center text-center mt-6 bg-zinc-50 dark:bg-zinc-950 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800">
@@ -1056,10 +1091,10 @@ export default function StaticKanbanBoard({
                         <Link2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                       </div>
                       <h4 className="text-xs font-extrabold text-zinc-900 dark:text-white">
-                        {t("linkRepo")}
+                        {t('linkRepo')}
                       </h4>
                       <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1.5 mb-4 leading-relaxed">
-                        {t("linkRepoDesc")}
+                        {t('linkRepoDesc')}
                       </p>
                       <div className="w-full space-y-2">
                         <input
@@ -1074,7 +1109,7 @@ export default function StaticKanbanBoard({
                           disabled={!repoInput}
                           className="w-full py-2 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 disabled:opacity-50"
                         >
-                          {t("connect")}
+                          {t('connect')}
                         </button>
                       </div>
                     </div>
@@ -1083,7 +1118,7 @@ export default function StaticKanbanBoard({
                       <div className="mb-4 flex items-center justify-between bg-zinc-50 dark:bg-zinc-950 px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800">
                         <div className="flex flex-col truncate">
                           <span className="text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
-                            {t("connectedTo")}
+                            {t('connectedTo')}
                           </span>
                           <span className="text-[11px] font-bold text-zinc-900 dark:text-white truncate">
                             {linkedRepo}
@@ -1096,19 +1131,18 @@ export default function StaticKanbanBoard({
                           <Unlink className="w-3.5 h-3.5" />
                         </button>
                       </div>
-
                       <div className="space-y-5 relative">
                         <div className="absolute left-[11px] top-4 bottom-4 w-px bg-zinc-100 dark:bg-zinc-800"></div>
                         {isCommitsLoading ? (
                           <div className="flex flex-col items-center justify-center py-10 text-zinc-400 dark:text-zinc-500">
                             <Loader2 className="w-5 h-5 animate-spin mb-2" />
                             <span className="text-[10px] font-bold uppercase tracking-widest">
-                              {t("fetching")}
+                              {t('fetching')}
                             </span>
                           </div>
                         ) : commits.length === 0 ? (
                           <div className="text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700">
-                            {t("noCommits")}
+                            {t('noCommits')}
                           </div>
                         ) : (
                           commits.map((commit) => (
@@ -1120,18 +1154,18 @@ export default function StaticKanbanBoard({
                                 <GitCommitHorizontal className="w-3 h-3" />
                               </div>
                               <div>
-                                <p className="text-[11px] font-bold text-zinc-900 dark:text-white break-words line-clamp-2">
+                                <p className="text-[11px] font-bold text-zinc-900 dark:text-white wrap-break-word line-clamp-2">
                                   {commit.message}
                                 </p>
                                 <p className="text-[9px] font-medium text-zinc-500 dark:text-zinc-400 mt-1">
-                                  by{" "}
+                                  by{' '}
                                   <b className="text-zinc-700 dark:text-zinc-300">
                                     {commit.author}
-                                  </b>{" "}
-                                  •{" "}
+                                  </b>{' '}
+                                  •{' '}
                                   {new Date(commit.date).toLocaleDateString(
-                                    "en-US",
-                                    { month: "short", day: "numeric" },
+                                    'en-US',
+                                    { month: 'short', day: 'numeric' }
                                   )}
                                 </p>
                               </div>
@@ -1148,14 +1182,13 @@ export default function StaticKanbanBoard({
         )}
       </div>
 
-      {/* Add/Edit Modal */}
-      {isAddModalOpen && isClient && typeof document !== "undefined"
+      {isAddModalOpen && isClient && typeof document !== 'undefined'
         ? createPortal(
-            <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-zinc-950/60 backdrop-blur-sm sm:p-4">
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-zinc-950/60 backdrop-blur-sm sm:p-4">
               <div className="bg-white dark:bg-zinc-900 rounded-t-[32px] sm:rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 border border-zinc-200 dark:border-zinc-800">
                 <div className="p-5 md:p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-950/50 shrink-0">
                   <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 dark:text-white">
-                    {editingTaskId ? t("modalTitleEdit") : t("modalTitleNew")}
+                    {editingTaskId ? t('modalTitleEdit') : t('modalTitleNew')}
                   </h2>
                   <button
                     onClick={() => setIsAddModalOpen(false)}
@@ -1172,7 +1205,7 @@ export default function StaticKanbanBoard({
                 >
                   <div>
                     <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
-                      {t("modalTitle")}
+                      {t('modalTitle')}
                     </label>
                     <input
                       required
@@ -1183,10 +1216,9 @@ export default function StaticKanbanBoard({
                       className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:outline-none"
                     />
                   </div>
-
                   <div>
                     <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
-                      {t("modalDesc")}
+                      {t('modalDesc')}
                     </label>
                     <textarea
                       rows={2}
@@ -1199,7 +1231,7 @@ export default function StaticKanbanBoard({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
                     <div>
                       <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
-                        {t("modalPriority")}
+                        {t('modalPriority')}
                       </label>
                       <select
                         value={newTaskPriority}
@@ -1215,10 +1247,9 @@ export default function StaticKanbanBoard({
                         ))}
                       </select>
                     </div>
-
                     <div className="relative">
                       <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
-                        {t("modalAssignee")}
+                        {t('modalAssignee')}
                       </label>
                       <input
                         type="text"
@@ -1229,7 +1260,7 @@ export default function StaticKanbanBoard({
                           setTimeout(() => setShowAssigneeDropdown(false), 200)
                         }
                         className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-                        placeholder={t("modalAssigneePlaceholder")}
+                        placeholder={t('modalAssigneePlaceholder')}
                       />
                       {showAssigneeDropdown && collaborators.length > 0 && (
                         <div className="absolute top-full mt-1 left-0 right-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-xl overflow-hidden z-50 max-h-40 overflow-y-auto">
@@ -1237,7 +1268,7 @@ export default function StaticKanbanBoard({
                             .filter((c) =>
                               c.email
                                 .toLowerCase()
-                                .includes(newTaskAssignee.toLowerCase()),
+                                .includes(newTaskAssignee.toLowerCase())
                             )
                             .map((c, i) => (
                               <div
@@ -1257,12 +1288,10 @@ export default function StaticKanbanBoard({
                         </div>
                       )}
                     </div>
-
                     <div className="col-span-1 md:col-span-2 bg-zinc-50 dark:bg-zinc-950/50 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
                       <label className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
-                        {t("modalCommit")}
+                        {t('modalCommit')}
                       </label>
-
                       {linkedRepo && commits.length > 0 ? (
                         <select
                           value={newTaskCommit}
@@ -1274,9 +1303,9 @@ export default function StaticKanbanBoard({
                           </option>
                           {commits.map((c) => (
                             <option key={c.sha} value={c.sha}>
-                              {c.sha} -{" "}
+                              {c.sha} -{' '}
                               {c.message.length > 50
-                                ? c.message.substring(0, 50) + "..."
+                                ? c.message.substring(0, 50) + '...'
                                 : c.message}
                             </option>
                           ))}
@@ -1287,7 +1316,7 @@ export default function StaticKanbanBoard({
                           value={newTaskCommit}
                           onChange={(e) => setNewTaskCommit(e.target.value)}
                           className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900"
-                          placeholder={t("modalCommitPlaceholder")}
+                          placeholder={t('modalCommitPlaceholder')}
                         />
                       )}
                     </div>
@@ -1296,7 +1325,7 @@ export default function StaticKanbanBoard({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
                     <div className="relative">
                       <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">
-                        {t("modalStart")}
+                        {t('modalStart')}
                       </label>
                       <button
                         type="button"
@@ -1308,8 +1337,8 @@ export default function StaticKanbanBoard({
                       >
                         <span>
                           {startDateObj
-                            ? startDateObj.toLocaleDateString("en-GB")
-                            : "Date"}
+                            ? startDateObj.toLocaleDateString('en-GB')
+                            : 'Date'}
                         </span>
                         {startDateObj && (
                           <span
@@ -1336,10 +1365,9 @@ export default function StaticKanbanBoard({
                         </div>
                       )}
                     </div>
-
                     <div className="relative">
                       <label className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block">
-                        {t("modalDeadline")}
+                        {t('modalDeadline')}
                       </label>
                       <button
                         type="button"
@@ -1351,8 +1379,8 @@ export default function StaticKanbanBoard({
                       >
                         <span>
                           {deadlineObj
-                            ? deadlineObj.toLocaleDateString("en-GB")
-                            : "Date"}
+                            ? deadlineObj.toLocaleDateString('en-GB')
+                            : 'Date'}
                         </span>
                         {deadlineObj && (
                           <span
@@ -1387,19 +1415,19 @@ export default function StaticKanbanBoard({
                       onClick={() => setIsAddModalOpen(false)}
                       className="px-5 py-3 sm:py-2 text-sm font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                     >
-                      {t("cancel")}
+                      {t('cancel')}
                     </button>
                     <button
                       type="submit"
                       className="px-8 sm:px-6 py-3 sm:py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-bold rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-100 shadow-md flex-1 sm:flex-none transition-colors"
                     >
-                      {editingTaskId ? t("save") : t("create")}
+                      {editingTaskId ? t('save') : t('create')}
                     </button>
                   </div>
                 </form>
               </div>
             </div>,
-            document.body,
+            document.body
           )
         : null}
     </div>
