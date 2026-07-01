@@ -97,6 +97,11 @@ export default function ItemSidebar() {
 
         if (finalData && finalData.type) {
           const store = useCanvasStore.getState();
+
+          if (finalData.metadata && store.updateMetadata) {
+            store.updateMetadata(finalData.metadata);
+          }
+
           if (store.addGeneratedPage) {
             store.addGeneratedPage({
               ...finalData,

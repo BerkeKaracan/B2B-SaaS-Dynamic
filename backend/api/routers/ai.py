@@ -77,44 +77,56 @@ async def generate_canvas(req: GenerateCanvasRequest):
     client = AsyncGroq(api_key=api_key)
     
     system_prompt = f"""You are an expert AI Canvas Architect for a B2B SaaS application.
-    The user will describe a workspace, process, or dashboard they want to create.
+    The user will describe a workspace, process, database, or dashboard they want to create.
     You MUST return ONLY a valid JSON object representing a SINGLE Page.
     
-    --- UNDERSTAND PAGE vs BLOCKS ---
-    1. PAGE TEMPLATES: If the request is for a standard workflow, process, or diagram, use one of these page types: 
-       "kanban", "notes", "document", "agenda", "database", "whiteboard", "mindmap", "retrospective". 
-       For these templates, you DO NOT need to generate blocks (leave "blocks" array empty).
+    --- PAGE TEMPLATES & CUSTOM PAGES ---
+    1. STANDARD TEMPLATES: "kanban", "notes", "document", "database", "whiteboard", "mindmap", "retrospective", "timeline".
+       - For these, set "type" to the template name. 
+       - You MUST populate their initial data CREATIVELY inside a "metadata" object! Provide realistic, industry-specific mock data based on the user's prompt.
        
-    2. CUSTOM PAGES: If the request requires a custom layout (e.g., a survey form, a dashboard, a mix of text and inputs), 
-       use page type "empty" and add appropriate items to the "blocks" array.
-    
-    ALLOWED BLOCK TYPES: "text", "form", "date", "container", "dropdown", "checkbox", "badge_selector", "asset_stream"
-    
+       * DATABASE Example Data Structure (Inside "metadata"):
+         "databaseTitle": "<Creative Database Title>",
+         "databaseProperties": [
+            {{"id": "prop-1", "name": "Task Name", "type": "text"}},
+            {{"id": "prop-2", "name": "Status", "type": "select"}},
+            {{"id": "prop-3", "name": "Deadline", "type": "date"}},
+            {{"id": "prop-4", "name": "Budget", "type": "number"}}
+         ],
+         "databaseRows": [
+            {{"id": "row-1", "prop-1": "Q3 Marketing Campaign", "prop-2": "In Progress", "prop-3": "2024-09-15", "prop-4": 50000}},
+            {{"id": "row-2", "prop-1": "Website Redesign", "prop-2": "Pending", "prop-3": "2024-10-01", "prop-4": 12000}}
+         ]
+         
+       * KANBAN Example Data Structure (Inside "metadata"):
+         "kanbanColumns": [{{"id": "col-1", "title": "To Do"}}, {{"id": "col-2", "title": "In Progress"}}],
+         "kanbanTasks": [{{"id": "task-1", "columnId": "col-1", "content": "Design Homepage"}}]
+
+    2. CUSTOM PAGES (Blank Canvas with Blocks): 
+       - Use "type": "empty".
+       - Populate the "blocks" array creatively.
+       - ALLOWED BLOCK TYPES: "text", "form", "date", "dropdown", "checkbox", "badge_selector", "asset_stream".
+       - CRITICAL: Space out blocks vertically! Increment 'y' by 145 for each new block.
+
     JSON STRUCTURE MUST BE EXACTLY THIS:
     {{
         "type": "<PAGE_TYPE>",
-        "title": "<A suitable professional title for this board>",
+        "title": "<A creative, relevant professional title>",
         "x": {req.x},
         "y": {req.y},
         "width": 1000,
         "height": 800,
+        "metadata": {{
+            // POPULATE databaseProperties, databaseRows, databaseTitle, kanbanColumns, etc. HERE!
+        }},
         "blocks": [
-// CRITICAL: Increment 'y' by EXACTLY 145 for each new block (e.g., first block y: 40, second y: 180, third y: 320). THEY MUST NOT OVERLAP!            {{
-                "type": "<BLOCK_TYPE>",
-                "value": "<Content or placeholder>",
-                "x": 40,
-                "y": 40, 
-                "width": 300,
-                "height": 100,
-                "settings": {{}}
-            }}
+            // ONLY if type is "empty".
         ]
     }}
     
     CRITICAL RULES: 
-    - Output RAW JSON ONLY. 
-    - DO NOT wrap the output in Markdown tags.
-    - DO NOT include IDs.
+    - Output RAW JSON ONLY. DO NOT wrap the output in Markdown tags like ```json.
+    - BE HIGHLY CREATIVE! Generate at least 5 properties and 6 rows of rich, professional mock data if a database is requested.
     """
     
     try:
@@ -124,17 +136,15 @@ async def generate_canvas(req: GenerateCanvasRequest):
                 {"role": "user", "content": req.prompt}
             ],
             model="llama-3.3-70b-versatile",
-            temperature=0.3, 
-            max_tokens=2048,
+            temperature=0.5, 
+            max_tokens=2500,
             response_format={"type": "json_object"}
         )
         
         result_text = chat_completion.choices[0].message.content.strip()
-        
         result_text = re.sub(r'^`{3}(?:json)?|`{3}$', '', result_text, flags=re.IGNORECASE).strip()
         
-        start_idx = -1
-        end_idx = -1
+        start_idx, end_idx = -1, -1
         
         for i, char in enumerate(result_text):
             if char in ['{', '[']:
