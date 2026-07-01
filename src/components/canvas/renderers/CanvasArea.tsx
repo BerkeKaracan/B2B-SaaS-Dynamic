@@ -26,6 +26,7 @@ import DocumentBoard from '@/components/document/DocumentBoard';
 import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
 import MindMapBoard from '@/components/mindmap/MindMapBoard';
 import TimelineBoard from '@/components/timeline/TimelineBoard';
+import DatabaseBoard from '@/components/database/DatabaseBoard';
 
 import { useCanvasCollaboration } from '@/hooks/useCanvasCollaboration';
 import { useZustandYjsSync } from '@/hooks/useZustandYjsSync';
@@ -1053,6 +1054,10 @@ export default function CanvasArea() {
               ) : page.type === 'timeline' ? (
                 <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
                   <TimelineBoard projectId={page.id} />
+                </div>
+              ) : page.type === 'database' ? (
+                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
+                  <DatabaseBoard projectId={page.id} />
                 </div>
               ) : (
                 <div className="canvas-bg relative w-full h-full p-6 flex-1 overflow-visible">
