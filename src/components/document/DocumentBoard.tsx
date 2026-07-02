@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useTranslations } from "next-intl";
-import { useCanvasStore } from "@/store/useCanvasStore";
+import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
+import { useCanvasStore } from '@/store/useCanvasStore';
 import {
   Image as ImageIcon,
   Smile,
@@ -11,16 +11,21 @@ import {
   Clock,
   Share,
   Globe,
-} from "lucide-react";
+} from 'lucide-react';
 
 export default function DocumentBoard({ projectId }: { projectId: string }) {
-  const t = useTranslations("DocumentBoard");
-  const { updatePageTitle, pages } = useCanvasStore();
+  const t = useTranslations('DocumentBoard');
+
+  const { updatePageTitle, pages, metadata, updateMetadata } = useCanvasStore();
 
   const currentPage = pages.find((p) => p.id === projectId);
 
-  const [title, setTitle] = useState(currentPage?.title || "");
-  const [content, setContent] = useState("");
+  const [title, setTitle] = useState(
+    (metadata.documentTitle as string) || currentPage?.title || ''
+  );
+  const [content, setContent] = useState(
+    (metadata.documentContent as string) || ''
+  );
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -28,14 +33,24 @@ export default function DocumentBoard({ projectId }: { projectId: string }) {
     setIsClient(true);
   }, []);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (metadata.documentTitle) setTitle(metadata.documentTitle as string);
+    if (metadata.documentContent)
+      setContent(metadata.documentContent as string);
+  }, [metadata.documentTitle, metadata.documentContent]);
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle);
-    updatePageTitle(projectId, newTitle || "Untitled Document");
+    updatePageTitle(projectId, newTitle || 'Untitled Document');
+    updateMetadata({ documentTitle: newTitle });
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value);
+    const newContent = e.target.value;
+    setContent(newContent);
+    updateMetadata({ documentContent: newContent });
   };
 
   if (!isClient) return null;
@@ -44,23 +59,23 @@ export default function DocumentBoard({ projectId }: { projectId: string }) {
 
   return (
     <div className="absolute inset-0 flex flex-col bg-white dark:bg-[#191919] transition-colors duration-300 overflow-y-auto custom-scrollbar cursor-text">
-      {/* Top Navigation Bar (Notion Style) */}
+      {/* Top Navigation Bar */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-4 lg:px-12 py-3 bg-white/80 dark:bg-[#191919]/80 backdrop-blur-md">
         <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
           <Clock className="w-3.5 h-3.5" />
-          <span>{t("lastEdited")}</span>
+          <span>{t('lastEdited')}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-zinc-400 mr-2">
-            {wordCount} {t("wordCount")}
+            {wordCount} {t('wordCount')}
           </span>
           <button className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors">
             <Share className="w-3.5 h-3.5" />
-            {t("share")}
+            {t('share')}
           </button>
           <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-blue-500 hover:bg-blue-600 rounded-md transition-colors">
             <Globe className="w-3.5 h-3.5" />
-            {t("publish")}
+            {t('publish')}
           </button>
           <button className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors">
             <MoreHorizontal className="w-4 h-4" />
@@ -74,15 +89,15 @@ export default function DocumentBoard({ projectId }: { projectId: string }) {
         <div className="flex items-center gap-4 mb-6 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity">
           <button className="flex items-center gap-1.5 text-sm font-medium text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
             <ImageIcon className="w-4 h-4" />
-            {t("addCover")}
+            {t('addCover')}
           </button>
           <button className="flex items-center gap-1.5 text-sm font-medium text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
             <Smile className="w-4 h-4" />
-            {t("addIcon")}
+            {t('addIcon')}
           </button>
           <button className="flex items-center gap-1.5 text-sm font-medium text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors">
             <MessageSquare className="w-4 h-4" />
-            {t("addComment")}
+            {t('addComment')}
           </button>
         </div>
 
@@ -91,7 +106,7 @@ export default function DocumentBoard({ projectId }: { projectId: string }) {
           type="text"
           value={title}
           onChange={handleTitleChange}
-          placeholder={t("titlePlaceholder")}
+          placeholder={t('titlePlaceholder')}
           className="w-full text-4xl sm:text-5xl font-bold bg-transparent text-zinc-900 dark:text-zinc-100 border-none outline-none placeholder:text-zinc-200 dark:placeholder:text-zinc-800 mb-6 resize-none leading-tight"
         />
 
@@ -99,9 +114,9 @@ export default function DocumentBoard({ projectId }: { projectId: string }) {
         <textarea
           value={content}
           onChange={handleContentChange}
-          placeholder={t("contentPlaceholder")}
+          placeholder={t('contentPlaceholder')}
           className="w-full min-h-[500px] text-base sm:text-lg bg-transparent text-zinc-800 dark:text-zinc-300 border-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-700 resize-none leading-relaxed"
-          style={{ fieldSizing: "content" }}
+          style={{ fieldSizing: 'content' }}
         />
       </div>
     </div>

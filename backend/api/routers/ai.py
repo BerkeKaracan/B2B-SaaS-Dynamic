@@ -118,6 +118,10 @@ async def generate_canvas(req: GenerateCanvasRequest):
             {{"id": "text-3", "x": 100, "y": 220, "content": "- Set budget: $50K\n- Assign team", "color": "#3b82f6", "size": 24, "font": "Inter"}}
          ],
          "notepadStrokes": []
+    
+      * DOCUMENT Example Data Structure (Inside "metadata"):
+         "documentTitle": "Project Requirements Document",
+         "documentContent": "## Overview\nThis document outlines the core objectives of the project.\n\n## Goals\n- Increase user retention by 20%\n- Optimize loading speeds."
 
     2. CUSTOM PAGES (Blank Canvas with Blocks): 
        - Use "type": "empty".
