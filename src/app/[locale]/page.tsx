@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Footer from '@/components/layout/Footer';
 import { useTranslations } from 'next-intl';
@@ -32,9 +32,47 @@ export default function LandingPage() {
 
   const t = useTranslations('LandingPage');
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
+
   return (
     <div className="relative min-h-screen bg-[#fafafb] text-zinc-900 font-sans antialiased selection:bg-zinc-200 flex flex-col overflow-hidden">
       <ColdStartAlert />
+
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-[1]">
+        <div
+          className={`absolute -top-32 -left-32 w-96 h-96 border-[3px] border-dashed border-zinc-200 rounded-full transition-opacity duration-1000 ease-in-out ${isMounted ? 'opacity-40 animate-[spin_40s_linear_infinite] pulse-slow' : 'opacity-0'}`}
+        ></div>
+
+        <div
+          className={`absolute top-[30%] -right-20 w-80 h-80 border-2 border-zinc-200 rounded-[3rem] rotate-12 transition-opacity duration-1000 delay-300 ease-in-out ${isMounted ? 'opacity-50 animate-[pulse_5s_ease-in-out_infinite]' : 'opacity-0'}`}
+        ></div>
+
+        <div
+          className={`absolute bottom-[20%] left-10 w-48 h-48 border-2 border-dashed border-zinc-300 rounded-3xl -rotate-6 transition-opacity duration-1000 delay-500 ease-in-out ${isMounted ? 'opacity-40 animate-[spin_50s_linear_infinite_reverse] pulse-slower' : 'opacity-0'}`}
+        ></div>
+
+        <div
+          className={`absolute -bottom-40 left-1/2 -translate-x-1/2 w-[600px] h-64 border border-zinc-200 rounded-full transition-opacity duration-1000 delay-700 ease-in-out ${isMounted ? 'opacity-30 animate-[pulse_7s_ease-in-out_infinite]' : 'opacity-0'}`}
+        ></div>
+
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+          .pulse-slow { animation: customPulse 8s ease-in-out infinite; }
+          .pulse-slower { animation: customPulse 12s ease-in-out infinite alternate; }
+          @keyframes customPulse {
+            0%, 100% { opacity: 0.1; transform: scale(0.95); }
+            50% { opacity: 0.6; transform: scale(1.05); }
+          }
+        `,
+          }}
+        />
+      </div>
+
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center transform-gpu will-change-transform">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)] bg-size-[4rem_4rem] mask-[radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] opacity-[0.3] transform-gpu"></div>
         <svg
