@@ -183,6 +183,12 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
         
         limits = {"basic": 3, "advanced": 50, "pro": float('inf')}
         limit = limits.get(current_tier, 3)
+
+        if request.role and request.role.lower() == "owner":
+            raise HTTPException(
+                status_code=400, 
+                detail="Cannot invite a user directly as an 'owner'. Invite them as an admin or employee, then transfer ownership."
+            )
         
         request_email = request.email.lower().strip()
         

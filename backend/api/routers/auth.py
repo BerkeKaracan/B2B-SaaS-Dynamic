@@ -122,12 +122,7 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
         target_tenant_id = ""
         
         if tenant_user_res.data:
-            for row in tenant_user_res.data:
-                if row.get("role") == "owner":
-                    target_tenant_id = row["tenant_id"]
-                    break
-                    
-            if not target_tenant_id and len(tenant_user_res.data) > 0:
+            if tenant_user_res.data and len(tenant_user_res.data) > 0:
                 target_tenant_id = tenant_user_res.data[0]["tenant_id"]
         
         return LoginResponse(
@@ -199,10 +194,10 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
 
         try:
             query = supabase_admin.table("tenant_users").select("tenant_id, role, custom_role_id, department_id").eq("user_id", user_res.user.id)
-            if current_tenant_id:
+            if current_tenant_id and current_tenant_id not in ["undefined", "null"]:
                 query = query.eq("tenant_id", current_tenant_id)
             else:
-                query = query.order("created_at")
+                query = query.order("created_at", desc=True)
                 
             role_res = query.execute()
             if role_res.data:
