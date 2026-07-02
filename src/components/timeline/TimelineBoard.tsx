@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'next/navigation';
 import { fetchAPI } from '@/services/api';
+// EKLENDİ: Mağazayı sadece gerekli parçalarla çekmek için import
+import { useCanvasStore } from '@/store/useCanvasStore';
 import {
   DragDropContext,
   Droppable,
@@ -26,6 +28,7 @@ import {
   Trash2,
   Edit2,
   Loader2,
+  ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -100,17 +103,26 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   const params = useParams();
   const tenantId = params.tenantId as string;
 
+  // EKLENDİ: Performans için tüm metadata yerine sadece gerekli verileri seçiyoruz
+  const updateMetadata = useCanvasStore((state) => state.updateMetadata);
+  const metadataEvents = useCanvasStore(
+    (state) => state.metadata.timelineEvents as TimelineEvent[]
+  );
+  const metadataName = useCanvasStore((state) => state.metadata.name);
+
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [savedViews, setSavedViews] = useState<TimelineSavedView[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [timelineRecordId, setTimelineRecordId] = useState<string | null>(null);
 
-  const [columns] = useState(generateNextDays(30));
+  // EKLENDİ: İstenilene kadar gün sayısını artırabilmek için dinamik state
+  const [daysCount, setDaysCount] = useState(30);
+  const columns = useMemo(() => generateNextDays(daysCount), [daysCount]);
+
   const [isClient, setIsClient] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
-
   const [openEventMenu, setOpenEventMenu] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<TimelineEvent>>({
@@ -132,6 +144,9 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
+
+  // EKLENDİ: Sonsuz render döngüsünü kıran güvenlik kilidi
+  const isInternalUpdate = useRef(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -160,6 +175,35 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
     };
     fetchTimelineData();
   }, [tenantId, projectId]);
+
+  // EKLENDİ: Yapay zekadan veya başka bir yerden veri geldiğinde çalışır
+  useEffect(() => {
+    if (isInternalUpdate.current) {
+      isInternalUpdate.current = false;
+      return; // Biz sürükle-bırak yaptıysak kodu çalıştırma (FPS kurtarıcı)
+    }
+
+    if (metadataEvents) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setEvents(metadataEvents);
+
+      if (metadataEvents.length > 0) {
+        const sortedDates = metadataEvents
+          .map((e) => new Date(e.monthKey).getTime())
+          .sort((a, b) => b - a);
+        const furthestDate = new Date(sortedDates[0]);
+        const today = new Date();
+        const diffTime = Math.abs(furthestDate.getTime() - today.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays > daysCount) {
+          // Maksimum 60 güne kadar otomatik genişlet (Tarayıcı çökmesini engeller)
+          setDaysCount(Math.min(diffDays + 15, 60));
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metadataEvents]);
 
   const syncDataToDB = async (
     newEvents: TimelineEvent[],
@@ -221,6 +265,8 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
 
   const updateEvents = (newEvents: TimelineEvent[]) => {
     setEvents(newEvents);
+    isInternalUpdate.current = true; // Kilit devreye girer
+    updateMetadata({ timelineEvents: newEvents }); // Mağazayı sorunsuzca günceller
     syncDataToDB(newEvents, savedViews);
   };
 
@@ -416,7 +462,9 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
       <div className="flex flex-col bg-white border-b border-zinc-200 shrink-0 z-10 shadow-xs">
         <div className="flex items-center justify-between p-4 md:px-6 py-4">
           <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 tracking-tight">
-            Timeline Planning
+            {typeof metadataName === 'string' && metadataName
+              ? metadataName
+              : 'Timeline Planning'}
           </h2>
           <div className="flex items-center gap-2 md:gap-3">
             <div className="relative" ref={filterRef}>
@@ -891,6 +939,23 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
                   </div>
                 );
               })}
+
+              {/* EKLENDİ: İleri tarihleri istenildiği kadar yüklemek için buton */}
+              <div className="w-[120px] shrink-0 flex items-center justify-center h-full pb-10">
+                <button
+                  onClick={() => setDaysCount((prev) => prev + 30)}
+                  className="flex flex-col items-center justify-center gap-2 p-4 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl border-2 border-dashed border-zinc-200 hover:border-indigo-200 transition-all h-[200px]"
+                >
+                  <ChevronRight size={32} strokeWidth={2.5} />
+                  <span className="text-xs font-black uppercase tracking-widest text-center">
+                    Load
+                    <br />
+                    More
+                    <br />
+                    Days
+                  </span>
+                </button>
+              </div>
             </div>
           </DragDropContext>
         </div>

@@ -4,6 +4,7 @@ import re
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from groq import AsyncGroq  
+from datetime import datetime
 
 router = APIRouter(
     prefix="/api/ai",
@@ -75,10 +76,13 @@ async def generate_canvas(req: GenerateCanvasRequest):
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing")
 
     client = AsyncGroq(api_key=api_key)
+    current_date = datetime.now().strftime("%Y-%m-%d")
     
     system_prompt = f"""You are an expert AI Canvas Architect for a B2B SaaS application.
     The user will describe a workspace, process, database, or dashboard they want to create.
     You MUST return ONLY a valid JSON object representing a SINGLE Page.
+
+    CRITICAL TEMPORAL CONTEXT: Today's date is {current_date}.
     
     --- PAGE TEMPLATES & CUSTOM PAGES ---
     1. STANDARD TEMPLATES: "kanban", "notes", "document", "database", "whiteboard", "mindmap", "retrospective", "timeline".
@@ -123,6 +127,21 @@ async def generate_canvas(req: GenerateCanvasRequest):
          "documentTitle": "Project Requirements Document",
          "documentContent": "## Overview\nThis document outlines the core objectives of the project.\n\n## Goals\n- Increase user retention by 20%\n- Optimize loading speeds."
 
+      * TIMELINE Example Data Structure (Inside "metadata"):
+         "timelineEvents": [
+            {{"id": "evt-1", "monthKey": "2026-07-15", "title": "Beta Launch", "description": "Release to first 100 users", "priority": "HIGH", "isDetailed": true, "assignee": "Tech Team"}},
+            {{"id": "evt-2", "monthKey": "2026-08-01", "title": "Marketing Push", "description": "Start social media campaigns", "priority": "URGENT", "isDetailed": true, "assignee": "Marketing"}}
+         ]
+
+    Whenever generating data that requires dates (especially TIMELINE events), YOU MUST use {current_date} as your starting reference point. 
+All timeline "monthKey" values MUST be in strict "YYYY-MM-DD" format and should ideally fall within the next 30 to 60 days.
+
+      * TIMELINE Example Data Structure (Inside "metadata"):
+"timelineEvents": [
+   {{"id": "evt-1", "monthKey": "{current_date}", "title": "Project Kickoff", "description": "Initial meeting", "priority": "HIGH", "isDetailed": true, "assignee": "Tech Team"}},
+   {{"id": "evt-2", "monthKey": "2026-07-15", "title": "Beta Launch", "description": "Release to first 100 users", "priority": "URGENT", "isDetailed": true, "assignee": "Marketing"}}
+]
+         
     2. CUSTOM PAGES (Blank Canvas with Blocks): 
        - Use "type": "empty".
        - Populate the "blocks" array creatively.
