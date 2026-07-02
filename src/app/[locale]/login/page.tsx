@@ -1,33 +1,33 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/useAuthStore";
-import Cookies from "js-cookie";
+'use client';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/useAuthStore';
+import Cookies from 'js-cookie';
 
 export default function LoginPage() {
   const router = useRouter();
   const fetchUser = useAuthStore((state) => state.fetchUser);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [isChecking, setIsChecking] = useState(true);
 
   const redirectUser = async (tenantId: string, token: string) => {
     const host = window.location.hostname;
-    const isLocal = host.includes("localhost");
-    const baseDomain = isLocal ? "localhost" : "b2-b-saa-s-dynamic.vercel.app";
+    const isLocal = host.includes('localhost');
+    const baseDomain = isLocal ? 'localhost' : 'b2-b-saa-s-dynamic.vercel.app';
 
     if (host !== baseDomain && host !== `www.${baseDomain}`) {
-      window.location.href = "/";
+      window.location.href = '/';
       return;
     }
 
     try {
       const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -37,14 +37,14 @@ export default function LoginPage() {
         if (data.slug) {
           const protocol = window.location.protocol;
           const port =
-            window.location.port && isLocal ? `:${window.location.port}` : "";
+            window.location.port && isLocal ? `:${window.location.port}` : '';
 
           window.location.href = `${protocol}//${data.slug}.${baseDomain}${port}/login#access_token=${token}&tenant_id=${tenantId}`;
           return;
         }
       }
     } catch (error) {
-      console.error("Subdomain redirection error:", error);
+      console.error('Subdomain redirection error:', error);
     }
 
     router.push(`/dashboard/${tenantId}`);
@@ -53,19 +53,19 @@ export default function LoginPage() {
   useEffect(() => {
     const verifyToken = async () => {
       const hash = window.location.hash;
-      if (hash && hash.includes("access_token=")) {
-        const params = new URLSearchParams(hash.replace("#", "?"));
-        const accessToken = params.get("access_token");
-        const urlTenant = params.get("tenant_id");
+      if (hash && hash.includes('access_token=')) {
+        const params = new URLSearchParams(hash.replace('#', '?'));
+        const accessToken = params.get('access_token');
+        const urlTenant = params.get('tenant_id');
 
         if (accessToken) {
-          Cookies.set("token", accessToken, { expires: 7 });
-          if (urlTenant) Cookies.set("tenant_id", urlTenant, { expires: 7 });
-          window.history.replaceState(null, "", window.location.pathname);
+          Cookies.set('token', accessToken, { expires: 7 });
+          if (urlTenant) Cookies.set('tenant_id', urlTenant, { expires: 7 });
+          window.history.replaceState(null, '', window.location.pathname);
         }
       }
 
-      const token = Cookies.get("token");
+      const token = Cookies.get('token');
       if (!token) {
         setIsChecking(false);
         return;
@@ -73,7 +73,7 @@ export default function LoginPage() {
 
       try {
         const API_BASE_URL =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -81,19 +81,19 @@ export default function LoginPage() {
         if (res.ok) {
           const data = await res.json();
           const tenantId =
-            data.tenant_id || data.user?.tenant_id || Cookies.get("tenant_id");
+            data.tenant_id || data.user?.tenant_id || Cookies.get('tenant_id');
 
-          if (tenantId && tenantId !== "undefined") {
+          if (tenantId && tenantId !== 'undefined') {
             await redirectUser(tenantId, token);
           } else {
-            router.replace("/onboarding");
+            router.replace('/onboarding');
           }
         } else {
-          throw new Error("Invalid token");
+          throw new Error('Invalid token');
         }
       } catch {
-        Cookies.remove("token");
-        Cookies.remove("tenant_id");
+        Cookies.remove('token');
+        Cookies.remove('tenant_id');
         setIsChecking(false);
       }
     };
@@ -103,26 +103,26 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
     setLoading(true);
 
     try {
       const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
       const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.detail || "Authentication failed.");
+        throw new Error(data.detail || 'Authentication failed.');
       }
 
-      Cookies.set("token", data.access_token, { expires: 7 });
+      Cookies.set('token', data.access_token, { expires: 7 });
 
       if (fetchUser) {
         await fetchUser();
@@ -130,19 +130,19 @@ export default function LoginPage() {
 
       const tenantId = data.tenant_id || data.user?.tenant_id;
 
-      if (!tenantId || tenantId === "") {
-        Cookies.remove("tenant_id");
-        router.push("/onboarding");
+      if (!tenantId || tenantId === '') {
+        Cookies.remove('tenant_id');
+        router.push('/onboarding');
         return;
       }
 
-      Cookies.set("tenant_id", tenantId, { expires: 7 });
+      Cookies.set('tenant_id', tenantId, { expires: 7 });
       await redirectUser(tenantId, data.access_token);
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("An unexpected error occurred.");
+        setError('An unexpected error occurred.');
       }
     } finally {
       setLoading(false);
@@ -152,19 +152,29 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     if (!supabaseUrl) {
-      setError("System configuration error: Missing Supabase URL.");
+      setError('System configuration error: Missing Supabase URL.');
       return;
     }
     const redirectTo = encodeURIComponent(`${window.location.origin}/login`);
     window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}`;
   };
 
+  const handleGithubLogin = () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl) {
+      setError('System configuration error: Missing Supabase URL.');
+      return;
+    }
+    const redirectTo = encodeURIComponent(`${window.location.origin}/login`);
+    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=github&redirect_to=${redirectTo}`;
+  };
+
   if (isChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafb]">
         <div className="flex flex-col items-center gap-4">
-          <span className="w-10 h-10 border-4 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></span>
-          <span className="text-xs font-black text-zinc-400 uppercase tracking-widest animate-pulse">
+          <span className="w-10 h-10 border-4 border-zinc-200 border-t-indigo-600 rounded-full animate-spin"></span>
+          <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest animate-pulse">
             Authenticating
           </span>
         </div>
@@ -173,13 +183,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-zinc-50 font-sans text-zinc-900 selection:bg-blue-200 overflow-hidden relative">
+    <div className="min-h-screen flex bg-[#fafafb] font-sans text-zinc-900 selection:bg-indigo-200 overflow-hidden relative">
       <div className="hidden lg:flex flex-col justify-between w-[45%] bg-zinc-950 text-white p-12 relative overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] pointer-events-none"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-size-[3rem_3rem] mask-[radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)]"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-fuchsia-500/10 rounded-full blur-[100px] pointer-events-none"></div>
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 bg-white rounded-[14px] flex items-center justify-center shadow-lg">
             <span className="text-zinc-950 text-sm font-black font-mono">
               B2
             </span>
@@ -190,7 +201,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 w-full max-w-lg mx-auto mt-10">
-          <h1 className="text-5xl font-black leading-[1.05] tracking-tighter mb-6 text-transparent bg-clip-text bg-linear-to-br from-white to-zinc-500">
+          <h1 className="text-5xl font-black leading-[1.05] tracking-tighter mb-6 text-transparent bg-clip-text bg-gradient-to-br from-white to-zinc-500">
             Design your workflow. <br /> Scale your business.
           </h1>
           <p className="text-zinc-400 text-lg leading-relaxed mb-12 font-medium">
@@ -198,46 +209,44 @@ export default function LoginPage() {
             database architecture ever built.
           </p>
 
-          <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800 rounded-3xl p-6 shadow-2xl transform -rotate-2 hover:rotate-0 transition-all duration-500 group">
+          <div className="bg-zinc-900/40 backdrop-blur-xl border border-zinc-800/80 rounded-[2rem] p-6 shadow-2xl transform -rotate-1 hover:rotate-0 transition-all duration-700 group">
             <div className="flex items-center justify-between mb-6 border-b border-zinc-800/80 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]"></span>
                 <span className="text-[11px] font-black text-zinc-300 uppercase tracking-widest">
                   Live Canvas Engine
                 </span>
               </div>
-              <span className="text-[10px] font-bold text-zinc-500 bg-zinc-800 px-2 py-1 rounded-md">
+              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
                 Connected
               </span>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-zinc-800/50 rounded-xl p-4 border border-zinc-700/50 group-hover:border-zinc-600 transition-colors">
+              <div className="bg-zinc-800/30 rounded-2xl p-4 border border-zinc-700/30 group-hover:border-zinc-600/50 transition-colors">
                 <div className="h-2.5 w-1/3 bg-zinc-600 rounded-full mb-3"></div>
-                <div className="h-1.5 w-full bg-zinc-700 rounded-full mb-2"></div>
+                <div className="h-1.5 w-full bg-zinc-700 rounded-full mb-2.5"></div>
                 <div className="h-1.5 w-2/3 bg-zinc-700 rounded-full"></div>
               </div>
-              <div className="bg-zinc-800/50 rounded-xl p-4 border border-zinc-700/50 group-hover:border-zinc-600 transition-colors">
-                <div className="h-2.5 w-1/2 bg-blue-500/50 rounded-full mb-3"></div>
-                <div className="h-1.5 w-full bg-zinc-700 rounded-full mb-2"></div>
+              <div className="bg-zinc-800/30 rounded-2xl p-4 border border-zinc-700/30 group-hover:border-zinc-600/50 transition-colors">
+                <div className="h-2.5 w-1/2 bg-indigo-500/50 rounded-full mb-3"></div>
+                <div className="h-1.5 w-full bg-zinc-700 rounded-full mb-2.5"></div>
                 <div className="h-1.5 w-4/5 bg-zinc-700 rounded-full"></div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="relative z-10 flex items-center justify-between text-[11px] font-black text-zinc-600 uppercase tracking-widest mt-10">
+        <div className="relative z-10 flex items-center justify-between text-[10px] font-black text-zinc-500 uppercase tracking-widest mt-10">
           <span>© {new Date().getFullYear()} SaaS Engine Inc.</span>
           <span>SOC2 Type II Certified</span>
         </div>
       </div>
 
-      <div className="w-full lg:w-[55%] flex items-center justify-center p-6 sm:p-12 relative z-10 bg-[#fafafb] lg:bg-transparent">
-        <div className="absolute hidden lg:block top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[500px] bg-white/50 blur-[80px] rounded-full pointer-events-none"></div>
-
-        <div className="w-full max-w-[420px] relative z-10">
-          <div className="bg-white p-8 sm:p-12 rounded-4xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-zinc-200/60 relative">
+      <div className="w-full lg:w-[55%] flex items-center justify-center p-6 sm:p-12 relative z-10 bg-transparent">
+        <div className="w-full max-w-[440px] relative z-10">
+          <div className="bg-white p-8 sm:p-12 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-zinc-200/80 relative">
             <div className="lg:hidden flex flex-col items-center gap-3 mb-10">
-              <div className="w-12 h-12 bg-zinc-950 rounded-xl flex items-center justify-center shadow-lg border border-zinc-800">
+              <div className="w-12 h-12 bg-zinc-950 rounded-2xl flex items-center justify-center shadow-lg border border-zinc-800">
                 <span className="text-white text-base font-black font-mono">
                   B2
                 </span>
@@ -257,7 +266,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={handleGoogleLogin}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-zinc-200/80 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-700 transition-all shadow-sm"
+                className="flex-1 flex items-center justify-center gap-2.5 px-4 py-3 border border-zinc-200/80 hover:bg-zinc-50 hover:border-zinc-300 rounded-2xl text-[13px] font-bold text-zinc-700 transition-all shadow-sm hover:shadow active:scale-95"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
@@ -281,7 +290,8 @@ export default function LoginPage() {
               </button>
               <button
                 type="button"
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-zinc-200/80 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-700 transition-all shadow-sm"
+                onClick={handleGithubLogin}
+                className="flex-1 flex items-center justify-center gap-2.5 px-4 py-3 border border-zinc-200/80 hover:bg-zinc-50 hover:border-zinc-300 rounded-2xl text-[13px] font-bold text-zinc-700 transition-all shadow-sm hover:shadow active:scale-95"
               >
                 <svg
                   className="w-4 h-4"
@@ -298,7 +308,7 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <div className="relative mb-6">
+            <div className="relative mb-8">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-zinc-200"></div>
               </div>
@@ -310,10 +320,10 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50/50 border border-red-100 text-red-600 text-sm font-medium rounded-xl flex items-start gap-3">
+              <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-[13px] font-semibold rounded-2xl flex items-start gap-3">
                 <svg
-                  width="20"
-                  height="20"
+                  width="18"
+                  height="18"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -328,19 +338,19 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-extrabold text-zinc-700 ml-1">
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest ml-1">
                   Email Address
                 </label>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <svg
-                      className="w-4 h-4 text-zinc-400 group-focus-within:text-zinc-950 transition-colors"
+                      className="w-4 h-4 text-zinc-400 group-focus-within:text-indigo-500 transition-colors"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="2.5"
                     >
                       <path
                         strokeLinecap="round"
@@ -354,32 +364,32 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@company.com"
-                    className="w-full pl-10 pr-4 py-3 bg-zinc-50/50 border border-zinc-200/80 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950/20 focus:border-zinc-950 focus:bg-white transition-all shadow-sm placeholder:text-zinc-400"
+                    className="w-full pl-11 pr-4 py-3.5 bg-zinc-50 border border-zinc-200/80 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all shadow-sm placeholder:text-zinc-400"
                     required
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between ml-1">
-                  <label className="text-[12px] font-extrabold text-zinc-700">
+                  <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">
                     Password
                   </label>
                   <Link
                     href="/forgot"
-                    className="text-[11px] font-bold text-zinc-500 hover:text-zinc-950 transition-colors"
+                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
                   >
                     Forgot password?
                   </Link>
                 </div>
                 <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <svg
-                      className="w-4 h-4 text-zinc-400 group-focus-within:text-zinc-950 transition-colors"
+                      className="w-4 h-4 text-zinc-400 group-focus-within:text-indigo-500 transition-colors"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="2.5"
                     >
                       <path
                         strokeLinecap="round"
@@ -393,7 +403,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 bg-zinc-50/50 border border-zinc-200/80 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950/20 focus:border-zinc-950 focus:bg-white transition-all shadow-sm placeholder:text-zinc-400"
+                    className="w-full pl-11 pr-4 py-3.5 bg-zinc-50 border border-zinc-200/80 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all shadow-sm placeholder:text-zinc-400"
                     required
                   />
                 </div>
@@ -402,7 +412,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-zinc-950 text-white rounded-xl py-3.5 text-sm font-bold mt-4 hover:bg-zinc-800 transition-all shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                className="w-full bg-zinc-950 text-white rounded-2xl py-4 text-sm font-bold mt-2 hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {loading ? (
                   <>
@@ -410,16 +420,16 @@ export default function LoginPage() {
                     Authenticating...
                   </>
                 ) : (
-                  "Continue to Workspace"
+                  'Continue to Workspace'
                 )}
               </button>
             </form>
 
             <p className="mt-8 text-center text-sm font-medium text-zinc-500">
-              New to the engine?{" "}
+              New to the engine?{' '}
               <Link
                 href="/register"
-                className="font-extrabold text-zinc-950 hover:underline transition-all"
+                className="font-extrabold text-indigo-600 hover:text-indigo-700 transition-colors"
               >
                 Create an account
               </Link>
