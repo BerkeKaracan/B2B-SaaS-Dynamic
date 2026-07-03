@@ -16,15 +16,6 @@ export default function LoginPage() {
   const [isChecking, setIsChecking] = useState(true);
 
   const redirectUser = async (tenantId: string, token: string) => {
-    const host = window.location.hostname;
-    const isLocal = host.includes('localhost');
-    const baseDomain = isLocal ? 'localhost' : 'b2-b-saa-s-dynamic.vercel.app';
-
-    if (host !== baseDomain && host !== `www.${baseDomain}`) {
-      window.location.href = '/';
-      return;
-    }
-
     try {
       const API_BASE_URL =
         process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -35,18 +26,31 @@ export default function LoginPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.slug) {
-          const protocol = window.location.protocol;
-          const port =
-            window.location.port && isLocal ? `:${window.location.port}` : '';
+          const host = window.location.hostname;
+          const isLocal =
+            host.includes('localhost') || host.includes('127.0.0.1');
+          const baseDomain =
+            process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
+            'b2-b-saa-s-dynamic.vercel.app';
 
-          window.location.href = `${protocol}//${data.slug}.${baseDomain}${port}/login#access_token=${token}&tenant_id=${tenantId}`;
-          return;
+          if (host.includes(baseDomain) || isLocal) {
+            const protocol = window.location.protocol;
+            const port = window.location.port ? `:${window.location.port}` : '';
+            const targetDomain = isLocal ? 'localhost' : baseDomain;
+            const expectedHost = `${data.slug}.${targetDomain}`;
+
+            if (host !== expectedHost && host !== `www.${expectedHost}`) {
+              window.location.href = `${protocol}//${expectedHost}${port}/login#access_token=${token}&tenant_id=${tenantId}`;
+              return;
+            }
+          }
         }
       }
     } catch (error) {
       console.error('Subdomain redirection error:', error);
     }
 
+    // Ana sayfaya zorla atma iptal edildi, direkt dashboard'a gidiliyor.
     router.push(`/dashboard/${tenantId}`);
   };
 
@@ -83,17 +87,18 @@ export default function LoginPage() {
           const tenantId =
             data.tenant_id || data.user?.tenant_id || Cookies.get('tenant_id');
 
-          if (tenantId && tenantId !== 'undefined') {
+          if (tenantId && tenantId !== 'undefined' && tenantId !== 'null') {
             await redirectUser(tenantId, token);
           } else {
+            // Backend'de var ama workspace/tenant yok -> Onboarding
             router.replace('/onboarding');
           }
         } else {
-          throw new Error('Invalid token');
+          // İLK DEFA GİRENLER: Backend'de yoksa kayda yönlendir
+          router.replace('/register');
         }
-      } catch {
-        Cookies.remove('token');
-        Cookies.remove('tenant_id');
+      } catch (error) {
+        console.error('Auth verification error:', error);
         setIsChecking(false);
       }
     };
@@ -150,7 +155,6 @@ export default function LoginPage() {
   };
 
   const getOAuthRedirectUrl = () => {
-    // URL'nin sonuna her zaman /login eklenmesini garantileyen yardımcı fonksiyon
     return encodeURIComponent(`${window.location.origin}/login`);
   };
 
