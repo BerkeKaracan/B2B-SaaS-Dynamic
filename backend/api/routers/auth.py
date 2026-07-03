@@ -57,7 +57,7 @@ def complete_onboarding(request: Request, request_data: OnboardingRequest, creds
         user_id = user_res.user.id
         
         meta = user_res.user.user_metadata or {}
-        full_name = meta.get("full_name") or meta.get("name") or "User"
+        full_name = meta.get("full_name") or meta.get("name") or meta.get("user_name") or meta.get("preferred_username") or "User"
         email = user_res.user.email
 
         existing_user = supabase_admin.table("tenant_users").select("id").eq("user_id", user_id).limit(1).execute()
@@ -67,7 +67,8 @@ def complete_onboarding(request: Request, request_data: OnboardingRequest, creds
         final_workspace_name = request_data.workspace_name
         
         if request_data.usage_type == "individual":
-            final_workspace_name = f"{full_name}'s Workspace"
+            short_id = str(uuid.uuid4())[:6]
+            final_workspace_name = f"{full_name}'s Workspace {short_id}"
         elif request_data.usage_type == "team":
             if not final_workspace_name or not final_workspace_name.strip():
                 raise HTTPException(status_code=400, detail="Workspace name is required for team usage.")
@@ -81,11 +82,13 @@ def complete_onboarding(request: Request, request_data: OnboardingRequest, creds
         
         tenant_id = tenant_res.data[0]["id"]
 
+        safe_email = email.lower().strip() if email else f"{user_id}@no-email.com"
+
         supabase_admin.table("tenant_users").insert({
             "tenant_id": tenant_id,
             "user_id": user_id,
             "role": "owner",
-            "email": email.lower().strip() if email else ""
+            "email": safe_email
         }).execute()
 
         return OnboardingResponse(
@@ -183,7 +186,7 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
             
         meta = user_res.user.user_metadata or {}
         
-        full_name = meta.get("full_name") or meta.get("name") or "User"
+        full_name = meta.get("full_name") or meta.get("name") or meta.get("user_name") or meta.get("preferred_username") or "User"
         avatar_url = meta.get("avatar_url") or meta.get("avatar") or "" 
         email = user_res.user.email 
         
@@ -227,7 +230,8 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
                         department_name = dp_res.data[0]["name"]
 
             if not resolved_tenant_id:
-                workspace_name = f"{full_name}'s Workspace"
+                short_id = str(uuid.uuid4())[:6]
+                workspace_name = f"{full_name}'s Workspace {short_id}"
                 
                 tenant_res = supabase_admin.table("tenants").insert({
                     "name": workspace_name,
@@ -237,11 +241,13 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
                 if tenant_res.data:
                     new_tenant_id = tenant_res.data[0]["id"]
                     
+                    safe_email = email.lower().strip() if email else f"{user_res.user.id}@no-email.com"
+
                     supabase_admin.table("tenant_users").insert({
                         "tenant_id": new_tenant_id,
                         "user_id": user_res.user.id,
                         "role": "owner",
-                        "email": email.lower().strip() if email else ""
+                        "email": safe_email
                     }).execute()
                     
                     resolved_tenant_id = new_tenant_id
