@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import Cookies from 'js-cookie';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -152,25 +153,35 @@ export default function LoginPage() {
   };
 
   const getOAuthRedirectUrl = () => {
-    return encodeURIComponent(`${window.location.origin}/login`);
+    return `${window.location.origin}/login`;
   };
 
-  const handleGoogleLogin = () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!supabaseUrl) {
-      setError('System configuration error: Missing Supabase URL.');
-      return;
+  const handleGoogleLogin = async () => {
+    setError('');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: getOAuthRedirectUrl(),
+      },
+    });
+
+    if (error) {
+      setError(error.message);
     }
-    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${getOAuthRedirectUrl()}`;
   };
 
-  const handleGithubLogin = () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!supabaseUrl) {
-      setError('System configuration error: Missing Supabase URL.');
-      return;
+  const handleGithubLogin = async () => {
+    setError('');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: getOAuthRedirectUrl(),
+      },
+    });
+
+    if (error) {
+      setError(error.message);
     }
-    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=github&redirect_to=${getOAuthRedirectUrl()}`;
   };
 
   if (isChecking) {

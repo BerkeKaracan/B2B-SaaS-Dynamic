@@ -13,6 +13,7 @@ import {
   Database,
   ArrowRight,
 } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -89,24 +90,36 @@ export default function RegisterPage() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!supabaseUrl) {
-      setError('System configuration error: Missing Supabase URL.');
-      return;
-    }
-    const redirectTo = encodeURIComponent(`${window.location.origin}/login`);
-    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}`;
+  const getOAuthRedirectUrl = () => {
+    return `${window.location.origin}/login`;
   };
 
-  const handleGithubLogin = () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!supabaseUrl) {
-      setError('System configuration error: Missing Supabase URL.');
-      return;
+  const handleGoogleLogin = async () => {
+    setError('');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: getOAuthRedirectUrl(),
+      },
+    });
+
+    if (error) {
+      setError(error.message);
     }
-    const redirectTo = encodeURIComponent(`${window.location.origin}/login`);
-    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=github&redirect_to=${redirectTo}`;
+  };
+
+  const handleGithubLogin = async () => {
+    setError('');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: getOAuthRedirectUrl(),
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+    }
   };
 
   if (isChecking) {
