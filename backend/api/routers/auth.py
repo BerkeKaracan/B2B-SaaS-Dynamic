@@ -55,7 +55,9 @@ def complete_onboarding(request: Request, request_data: OnboardingRequest, creds
             raise HTTPException(status_code=401, detail="Invalid or expired session.")
             
         user_id = user_res.user.id
-        full_name = user_res.user.user_metadata.get("full_name", "User")
+        
+        meta = user_res.user.user_metadata or {}
+        full_name = meta.get("full_name") or meta.get("name") or "User"
         email = user_res.user.email
 
         existing_user = supabase_admin.table("tenant_users").select("id").eq("user_id", user_id).limit(1).execute()
@@ -138,6 +140,7 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
             raise HTTPException(status_code=400, detail="Invalid email or password.")
         raise HTTPException(status_code=500, detail=error_msg)
 
+
 def get_current_user_role(request: Request, creds: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     try:
         token = creds.credentials
@@ -168,6 +171,7 @@ def get_current_user_role(request: Request, creds: HTTPAuthorizationCredentials 
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
   
+
 @router.get("/me")
 def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     try:
@@ -177,12 +181,16 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="Invalid session")
             
-        full_name = user_res.user.user_metadata.get("full_name", "User")
-        avatar_url = user_res.user.user_metadata.get("avatar_url", "") 
+        meta = user_res.user.user_metadata or {}
+        
+        full_name = meta.get("full_name") or meta.get("name") or "User"
+        avatar_url = meta.get("avatar_url") or meta.get("avatar") or "" 
         email = user_res.user.email 
         
-        words = full_name.split()
-        initials = "".join([word[0] for word in words]).upper()[:2]
+        words = full_name.split() if full_name else ["U"]
+        initials = "".join([word[0] for word in words if word]).upper()[:2]
+        if not initials:
+            initials = "US"
 
         current_tenant_id = request.headers.get("x-tenant-id") or request.headers.get("tenant-id")
         
@@ -236,6 +244,7 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
 
+
 @router.put("/me")
 def update_profile(request_data: UserProfileUpdate, creds: HTTPAuthorizationCredentials = Depends(security)):
     try:
@@ -250,7 +259,7 @@ def update_profile(request_data: UserProfileUpdate, creds: HTTPAuthorizationCred
         if request_data.full_name is not None:
             current_metadata["full_name"] = request_data.full_name
 
-        res = supabase_admin.auth.admin.update_user_by_id(
+        supabase_admin.auth.admin.update_user_by_id(
             user_id,
             {"user_metadata": current_metadata}
         )
@@ -258,6 +267,7 @@ def update_profile(request_data: UserProfileUpdate, creds: HTTPAuthorizationCred
         return {"success": True, "message": "Profile updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.post("/avatar")
 async def upload_avatar(file: UploadFile = File(...), creds: HTTPAuthorizationCredentials = Depends(security)):
@@ -305,6 +315,7 @@ async def upload_avatar(file: UploadFile = File(...), creds: HTTPAuthorizationCr
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
+
 @router.put("/password")
 def update_password(request_data: UserPasswordUpdate, creds: HTTPAuthorizationCredentials = Depends(security)):
     try:

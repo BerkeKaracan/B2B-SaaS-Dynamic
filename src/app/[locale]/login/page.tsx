@@ -50,7 +50,6 @@ export default function LoginPage() {
       console.error('Subdomain redirection error:', error);
     }
 
-    // Ana sayfaya zorla atma iptal edildi, direkt dashboard'a gidiliyor.
     router.push(`/dashboard/${tenantId}`);
   };
 
@@ -90,11 +89,9 @@ export default function LoginPage() {
           if (tenantId && tenantId !== 'undefined' && tenantId !== 'null') {
             await redirectUser(tenantId, token);
           } else {
-            // Backend'de var ama workspace/tenant yok -> Onboarding
             router.replace('/onboarding');
           }
         } else {
-          // İLK DEFA GİRENLER: Backend'de yoksa kayda yönlendir
           router.replace('/register');
         }
       } catch (error) {
