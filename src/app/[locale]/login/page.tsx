@@ -149,14 +149,18 @@ export default function LoginPage() {
     }
   };
 
+  const getOAuthRedirectUrl = () => {
+    // URL'nin sonuna her zaman /login eklenmesini garantileyen yardımcı fonksiyon
+    return encodeURIComponent(`${window.location.origin}/login`);
+  };
+
   const handleGoogleLogin = () => {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     if (!supabaseUrl) {
       setError('System configuration error: Missing Supabase URL.');
       return;
     }
-    const redirectTo = encodeURIComponent(`${window.location.origin}/login`);
-    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}`;
+    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${getOAuthRedirectUrl()}`;
   };
 
   const handleGithubLogin = () => {
@@ -165,8 +169,7 @@ export default function LoginPage() {
       setError('System configuration error: Missing Supabase URL.');
       return;
     }
-    const redirectTo = encodeURIComponent(`${window.location.origin}/login`);
-    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=github&redirect_to=${redirectTo}`;
+    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=github&redirect_to=${getOAuthRedirectUrl()}`;
   };
 
   if (isChecking) {
