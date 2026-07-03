@@ -312,13 +312,13 @@ export default function WorkspaceSidebar() {
                 <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
                   <div className="p-2 space-y-1">
                     <Link
-                      href={`/dashboard/${tenantId}/advanced`}
+                      href={`/dashboard/${tenantId}/settings`}
                       onClick={() => setIsSettingsOpen(false)}
                       className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all group"
                     >
                       <div className="flex items-center gap-2.5">
                         <Settings className="w-4 h-4 text-zinc-400 group-hover:text-indigo-500 transition-colors" />
-                        {t('settings')}
+                        {t('settingsAdv')}
                       </div>
                       <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
                     </Link>

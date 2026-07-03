@@ -747,6 +747,7 @@
       "projectsUsed": "proje kullanıldı"
     },
     "settings": "Ayarlar",
+    "settingsAdv": "Gelişmiş ayarlar",
     "modal": {
       "title": "Çalışma Alanı Modülü Oluştur",
       "moduleName": "Modül Adı",

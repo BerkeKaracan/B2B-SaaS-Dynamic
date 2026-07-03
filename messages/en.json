@@ -746,7 +746,8 @@
       "of": "of",
       "projectsUsed": "projects used"
     },
-    "settings": "Advanced",
+    "settings": "Settings",
+    "settingsAdv": "Advanced",
     "modal": {
       "title": "Create Workspace Module",
       "moduleName": "Module Name",
