@@ -44,6 +44,8 @@ export async function middleware(request: NextRequest) {
     '/contact',
     '/privacy',
     '/terms',
+    '/auth/callback', 
+    '/auth',
   ];
 
   const isPublicPath = publicPaths.some(
