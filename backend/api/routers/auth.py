@@ -226,8 +226,29 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
                     if dp_res.data:
                         department_name = dp_res.data[0]["name"]
 
+            if not resolved_tenant_id:
+                workspace_name = f"{full_name}'s Workspace"
+                
+                tenant_res = supabase_admin.table("tenants").insert({
+                    "name": workspace_name,
+                    "usage_type": "individual"
+                }).execute()
+                
+                if tenant_res.data:
+                    new_tenant_id = tenant_res.data[0]["id"]
+                    
+                    supabase_admin.table("tenant_users").insert({
+                        "tenant_id": new_tenant_id,
+                        "user_id": user_res.user.id,
+                        "role": "owner",
+                        "email": email.lower().strip() if email else ""
+                    }).execute()
+                    
+                    resolved_tenant_id = new_tenant_id
+                    role = "owner"
+
         except Exception as ex:
-            print("Role fetch error:", ex)
+            print("Role fetch / Auto-provision error:", ex)
             pass 
         
         return {
