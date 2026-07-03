@@ -1,10 +1,10 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/useAuthStore";
-import ColdStartAlert from "@/components/ColdStartAlert";
-import Cookies from "js-cookie";
+'use client';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/useAuthStore';
+import ColdStartAlert from '@/components/ColdStartAlert';
+import Cookies from 'js-cookie';
 import {
   User,
   Mail,
@@ -12,32 +12,32 @@ import {
   ShieldCheck,
   Database,
   ArrowRight,
-} from "lucide-react";
+} from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
   const fetchUser = useAuthStore((state) => state.fetchUser);
 
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [isChecking, setIsChecking] = useState(true);
 
   const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
   useEffect(() => {
-    const token = Cookies.get("token");
+    const token = Cookies.get('token');
     if (token) {
-      const savedTenant = Cookies.get("tenant_id");
+      const savedTenant = Cookies.get('tenant_id');
       if (savedTenant) {
         router.replace(`/dashboard/${savedTenant}/projects`);
       } else {
-        router.replace("/onboarding");
+        router.replace('/onboarding');
       }
     } else {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -47,10 +47,10 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match!");
+      setError('Passwords do not match!');
       return;
     }
 
@@ -58,9 +58,9 @@ export default function RegisterPage() {
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           full_name: fullName,
@@ -73,16 +73,16 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         throw new Error(
-          data.detail || "An error occurred during registration.",
+          data.detail || 'An error occurred during registration.'
         );
       }
 
-      router.push("/login?registered=true");
+      router.push('/login?registered=true');
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("An unexpected error occurred.");
+        setError('An unexpected error occurred.');
       }
     } finally {
       setLoading(false);
@@ -92,11 +92,21 @@ export default function RegisterPage() {
   const handleGoogleLogin = () => {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     if (!supabaseUrl) {
-      setError("System configuration error: Missing Supabase URL.");
+      setError('System configuration error: Missing Supabase URL.');
       return;
     }
     const redirectTo = encodeURIComponent(`${window.location.origin}/login`);
     window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${redirectTo}`;
+  };
+
+  const handleGithubLogin = () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl) {
+      setError('System configuration error: Missing Supabase URL.');
+      return;
+    }
+    const redirectTo = encodeURIComponent(`${window.location.origin}/login`);
+    window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=github&redirect_to=${redirectTo}`;
   };
 
   if (isChecking) {
@@ -252,6 +262,7 @@ export default function RegisterPage() {
               </button>
               <button
                 type="button"
+                onClick={handleGithubLogin}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-zinc-200/80 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-700 transition-all shadow-sm"
               >
                 <svg
@@ -396,7 +407,7 @@ export default function RegisterPage() {
             </form>
 
             <p className="mt-8 text-center text-sm font-medium text-zinc-500">
-              Already operational?{" "}
+              Already operational?{' '}
               <Link
                 href="/login"
                 className="font-extrabold text-zinc-950 hover:underline transition-all"
