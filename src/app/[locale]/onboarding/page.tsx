@@ -1,9 +1,9 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { authService } from "@/services/api";
-import Link from "next/link";
-import Cookies from "js-cookie";
+'use client';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { authService, fetchAPI } from '@/services/api';
+import Link from 'next/link';
+import Cookies from 'js-cookie';
 
 interface OnboardingResponseData {
   tenant_id?: string;
@@ -12,71 +12,110 @@ interface OnboardingResponseData {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [usageType, setUsageType] = useState<"individual" | "team" | null>(
-    null,
+  const [usageType, setUsageType] = useState<'individual' | 'team' | null>(
+    null
   );
-  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceName, setWorkspaceName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    const token = Cookies.get("token") || localStorage.getItem("token");
+    const verifySession = async () => {
+      const token = Cookies.get('token') || localStorage.getItem('token');
 
-    if (!token) {
-      window.location.href = "/login";
-    } else {
-      const tenant =
-        Cookies.get("tenant_id") || localStorage.getItem("tenant_id");
-
-      if (tenant && tenant !== "undefined" && tenant !== "null") {
-        window.location.href = `/dashboard/${tenant}/projects`;
-      } else {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setIsChecking(false);
+      if (!token) {
+        window.location.href = '/login';
+        return;
       }
-    }
+
+      try {
+        const API_BASE_URL =
+          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) {
+          Cookies.remove('token');
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          return;
+        }
+
+        const data = await res.json();
+        const tenant =
+          data.tenant_id ||
+          data.user?.tenant_id ||
+          Cookies.get('tenant_id') ||
+          localStorage.getItem('tenant_id');
+
+        if (tenant && tenant !== 'undefined' && tenant !== 'null') {
+          Cookies.set('tenant_id', tenant, { expires: 7 });
+          localStorage.setItem('tenant_id', tenant);
+          window.location.href = `/dashboard/${tenant}/projects`;
+        } else {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setIsChecking(false);
+        }
+      } catch (error) {
+        Cookies.remove('token');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
+    };
+
+    verifySession();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usageType) {
-      setError("Please select how you want to use the system.");
+      setError('Please select how you want to use the system.');
       return;
     }
-    if (usageType === "team" && !workspaceName.trim()) {
-      setError("Workspace name is required for team usage.");
+    if (usageType === 'team' && !workspaceName.trim()) {
+      setError('Workspace name is required for team usage.');
       return;
     }
 
     setLoading(true);
-    setError("");
+    setError('');
 
     try {
       const res = await authService.completeOnboarding({
         usage_type: usageType,
-        workspace_name: usageType === "team" ? workspaceName : undefined,
+        workspace_name: usageType === 'team' ? workspaceName : undefined,
       });
 
       const data = (await res.json()) as OnboardingResponseData;
 
       if (!res.ok) {
-        throw new Error(data.detail || "Onboarding failed. Please try again.");
+        if (
+          res.status === 401 ||
+          (data.detail && String(data.detail).toUpperCase().includes('JWT'))
+        ) {
+          Cookies.remove('token');
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          return;
+        }
+        throw new Error(data.detail || 'Onboarding failed. Please try again.');
       }
 
       if (data.tenant_id) {
-        localStorage.setItem("tenant_id", data.tenant_id);
-        Cookies.set("tenant_id", data.tenant_id);
+        localStorage.setItem('tenant_id', data.tenant_id);
+        Cookies.set('tenant_id', data.tenant_id, { expires: 7 });
 
         window.location.href = `/dashboard/${data.tenant_id}/projects`;
       } else {
-        throw new Error("Invalid response from server: Missing tenant ID.");
+        throw new Error('Invalid response from server: Missing tenant ID.');
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("An unexpected error occurred during onboarding.");
+        setError('An unexpected error occurred during onboarding.');
       }
     } finally {
       setLoading(false);
@@ -88,8 +127,8 @@ export default function OnboardingPage() {
       <div className="min-h-screen flex items-center justify-center bg-[#fafafb]">
         <div className="flex flex-col items-center">
           <span className="w-10 h-10 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"></span>
-          <span className="mt-4 text-sm text-zinc-500 font-mono">
-            Checking session...
+          <span className="mt-4 text-sm text-zinc-500 font-mono uppercase tracking-widest">
+            Verifying Token...
           </span>
         </div>
       </div>
@@ -143,15 +182,19 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button
                 type="button"
-                onClick={() => setUsageType("individual")}
+                onClick={() => setUsageType('individual')}
                 className={`flex flex-col items-center text-center p-5 rounded-xl border-2 transition-all ${
-                  usageType === "individual"
-                    ? "border-zinc-900 bg-zinc-50"
-                    : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
+                  usageType === 'individual'
+                    ? 'border-zinc-900 bg-zinc-50'
+                    : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
                 }`}
               >
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${usageType === "individual" ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500"}`}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
+                    usageType === 'individual'
+                      ? 'bg-zinc-900 text-white'
+                      : 'bg-zinc-100 text-zinc-500'
+                  }`}
                 >
                   <svg
                     width="20"
@@ -177,15 +220,19 @@ export default function OnboardingPage() {
 
               <button
                 type="button"
-                onClick={() => setUsageType("team")}
+                onClick={() => setUsageType('team')}
                 className={`flex flex-col items-center text-center p-5 rounded-xl border-2 transition-all ${
-                  usageType === "team"
-                    ? "border-zinc-900 bg-zinc-50"
-                    : "border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
+                  usageType === 'team'
+                    ? 'border-zinc-900 bg-zinc-50'
+                    : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
                 }`}
               >
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${usageType === "team" ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500"}`}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
+                    usageType === 'team'
+                      ? 'bg-zinc-900 text-white'
+                      : 'bg-zinc-100 text-zinc-500'
+                  }`}
                 >
                   <svg
                     width="20"
@@ -213,7 +260,11 @@ export default function OnboardingPage() {
             </div>
 
             <div
-              className={`transition-all duration-300 overflow-hidden ${usageType === "team" ? "max-h-24 opacity-100" : "max-h-0 opacity-0"}`}
+              className={`transition-all duration-300 overflow-hidden ${
+                usageType === 'team'
+                  ? 'max-h-24 opacity-100'
+                  : 'max-h-0 opacity-0'
+              }`}
             >
               <div className="space-y-1.5 group pt-2">
                 <label className="text-xs font-semibold text-zinc-700 pl-1">
@@ -225,7 +276,7 @@ export default function OnboardingPage() {
                   onChange={(e) => setWorkspaceName(e.target.value)}
                   placeholder="e.g. Acme Corp."
                   className="w-full px-4 py-3 bg-white border border-zinc-200/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-all shadow-inner"
-                  required={usageType === "team"}
+                  required={usageType === 'team'}
                 />
               </div>
             </div>
@@ -257,7 +308,7 @@ export default function OnboardingPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Setting up...
+                  Processing...
                 </>
               ) : (
                 <>
@@ -281,8 +332,8 @@ export default function OnboardingPage() {
           </form>
         </div>
 
-        <div className="mt-8 text-center text-[11px] text-zinc-400 font-mono tracking-wider">
-          SaaS ENGINE // ONBOARDING v1.0
+        <div className="mt-8 text-center text-[11px] text-zinc-400 font-mono tracking-wider uppercase">
+          SaaS Engine Architecture
         </div>
       </div>
     </div>
