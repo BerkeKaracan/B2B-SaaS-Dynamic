@@ -34,3 +34,11 @@ Thumbs.db
 
 k8s/
 docker-compose.yml
+
+backend
+backend/venv
+
+node_modules
+.next
+out
+build

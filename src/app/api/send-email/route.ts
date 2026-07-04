@@ -1,17 +1,14 @@
-// Dosya Yolu: src/app/api/send-email/route.ts
-
-import { NextResponse } from "next/server";
-import { Resend } from "resend";
-import TaskAssignmentEmail from "@/emails/TaskAssignmentEmail";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { NextResponse } from 'next/server';
+import { Resend } from 'resend';
+import TaskAssignmentEmail from '@/emails/TaskAssignmentEmail';
 
 export async function POST(request: Request) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   try {
     const { email, taskTitle, assigneeName, assignedBy } = await request.json();
 
     const data = await resend.emails.send({
-      from: "Acme <onboarding@resend.dev>",
+      from: 'Acme <onboarding@resend.dev>',
       to: [email],
       subject: `[New Task] ${taskTitle}`,
       react: TaskAssignmentEmail({
