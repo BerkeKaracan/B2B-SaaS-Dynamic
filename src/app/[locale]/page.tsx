@@ -25,17 +25,108 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import ColdStartAlert from '@/components/ColdStartAlert';
 
+interface BackgroundShapeState {
+  x: number;
+  y: number;
+  visible: boolean;
+}
+
 export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
   const { user } = useAuthStore();
-
   const t = useTranslations('LandingPage');
 
   const [isMounted, setIsMounted] = useState(false);
+
+  const [shapesState, setShapesState] = useState<BackgroundShapeState[]>([
+    { x: -1000, y: -1000, visible: false },
+    { x: -1000, y: -1000, visible: false },
+    { x: -1000, y: -1000, visible: false },
+    { x: -1000, y: -1000, visible: false },
+  ]);
+
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
+
+    const safeDistance = 250;
+
+    const getSafePosition = (
+      currentIndex: number,
+      currentShapes: BackgroundShapeState[]
+    ) => {
+      let newX = 0;
+      let newY = 0;
+      let isValid = false;
+      let attempts = 0;
+
+      const margin = 100;
+      const maxWidth = window.innerWidth - margin;
+      const maxHeight = window.innerHeight - margin;
+
+      while (!isValid && attempts < 50) {
+        newX = Math.floor(Math.random() * (maxWidth - margin) + margin);
+        newY = Math.floor(Math.random() * (maxHeight - margin) + margin);
+        isValid = true;
+
+        for (let i = 0; i < currentShapes.length; i++) {
+          if (i === currentIndex) continue;
+
+          const dx = currentShapes[i].x - newX;
+          const dy = currentShapes[i].y - newY;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < safeDistance) {
+            isValid = false;
+            break;
+          }
+        }
+        attempts++;
+      }
+      return { x: newX, y: newY };
+    };
+
+    setShapesState((prev) => {
+      const initialShapes = [...prev];
+      for (let i = 0; i < initialShapes.length; i++) {
+        const { x, y } = getSafePosition(i, initialShapes);
+        initialShapes[i] = { x, y, visible: true };
+      }
+      return initialShapes;
+    });
+
+    const intervals = shapesState.map((_, index) => {
+      const cycleTime = 6000 + Math.random() * 4000;
+
+      return setInterval(() => {
+        setShapesState((prev) => {
+          const next = [...prev];
+          next[index] = { ...next[index], visible: false };
+          return next;
+        });
+
+        setTimeout(() => {
+          setShapesState((prev) => {
+            const next = [...prev];
+            const { x, y } = getSafePosition(index, next);
+            next[index] = {
+              ...next[index],
+              x,
+              y,
+              visible: true,
+            };
+            return next;
+          });
+        }, 1000);
+      }, cycleTime);
+    });
+
+    return () => {
+      intervals.forEach(clearInterval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -44,19 +135,47 @@ export default function LandingPage() {
 
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-[1]">
         <div
-          className={`absolute -top-32 -left-32 w-96 h-96 border-[3px] border-dashed border-zinc-200 rounded-full transition-opacity duration-1000 ease-in-out ${isMounted ? 'opacity-40 animate-[spin_40s_linear_infinite] pulse-slow' : 'opacity-0'}`}
+          className={`absolute w-48 h-48 border-[3px] border-dashed border-zinc-200 rounded-full transition-opacity duration-1000 ease-in-out animate-[spin_40s_linear_infinite] pulse-slow ${
+            shapesState[0].visible ? 'opacity-40' : 'opacity-0'
+          }`}
+          style={{
+            left: shapesState[0].x,
+            top: shapesState[0].y,
+            transform: 'translate(-50%, -50%)',
+          }}
         ></div>
 
         <div
-          className={`absolute top-[30%] -right-20 w-80 h-80 border-2 border-zinc-200 rounded-[3rem] rotate-12 transition-opacity duration-1000 delay-300 ease-in-out ${isMounted ? 'opacity-50 animate-[pulse_5s_ease-in-out_infinite]' : 'opacity-0'}`}
+          className={`absolute w-40 h-40 border-2 border-zinc-200 rounded-[2rem] transition-opacity duration-1000 ease-in-out animate-[pulse_5s_ease-in-out_infinite] ${
+            shapesState[1].visible ? 'opacity-50' : 'opacity-0'
+          }`}
+          style={{
+            left: shapesState[1].x,
+            top: shapesState[1].y,
+            transform: 'translate(-50%, -50%) rotate(12deg)',
+          }}
         ></div>
 
         <div
-          className={`absolute bottom-[20%] left-10 w-48 h-48 border-2 border-dashed border-zinc-300 rounded-3xl -rotate-6 transition-opacity duration-1000 delay-500 ease-in-out ${isMounted ? 'opacity-40 animate-[spin_50s_linear_infinite_reverse] pulse-slower' : 'opacity-0'}`}
+          className={`absolute w-24 h-24 border-2 border-dashed border-zinc-300 rounded-2xl transition-opacity duration-1000 ease-in-out animate-[spin_50s_linear_infinite_reverse] pulse-slower ${
+            shapesState[2].visible ? 'opacity-40' : 'opacity-0'
+          }`}
+          style={{
+            left: shapesState[2].x,
+            top: shapesState[2].y,
+            transform: 'translate(-50%, -50%) rotate(-6deg)',
+          }}
         ></div>
 
         <div
-          className={`absolute -bottom-40 left-1/2 -translate-x-1/2 w-[600px] h-64 border border-zinc-200 rounded-full transition-opacity duration-1000 delay-700 ease-in-out ${isMounted ? 'opacity-30 animate-[pulse_7s_ease-in-out_infinite]' : 'opacity-0'}`}
+          className={`absolute w-80 h-32 border border-zinc-200 rounded-full transition-opacity duration-1000 ease-in-out animate-[pulse_7s_ease-in-out_infinite] ${
+            shapesState[3].visible ? 'opacity-30' : 'opacity-0'
+          }`}
+          style={{
+            left: shapesState[3].x,
+            top: shapesState[3].y,
+            transform: 'translate(-50%, -50%)',
+          }}
         ></div>
 
         <style
@@ -1295,10 +1414,10 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="group relative bg-zinc-950 p-6 sm:p-10 rounded-3xl md:rounded-[2.5rem] border border-zinc-800 shadow-xl sm:col-span-2 hover:shadow-2xl hover:shadow-pink-500/10 transition-all duration-500 overflow-hidden mt-1 sm:mt-0">
+              <div className="group relative bg-zinc-950 p-6 sm:p-10 rounded-3xl md:rounded-[2.5rem] border border-zinc-800 shadow-xl sm:col-span-2 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 overflow-hidden mt-1 sm:mt-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#3f3f46_1px,transparent_1px),linear-gradient(to_bottom,#3f3f46_1px,transparent_1px)] bg-size-[2rem_2rem] mask-[radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20"></div>
                 <div className="relative z-10 flex flex-col sm:flex-row gap-5 md:gap-6 items-start sm:items-center">
-                  <div className="w-12 h-12 md:w-16 md:h-16 bg-zinc-800/80 backdrop-blur-md text-pink-400 rounded-2xl md:rounded-3xl flex items-center justify-center shrink-0 border border-zinc-700/50 shadow-inner group-hover:scale-105 group-hover:text-pink-300 transition-all duration-500">
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-zinc-800/80 backdrop-blur-md text-indigo-400 rounded-2xl md:rounded-3xl flex items-center justify-center shrink-0 border border-zinc-700/50 shadow-inner group-hover:scale-105 group-hover:text-indigo-300 transition-all duration-500">
                     <svg
                       className="w-6 h-6 md:w-8 md:h-8"
                       fill="none"
@@ -1322,7 +1441,7 @@ export default function LandingPage() {
                     </p>
                   </div>
                 </div>
-                <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-pink-600 rounded-full blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
+                <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-indigo-600 rounded-full blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
               </div>
             </div>
           </div>
