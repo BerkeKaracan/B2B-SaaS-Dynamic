@@ -2,7 +2,9 @@ from fastapi import APIRouter, HTTPException, Header, Depends, UploadFile, File
 from pydantic import BaseModel, EmailStr
 from uuid import UUID
 import uuid
-from typing import Optional
+from typing import Optional, List, Tuple, Dict
+from datetime import datetime, timezone
+from collections import defaultdict
 
 from core.database import supabase, supabase_admin, get_auth_client
 from api.routers.records import get_user_role
@@ -468,3 +470,166 @@ def delete_custom_role(tenant_id: UUID, role_id: UUID, user: dict = Depends(get_
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+def _parse_iso_date(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        normalized = value.replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(normalized)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed
+    except (ValueError, TypeError):
+        return None
+
+
+def _month_range(months_back: int) -> List[Tuple[datetime, datetime, str]]:
+    now = datetime.now(timezone.utc)
+    ranges: List[Tuple[datetime, datetime, str]] = []
+
+    for offset in range(months_back - 1, -1, -1):
+        year = now.year
+        month = now.month - offset
+        while month <= 0:
+            month += 12
+            year -= 1
+
+        start = datetime(year, month, 1, tzinfo=timezone.utc)
+        if month == 12:
+            end = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+        else:
+            end = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+
+        label = start.strftime("%b")
+        ranges.append((start, end, label))
+
+    return ranges
+
+
+@router.get("/{tenant_id}/analytics")
+def get_tenant_analytics(tenant_id: UUID, user: dict = Depends(get_user_role)):
+    try:
+        if str(tenant_id) not in user["tenant_roles"]:
+            raise HTTPException(status_code=403, detail="Workspace access denied")
+
+        current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+        if current_role not in ["admin", "owner"]:
+            raise HTTPException(status_code=403, detail="Only admins and owners can view analytics")
+
+        tenant_str = str(tenant_id)
+
+        projects_res = supabase_admin.table("custom_records").select(
+            "id, module_name, created_at, record_data"
+        ).eq("tenant_id", tenant_str).neq("module_name", "workspace_modules").execute()
+        projects = projects_res.data or []
+
+        tasks_res = supabase_admin.table("records").select(
+            "id, created_at, updated_at, record_data"
+        ).eq("tenant_id", tenant_str).eq("module_name", "tasks").execute()
+        tasks = tasks_res.data or []
+
+        team_res = supabase_admin.table("tenant_users").select(
+            "id", count="exact"
+        ).eq("tenant_id", tenant_str).execute()
+        team_count = team_res.count if team_res.count is not None else len(team_res.data or [])
+
+        active_projects = sum(
+            1 for p in projects
+            if (p.get("record_data") or {}).get("status") != "archived"
+        )
+        archived_projects = len(projects) - active_projects
+
+        tasks_by_status = {"todo": 0, "in_progress": 0, "done": 0}
+        tasks_by_priority: Dict[str, int] = defaultdict(int)
+
+        for task in tasks:
+            record_data = task.get("record_data") or {}
+            status = str(record_data.get("status", "todo")).lower()
+            if status not in tasks_by_status:
+                status = "todo"
+            tasks_by_status[status] += 1
+
+            priority = str(record_data.get("priority", "NO PRIORITY")).upper().strip() or "NO PRIORITY"
+            tasks_by_priority[priority] += 1
+
+        total_tasks = len(tasks)
+        completion_rate = round(
+            (tasks_by_status["done"] / total_tasks * 100) if total_tasks > 0 else 0,
+            1,
+        )
+
+        projects_by_template: Dict[str, int] = defaultdict(int)
+        for project in projects:
+            template = (project.get("record_data") or {}).get("template", "blank")
+            projects_by_template[str(template)] += 1
+
+        chart_data = []
+        for month_start, month_end, month_label in _month_range(6):
+            projects_created = 0
+            tasks_completed = 0
+            active_tasks = 0
+
+            for project in projects:
+                created_at = _parse_iso_date(project.get("created_at"))
+                if created_at and month_start <= created_at < month_end:
+                    projects_created += 1
+
+            for task in tasks:
+                record_data = task.get("record_data") or {}
+                status = str(record_data.get("status", "todo")).lower()
+                created_at = _parse_iso_date(task.get("created_at"))
+                updated_at = _parse_iso_date(task.get("updated_at")) or created_at
+
+                if status == "done" and updated_at and month_start <= updated_at < month_end:
+                    tasks_completed += 1
+
+                if created_at and created_at < month_end:
+                    if status != "done":
+                        active_tasks += 1
+                    elif updated_at and updated_at >= month_end:
+                        active_tasks += 1
+
+            chart_data.append({
+                "month": month_label,
+                "projectsCreated": projects_created,
+                "tasksCompleted": tasks_completed,
+                "activeTasks": active_tasks,
+            })
+
+        return {
+            "tenant_id": tenant_str,
+            "metrics": {
+                "total_projects": len(projects),
+                "active_projects": active_projects,
+                "archived_projects": archived_projects,
+                "total_tasks": total_tasks,
+                "tasks_todo": tasks_by_status["todo"],
+                "tasks_in_progress": tasks_by_status["in_progress"],
+                "tasks_done": tasks_by_status["done"],
+                "team_members": team_count,
+                "completion_rate": completion_rate,
+            },
+            "tasksByPriority": [
+                {"priority": priority, "count": count}
+                for priority, count in sorted(
+                    tasks_by_priority.items(),
+                    key=lambda item: item[1],
+                    reverse=True,
+                )
+            ],
+            "projectsByTemplate": [
+                {"template": template, "count": count}
+                for template, count in sorted(
+                    projects_by_template.items(),
+                    key=lambda item: item[1],
+                    reverse=True,
+                )
+            ],
+            "chartData": chart_data,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))       

@@ -735,6 +735,9 @@
     "myTasks": "Görevlerim",
     "aiAssistant": "Yapay Zeka Asistanı",
     "communityHub": "Topluluk Merkezi",
+    "insights": "İçgörüler",
+    "analytics": "Analitik",
+    "analyticsDesc": "KPI ve raporlar",
     "customModules": "Özel Modüller",
     "addModule": "Modül Ekle",
     "plans": {

@@ -735,6 +735,9 @@
     "myTasks": "My Tasks",
     "aiAssistant": "AI Assistant",
     "communityHub": "Community Hub",
+    "insights": "Insights",
+    "analytics": "Analytics",
+    "analyticsDesc": "KPIs & reports",
     "customModules": "Custom Modules",
     "addModule": "Add Module",
     "plans": {

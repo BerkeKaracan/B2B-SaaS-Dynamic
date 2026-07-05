@@ -17,6 +17,8 @@ import {
   CreditCard,
   ChevronRight,
   ChevronUp,
+  BarChart2,
+  TrendingUp,
 } from 'lucide-react';
 import { fetchAPI } from '@/services/api';
 import { useTenantStore } from '@/store/useTenantStore';
@@ -247,6 +249,51 @@ export default function WorkspaceSidebar() {
             <Globe className={`w-4 h-4 transition-colors`} />
             {t('communityHub')}
           </Link>
+
+          {isAdmin && !isOnProject && (
+            <p className="px-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 mt-4">
+              {t('insights')}
+            </p>
+          )}
+
+          {isAdmin && (
+          <Link
+            href={`/dashboard/${tenantId}/analytics`}
+            className={`relative flex items-center gap-3 px-3 py-3 rounded-2xl text-sm transition-all group overflow-hidden ${
+              pathname.endsWith('/analytics')
+                ? 'bg-white text-indigo-600 font-bold shadow-[0_1px_3px_rgba(0,0,0,0.04)] ring-1 ring-indigo-200/60 z-10 dark:bg-zinc-900 dark:ring-indigo-900/50 dark:text-indigo-400'
+                : 'text-zinc-600 font-medium hover:bg-white/80 hover:shadow-sm ring-1 ring-transparent hover:ring-zinc-200/60 dark:text-zinc-300 dark:hover:bg-zinc-900/60 dark:hover:ring-zinc-800/60'
+            }`}
+          >
+            <div
+              className={`absolute inset-0 bg-linear-to-br from-indigo-500/8 via-violet-500/5 to-transparent pointer-events-none transition-opacity ${
+                pathname.endsWith('/analytics') ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              }`}
+            />
+            <div
+              className={`relative z-10 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                pathname.endsWith('/analytics')
+                  ? 'bg-linear-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/30'
+                  : 'bg-indigo-50 text-indigo-600 group-hover:bg-linear-to-br group-hover:from-indigo-500 group-hover:to-violet-600 group-hover:text-white group-hover:shadow-md group-hover:shadow-indigo-500/20 dark:bg-indigo-950/60 dark:text-indigo-400'
+              }`}
+            >
+              <BarChart2 className="w-4 h-4" strokeWidth={2.25} />
+            </div>
+            <div className="flex flex-col min-w-0 relative z-10">
+              <span className="leading-tight">{t('analytics')}</span>
+              <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 leading-tight mt-0.5 group-hover:text-indigo-400/80 transition-colors">
+                {t('analyticsDesc')}
+              </span>
+            </div>
+            <TrendingUp
+              className={`w-3.5 h-3.5 ml-auto relative z-10 shrink-0 transition-all ${
+                pathname.endsWith('/analytics')
+                  ? 'text-indigo-500 opacity-100'
+                  : 'text-zinc-300 opacity-0 group-hover:opacity-100 group-hover:text-indigo-400 dark:text-zinc-600'
+              }`}
+            />
+          </Link>
+          )}
 
           {customModules.length > 0 && (
             <div className="pt-4 pb-1">
