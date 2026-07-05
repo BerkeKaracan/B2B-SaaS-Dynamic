@@ -175,6 +175,7 @@ export default function WorkspaceSidebar() {
           <div className="flex items-center gap-3 relative z-10">
             <div className="w-8 h-8 rounded-lg bg-zinc-950 dark:bg-zinc-800 text-white flex items-center justify-center font-bold text-sm shadow-md overflow-hidden relative">
               {isClient && tenant?.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={tenant.logo_url}
                   alt="Logo"
