@@ -1,6 +1,6 @@
-import { create } from "zustand";
-import Cookies from "js-cookie";
-import { fetchAPI } from "@/services/api";
+import { create } from 'zustand';
+import Cookies from 'js-cookie';
+import { fetchAPI } from '@/services/api';
 
 interface User {
   id?: string;
@@ -33,7 +33,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   fetchUser: async (tenantId?: string) => {
     try {
-      const token = Cookies.get("token");
+      const token = Cookies.get('token');
 
       if (!token) {
         set({ user: null, isAuthenticated: false, isCheckingAuth: false });
@@ -41,41 +41,51 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
 
       const options: RequestInit = {};
-      if (tenantId) {
-        options.headers = { "x-tenant-id": tenantId };
+
+      const activeTenantId =
+        tenantId ||
+        Cookies.get('tenant_id') ||
+        (typeof window !== 'undefined'
+          ? localStorage.getItem('tenant_id')
+          : null);
+
+      if (activeTenantId) {
+        options.headers = { 'x-tenant-id': activeTenantId };
       }
 
-      const res = await fetchAPI("/api/auth/me", options);
+      const res = await fetchAPI('/api/auth/me', options);
 
       if (res.ok) {
         const userData = await res.json();
         set({ user: userData, isAuthenticated: true, isCheckingAuth: false });
       } else {
-        Cookies.remove("token");
+        Cookies.remove('token');
         set({ user: null, isAuthenticated: false, isCheckingAuth: false });
       }
     } catch (error) {
-      console.error("Auth check failed", error);
+      console.error('Auth check failed', error);
       set({ user: null, isAuthenticated: false, isCheckingAuth: false });
     }
   },
 
   logout: () => {
-    Cookies.remove("token");
-    Cookies.remove("tenant_id");
-    localStorage.removeItem("tenant_id");
+    Cookies.remove('token');
+    Cookies.remove('tenant_id');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('tenant_id');
+    }
 
     set({ user: null, isAuthenticated: false, isCheckingAuth: false });
-    if (typeof window !== "undefined") window.location.href = "/";
+    if (typeof window !== 'undefined') window.location.href = '/';
   },
 
   updateProfile: async (data) => {
-    const res = await fetchAPI("/api/auth/me", {
-      method: "PUT",
+    const res = await fetchAPI('/api/auth/me', {
+      method: 'PUT',
       body: JSON.stringify(data),
     });
 
-    if (!res.ok) throw new Error("Failed to update profile");
+    if (!res.ok) throw new Error('Failed to update profile');
 
     set((state) => ({
       user: state.user ? { ...state.user, full_name: data.full_name } : null,
@@ -83,23 +93,23 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   uploadAvatar: async (file) => {
-    const token = Cookies.get("token");
-    if (!token) throw new Error("No token found");
+    const token = Cookies.get('token');
+    if (!token) throw new Error('No token found');
 
     const API_BASE_URL =
-      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+      process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append('file', file);
 
     const res = await fetch(`${API_BASE_URL}/api/auth/avatar`, {
-      method: "POST",
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
       },
       body: formData,
     });
 
-    if (!res.ok) throw new Error("Failed to upload avatar");
+    if (!res.ok) throw new Error('Failed to upload avatar');
 
     const data = await res.json();
 
@@ -111,14 +121,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   updatePassword: async (password) => {
-    const res = await fetchAPI("/api/auth/password", {
-      method: "PUT",
+    const res = await fetchAPI('/api/auth/password', {
+      method: 'PUT',
       body: JSON.stringify({ password }),
     });
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.detail || "Failed to update password");
+      throw new Error(err.detail || 'Failed to update password');
     }
   },
 }));

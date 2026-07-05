@@ -65,6 +65,13 @@ export default function TeamManagementPage({
   const [isCreatingDept, setIsCreatingDept] = useState(false);
   const [isCreatingRole, setIsCreatingRole] = useState(false);
 
+  const strictNoCacheHeaders = {
+    'x-tenant-id': tenantId,
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
+  };
+
   useEffect(() => {
     const checkAccess = async () => {
       try {
@@ -74,11 +81,20 @@ export default function TeamManagementPage({
           return;
         }
 
-        const authRes = await fetchAPI('/api/auth/me');
+        const authRes = await fetchAPI(
+          `/api/auth/me?t=${new Date().getTime()}`,
+          {
+            headers: strictNoCacheHeaders,
+            cache: 'no-store',
+          }
+        );
+
         if (!authRes.ok) throw new Error('Not logged in or token expired');
 
         const authData = await authRes.json();
-        const roleStr = authData.role || 'employee';
+        const roleStr = authData.role
+          ? String(authData.role).toLowerCase().trim()
+          : 'employee';
         setCurrentUserRole(roleStr);
 
         if (roleStr !== 'owner' && roleStr !== 'admin') {
@@ -86,13 +102,36 @@ export default function TeamManagementPage({
           return;
         }
 
+        const timestamp = new Date().getTime();
+        const fetchOptions = {
+          headers: strictNoCacheHeaders,
+          cache: 'no-store' as RequestCache,
+        };
+
         const [teamRes, deptRes, rolesRes] = await Promise.all([
-          fetchAPI(`/api/tenants/${tenantId}/team`),
-          fetchAPI(`/api/tenants/${tenantId}/departments`),
-          fetchAPI(`/api/tenants/${tenantId}/roles`),
+          fetchAPI(
+            `/api/tenants/${tenantId}/team?t=${timestamp}`,
+            fetchOptions
+          ),
+          fetchAPI(
+            `/api/tenants/${tenantId}/departments?t=${timestamp}`,
+            fetchOptions
+          ),
+          fetchAPI(
+            `/api/tenants/${tenantId}/roles?t=${timestamp}`,
+            fetchOptions
+          ),
         ]);
 
-        if (teamRes.ok) setMembers(await teamRes.json());
+        if (teamRes.ok) {
+          const rawMembers = await teamRes.json();
+          const safeMembers = rawMembers.map((m: TeamMember) => ({
+            ...m,
+            role: m.role ? String(m.role).toLowerCase().trim() : 'employee',
+          }));
+          setMembers(safeMembers);
+        }
+
         if (deptRes.ok) setDepartments(await deptRes.json());
         if (rolesRes.ok) setCustomRoles(await rolesRes.json());
       } catch (err: unknown) {
@@ -104,6 +143,7 @@ export default function TeamManagementPage({
     };
 
     checkAccess();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId, router]);
 
   const showNotification = (type: 'error' | 'success', msg: string) => {
@@ -119,6 +159,7 @@ export default function TeamManagementPage({
     try {
       const res = await fetchAPI(`/api/tenants/${tenantId}/team`, {
         method: 'POST',
+        headers: strictNoCacheHeaders,
         body: JSON.stringify({
           email: newEmail,
           role: newRole,
@@ -136,8 +177,21 @@ export default function TeamManagementPage({
       setNewRole('employee');
       setInviteMessage('');
 
-      const res2 = await fetchAPI(`/api/tenants/${tenantId}/team`);
-      if (res2.ok) setMembers(await res2.json());
+      const res2 = await fetchAPI(
+        `/api/tenants/${tenantId}/team?t=${new Date().getTime()}`,
+        {
+          headers: strictNoCacheHeaders,
+          cache: 'no-store',
+        }
+      );
+      if (res2.ok) {
+        const rawMembers = await res2.json();
+        const safeMembers = rawMembers.map((m: TeamMember) => ({
+          ...m,
+          role: m.role ? String(m.role).toLowerCase().trim() : 'employee',
+        }));
+        setMembers(safeMembers);
+      }
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : 'An unexpected error occurred.';
@@ -152,6 +206,7 @@ export default function TeamManagementPage({
     try {
       const res = await fetchAPI(`/api/tenants/${tenantId}/team/${memberId}`, {
         method: 'DELETE',
+        headers: strictNoCacheHeaders,
       });
       if (!res.ok) {
         const errData = await res.json();
@@ -175,6 +230,7 @@ export default function TeamManagementPage({
       const payload = { [field]: value === '' ? null : value };
       const res = await fetchAPI(`/api/tenants/${tenantId}/team/${memberId}`, {
         method: 'PATCH',
+        headers: strictNoCacheHeaders,
         body: JSON.stringify(payload),
       });
 
@@ -211,6 +267,7 @@ export default function TeamManagementPage({
         `/api/tenants/${tenantId}/transfer-ownership`,
         {
           method: 'POST',
+          headers: strictNoCacheHeaders,
           body: JSON.stringify({ new_owner_member_id: memberId }),
         }
       );
@@ -230,6 +287,7 @@ export default function TeamManagementPage({
     try {
       const res = await fetchAPI(`/api/tenants/${tenantId}/departments`, {
         method: 'POST',
+        headers: strictNoCacheHeaders,
         body: JSON.stringify({ name: newDeptName }),
       });
       if (!res.ok) throw new Error('Failed to create department');
@@ -255,6 +313,7 @@ export default function TeamManagementPage({
     try {
       const res = await fetchAPI(`/api/tenants/${tenantId}/departments/${id}`, {
         method: 'DELETE',
+        headers: strictNoCacheHeaders,
       });
       if (!res.ok) throw new Error('Failed to delete department');
 
@@ -278,6 +337,7 @@ export default function TeamManagementPage({
     try {
       const res = await fetchAPI(`/api/tenants/${tenantId}/roles`, {
         method: 'POST',
+        headers: strictNoCacheHeaders,
         body: JSON.stringify({ name: newRoleName }),
       });
       if (!res.ok) throw new Error('Failed to create custom role');
@@ -303,6 +363,7 @@ export default function TeamManagementPage({
     try {
       const res = await fetchAPI(`/api/tenants/${tenantId}/roles/${id}`, {
         method: 'DELETE',
+        headers: strictNoCacheHeaders,
       });
       if (!res.ok) throw new Error('Failed to delete role');
 
@@ -468,137 +529,149 @@ export default function TeamManagementPage({
               </div>
 
               <div className="divide-y divide-zinc-100">
-                {members.map((m) => {
-                  const emailStr = m.email || 'Pending Invite...';
-                  const isCurrentOwnerRow = m.role === 'owner';
-                  return (
-                    <div
-                      key={m.id}
-                      className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 lg:px-6 lg:py-4 items-center hover:bg-zinc-50/50 transition-colors group"
-                    >
-                      <div className="col-span-1 lg:col-span-4 flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-br ${getAvatarGradient(emailStr)} shadow-sm shrink-0 ring-2 ring-white`}
-                        >
-                          {emailStr.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <span
-                            className="font-bold text-sm text-zinc-900 truncate"
-                            title={emailStr}
-                          >
-                            {emailStr}
-                          </span>
-                          <span className="text-[11px] text-zinc-500 font-medium truncate">
-                            Joined{' '}
-                            {m.created_at
-                              ? new Date(m.created_at).toLocaleDateString()
-                              : 'Recently'}
-                          </span>
-                        </div>
-                      </div>
+                <div className="divide-y divide-zinc-100">
+                  {members.map((m) => {
+                    const emailStr = m.email || 'Pending Invite...';
 
-                      <div className="col-span-1 lg:col-span-3 flex items-center">
-                        <div className="flex flex-col w-full max-w-[140px]">
-                          {isCurrentOwnerRow || m.role === 'admin' ? (
-                            <div className="mb-1 w-max px-1.5 py-0.5 bg-zinc-900 text-white text-[9px] uppercase font-black rounded flex items-center gap-1">
-                              <Shield className="w-2.5 h-2.5" />
-                              {isCurrentOwnerRow ? 'Owner' : 'Admin'}
-                            </div>
-                          ) : null}
-                          <select
-                            value={m.role}
-                            disabled={isCurrentOwnerRow}
-                            onChange={(e) =>
-                              e.target.value === 'transfer_owner'
-                                ? handleTransferOwnership(m.id, emailStr)
-                                : handleMemberUpdate(
+                    const safeRole = m.role
+                      ? String(m.role).toLowerCase().trim()
+                      : 'employee';
+                    const isOwner = safeRole === 'owner';
+
+                    return (
+                      <div
+                        key={m.id}
+                        className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 lg:px-6 lg:py-4 items-center hover:bg-zinc-50/50 transition-colors group"
+                      >
+                        <div className="col-span-1 lg:col-span-4 flex items-center gap-3">
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm bg-gradient-to-br ${getAvatarGradient(emailStr)} shadow-sm shrink-0 ring-2 ring-white`}
+                          >
+                            {emailStr.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span
+                              className="font-bold text-sm text-zinc-900 truncate"
+                              title={emailStr}
+                            >
+                              {emailStr}
+                            </span>
+                            <span className="text-[11px] text-zinc-500 font-medium truncate">
+                              Joined{' '}
+                              {m.created_at
+                                ? new Date(m.created_at).toLocaleDateString()
+                                : 'Recently'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="col-span-1 lg:col-span-3 flex items-center">
+                          <div className="flex flex-col w-full max-w-[140px]">
+                            {isOwner || safeRole === 'admin' ? (
+                              <div className="mb-1 w-max px-1.5 py-0.5 bg-zinc-900 text-white text-[9px] uppercase font-black rounded flex items-center gap-1">
+                                <Shield className="w-2.5 h-2.5" />
+                                {isOwner ? 'Owner' : 'Admin'}
+                              </div>
+                            ) : null}
+
+                            <select
+                              value={safeRole}
+                              disabled={isOwner}
+                              onChange={(e) =>
+                                e.target.value === 'transfer_owner'
+                                  ? handleTransferOwnership(m.id, emailStr)
+                                  : handleMemberUpdate(
+                                      m.id,
+                                      'role',
+                                      e.target.value
+                                    )
+                              }
+                              className="appearance-none px-2.5 py-1.5 text-xs font-semibold rounded-md border border-zinc-200 bg-white hover:border-zinc-300 text-zinc-700 outline-none w-full transition-colors disabled:bg-zinc-50 disabled:text-zinc-400"
+                            >
+                              <option value="owner" disabled={!isOwner}>
+                                Owner
+                              </option>
+
+                              {!isOwner && currentUserRole === 'owner' && (
+                                <option value="transfer_owner">
+                                  Transfer Ownership
+                                </option>
+                              )}
+
+                              <option value="admin" disabled={isOwner}>
+                                Admin
+                              </option>
+
+                              <option value="employee" disabled={isOwner}>
+                                Member
+                              </option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="col-span-1 lg:col-span-4 flex flex-col gap-2">
+                          {!isOwner ? (
+                            <>
+                              <select
+                                value={m.custom_role_id || ''}
+                                onChange={(e) =>
+                                  handleMemberUpdate(
                                     m.id,
-                                    'role',
+                                    'custom_role_id',
                                     e.target.value
                                   )
-                            }
-                            className="appearance-none px-2.5 py-1.5 text-xs font-semibold rounded-md border border-zinc-200 bg-white hover:border-zinc-300 text-zinc-700 outline-none w-full transition-colors disabled:bg-zinc-50 disabled:text-zinc-400"
-                          >
-                            {isCurrentOwnerRow && (
-                              <option value="owner">Owner</option>
-                            )}
-                            {!isCurrentOwnerRow &&
-                              currentUserRole === 'owner' && (
-                                <option value="transfer_owner">Transfer</option>
-                              )}
-                            {!isCurrentOwnerRow && (
-                              <option value="admin">Admin</option>
-                            )}
-                            {!isCurrentOwnerRow && (
-                              <option value="employee">Member</option>
-                            )}
-                          </select>
+                                }
+                                className="px-2.5 py-1.5 text-xs font-medium rounded-md border border-transparent hover:border-zinc-200 bg-transparent hover:bg-white text-zinc-600 focus:bg-white focus:border-zinc-300 outline-none transition-all w-full max-w-[180px]"
+                              >
+                                <option value="">-- Set Title --</option>
+                                {customRoles.map((r) => (
+                                  <option key={r.id} value={r.id}>
+                                    {r.name}
+                                  </option>
+                                ))}
+                              </select>
+
+                              <select
+                                value={m.department_id || ''}
+                                onChange={(e) =>
+                                  handleMemberUpdate(
+                                    m.id,
+                                    'department_id',
+                                    e.target.value
+                                  )
+                                }
+                                className="px-2.5 py-1.5 text-xs font-medium rounded-md border border-transparent hover:border-zinc-200 bg-transparent hover:bg-white text-zinc-600 focus:bg-white focus:border-zinc-300 outline-none transition-all w-full max-w-[180px]"
+                              >
+                                <option value="">-- Set Department --</option>
+                                {departments.map((d) => (
+                                  <option key={d.id} value={d.id}>
+                                    {d.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </>
+                          ) : (
+                            <span className="text-xs text-zinc-400 italic">
+                              Not applicable for owner
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="col-span-1 lg:col-span-1 flex justify-end lg:justify-center">
+                          {!isOwner && (
+                            <button
+                              onClick={() => removeMember(m.id)}
+                              className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                              title="Remove Member"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
-
-                      <div className="col-span-1 lg:col-span-4 flex flex-col gap-2">
-                        {!isCurrentOwnerRow ? (
-                          <>
-                            <select
-                              value={m.custom_role_id || ''}
-                              onChange={(e) =>
-                                handleMemberUpdate(
-                                  m.id,
-                                  'custom_role_id',
-                                  e.target.value
-                                )
-                              }
-                              className="px-2.5 py-1.5 text-xs font-medium rounded-md border border-transparent hover:border-zinc-200 bg-transparent hover:bg-white text-zinc-600 focus:bg-white focus:border-zinc-300 outline-none transition-all w-full max-w-[180px]"
-                            >
-                              <option value="">-- Set Title --</option>
-                              {customRoles.map((r) => (
-                                <option key={r.id} value={r.id}>
-                                  {r.name}
-                                </option>
-                              ))}
-                            </select>
-
-                            <select
-                              value={m.department_id || ''}
-                              onChange={(e) =>
-                                handleMemberUpdate(
-                                  m.id,
-                                  'department_id',
-                                  e.target.value
-                                )
-                              }
-                              className="px-2.5 py-1.5 text-xs font-medium rounded-md border border-transparent hover:border-zinc-200 bg-transparent hover:bg-white text-zinc-600 focus:bg-white focus:border-zinc-300 outline-none transition-all w-full max-w-[180px]"
-                            >
-                              <option value="">-- Set Department --</option>
-                              {departments.map((d) => (
-                                <option key={d.id} value={d.id}>
-                                  {d.name}
-                                </option>
-                              ))}
-                            </select>
-                          </>
-                        ) : (
-                          <span className="text-xs text-zinc-400 italic">
-                            Not applicable for owner
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="col-span-1 lg:col-span-1 flex justify-end lg:justify-center">
-                        {!isCurrentOwnerRow && (
-                          <button
-                            onClick={() => removeMember(m.id)}
-                            className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                            title="Remove Member"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
