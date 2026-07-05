@@ -99,7 +99,7 @@ export default function BillingPage({
 
         if (teamRes.ok) {
           const teamData = await teamRes.json();
-          setTeamMemberCount(teamData.length || 1); 
+          setTeamMemberCount(teamData.length || 1);
         }
       } catch (error) {
         console.error('Failed to load billing or team data', error);
@@ -182,7 +182,7 @@ export default function BillingPage({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#FAFAFB] min-h-screen font-sans">
+    <div className="flex-1 overflow-y-auto bg-[#FAFAFB] h-full min-h-[100dvh] font-sans">
       <div className="max-w-[1200px] mx-auto w-full p-6 md:p-10 pb-32">
         <div className="mb-10">
           <h1 className="text-3xl font-black text-zinc-900 tracking-tight flex items-center gap-3">
