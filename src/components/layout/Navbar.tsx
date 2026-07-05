@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useLayoutStore } from '@/store/useLayoutStore';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useTenantStore } from '@/store/useTenantStore';
 import NotificationBell from '@/components/layout/NotificationBell';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { User, Shield, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { User, Shield, Settings, LogOut, ChevronDown, Zap } from 'lucide-react';
 
 export default function Navbar({
   tenantId,
@@ -23,9 +24,9 @@ export default function Navbar({
   const { isSaving, showSaved } = useCanvasStore();
 
   const { user, logout, fetchUser } = useAuthStore();
+  const { tenant, fetchTenant } = useTenantStore();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
   const [isFetchingRole, setIsFetchingRole] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -43,7 +44,7 @@ export default function Navbar({
     const loadTenantData = async () => {
       if (tenantId) {
         setIsFetchingRole(true);
-        await fetchUser(tenantId);
+        await Promise.all([fetchTenant(tenantId), fetchUser(tenantId)]);
         if (isMounted) setIsFetchingRole(false);
       }
     };
@@ -53,7 +54,7 @@ export default function Navbar({
     return () => {
       isMounted = false;
     };
-  }, [tenantId, fetchUser]);
+  }, [tenantId, fetchUser, fetchTenant]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -72,12 +73,14 @@ export default function Navbar({
     logout();
   };
 
+  const currentTier = tenant?.tier || 'basic';
+
   return (
     <nav className="h-16 w-full border-b border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-lg flex items-center justify-between px-6 shrink-0 z-50 sticky top-0 shadow-sm transition-colors duration-300">
       <div className="flex items-center gap-4">
         <button
           onClick={onMenuToggle}
-          className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+          className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all duration-200 active:scale-90 active:bg-zinc-200 dark:active:bg-zinc-700 focus:outline-none"
         >
           <svg
             width="22"
@@ -85,8 +88,9 @@ export default function Navbar({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="2.5"
             strokeLinecap="round"
+            className="transition-transform duration-300"
           >
             <line x1="3" y1="12" x2="21" y2="12"></line>
             <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -124,6 +128,24 @@ export default function Navbar({
       </div>
 
       <div className="flex items-center gap-4">
+        <div className="hidden sm:flex items-center mr-4 select-none cursor-default">
+          <span
+            className={`uppercase ${
+              currentTier === 'pro'
+                ? 'text-base font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400'
+                : currentTier === 'advanced'
+                  ? 'text-[15px] font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-violet-500 to-indigo-500 dark:from-violet-400 dark:to-indigo-400'
+                  : 'text-xs font-bold tracking-tight text-zinc-400 dark:text-zinc-500'
+            }`}
+          >
+            {currentTier === 'pro'
+              ? 'Pro'
+              : currentTier === 'advanced'
+                ? 'Advanced'
+                : 'Free'}
+          </span>
+        </div>
+
         <ThemeToggle />
         <NotificationBell />
 

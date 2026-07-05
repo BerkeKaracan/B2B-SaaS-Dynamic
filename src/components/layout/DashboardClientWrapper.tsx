@@ -78,12 +78,20 @@ export default function DashboardClientWrapper({
         onMenuToggle={togglePrimarySidebar}
         showProjectInfo={isDesignView}
       />
+
       <div className="flex flex-1 overflow-hidden relative min-h-0">
-        {isPrimarySidebarOpen && (
-          <div className="fixed lg:static inset-y-16 lg:inset-auto left-0 z-50 lg:z-auto h-[calc(100%-4rem)] lg:h-full shrink-0 animate-in slide-in-from-left duration-200">
+        <div
+          className={`fixed lg:static inset-y-16 lg:inset-auto left-0 z-50 lg:z-auto h-[calc(100%-4rem)] lg:h-full shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${
+            isPrimarySidebarOpen
+              ? 'translate-x-0 w-[240px] opacity-100'
+              : '-translate-x-full lg:translate-x-0 w-0 opacity-0 lg:opacity-100'
+          }`}
+        >
+          <div className="w-[240px] h-full">
             <WorkspaceSidebar />
           </div>
-        )}
+        </div>
+
         <div className="flex flex-1 min-w-0 overflow-hidden">
           {isDesignView && showEngineToolkit && <ItemSidebar />}
 

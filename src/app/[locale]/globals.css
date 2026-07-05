@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -11,15 +11,15 @@
 
 @layer base {
   :root {
-    --bg: #fafafb;      
-    --text: #18181b;  
-    --card-bg: #ffffff;  
+    --bg: #fafafb;
+    --text: #18181b;
+    --card-bg: #ffffff;
     --card-border: #e4e4e7;
   }
 
   .dark {
-    --bg: #09090b;    
-    --text: #fafafa;   
+    --bg: #09090b;
+    --text: #fafafa;
     --card-bg: #18181b;
     --card-border: #27272a;
   }
