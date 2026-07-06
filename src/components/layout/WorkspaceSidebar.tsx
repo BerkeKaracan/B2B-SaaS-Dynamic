@@ -185,59 +185,57 @@ export default function WorkspaceSidebar() {
             </div>
           )}
 
-          {!isOnProject && (
-            <div className="mb-2">
-              <div
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="flex items-center justify-between px-2 py-1 mt-2 mb-1 cursor-pointer group"
-              >
-                <span className="text-[12px] font-bold text-zinc-500 dark:text-zinc-400">
-                  {t('menu')}
-                </span>
-                <ChevronRight
-                  className={`w-3.5 h-3.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isMenuOpen ? 'rotate-90' : ''}`}
-                />
-              </div>
-
-              <div
-                className={`space-y-0.5 overflow-hidden transition-all duration-200 ${isMenuOpen ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}
-              >
-                <Link
-                  href={`/dashboard/${tenantId}/projects`}
-                  className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/projects') && !isOnProject)}`}
-                >
-                  <LayoutDashboard className="w-4 h-4" strokeWidth={2} />
-                  {t('projects')}
-                </Link>
-
-                <Link
-                  href={`/dashboard/${tenantId}/my-tasks`}
-                  className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/my-tasks'))}`}
-                >
-                  <CheckCircle className="w-4 h-4" strokeWidth={2} />
-                  {t('myTasks')}
-                </Link>
-
-                <Link
-                  href={`/dashboard/${tenantId}/ai`}
-                  className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/ai'))}`}
-                >
-                  <Sparkles className="w-4 h-4" strokeWidth={2} />
-                  {t('aiAssistant')}
-                </Link>
-
-                <Link
-                  href={`/dashboard/${tenantId}/community`}
-                  className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/community'))}`}
-                >
-                  <Globe className="w-4 h-4" strokeWidth={2} />
-                  {t('communityHub')}
-                </Link>
-              </div>
+          <div className="mb-2">
+            <div
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="flex items-center justify-between px-2 py-1 mt-2 mb-1 cursor-pointer group"
+            >
+              <span className="text-[12px] font-bold text-zinc-500 dark:text-zinc-400">
+                {t('menu')}
+              </span>
+              <ChevronRight
+                className={`w-3.5 h-3.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isMenuOpen ? 'rotate-90' : ''}`}
+              />
             </div>
-          )}
 
-          {isAdmin && !isOnProject && (
+            <div
+              className={`space-y-0.5 overflow-hidden transition-all duration-200 ${isMenuOpen ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}
+            >
+              <Link
+                href={`/dashboard/${tenantId}/projects`}
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/projects') && !isOnProject)}`}
+              >
+                <LayoutDashboard className="w-4 h-4" strokeWidth={2} />
+                {t('projects')}
+              </Link>
+
+              <Link
+                href={`/dashboard/${tenantId}/my-tasks`}
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/my-tasks'))}`}
+              >
+                <CheckCircle className="w-4 h-4" strokeWidth={2} />
+                {t('myTasks')}
+              </Link>
+
+              <Link
+                href={`/dashboard/${tenantId}/ai`}
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/ai'))}`}
+              >
+                <Sparkles className="w-4 h-4" strokeWidth={2} />
+                {t('aiAssistant')}
+              </Link>
+
+              <Link
+                href={`/dashboard/${tenantId}/community`}
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/community'))}`}
+              >
+                <Globe className="w-4 h-4" strokeWidth={2} />
+                {t('communityHub')}
+              </Link>
+            </div>
+          </div>
+
+          {isAdmin && (
             <div className="mb-2 mt-4">
               <div
                 onClick={() => setIsInsightsOpen(!isInsightsOpen)}
@@ -265,7 +263,7 @@ export default function WorkspaceSidebar() {
             </div>
           )}
 
-          {customModules.length > 0 && !isOnProject && (
+          {customModules.length > 0 && (
             <div className="mb-2 mt-4">
               <div
                 onClick={() => setIsModulesOpen(!isModulesOpen)}
@@ -298,7 +296,7 @@ export default function WorkspaceSidebar() {
             </div>
           )}
 
-          {isAdmin && !isOnProject && (
+          {isAdmin && (
             <button
               onClick={() => setIsModalOpen(true)}
               className="w-full flex items-center gap-2.5 px-2.5 py-1.5 mt-2 rounded-md text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
