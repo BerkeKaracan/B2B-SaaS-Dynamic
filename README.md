@@ -58,7 +58,7 @@ The system relies on a strict separation of concerns. The Next.js frontend handl
 
 3. Launch Container Ecosystem:
    Use Docker Compose to build and run the services in the background.
-   docker-compose -f docker-compose.dev.yml up -d --build
+   docker compose up -d --build
 
 4. Monitor Backend Logs:
    docker logs b2b-backend-dev -f
