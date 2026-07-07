@@ -631,10 +631,19 @@
     "publish": "Yayınla"
   },
   "WhiteboardBoard": {
+    "pan": "Kaydır ve Taşı (V / H)",
+    "pen": "Kalem (P)",
+    "highlighter": "Fosforlu Kalem",
+    "eraser": "Silgi (E)",
+    "text": "Metin Ekle (T)",
+    "titlePlaceholder": "BEYAZ TAHTA BAŞLIĞI...",
     "clear": "Temizle",
-    "eraser": "Silgi",
-    "draw": "Çiz",
-    "color": "Renk"
+    "clearConfirm": "Tüm beyaz tahtayı temizlemek istediğinize emin misiniz?",
+    "typePlaceholder": "Yaz...",
+    "font": "Yazı Tipi",
+    "size": "Boyut (PX)",
+    "thickness": "Kalınlık",
+    "eraserSize": "Silgi Boyutu"
   },
   "RetrospectiveBoard": {
     "title": "Sprint Retrospektifi",

@@ -142,7 +142,7 @@ export default function Navbar({
               ? 'Pro'
               : currentTier === 'advanced'
                 ? 'Advanced'
-                : 'Free'}
+                : ''}
           </span>
         </div>
 

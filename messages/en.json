@@ -631,10 +631,19 @@
     "publish": "Publish"
   },
   "WhiteboardBoard": {
+    "pan": "Pan & Move (V / H)",
+    "pen": "Pen (P)",
+    "highlighter": "Highlighter",
+    "eraser": "Eraser (E)",
+    "text": "Add Text (T)",
+    "titlePlaceholder": "WHITEBOARD TITLE...",
     "clear": "Clear",
-    "eraser": "Eraser",
-    "draw": "Draw",
-    "color": "Color"
+    "clearConfirm": "Are you sure you want to clear the entire whiteboard?",
+    "typePlaceholder": "Type...",
+    "font": "Font",
+    "size": "Size (PX)",
+    "thickness": "Thickness",
+    "eraserSize": "Eraser Size"
   },
   "RetrospectiveBoard": {
     "title": "Sprint Retrospective",
