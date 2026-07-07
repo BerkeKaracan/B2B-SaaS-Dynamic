@@ -91,16 +91,12 @@ export default function ItemSidebar() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log('🚀 AI Output:', data);
+        console.log('AI Output:', data);
 
         const finalData = data.page || data;
 
         if (finalData && finalData.type) {
           const store = useCanvasStore.getState();
-
-          if (finalData.metadata && store.updateMetadata) {
-            store.updateMetadata(finalData.metadata);
-          }
 
           if (store.addGeneratedPage) {
             store.addGeneratedPage({

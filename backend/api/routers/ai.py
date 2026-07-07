@@ -79,94 +79,65 @@ async def generate_canvas(req: GenerateCanvasRequest):
     current_date = datetime.now().strftime("%Y-%m-%d")
     
     system_prompt = f"""You are an expert AI Canvas Architect for a B2B SaaS application.
-    The user will describe a workspace, process, database, or dashboard they want to create.
-    You MUST return ONLY a valid JSON object representing a SINGLE Page.
+    You MUST return ONLY a valid JSON object. Do NOT wrap it in markdown tags.
 
     CRITICAL TEMPORAL CONTEXT: Today's date is {current_date}.
     
-    --- PAGE TEMPLATES & CUSTOM PAGES ---
-    1. STANDARD TEMPLATES: "kanban", "notes", "document", "database", "whiteboard", "mindmap", "retrospective", "timeline".
-       - For these, set "type" to the template name. 
-       - You MUST populate their initial data CREATIVELY inside a "metadata" object! Provide realistic, industry-specific mock data based on the user's prompt.
-       
-       * DATABASE Example Data Structure (Inside "metadata"):
-         "databaseTitle": "<Creative Database Title>",
-         "databaseProperties": [
-            {{"id": "prop-1", "name": "Task Name", "type": "text"}},
-            {{"id": "prop-2", "name": "Status", "type": "select"}},
-            {{"id": "prop-3", "name": "Deadline", "type": "date"}},
-            {{"id": "prop-4", "name": "Budget", "type": "number"}}
-         ],
-         "databaseRows": [
-            {{"id": "row-1", "prop-1": "Q3 Marketing Campaign", "prop-2": "In Progress", "prop-3": "2024-09-15", "prop-4": 50000}},
-            {{"id": "row-2", "prop-1": "Website Redesign", "prop-2": "Pending", "prop-3": "2024-10-01", "prop-4": 12000}}
-         ]
-         
-       * KANBAN Example Data Structure (Inside "metadata"):
-         "kanbanColumns": [{{"id": "col-1", "title": "To Do"}}, {{"id": "col-2", "title": "In Progress"}}],
-         "kanbanTasks": [{{"id": "task-1", "columnId": "col-1", "content": "Design Homepage"}}]
-
-      * MINDMAP Example Data Structure (Inside "metadata"):
-         "mindmapNodes": [
-            {{"id": "root", "text": "SaaS Product Launch", "x": 500, "y": 300, "parentId": null, "color": "bg-indigo-600"}},
-            {{"id": "node-1", "text": "Marketing", "x": 300, "y": 150, "parentId": "root", "color": "bg-white"}},
-            {{"id": "node-2", "text": "Development", "x": 700, "y": 150, "parentId": "root", "color": "bg-white"}},
-            {{"id": "node-3", "text": "Sales", "x": 500, "y": 500, "parentId": "root", "color": "bg-white"}}
-         ]
-
-      * NOTES / DOCUMENT Example Data Structure (Inside "metadata"):
-         "notepadTitle": "Q3 Marketing Strategy Notes",
-         "notepadTexts": [
-            {{"id": "text-1", "x": 100, "y": 100, "content": "1. Launch Campaign by Oct 15", "color": "#18181b", "size": 32, "font": "Inter"}},
-            {{"id": "text-2", "x": 100, "y": 160, "content": "Needs approval from CEO", "color": "#ef4444", "size": 24, "font": "Inter"}},
-            {{"id": "text-3", "x": 100, "y": 220, "content": "- Set budget: $50K\n- Assign team", "color": "#3b82f6", "size": 24, "font": "Inter"}}
-         ],
-         "notepadStrokes": []
+    --- TEMPLATE DATA STRUCTURE ---
     
-      * DOCUMENT Example Data Structure (Inside "metadata"):
-         "documentTitle": "Project Requirements Document",
-         "documentContent": "## Overview\nThis document outlines the core objectives of the project.\n\n## Goals\n- Increase user retention by 20%\n- Optimize loading speeds."
-
-      * TIMELINE Example Data Structure (Inside "metadata"):
-         "timelineEvents": [
-            {{"id": "evt-1", "monthKey": "2026-07-15", "title": "Beta Launch", "description": "Release to first 100 users", "priority": "HIGH", "isDetailed": true, "assignee": "Tech Team"}},
-            {{"id": "evt-2", "monthKey": "2026-08-01", "title": "Marketing Push", "description": "Start social media campaigns", "priority": "URGENT", "isDetailed": true, "assignee": "Marketing"}}
-         ]
-
-    Whenever generating data that requires dates (especially TIMELINE events), YOU MUST use {current_date} as your starting reference point. 
-All timeline "monthKey" values MUST be in strict "YYYY-MM-DD" format and should ideally fall within the next 30 to 60 days.
-
-      * TIMELINE Example Data Structure (Inside "metadata"):
-"timelineEvents": [
-   {{"id": "evt-1", "monthKey": "{current_date}", "title": "Project Kickoff", "description": "Initial meeting", "priority": "HIGH", "isDetailed": true, "assignee": "Tech Team"}},
-   {{"id": "evt-2", "monthKey": "2026-07-15", "title": "Beta Launch", "description": "Release to first 100 users", "priority": "URGENT", "isDetailed": true, "assignee": "Marketing"}}
-]
-         
-    2. CUSTOM PAGES (Blank Canvas with Blocks): 
-       - Use "type": "empty".
-       - Populate the "blocks" array creatively.
-       - ALLOWED BLOCK TYPES: "text", "form", "date", "dropdown", "checkbox", "badge_selector", "asset_stream".
-       - CRITICAL: Space out blocks vertically! Increment 'y' by 145 for each new block.
-
-    JSON STRUCTURE MUST BE EXACTLY THIS:
+    IF THE USER ASKS FOR NOTES, A DOCUMENT, AN ARTICLE, OR A STRATEGY:
+    Set "type" to "notes".
+    Inside "metadata", you MUST provide "notepadTitle" and a long Markdown string inside "notepadContent".
+    Example:
     {{
-        "type": "<PAGE_TYPE>",
-        "title": "<A creative, relevant professional title>",
+        "type": "notes",
+        "title": "Strategy Notes",
         "x": {req.x},
         "y": {req.y},
         "width": 1000,
         "height": 800,
         "metadata": {{
-            // POPULATE databaseProperties, databaseRows, databaseTitle, kanbanColumns, etc. HERE!
+            "notepadTitle": "Strategy Notes",
+            "notepadContent": "## Overview\\nThis is a plain text document."
         }},
-        "blocks": [
-            // ONLY if type is "empty".
-        ]
+        "blocks": []
     }}
-    
-    CRITICAL RULES: 
-    - Output RAW JSON ONLY. DO NOT wrap the output in Markdown tags like ```json.
-    - BE HIGHLY CREATIVE! Generate at least 5 properties and 6 rows of rich, professional mock data if a database is requested.
+
+    IF THE USER ASKS FOR A WHITEBOARD, CANVAS, BRAINSTORMING OR POST-ITS:
+    Set "type" to "whiteboard".
+    Inside "metadata", you MUST provide "whiteboardTitle" and a "whiteboardTexts" array.
+    CRITICAL ID RULE: Every object in "whiteboardTexts" MUST HAVE A MATHEMATICALLY UNIQUE "id".
+    Example:
+    {{
+        "type": "whiteboard",
+        "title": "Brainstorming Board",
+        "x": {req.x},
+        "y": {req.y},
+        "width": 1000,
+        "height": 800,
+        "metadata": {{
+            "whiteboardTitle": "Creative Board",
+            "whiteboardTexts": [
+                {{"id": "txt-A1", "x": 100, "y": 100, "content": "First idea", "color": "#18181b", "size": 32, "font": "Inter"}}
+            ],
+            "whiteboardStrokes": []
+        }},
+        "blocks": []
+    }}
+
+    JSON STRUCTURE MUST BE EXACTLY THIS:
+    {{
+        "type": "<PAGE_TYPE>",
+        "title": "<TITLE>",
+        "x": {req.x},
+        "y": {req.y},
+        "width": 1000,
+        "height": 800,
+        "metadata": {{
+            // REQUIRED FIELDS FOR THE TYPE GO HERE!
+        }},
+        "blocks": []
+    }}
     """
     
     try:
@@ -185,29 +156,21 @@ All timeline "monthKey" values MUST be in strict "YYYY-MM-DD" format and should 
         result_text = re.sub(r'^`{3}(?:json)?|`{3}$', '', result_text, flags=re.IGNORECASE).strip()
         
         start_idx, end_idx = -1, -1
-        
         for i, char in enumerate(result_text):
             if char in ['{', '[']:
                 start_idx = i
                 break
-                
         for i in range(len(result_text)-1, -1, -1):
             if result_text[i] in ['}', ']']:
                 end_idx = i
                 break
-                
         if start_idx != -1 and end_idx != -1:
             result_text = result_text[start_idx:end_idx+1]
         
         parsed_json = json.loads(result_text)
         
         if isinstance(parsed_json, list):
-            parsed_json = {
-                "type": "empty",
-                "title": "AI Generated Workspace",
-                "blocks": parsed_json
-            }
-            
+            parsed_json = {"type": "empty", "title": "AI Generated Workspace", "blocks": parsed_json}
         if "blocks" not in parsed_json:
             parsed_json["blocks"] = []
         if "type" not in parsed_json:

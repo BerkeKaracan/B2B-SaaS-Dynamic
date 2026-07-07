@@ -113,6 +113,7 @@ interface CanvasState {
   addGeneratedPage: (
     pageData: Omit<PageContent, 'id' | 'blocks'> & {
       blocks?: Omit<BlockContent, 'id'>[];
+      metadata?: Record<string, unknown>;
     }
   ) => void;
 }
@@ -191,6 +192,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         })) as BlockContent[],
         settings: {
           backgroundColor: pageData.type === 'empty' ? '#ffffff' : '#f4f4f5',
+          ...(pageData.metadata || {}),
         },
       };
 
@@ -424,6 +426,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((state) => ({
       pages: state.pages.map((p) => (p.id === pageId ? { ...p, title } : p)),
     })),
+
   updatePageSettings: (pageId, settings) =>
     set((state) => ({
       pages: state.pages.map((p) =>
@@ -505,6 +508,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((state) => ({
       pages: state.pages.map((p) => (p.id === pageId ? { ...p, x, y } : p)),
     })),
+
   updateBlockPosition: (pageId, blockId, x, y) =>
     set((state) => {
       const sourcePage = state.pages.find((p) => p.id === pageId);
@@ -551,6 +555,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         }),
       };
     }),
+
   updateBlockDimensions: (pageId, blockId, width, height) =>
     set((state) => ({
       pages: state.pages.map((p) =>
@@ -564,6 +569,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           : p
       ),
     })),
+
   updatePageDimensions: (pageId, width, height) => {
     get().saveHistory();
     set((state) => ({

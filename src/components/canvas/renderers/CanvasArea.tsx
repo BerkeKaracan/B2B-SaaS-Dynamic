@@ -22,7 +22,8 @@ import AssetStreamBlock from './AssetStreamBlock';
 import BlockResizer from './BlockResizer';
 import StaticKanbanBoard from '@/components/kanban/StaticKanbanBoard';
 import { Sparkles, Minus, Plus, Maximize, MousePointer2 } from 'lucide-react';
-import DocumentBoard from '@/components/document/DocumentBoard';
+
+import NotepadBoard from '@/components/notepad/NotepadBoard';
 import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
 import MindMapBoard from '@/components/mindmap/MindMapBoard';
 import TimelineBoard from '@/components/timeline/TimelineBoard';
@@ -1041,8 +1042,8 @@ export default function CanvasArea() {
                   <StaticKanbanBoard projectId={page.id} />
                 </div>
               ) : page.type === 'notes' || page.type === 'document' ? (
-                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-[#191919] rounded-b-2xl">
-                  <DocumentBoard projectId={page.id} />
+                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-[#fdfdfc] dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
+                  <NotepadBoard projectId={page.id} />
                 </div>
               ) : page.type === 'whiteboard' ? (
                 <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">

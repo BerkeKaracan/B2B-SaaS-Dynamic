@@ -1,21 +1,20 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import CanvasArea from "@/components/canvas/renderers/CanvasArea";
-import { fetchAPI } from "@/services/api";
-import { useCanvasStore } from "@/store/useCanvasStore";
-import { useLayoutStore } from "@/store/useLayoutStore";
-import StaticKanbanBoard from "@/components/kanban/StaticKanbanBoard";
-import NotepadBoard from "@/components/notepad/NotepadBoard";
-import TimelineBoard from "@/components/timeline/TimelineBoard";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { LoadingSpinner } from "@/components/ui/loading";
-import DatabaseBoard from "@/components/database/DatabaseBoard";
-import DocumentBoard from "@/components/document/DocumentBoard";
-import WhiteboardBoard from "@/components/whiteboard/WhiteBoard";
-import MindMapBoard from "@/components/mindmap/MindMapBoard";
-import RetrospectiveBoard from "@/components/retrospective/RetrospectiveBoard";
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import CanvasArea from '@/components/canvas/renderers/CanvasArea';
+import { fetchAPI } from '@/services/api';
+import { useCanvasStore } from '@/store/useCanvasStore';
+import { useLayoutStore } from '@/store/useLayoutStore';
+import StaticKanbanBoard from '@/components/kanban/StaticKanbanBoard';
+import NotepadBoard from '@/components/notepad/NotepadBoard';
+import TimelineBoard from '@/components/timeline/TimelineBoard';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LoadingSpinner } from '@/components/ui/loading';
+import DatabaseBoard from '@/components/database/DatabaseBoard';
+import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
+import MindMapBoard from '@/components/mindmap/MindMapBoard';
+import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
 
 type Collaborator = {
   email: string;
@@ -34,7 +33,7 @@ export default function ProjectDesignPage() {
   const params = useParams();
   const projectId = params.projectId as string;
   const setShowEngineToolkit = useLayoutStore(
-    (state) => state.setShowEngineToolkit,
+    (state) => state.setShowEngineToolkit
   );
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -45,8 +44,8 @@ export default function ProjectDesignPage() {
   const [isLoadingPage, setIsLoadingPage] = useState<boolean>(true);
   const [isLoadingRecord, setIsLoadingRecord] = useState<boolean>(false);
 
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("viewer");
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('viewer');
 
   const updateMetadata = useCanvasStore((state) => state.updateMetadata);
 
@@ -58,14 +57,14 @@ export default function ProjectDesignPage() {
           const data = await res.json();
           setRecordData(data.record_data);
           if (
-            data.record_data?.template === "kanban" ||
-            data.record_data?.template === "notepad" ||
-            data.record_data?.template === "document" ||
-            data.record_data?.template === "whiteboard" ||
-            data.record_data?.template === "timeline" ||
-            data.record_data?.template === "database" ||
-            data.record_data?.template === "mindmap" ||
-            data.record_data?.template === "retrospective"
+            data.record_data?.template === 'kanban' ||
+            data.record_data?.template === 'notepad' ||
+            data.record_data?.template === 'document' ||
+            data.record_data?.template === 'whiteboard' ||
+            data.record_data?.template === 'timeline' ||
+            data.record_data?.template === 'database' ||
+            data.record_data?.template === 'mindmap' ||
+            data.record_data?.template === 'retrospective'
           ) {
             setShowEngineToolkit(false);
           } else {
@@ -105,7 +104,7 @@ export default function ProjectDesignPage() {
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2500);
     } catch (err) {
-      console.error("Failed to copy link", err);
+      console.error('Failed to copy link', err);
     }
   };
 
@@ -113,13 +112,13 @@ export default function ProjectDesignPage() {
     if (!recordData) return;
     setIsUpdating(true);
 
-    const isCurrentlyGlobal = String(recordData.is_global_public) === "true";
+    const isCurrentlyGlobal = String(recordData.is_global_public) === 'true';
     const nextGlobalState = !isCurrentlyGlobal;
 
     try {
       const updatedData = { ...recordData, is_global_public: nextGlobalState };
       const res = await fetchAPI(`/api/records/${projectId}`, {
-        method: "PATCH",
+        method: 'PATCH',
         body: JSON.stringify({ record_data: updatedData }),
       });
 
@@ -146,7 +145,7 @@ export default function ProjectDesignPage() {
       currentCollabs.some((c) => c.email.toLowerCase().trim() === cleanEmail)
     ) {
       setIsUpdating(false);
-      setInviteEmail("");
+      setInviteEmail('');
       return;
     }
 
@@ -158,14 +157,14 @@ export default function ProjectDesignPage() {
     try {
       const updatedData = { ...recordData, collaborators: newCollabs };
       const res = await fetchAPI(`/api/records/${projectId}`, {
-        method: "PATCH",
+        method: 'PATCH',
         body: JSON.stringify({ record_data: updatedData }),
       });
 
       if (res.ok) {
         setRecordData(updatedData);
         updateMetadata({ collaborators: newCollabs });
-        setInviteEmail("");
+        setInviteEmail('');
       }
     } catch (err) {
       console.error(err);
@@ -180,13 +179,13 @@ export default function ProjectDesignPage() {
 
     const cleanEmailToRemove = emailToRemove.toLowerCase().trim();
     const newCollabs = (recordData.collaborators || []).filter(
-      (c) => c.email.toLowerCase().trim() !== cleanEmailToRemove,
+      (c) => c.email.toLowerCase().trim() !== cleanEmailToRemove
     );
 
     try {
       const updatedData = { ...recordData, collaborators: newCollabs };
       const res = await fetchAPI(`/api/records/${projectId}`, {
-        method: "PATCH",
+        method: 'PATCH',
         body: JSON.stringify({ record_data: updatedData }),
       });
 
@@ -201,22 +200,22 @@ export default function ProjectDesignPage() {
     }
   };
 
-  const isGlobal = String(recordData?.is_global_public) === "true";
+  const isGlobal = String(recordData?.is_global_public) === 'true';
   const collaborators = recordData?.collaborators || [];
-  const projectTemplate = recordData?.template || "blank";
+  const projectTemplate = recordData?.template || 'blank';
 
   return (
     <div className="flex flex-col h-full w-full min-w-0 bg-[#fafafb] relative selection:bg-zinc-200">
       <div className="h-12 md:h-14 border-b border-zinc-200/80 bg-white px-3 md:px-6 flex items-center justify-between shrink-0 shadow-xs relative z-10">
         <div className="flex items-center gap-2 md:gap-3">
           <span className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-100 px-2 md:px-2.5 py-1 rounded-md border border-zinc-200/50">
-            {projectTemplate === "kanban"
-              ? "Kanban Mode"
-              : projectTemplate === "notepad"
-                ? "NotePad"
-                : projectTemplate === "timeline"
-                  ? "Time Schema"
-                  : "Design Mode"}
+            {projectTemplate === 'kanban'
+              ? 'Kanban Mode'
+              : projectTemplate === 'notepad'
+                ? 'NotePad'
+                : projectTemplate === 'timeline'
+                  ? 'Time Schema'
+                  : 'Design Mode'}
           </span>
         </div>
 
@@ -253,20 +252,20 @@ export default function ProjectDesignPage() {
             <div className="flex items-center justify-center h-full">
               <div className="w-8 h-8 border-4 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
             </div>
-          ) : projectTemplate === "kanban" ? (
+          ) : projectTemplate === 'kanban' ? (
             <StaticKanbanBoard projectId={projectId} />
-          ) : projectTemplate === "notepad" ||
-            projectTemplate === "document" ? (
-            <DocumentBoard projectId={projectId} />
-          ) : projectTemplate === "whiteboard" ? (
+          ) : projectTemplate === 'notepad' ||
+            projectTemplate === 'document' ? (
+            <NotepadBoard projectId={projectId} />
+          ) : projectTemplate === 'whiteboard' ? (
             <WhiteboardBoard projectId={projectId} />
-          ) : projectTemplate === "mindmap" ? (
+          ) : projectTemplate === 'mindmap' ? (
             <MindMapBoard projectId={projectId} />
-          ) : projectTemplate === "timeline" ? (
+          ) : projectTemplate === 'timeline' ? (
             <TimelineBoard projectId={projectId} />
-          ) : projectTemplate === "database" ? (
+          ) : projectTemplate === 'database' ? (
             <DatabaseBoard projectId={projectId} />
-          ) : projectTemplate === "retrospective" ? (
+          ) : projectTemplate === 'retrospective' ? (
             <RetrospectiveBoard projectId={projectId} />
           ) : (
             <CanvasArea />
@@ -323,29 +322,29 @@ export default function ProjectDesignPage() {
                     <button
                       onClick={handleGlobalToggle}
                       disabled={isUpdating}
-                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors mt-1 ${isGlobal ? "bg-zinc-950" : "bg-zinc-200"}`}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors mt-1 ${isGlobal ? 'bg-zinc-950' : 'bg-zinc-200'}`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isGlobal ? "translate-x-6" : "translate-x-1"}`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isGlobal ? 'translate-x-6' : 'translate-x-1'}`}
                       />
                     </button>
                   </div>
 
                   <div
-                    className={`transition-opacity ${!isGlobal ? "hidden" : "block"}`}
+                    className={`transition-opacity ${!isGlobal ? 'hidden' : 'block'}`}
                   >
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3">
                       <input
                         type="text"
                         readOnly
-                        value={`${typeof window !== "undefined" ? window.location.origin : ""}/share/${projectId}`}
+                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${projectId}`}
                         className="flex-1 px-3 py-3 sm:py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] md:text-xs font-medium text-zinc-600 focus:outline-none"
                       />
                       <button
                         onClick={handleCopy}
-                        className={`px-4 py-3 sm:py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${isCopied ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-zinc-950 text-white hover:bg-zinc-800"}`}
+                        className={`px-4 py-3 sm:py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${isCopied ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-zinc-950 text-white hover:bg-zinc-800'}`}
                       >
-                        {isCopied ? "Copied!" : "Copy Link"}
+                        {isCopied ? 'Copied!' : 'Copy Link'}
                       </button>
                     </div>
                   </div>
@@ -411,7 +410,7 @@ export default function ProjectDesignPage() {
                           </div>
                           <div className="flex items-center gap-2 md:gap-3 shrink-0">
                             <span
-                              className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${collab.role === "editor" ? "bg-indigo-50 text-indigo-600" : "bg-zinc-100 text-zinc-500"}`}
+                              className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${collab.role === 'editor' ? 'bg-indigo-50 text-indigo-600' : 'bg-zinc-100 text-zinc-500'}`}
                             >
                               {collab.role}
                             </span>

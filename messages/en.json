@@ -617,14 +617,16 @@
       }
     }
   },
-  "DocumentBoard": {
-    "titlePlaceholder": "Untitled Document",
-    "contentPlaceholder": "Type '/' for commands or start typing...",
-    "addCover": "Add Cover",
-    "addIcon": "Add Icon",
-    "addComment": "Add Comment",
-    "lastEdited": "Last edited just now",
+  "NotepadBoard": {
+    "untitled": "Untitled",
+    "titlePlaceholder": "Untitled Note",
+    "contentPlaceholder": "Start writing your note...",
+    "addCover": "Add cover",
+    "addIcon": "Add icon",
+    "addComment": "Add comment",
+    "lastEdited": "Edited just now",
     "wordCount": "words",
+    "private": "Private",
     "share": "Share",
     "publish": "Publish"
   },

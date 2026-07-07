@@ -617,14 +617,16 @@
       }
     }
   },
-  "DocumentBoard": {
-    "titlePlaceholder": "İsimsiz Doküman",
-    "contentPlaceholder": "Komutlar için '/' tuşuna basın veya yazmaya başlayın...",
-    "addCover": "Kapak Ekle",
-    "addIcon": "İkon Ekle",
-    "addComment": "Yorum Ekle",
-    "lastEdited": "Son düzenleme az önce",
+  "NotepadBoard": {
+    "untitled": "İsimsiz",
+    "titlePlaceholder": "İsimsiz Not",
+    "contentPlaceholder": "Notunuzu yazmaya başlayın...",
+    "addCover": "Kapak ekle",
+    "addIcon": "Simge ekle",
+    "addComment": "Yorum ekle",
+    "lastEdited": "Az önce düzenlendi",
     "wordCount": "kelime",
+    "private": "Özel",
     "share": "Paylaş",
     "publish": "Yayınla"
   },
