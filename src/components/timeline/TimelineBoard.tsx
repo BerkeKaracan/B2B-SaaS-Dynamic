@@ -458,7 +458,7 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-zinc-50 overflow-hidden select-none">
+    <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden select-none">
       <div className="flex flex-col bg-white border-b border-zinc-200 shrink-0 z-10 shadow-xs">
         <div className="flex items-center justify-between p-4 md:px-6 py-4">
           <h2 className="text-lg md:text-xl font-extrabold text-zinc-900 tracking-tight">

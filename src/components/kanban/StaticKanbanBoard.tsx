@@ -593,7 +593,7 @@ export default function StaticKanbanBoard({
   if (!isClient) return null;
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-zinc-50 dark:bg-zinc-950 overflow-hidden transition-colors duration-300">
+    <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden transition-colors duration-300">
       <div className="flex flex-col bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shrink-0 z-10 shadow-xs transition-colors duration-300">
         <div className="flex items-center justify-between p-4 md:px-6 py-4">
           <div className="flex items-center gap-3 md:gap-4">

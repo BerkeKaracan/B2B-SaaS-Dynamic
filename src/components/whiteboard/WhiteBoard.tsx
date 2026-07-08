@@ -442,7 +442,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-[#fdfdfc] dark:bg-[#121212] overflow-hidden select-none transition-colors duration-300">
+    <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden select-none transition-colors duration-300">
       <div className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 shrink-0 shadow-sm flex items-center justify-between relative z-20 transition-colors duration-300">
         <div className="flex items-center gap-1 border-r border-zinc-200 dark:border-zinc-800 pr-4 h-full">
           <button

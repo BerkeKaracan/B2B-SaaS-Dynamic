@@ -67,7 +67,7 @@ export default function NotepadBoard({ projectId }: { projectId: string }) {
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-white dark:bg-[#191919] transition-colors duration-300 overflow-y-auto custom-scrollbar cursor-text">
+    <div className="absolute inset-0 flex flex-col bg-transparent transition-colors duration-300 overflow-y-auto custom-scrollbar cursor-text">
       <div className="sticky top-0 z-10 flex items-center justify-between px-4 lg:px-12 py-3 bg-white/80 dark:bg-[#191919]/80 backdrop-blur-md">
         <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
           <Clock className="w-3.5 h-3.5" />

@@ -951,21 +951,20 @@ export default function CanvasArea() {
               onDragEnter={handleDragOverPage}
               onDragOver={handleDragOverPage}
               onDrop={(e) => handleDropOnPage(e, page)}
-              className={`canvas-bg absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] rounded-2xl pointer-events-auto transition-shadow focus:outline-none flex flex-col ${
+              className={`canvas-bg absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] rounded-2xl pointer-events-auto transition-all duration-300 focus:outline-none flex flex-col ${
                 isPageActive
                   ? 'ring-2 ring-indigo-500 shadow-2xl z-40'
                   : 'ring-1 ring-zinc-200/80 dark:ring-zinc-800/80 hover:shadow-xl z-0'
-              }`}
+              } ${pageBgColor === '#ffffff' ? 'bg-white dark:bg-zinc-900' : ''}`}
               style={{
                 left: `${px}px`,
                 top: `${py}px`,
                 width: `${page.width}px`,
                 minHeight: `${page.height}px`,
-                backgroundColor: pageBgColor === '#ffffff' ? '' : pageBgColor,
+                backgroundColor:
+                  pageBgColor === '#ffffff' ? undefined : pageBgColor,
               }}
             >
-              <div className="absolute inset-0 rounded-2xl bg-white dark:bg-zinc-900 -z-10 pointer-events-none transition-colors duration-300"></div>
-
               {isPageActive && !activeBlockId ? (
                 <div className="absolute -top-14 left-0 flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-1.5 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-150 z-50 transition-colors">
                   <input
@@ -1038,31 +1037,31 @@ export default function CanvasArea() {
               )}
 
               {page.type === 'kanban' ? (
-                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl">
+                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl">
                   <StaticKanbanBoard projectId={page.id} />
                 </div>
               ) : page.type === 'notes' || page.type === 'document' ? (
-                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-[#fdfdfc] dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
+                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
                   <NotepadBoard projectId={page.id} />
                 </div>
               ) : page.type === 'whiteboard' ? (
-                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
+                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
                   <WhiteboardBoard projectId={page.id} />
                 </div>
               ) : page.type === 'mindmap' ? (
-                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
+                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
                   <MindMapBoard projectId={page.id} />
                 </div>
               ) : page.type === 'timeline' ? (
-                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
+                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
                   <TimelineBoard projectId={page.id} />
                 </div>
               ) : page.type === 'database' ? (
-                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
+                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
                   <DatabaseBoard projectId={page.id} />
                 </div>
               ) : page.type === 'retrospective' ? (
-                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-white dark:bg-zinc-950 rounded-b-2xl border border-zinc-200 dark:border-zinc-800">
+                <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
                   <RetrospectiveBoard projectId={page.id} />
                 </div>
               ) : (

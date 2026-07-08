@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Plus,
   Search,
@@ -20,16 +20,16 @@ import {
   Copy,
   CloudUpload,
   Loader2,
-} from "lucide-react";
-import { useCanvasStore } from "@/store/useCanvasStore";
-import { Calendar as CustomCalendar } from "@/components/ui/calendar";
-import toast from "react-hot-toast";
+} from 'lucide-react';
+import { useCanvasStore } from '@/store/useCanvasStore';
+import { Calendar as CustomCalendar } from '@/components/ui/calendar';
+import toast from 'react-hot-toast';
 
 interface DatabaseBoardProps {
   projectId: string;
 }
 
-type PropertyType = "text" | "number" | "select" | "date" | "checkbox";
+type PropertyType = 'text' | 'number' | 'select' | 'date' | 'checkbox';
 type CellValue = string | number | boolean;
 
 interface Property {
@@ -47,7 +47,7 @@ export interface DatabaseSavedView {
   id: string;
   name: string;
   filterQuery: string;
-  sortConfig: { propId: string; dir: "asc" | "desc" } | null;
+  sortConfig: { propId: string; dir: 'asc' | 'desc' } | null;
 }
 
 const generateId = (prefix: string) => {
@@ -62,34 +62,33 @@ export default function DatabaseBoard({
 
   const [properties, setProperties] = useState<Property[]>(
     (metadata?.databaseProperties as Property[]) || [
-      { id: "prop-title", name: "Name", type: "text" },
-    ],
+      { id: 'prop-title', name: 'Name', type: 'text' },
+    ]
   );
 
   const [rows, setRows] = useState<RowRecord[]>(
     (metadata?.databaseRows as RowRecord[]) || [
-      { id: "row-1", "prop-title": "" },
-      { id: "row-2", "prop-title": "" },
-      { id: "row-3", "prop-title": "" },
-    ],
+      { id: 'row-1', 'prop-title': '' },
+      { id: 'row-2', 'prop-title': '' },
+      { id: 'row-3', 'prop-title': '' },
+    ]
   );
 
   const savedViews = (metadata.databaseSavedViews as DatabaseSavedView[]) || [];
 
   const [dbTitle, setDbTitle] = useState(
-    (metadata?.databaseTitle as string) || "Untitled Database",
+    (metadata?.databaseTitle as string) || 'Untitled Database'
   );
 
   const [isPropertyMenuOpen, setIsPropertyMenuOpen] = useState(false);
   const [openRowMenu, setOpenRowMenu] = useState<string | null>(null);
 
-  // YENİ: Notion dışa aktarım süreci (Loading) state'i
   const [isExporting, setIsExporting] = useState(false);
 
-  const [filterQuery, setFilterQuery] = useState("");
+  const [filterQuery, setFilterQuery] = useState('');
   const [sortConfig, setSortConfig] = useState<{
     propId: string;
-    dir: "asc" | "desc";
+    dir: 'asc' | 'desc';
   } | null>(null);
 
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
@@ -114,17 +113,17 @@ export default function DatabaseBoard({
       if (sortRef.current && !sortRef.current.contains(target as Node))
         setIsSortOpen(false);
 
-      if (target && typeof target.closest === "function") {
+      if (target && typeof target.closest === 'function') {
         if (
-          !target.closest(".row-dropdown-menu") &&
-          !target.closest(".row-menu-trigger")
+          !target.closest('.row-dropdown-menu') &&
+          !target.closest('.row-menu-trigger')
         ) {
           setOpenRowMenu(null);
         }
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const saveProperties = (newProps: Property[]) => {
@@ -148,14 +147,14 @@ export default function DatabaseBoard({
   } | null>(null);
 
   const handleAddProperty = (type: PropertyType) => {
-    const newPropId = generateId("prop");
+    const newPropId = generateId('prop');
     const newProps = [
       ...properties,
       { id: newPropId, name: `New ${type}`, type },
     ];
     const newRows = rows.map((row) => ({
       ...row,
-      [newPropId]: type === "checkbox" ? false : "",
+      [newPropId]: type === 'checkbox' ? false : '',
     }));
     saveProperties(newProps);
     saveRows(newRows);
@@ -176,9 +175,9 @@ export default function DatabaseBoard({
   };
 
   const handleAddRow = () => {
-    const newRow: RowRecord = { id: generateId("row") };
+    const newRow: RowRecord = { id: generateId('row') };
     properties.forEach((prop) => {
-      newRow[prop.id] = prop.type === "checkbox" ? false : "";
+      newRow[prop.id] = prop.type === 'checkbox' ? false : '';
     });
     saveRows([...rows, newRow]);
   };
@@ -192,38 +191,38 @@ export default function DatabaseBoard({
     const rowToDuplicate = rows.find((r) => r.id === rowId);
     if (!rowToDuplicate) return;
 
-    const newRowId = generateId("row");
+    const newRowId = generateId('row');
     const newRow: RowRecord = { ...rowToDuplicate, id: newRowId };
 
-    const textProp = properties.find((p) => p.type === "text");
-    if (textProp && typeof newRow[textProp.id] === "string") {
+    const textProp = properties.find((p) => p.type === 'text');
+    if (textProp && typeof newRow[textProp.id] === 'string') {
       newRow[textProp.id] = `${newRow[textProp.id]} (Copy)`;
     }
 
     const updatedRows = [...rows, newRow];
     saveRows(updatedRows);
-    toast.success("Row duplicated successfully!");
+    toast.success('Row duplicated successfully!');
     setOpenRowMenu(null);
   };
 
   const updateCell = (rowId: string, propId: string, value: CellValue) => {
     saveRows(
-      rows.map((row) => (row.id === rowId ? { ...row, [propId]: value } : row)),
+      rows.map((row) => (row.id === rowId ? { ...row, [propId]: value } : row))
     );
   };
 
   const updatePropertyName = (propId: string, name: string) => {
     saveProperties(
-      properties.map((prop) => (prop.id === propId ? { ...prop, name } : prop)),
+      properties.map((prop) => (prop.id === propId ? { ...prop, name } : prop))
     );
   };
 
   const handleSaveView = () => {
-    const viewName = prompt("Enter a name for this database view:");
+    const viewName = prompt('Enter a name for this database view:');
     if (!viewName?.trim()) return;
 
     const newView: DatabaseSavedView = {
-      id: generateId("view-db"),
+      id: generateId('view-db'),
       name: viewName,
       filterQuery,
       sortConfig,
@@ -238,7 +237,7 @@ export default function DatabaseBoard({
   const applyView = (viewId: string | null) => {
     setActiveViewId(viewId);
     if (viewId === null) {
-      setFilterQuery("");
+      setFilterQuery('');
       setSortConfig(null);
       return;
     }
@@ -251,38 +250,37 @@ export default function DatabaseBoard({
 
   const handleDeleteView = (e: React.MouseEvent, viewId: string) => {
     e.stopPropagation();
-    if (window.confirm("Delete this view?")) {
+    if (window.confirm('Delete this view?')) {
       const updatedViews = savedViews.filter((v) => v.id !== viewId);
       updateMetadata({ databaseSavedViews: updatedViews });
       if (activeViewId === viewId) applyView(null);
-      toast.success("View deleted.");
+      toast.success('View deleted.');
     }
   };
 
-  // YENİ: Notion'a Aktarım (Export) Fonksiyonu
   const handleNotionExport = async () => {
     setIsExporting(true);
-    const loadingToast = toast.loading("Creating Notion Database...");
+    const loadingToast = toast.loading('Creating Notion Database...');
 
     try {
-      const res = await fetch("/api/notion-export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/notion-export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dbTitle, properties, rows }),
       });
 
       const data = await res.json();
 
       if (res.ok && data.success) {
-        toast.success("Successfully exported to Notion!", { id: loadingToast });
-        if (data.url) window.open(data.url, "_blank"); // Başarılıysa Notion linkini yeni sekmede aç
+        toast.success('Successfully exported to Notion!', { id: loadingToast });
+        if (data.url) window.open(data.url, '_blank');
       } else {
-        toast.error(data.error || "Integration setup missing or failed.", {
+        toast.error(data.error || 'Integration setup missing or failed.', {
           id: loadingToast,
         });
       }
     } catch (err) {
-      toast.error("An error occurred during export.", { id: loadingToast });
+      toast.error('An error occurred during export.', { id: loadingToast });
     } finally {
       setIsExporting(false);
     }
@@ -290,15 +288,15 @@ export default function DatabaseBoard({
 
   const getPropertyIcon = (type: PropertyType) => {
     switch (type) {
-      case "text":
+      case 'text':
         return <Type className="w-3.5 h-3.5 text-zinc-400 shrink-0" />;
-      case "number":
+      case 'number':
         return <Hash className="w-3.5 h-3.5 text-zinc-400 shrink-0" />;
-      case "date":
+      case 'date':
         return <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />;
-      case "select":
+      case 'select':
         return <ListIcon className="w-3.5 h-3.5 text-zinc-400 shrink-0" />;
-      case "checkbox":
+      case 'checkbox':
         return <CheckSquare className="w-3.5 h-3.5 text-zinc-400 shrink-0" />;
       default:
         return <FileText className="w-3.5 h-3.5 text-zinc-400 shrink-0" />;
@@ -310,31 +308,29 @@ export default function DatabaseBoard({
       if (!filterQuery) return true;
       const q = filterQuery.toLowerCase();
       return properties.some((prop) =>
-        String(row[prop.id] || "")
+        String(row[prop.id] || '')
           .toLowerCase()
-          .includes(q),
+          .includes(q)
       );
     })
     .sort((a, b) => {
       if (!sortConfig) return 0;
-      const valA = String(a[sortConfig.propId] || "").toLowerCase();
-      const valB = String(b[sortConfig.propId] || "").toLowerCase();
-      if (valA < valB) return sortConfig.dir === "asc" ? -1 : 1;
-      if (valA > valB) return sortConfig.dir === "asc" ? 1 : -1;
+      const valA = String(a[sortConfig.propId] || '').toLowerCase();
+      const valB = String(b[sortConfig.propId] || '').toLowerCase();
+      if (valA < valB) return sortConfig.dir === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.dir === 'asc' ? 1 : -1;
       return 0;
     });
 
   if (!isClient) return null;
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden font-sans relative z-10">
-      {/* HEADER KISMI */}
+    <div className="flex flex-col h-full bg-transparent rounded-xl shadow-sm border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden font-sans relative z-10">
       <div className="px-4 py-2.5 border-b border-zinc-200 flex items-center justify-between bg-white select-none shrink-0 relative z-50">
-        {/* Sol Taraf: View Sekmeleri */}
         <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar hide-scrollbar-y pr-4 flex-1">
           <button
             onClick={() => applyView(null)}
-            className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded transition-colors whitespace-nowrap ${activeViewId === null ? "text-zinc-900 bg-zinc-100" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"}`}
+            className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded transition-colors whitespace-nowrap ${activeViewId === null ? 'text-zinc-900 bg-zinc-100' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700'}`}
           >
             <ListIcon className="w-4 h-4" /> Default View
           </button>
@@ -350,13 +346,13 @@ export default function DatabaseBoard({
             >
               <button
                 onClick={() => applyView(view.id)}
-                className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 pr-6 rounded transition-colors whitespace-nowrap ${activeViewId === view.id ? "text-indigo-700 bg-indigo-50" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700"}`}
+                className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 pr-6 rounded transition-colors whitespace-nowrap ${activeViewId === view.id ? 'text-indigo-700 bg-indigo-50' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700'}`}
               >
                 <LayoutDashboard className="w-3.5 h-3.5" /> {view.name}
               </button>
               <button
                 onClick={(e) => handleDeleteView(e, view.id)}
-                className={`absolute right-1 w-4 h-4 rounded-full flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? "hover:bg-indigo-200 text-indigo-700" : "hover:bg-red-100 text-red-500"}`}
+                className={`absolute right-1 w-4 h-4 rounded-full flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? 'hover:bg-indigo-200 text-indigo-700' : 'hover:bg-red-100 text-red-500'}`}
               >
                 <X className="w-2.5 h-2.5" />
               </button>
@@ -364,12 +360,11 @@ export default function DatabaseBoard({
           ))}
         </div>
 
-        {/* Sağ Taraf: Aksiyon Butonları */}
         <div className="flex items-center gap-2 pl-4 border-l border-zinc-100 shrink-0">
           <div className="relative" ref={filterRef}>
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors ${isFilterOpen || filterQuery ? "bg-indigo-50 text-indigo-700" : "text-zinc-500 hover:bg-zinc-100"}`}
+              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors ${isFilterOpen || filterQuery ? 'bg-indigo-50 text-indigo-700' : 'text-zinc-500 hover:bg-zinc-100'}`}
             >
               <Search className="w-3.5 h-3.5" /> Filter
               {filterQuery && (
@@ -405,7 +400,7 @@ export default function DatabaseBoard({
                   {filterQuery && (
                     <button
                       onClick={() => {
-                        setFilterQuery("");
+                        setFilterQuery('');
                         setActiveViewId(null);
                       }}
                       className="w-full py-1.5 text-[10px] font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
@@ -421,7 +416,7 @@ export default function DatabaseBoard({
           <div className="relative" ref={sortRef}>
             <button
               onClick={() => setIsSortOpen(!isSortOpen)}
-              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors ${isSortOpen || sortConfig ? "bg-indigo-50 text-indigo-700" : "text-zinc-500 hover:bg-zinc-100"}`}
+              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors ${isSortOpen || sortConfig ? 'bg-indigo-50 text-indigo-700' : 'text-zinc-500 hover:bg-zinc-100'}`}
             >
               <ArrowUpDown className="w-3.5 h-3.5" /> Sort
               {sortConfig && (
@@ -441,7 +436,7 @@ export default function DatabaseBoard({
                       setActiveViewId(null);
                       setIsSortOpen(false);
                     }}
-                    className={`px-2 py-1.5 text-xs font-bold rounded-lg text-left transition-colors ${!sortConfig ? "bg-indigo-50 text-indigo-700" : "hover:bg-zinc-50 text-zinc-700"}`}
+                    className={`px-2 py-1.5 text-xs font-bold rounded-lg text-left transition-colors ${!sortConfig ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-zinc-50 text-zinc-700'}`}
                   >
                     None (Default)
                   </button>
@@ -455,21 +450,21 @@ export default function DatabaseBoard({
                       </span>
                       <button
                         onClick={() => {
-                          setSortConfig({ propId: prop.id, dir: "asc" });
+                          setSortConfig({ propId: prop.id, dir: 'asc' });
                           setActiveViewId(null);
                           setIsSortOpen(false);
                         }}
-                        className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === "asc" ? "bg-indigo-50 text-indigo-700 font-bold" : "hover:bg-zinc-50 text-zinc-700"}`}
+                        className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === 'asc' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'hover:bg-zinc-50 text-zinc-700'}`}
                       >
                         Ascending (A-Z)
                       </button>
                       <button
                         onClick={() => {
-                          setSortConfig({ propId: prop.id, dir: "desc" });
+                          setSortConfig({ propId: prop.id, dir: 'desc' });
                           setActiveViewId(null);
                           setIsSortOpen(false);
                         }}
-                        className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === "desc" ? "bg-indigo-50 text-indigo-700 font-bold" : "hover:bg-zinc-50 text-zinc-700"}`}
+                        className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === 'desc' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'hover:bg-zinc-50 text-zinc-700'}`}
                       >
                         Descending (Z-A)
                       </button>
@@ -480,7 +475,6 @@ export default function DatabaseBoard({
             )}
           </div>
 
-          {/* YENİ: Notion'a Aktar Butonu */}
           <button
             onClick={handleNotionExport}
             disabled={isExporting}
@@ -503,8 +497,7 @@ export default function DatabaseBoard({
         </div>
       </div>
 
-      {/* TABLO KISMI */}
-      <div className="flex-1 overflow-auto bg-white p-8 pt-10 relative custom-scrollbar z-10">
+      <div className="flex-1 overflow-auto bg-transparent p-8 pt-10 relative custom-scrollbar z-10">
         <div className="mb-8 max-w-3xl">
           <input
             type="text"
@@ -568,34 +561,34 @@ export default function DatabaseBoard({
                           Property Type
                         </div>
                         <button
-                          onClick={() => handleAddProperty("text")}
+                          onClick={() => handleAddProperty('text')}
                           className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-100 text-sm text-zinc-700 text-left"
                         >
                           <Type className="w-4 h-4 text-zinc-400" /> Text
                         </button>
                         <button
-                          onClick={() => handleAddProperty("number")}
+                          onClick={() => handleAddProperty('number')}
                           className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-100 text-sm text-zinc-700 text-left"
                         >
                           <Hash className="w-4 h-4 text-zinc-400" /> Number
                         </button>
                         <button
-                          onClick={() => handleAddProperty("select")}
+                          onClick={() => handleAddProperty('select')}
                           className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-100 text-sm text-zinc-700 text-left"
                         >
                           <ListIcon className="w-4 h-4 text-zinc-400" /> Select
                         </button>
                         <button
-                          onClick={() => handleAddProperty("date")}
+                          onClick={() => handleAddProperty('date')}
                           className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-100 text-sm text-zinc-700 text-left"
                         >
                           <Calendar className="w-4 h-4 text-zinc-400" /> Date
                         </button>
                         <button
-                          onClick={() => handleAddProperty("checkbox")}
+                          onClick={() => handleAddProperty('checkbox')}
                           className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-100 text-sm text-zinc-700 text-left"
                         >
-                          <CheckSquare className="w-4 h-4 text-zinc-400" />{" "}
+                          <CheckSquare className="w-4 h-4 text-zinc-400" />{' '}
                           Checkbox
                         </button>
                       </div>
@@ -624,27 +617,27 @@ export default function DatabaseBoard({
                       className="border-r border-zinc-100 p-0 align-top relative group/cell"
                     >
                       <div className="min-h-[34px] w-full flex items-center px-2 py-1 focus-within:ring-1 focus-within:ring-blue-400 focus-within:bg-blue-50/10 transition-colors">
-                        {prop.type === "text" && (
+                        {prop.type === 'text' && (
                           <input
                             type="text"
-                            value={(row[prop.id] as string) || ""}
+                            value={(row[prop.id] as string) || ''}
                             onChange={(e) =>
                               updateCell(row.id, prop.id, e.target.value)
                             }
                             className="w-full h-full bg-transparent focus:outline-none text-sm text-zinc-900"
                           />
                         )}
-                        {prop.type === "number" && (
+                        {prop.type === 'number' && (
                           <input
                             type="number"
-                            value={(row[prop.id] as string | number) || ""}
+                            value={(row[prop.id] as string | number) || ''}
                             onChange={(e) =>
                               updateCell(row.id, prop.id, e.target.value)
                             }
                             className="w-full h-full bg-transparent focus:outline-none text-sm text-zinc-900"
                           />
                         )}
-                        {prop.type === "date" && (
+                        {prop.type === 'date' && (
                           <div className="w-full h-full relative">
                             <div
                               onClick={() =>
@@ -684,17 +677,17 @@ export default function DatabaseBoard({
                                         if (date) {
                                           const y = date.getFullYear();
                                           const m = String(
-                                            date.getMonth() + 1,
-                                          ).padStart(2, "0");
+                                            date.getMonth() + 1
+                                          ).padStart(2, '0');
                                           const d = String(
-                                            date.getDate(),
-                                          ).padStart(2, "0");
+                                            date.getDate()
+                                          ).padStart(2, '0');
                                           updateCell(
                                             row.id,
                                             prop.id,
-                                            `${y}-${m}-${d}`,
+                                            `${y}-${m}-${d}`
                                           );
-                                        } else updateCell(row.id, prop.id, "");
+                                        } else updateCell(row.id, prop.id, '');
                                         setActiveDateCell(null);
                                       }}
                                       initialFocus
@@ -704,7 +697,7 @@ export default function DatabaseBoard({
                               )}
                           </div>
                         )}
-                        {prop.type === "checkbox" && (
+                        {prop.type === 'checkbox' && (
                           <div className="w-full flex items-center justify-center">
                             <input
                               type="checkbox"
@@ -716,15 +709,15 @@ export default function DatabaseBoard({
                             />
                           </div>
                         )}
-                        {prop.type === "select" && (
+                        {prop.type === 'select' && (
                           <input
                             type="text"
-                            value={(row[prop.id] as string) || ""}
+                            value={(row[prop.id] as string) || ''}
                             onChange={(e) =>
                               updateCell(row.id, prop.id, e.target.value)
                             }
                             placeholder="Empty"
-                            className={`w-full bg-transparent focus:outline-none text-sm transition-all ${row[prop.id] ? "bg-zinc-100 px-2 py-0.5 rounded text-zinc-700 font-medium w-fit" : "text-zinc-900 placeholder:text-transparent group-hover/cell:placeholder:text-zinc-300"}`}
+                            className={`w-full bg-transparent focus:outline-none text-sm transition-all ${row[prop.id] ? 'bg-zinc-100 px-2 py-0.5 rounded text-zinc-700 font-medium w-fit' : 'text-zinc-900 placeholder:text-transparent group-hover/cell:placeholder:text-zinc-300'}`}
                           />
                         )}
                       </div>

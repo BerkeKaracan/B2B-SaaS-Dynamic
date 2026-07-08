@@ -132,7 +132,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
   if (!isMounted) return null;
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-zinc-50/50 dark:bg-zinc-950 overflow-hidden transition-colors duration-300">
+    <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden transition-colors duration-300">
       <div className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-4 flex items-center justify-between z-20">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">

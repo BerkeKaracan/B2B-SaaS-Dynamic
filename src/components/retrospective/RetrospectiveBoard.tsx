@@ -132,7 +132,7 @@ export default function RetrospectiveBoard({
   ];
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-[#F9F9FB] dark:bg-zinc-950 transition-colors duration-300 overflow-hidden">
+    <div className="absolute inset-0 flex flex-col bg-transparent transition-colors duration-300 overflow-hidden">
       <div className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-6 flex items-center shrink-0 z-10">
         <div className="flex items-center gap-2.5">
           <div className="p-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl shadow-sm">
