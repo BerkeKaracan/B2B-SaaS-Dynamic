@@ -122,12 +122,15 @@ export default function CanvasArea() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   const [resizingPageId, setResizingPageId] = useState<string | null>(null);
-  const [resizeStart, setResizeStart] = useState({
-    width: 0,
-    height: 0,
-    x: 0,
-    y: 0,
-  });
+  const [resizeConfig, setResizeConfig] = useState<{
+    edge: string;
+    startX: number;
+    startY: number;
+    startW: number;
+    startH: number;
+    startPageX: number;
+    startPageY: number;
+  } | null>(null);
 
   const [connectingFrom, setConnectingFrom] = useState<{
     pageId: string;
@@ -388,18 +391,45 @@ export default function CanvasArea() {
             mouseCanvasY - targetPage.y - dragOffset.y
           );
         }
-      } else if (resizingPageId) {
-        updatePageDimensions(
-          resizingPageId,
-          Math.max(
-            300,
-            resizeStart.width + (e.clientX - resizeStart.x) / currentZoom
-          ),
-          Math.max(
-            300,
-            resizeStart.height + (e.clientY - resizeStart.y) / currentZoom
-          )
-        );
+      } else if (resizingPageId && resizeConfig) {
+        const deltaX = (e.clientX - resizeConfig.startX) / currentZoom;
+        const deltaY = (e.clientY - resizeConfig.startY) / currentZoom;
+
+        let newW = resizeConfig.startW;
+        let newH = resizeConfig.startH;
+        let newX = resizeConfig.startPageX;
+        let newY = resizeConfig.startPageY;
+
+        const edge = resizeConfig.edge;
+
+        if (edge.includes('r')) {
+          newW = Math.max(300, resizeConfig.startW + deltaX);
+        }
+        if (edge.includes('l')) {
+          const possibleW = resizeConfig.startW - deltaX;
+          if (possibleW >= 300) {
+            newW = possibleW;
+            newX = resizeConfig.startPageX + deltaX;
+          }
+        }
+        if (edge.includes('b')) {
+          newH = Math.max(300, resizeConfig.startH + deltaY);
+        }
+        if (edge.includes('t')) {
+          const possibleH = resizeConfig.startH - deltaY;
+          if (possibleH >= 300) {
+            newH = possibleH;
+            newY = resizeConfig.startPageY + deltaY;
+          }
+        }
+
+        updatePageDimensions(resizingPageId, newW, newH);
+        if (
+          newX !== resizeConfig.startPageX ||
+          newY !== resizeConfig.startPageY
+        ) {
+          updatePagePosition(resizingPageId, newX, newY);
+        }
       }
     };
 
@@ -451,6 +481,7 @@ export default function CanvasArea() {
       setDraggedPageId(null);
       setDraggedBlockInfo(null);
       setResizingPageId(null);
+      setResizeConfig(null);
       setLassoStart(null);
       setLassoEnd(null);
       setIsSpacePanning(false);
@@ -500,10 +531,10 @@ export default function CanvasArea() {
     draggedPageId,
     draggedBlockInfo,
     resizingPageId,
+    resizeConfig,
     connectingFrom,
     lassoStart,
     dragOffset,
-    resizeStart,
     updatePagePosition,
     updateBlockPosition,
     updatePageDimensions,
@@ -1008,31 +1039,84 @@ export default function CanvasArea() {
                   >
                     Delete Frame
                   </button>
-                  <div
-                    className="absolute bottom-0 right-0 w-6 h-6 bg-indigo-500 cursor-nwse-resize rounded-br-2xl rounded-tl-xl z-50 flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity"
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      setResizingPageId(page.id);
-                      setResizeStart({
-                        width: page.width,
-                        height: page.height,
-                        x: e.clientX,
-                        y: e.clientY,
-                      });
-                    }}
-                  >
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="3"
+
+                  {[
+                    {
+                      edge: 't',
+                      cursor: 'cursor-n-resize',
+                      classes: 'top-0 left-4 right-4 h-2 -mt-1',
+                    },
+                    {
+                      edge: 'b',
+                      cursor: 'cursor-s-resize',
+                      classes: 'bottom-0 left-4 right-4 h-2 -mb-1',
+                    },
+                    {
+                      edge: 'l',
+                      cursor: 'cursor-w-resize',
+                      classes: 'top-4 bottom-4 left-0 w-2 -ml-1',
+                    },
+                    {
+                      edge: 'r',
+                      cursor: 'cursor-e-resize',
+                      classes: 'top-4 bottom-4 right-0 w-2 -mr-1',
+                    },
+                    {
+                      edge: 'tl',
+                      cursor: 'cursor-nw-resize',
+                      classes: 'top-0 left-0 w-4 h-4 -mt-1 -ml-1 rounded-tl-xl',
+                    },
+                    {
+                      edge: 'tr',
+                      cursor: 'cursor-ne-resize',
+                      classes:
+                        'top-0 right-0 w-4 h-4 -mt-1 -mr-1 rounded-tr-xl',
+                    },
+                    {
+                      edge: 'bl',
+                      cursor: 'cursor-sw-resize',
+                      classes:
+                        'bottom-0 left-0 w-4 h-4 -mb-1 -ml-1 rounded-bl-xl',
+                    },
+                    {
+                      edge: 'br',
+                      cursor: 'cursor-se-resize',
+                      classes:
+                        'bottom-0 right-0 w-6 h-6 bg-indigo-500 opacity-0 hover:opacity-100 rounded-br-xl rounded-tl-xl flex items-center justify-center',
+                    },
+                  ].map(({ edge, cursor, classes }) => (
+                    <div
+                      key={edge}
+                      className={`absolute z-50 ${cursor} ${classes}`}
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setResizingPageId(page.id);
+                        setResizeConfig({
+                          edge,
+                          startX: e.clientX,
+                          startY: e.clientY,
+                          startW: page.width,
+                          startH: page.height,
+                          startPageX: px,
+                          startPageY: py,
+                        });
+                      }}
                     >
-                      <path d="M21 15v6h-6M21 21l-7-7M15 3h6v6M21 3l-7 7M9 21H3v-6M3 21l7-7M3 9V3h6M3 3l7 7" />
-                    </svg>
-                  </div>
+                      {edge === 'br' && (
+                        <svg
+                          width="10"
+                          height="10"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="white"
+                          strokeWidth="3"
+                        >
+                          <path d="M21 15v6h-6M21 21l-7-7M15 3h6v6M21 3l-7 7M9 21H3v-6M3 21l7-7M3 9V3h6M3 3l7 7" />
+                        </svg>
+                      )}
+                    </div>
+                  ))}
                 </>
               )}
 
