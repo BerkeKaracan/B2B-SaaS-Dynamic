@@ -45,6 +45,22 @@ class CreateDepartmentRequest(BaseModel):
 class CreateRoleRequest(BaseModel):
     name: str
 
+
+@router.get("/me/list")
+def get_my_tenants(user: dict = Depends(get_user_role)):
+    try:
+        tenant_ids = list(user["tenant_roles"].keys())
+        if not tenant_ids:
+            return []
+            
+        response = user["client"].table("tenants").select("id, name, logo_url, tier").in_("id", tenant_ids).execute()
+        return response.data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/{tenant_id}")
 def get_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
     try:
