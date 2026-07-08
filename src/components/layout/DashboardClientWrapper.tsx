@@ -9,7 +9,6 @@ import Navbar from './Navbar';
 import WorkspaceSidebar from './WorkspaceSidebar';
 import ItemSidebar from './ItemSidebar';
 import ProjectInfoPanel from './ProjectInfoPanel';
-import AiChatbot from '@/components/chat/AiChatbot';
 import { Toaster } from 'sonner';
 import RealtimeNotifier from '@/components/RealtimeNotifier';
 
@@ -97,7 +96,6 @@ export default function DashboardClientWrapper({
 
           <main className="flex-1 relative w-full h-full bg-white z-0 overflow-hidden min-w-0">
             {children}
-            <AiChatbot />
           </main>
 
           {isDesignView && <ProjectInfoPanel />}

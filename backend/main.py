@@ -8,7 +8,7 @@ from core.limiter import limiter
 import time
 import logging
 
-from api.routers import records, auth, tenants, public, notifications, ai, public_ai, github
+from api.routers import records, auth, tenants, public, notifications, ai, public_ai, github, chat
 from core.config import settings
 
 import sentry_sdk
@@ -83,6 +83,7 @@ app.include_router(ai.router)
 app.include_router(public_ai.router)
 app.include_router(tasks.router)
 app.include_router(github.router)
+app.include_router(chat.router)
 
 @app.get("/", tags=["System"])
 async def root() -> dict[str, str]:
