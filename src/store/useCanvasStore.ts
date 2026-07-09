@@ -116,6 +116,8 @@ interface CanvasState {
       metadata?: Record<string, unknown>;
     }
   ) => void;
+  mode: 'design' | 'readonly';
+  setMode: (mode: 'design' | 'readonly') => void;
 }
 
 let saveTimeout: NodeJS.Timeout;
@@ -738,4 +740,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       };
     });
   },
+  mode: 'design',
+  setMode: (mode) => set({ mode }),
 }));

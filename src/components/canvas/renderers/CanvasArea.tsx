@@ -8,6 +8,7 @@ import React, {
   useCallback,
   useMemo,
 } from 'react';
+import { useParams } from 'next/navigation';
 import { useCanvasStore, PageWithSettings } from '@/store/useCanvasStore';
 import { BlockContent, BlockType, PageContent } from '@/types/record';
 import { ConnectionLayer } from './ConnectionLayer';
@@ -35,12 +36,14 @@ import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
 import { useCanvasCollaboration } from '@/hooks/useCanvasCollaboration';
 import { useZustandYjsSync } from '@/hooks/useZustandYjsSync';
 import { LiveCursors } from '../LiveCursors';
-import { useParams } from 'next/navigation';
 
 export default function CanvasArea() {
+  const mode = useCanvasStore((s) => s.mode) || 'design';
+
   const params = useParams();
   const routeProjectId = params?.projectId as string;
   const [hasLoadedPos, setHasLoadedPos] = useState(false);
+
   const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
   const connections = useCanvasStore((s) => s.connections);
   const activePageId = useCanvasStore((s) => s.activePageId);
@@ -50,7 +53,6 @@ export default function CanvasArea() {
   const panX = useCanvasStore((s) => s.panX);
   const panY = useCanvasStore((s) => s.panY);
   const isLoading = useCanvasStore((s) => s.isLoading);
-  const recordId = useCanvasStore((s) => s.recordId);
 
   const [currentUser, setCurrentUser] = useState({
     name: 'Syncing User...',
@@ -161,8 +163,36 @@ export default function CanvasArea() {
   >(new Map());
   const prevTouchDistance = useRef<number | null>(null);
 
+  useEffect(() => {
+    if (!routeProjectId || typeof window === 'undefined') return;
+
+    const savedZoom = localStorage.getItem(`canvas_zoom_${routeProjectId}`);
+    const savedPanX = localStorage.getItem(`canvas_panX_${routeProjectId}`);
+    const savedPanY = localStorage.getItem(`canvas_panY_${routeProjectId}`);
+
+    if (savedZoom) setZoom(parseFloat(savedZoom));
+    if (savedPanX && savedPanY)
+      setPan(parseFloat(savedPanX), parseFloat(savedPanY));
+
+    setTimeout(() => setHasLoadedPos(true), 100);
+  }, [routeProjectId, setZoom, setPan]);
+
+  useEffect(() => {
+    if (!hasLoadedPos || !routeProjectId || typeof window === 'undefined')
+      return;
+
+    const timeout = setTimeout(() => {
+      localStorage.setItem(`canvas_zoom_${routeProjectId}`, zoom.toString());
+      localStorage.setItem(`canvas_panX_${routeProjectId}`, panX.toString());
+      localStorage.setItem(`canvas_panY_${routeProjectId}`, panY.toString());
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [zoom, panX, panY, routeProjectId, hasLoadedPos]);
+
   const handleAiGenerate = async () => {
-    if (!activePageId || !aiMenu || !aiPrompt.trim()) return;
+    if (!activePageId || !aiMenu || !aiPrompt.trim() || mode === 'readonly')
+      return;
     setIsAiGenerating(true);
 
     try {
@@ -189,46 +219,6 @@ export default function CanvasArea() {
       setAiPrompt('');
     }
   };
-
-  useEffect(() => {
-    if (!routeProjectId || typeof window === 'undefined') return;
-
-    const savedZoom = localStorage.getItem(`canvas_zoom_${routeProjectId}`);
-    const savedPanX = localStorage.getItem(`canvas_panX_${routeProjectId}`);
-    const savedPanY = localStorage.getItem(`canvas_panY_${routeProjectId}`);
-
-    if (savedZoom) setZoom(parseFloat(savedZoom));
-    if (savedPanX && savedPanY)
-      setPan(parseFloat(savedPanX), parseFloat(savedPanY));
-
-    setTimeout(() => setHasLoadedPos(true), 100);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeProjectId]);
-
-  useEffect(() => {
-    if (!hasLoadedPos || !routeProjectId || typeof window === 'undefined')
-      return;
-
-    const timeout = setTimeout(() => {
-      localStorage.setItem(`canvas_zoom_${routeProjectId}`, zoom.toString());
-      localStorage.setItem(`canvas_panX_${routeProjectId}`, panX.toString());
-      localStorage.setItem(`canvas_panY_${routeProjectId}`, panY.toString());
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [zoom, panX, panY, routeProjectId, hasLoadedPos]);
-
-  useEffect(() => {
-    if (recordId && typeof window !== 'undefined') {
-      const savedZoom = localStorage.getItem(`canvas_zoom_${recordId}`);
-      const savedPanX = localStorage.getItem(`canvas_panX_${recordId}`);
-      const savedPanY = localStorage.getItem(`canvas_panY_${recordId}`);
-
-      if (savedZoom) setZoom(parseFloat(savedZoom));
-      if (savedPanX && savedPanY)
-        setPan(parseFloat(savedPanX), parseFloat(savedPanY));
-    }
-  }, [recordId]);
 
   useEffect(() => {
     if (!provider) return;
@@ -288,27 +278,33 @@ export default function CanvasArea() {
           }
         }
 
+        const currentMode = (useCanvasStore.getState() as any).mode;
+
         if (
           (e.ctrlKey || e.metaKey) &&
           e.key.toLowerCase() === 'v' &&
           clipboardBlock
         ) {
+          if (currentMode === 'readonly') return;
           duplicateBlock(clipboardBlock.pageId, clipboardBlock.blockId, 40, 40);
         }
 
         if (e.ctrlKey || e.metaKey) {
           if (e.key.toLowerCase() === 'z') {
             e.preventDefault();
+            if (currentMode === 'readonly') return;
             if (e.shiftKey) redo();
             else undo();
           } else if (e.key.toLowerCase() === 'y') {
             e.preventDefault();
+            if (currentMode === 'readonly') return;
             redo();
           }
         }
 
         if (e.key === 'Delete' || e.key === 'Backspace') {
           e.preventDefault();
+          if (currentMode === 'readonly') return;
           const currentState = useCanvasStore.getState();
           if (currentState.selectedBlocks?.length > 0) {
             removeSelectedBlocks();
@@ -683,7 +679,12 @@ export default function CanvasArea() {
       currentX: number,
       currentY: number
     ) => {
-      if (isSpacePressed || activePointers.current.size > 1) return;
+      if (
+        isSpacePressed ||
+        activePointers.current.size > 1 ||
+        mode === 'readonly'
+      )
+        return;
       e.stopPropagation();
       e.preventDefault();
       setActivePage(pageId);
@@ -703,7 +704,7 @@ export default function CanvasArea() {
         y: (e.clientY - rect.top - currentPanY) / currentZoom - currentY,
       });
     },
-    [isSpacePressed, setActivePage]
+    [isSpacePressed, setActivePage, mode]
   );
 
   const startBlockDrag = useCallback(
@@ -716,7 +717,12 @@ export default function CanvasArea() {
       blockX: number,
       blockY: number
     ) => {
-      if (isSpacePressed || activePointers.current.size > 1) return;
+      if (
+        isSpacePressed ||
+        activePointers.current.size > 1 ||
+        mode === 'readonly'
+      )
+        return;
       e.stopPropagation();
       e.preventDefault();
 
@@ -745,11 +751,12 @@ export default function CanvasArea() {
         y: (e.clientY - rect.top - currentPanY) / currentZoom - pageY - blockY,
       });
     },
-    [isSpacePressed, duplicateBlock, setActivePage, setActiveBlock]
+    [isSpacePressed, duplicateBlock, setActivePage, setActiveBlock, mode]
   );
 
   const handleDropOnPage = useCallback(
     (e: DragEvent<HTMLElement>, page: PageContent) => {
+      if (mode === 'readonly') return;
       e.preventDefault();
       e.stopPropagation();
       const type = e.dataTransfer.getData('text/plain') as BlockType;
@@ -769,7 +776,7 @@ export default function CanvasArea() {
       );
       setActivePage(page.id);
     },
-    [addBlockToPage, setActivePage]
+    [addBlockToPage, setActivePage, mode]
   );
 
   const renderBlock = useCallback(
@@ -785,74 +792,102 @@ export default function CanvasArea() {
             {block.type === 'text' && (
               <TextBlock
                 block={block}
-                onUpdate={(val) => updateBlockValue(pageId, block.id, val)}
-                onSettingsChange={(s) =>
-                  updateBlockSettings(pageId, block.id, s)
-                }
+                onUpdate={(val) => {
+                  if (mode !== 'readonly')
+                    updateBlockValue(pageId, block.id, val);
+                }}
+                onSettingsChange={(s) => {
+                  if (mode !== 'readonly')
+                    updateBlockSettings(pageId, block.id, s);
+                }}
               />
             )}
             {block.type === 'form' && (
               <FormBlock
                 block={block}
-                onUpdate={(val) => updateBlockValue(pageId, block.id, val)}
-                onSettingsChange={(s) =>
-                  updateBlockSettings(pageId, block.id, s)
-                }
+                onUpdate={(val) => {
+                  if (mode !== 'readonly')
+                    updateBlockValue(pageId, block.id, val);
+                }}
+                onSettingsChange={(s) => {
+                  if (mode !== 'readonly')
+                    updateBlockSettings(pageId, block.id, s);
+                }}
                 isActive={isActive}
               />
             )}
             {block.type === 'date' && (
               <DateBlock
                 block={block}
-                onUpdate={(val) => updateBlockValue(pageId, block.id, val)}
-                onSettingsChange={(s) =>
-                  updateBlockSettings(pageId, block.id, s)
-                }
+                onUpdate={(val) => {
+                  if (mode !== 'readonly')
+                    updateBlockValue(pageId, block.id, val);
+                }}
+                onSettingsChange={(s) => {
+                  if (mode !== 'readonly')
+                    updateBlockSettings(pageId, block.id, s);
+                }}
                 isActive={isActive}
               />
             )}
             {block.type === 'dropdown' && (
               <DropdownBlock
                 block={block}
-                onUpdate={(val) => updateBlockValue(pageId, block.id, val)}
-                onSettingsChange={(s) =>
-                  updateBlockSettings(pageId, block.id, s)
-                }
+                onUpdate={(val) => {
+                  if (mode !== 'readonly')
+                    updateBlockValue(pageId, block.id, val);
+                }}
+                onSettingsChange={(s) => {
+                  if (mode !== 'readonly')
+                    updateBlockSettings(pageId, block.id, s);
+                }}
                 isActive={isActive}
               />
             )}
             {block.type === 'checkbox' && (
               <ToggleSwitchBlock
                 block={block}
-                onUpdate={(val) => updateBlockValue(pageId, block.id, val)}
-                onSettingsChange={(s) =>
-                  updateBlockSettings(pageId, block.id, s)
-                }
+                onUpdate={(val) => {
+                  if (mode !== 'readonly')
+                    updateBlockValue(pageId, block.id, val);
+                }}
+                onSettingsChange={(s) => {
+                  if (mode !== 'readonly')
+                    updateBlockSettings(pageId, block.id, s);
+                }}
                 isActive={isActive}
               />
             )}
             {block.type === 'badge_selector' && (
               <BadgeSelectorBlock
                 block={block}
-                onUpdate={(val) => updateBlockValue(pageId, block.id, val)}
-                onSettingsChange={(s) =>
-                  updateBlockSettings(pageId, block.id, s)
-                }
+                onUpdate={(val) => {
+                  if (mode !== 'readonly')
+                    updateBlockValue(pageId, block.id, val);
+                }}
+                onSettingsChange={(s) => {
+                  if (mode !== 'readonly')
+                    updateBlockSettings(pageId, block.id, s);
+                }}
                 isActive={isActive}
               />
             )}
             {block.type === 'asset_stream' && (
               <AssetStreamBlock
                 block={block}
-                onUpdate={(val) => updateBlockValue(pageId, block.id, val)}
-                onSettingsChange={(s) =>
-                  updateBlockSettings(pageId, block.id, s)
-                }
+                onUpdate={(val) => {
+                  if (mode !== 'readonly')
+                    updateBlockValue(pageId, block.id, val);
+                }}
+                onSettingsChange={(s) => {
+                  if (mode !== 'readonly')
+                    updateBlockSettings(pageId, block.id, s);
+                }}
                 isActive={isActive}
               />
             )}
           </div>
-          {isActive && hasOptions && (
+          {isActive && hasOptions && mode !== 'readonly' && (
             <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-1.5 animate-in fade-in duration-100">
               <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
                 Manage Choices (Comma Separated):
@@ -873,7 +908,7 @@ export default function CanvasArea() {
         </div>
       );
     },
-    [updateBlockValue, updateBlockSettings]
+    [updateBlockValue, updateBlockSettings, mode]
   );
 
   const renderedPages = useMemo(() => {
@@ -932,65 +967,86 @@ export default function CanvasArea() {
             <div className="absolute -top-14 left-0 flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-1.5 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-150 z-50 transition-colors">
               <input
                 type="text"
+                readOnly={mode === 'readonly'}
                 value={page.title}
-                onChange={(e) => updatePageTitle(page.id, e.target.value)}
-                className="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 text-[11px] font-bold px-3 py-1.5 rounded-lg outline-none w-32 sm:w-40 focus:ring-2 focus:ring-indigo-500/20 transition-all border border-transparent dark:border-zinc-800"
+                onChange={(e) => {
+                  if (mode !== 'readonly')
+                    updatePageTitle(page.id, e.target.value);
+                }}
+                className={`bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 text-[11px] font-bold px-3 py-1.5 rounded-lg outline-none w-32 sm:w-40 transition-all border ${
+                  mode === 'readonly'
+                    ? 'border-transparent cursor-default'
+                    : 'border-transparent dark:border-zinc-800 focus:ring-2 focus:ring-indigo-500/20'
+                }`}
               />
               <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
               <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
 
-              <div tabIndex={0} className="relative group flex items-center justify-center focus:outline-none">
+              <div
+                tabIndex={0}
+                className="relative group flex items-center justify-center focus:outline-none"
+              >
                 <div
-                  className="w-7 h-7 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm cursor-pointer transition-transform hover:scale-105"
+                  className={`w-7 h-7 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm transition-transform ${
+                    mode === 'readonly'
+                      ? 'cursor-default'
+                      : 'cursor-pointer hover:scale-105 group-focus:ring-2 group-focus:ring-indigo-500/50'
+                  }`}
                   style={{ backgroundColor: pageBgColor }}
                 />
 
-                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100]">
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-2 grid grid-cols-5 gap-1.5 w-max">
-                    {[
-                      '#ffffff',
-                      '#f87171',
-                      '#fb923c',
-                      '#facc15',
-                      '#4ade80',
-                      '#2dd4bf',
-                      '#60a5fa',
-                      '#a855f7',
-                      '#f472b6',
-                      '#18181b',
-                    ].map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updatePageSettings(page.id, {
-                            backgroundColor: color,
-                          });
-                        }}
-                        className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
-                          pageBgColor === color
-                            ? 'border-indigo-500 scale-110 shadow-sm'
-                            : 'border-zinc-200 dark:border-zinc-700 dark:border-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-400'
-                        }`}
-                        style={{ backgroundColor: color }}
-                        title={color}
-                      />
-                    ))}
+                {mode !== 'readonly' && (
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus:opacity-100 group-focus:visible transition-all duration-200 z-[100]">
+                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-2 grid grid-cols-5 gap-1.5 w-max">
+                      {[
+                        '#ffffff',
+                        '#f87171',
+                        '#fb923c',
+                        '#facc15',
+                        '#4ade80',
+                        '#2dd4bf',
+                        '#60a5fa',
+                        '#a855f7',
+                        '#f472b6',
+                        '#18181b',
+                      ].map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updatePageSettings(page.id, {
+                              backgroundColor: color,
+                            });
+                          }}
+                          className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
+                            pageBgColor === color
+                              ? 'border-indigo-500 scale-110 shadow-sm'
+                              : 'border-zinc-200 dark:border-zinc-700 dark:border-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-400'
+                          }`}
+                          style={{ backgroundColor: color }}
+                          title={color}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           ) : (
             <div
               onPointerDown={(e) => startPageDrag(e, page.id, px, py)}
-              className="absolute -top-8 left-0 flex items-center gap-2 text-zinc-400 font-bold text-[10px] uppercase tracking-widest cursor-move px-2 py-1 rounded hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 transition-colors"
+              className={`absolute -top-8 left-0 flex items-center gap-2 text-zinc-400 font-bold text-[10px] uppercase tracking-widest px-2 py-1 rounded transition-colors ${
+                mode === 'readonly'
+                  ? 'cursor-default'
+                  : 'cursor-move hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50'
+              }`}
             >
               <span># {page.title}</span>
             </div>
           )}
 
-          {isPageActive && (
+          {isPageActive && mode !== 'readonly' && (
             <>
               <button
                 type="button"
@@ -1133,6 +1189,7 @@ export default function CanvasArea() {
                         setActivePage(page.id);
                         setActiveBlock(block.id);
                         if (
+                          mode !== 'readonly' &&
                           connectingFrom &&
                           connectingFrom.blockId !== block.id
                         ) {
@@ -1149,6 +1206,7 @@ export default function CanvasArea() {
                     }}
                     onPointerUp={(e) => {
                       if (
+                        mode !== 'readonly' &&
                         connectingFrom &&
                         connectingFrom.blockId !== block.id
                       ) {
@@ -1167,7 +1225,7 @@ export default function CanvasArea() {
                       isBlockActive
                         ? 'ring-2 ring-indigo-500 shadow-xl z-50'
                         : 'shadow-sm hover:shadow-md z-10'
-                    } ${connectingFrom && connectingFrom.blockId !== block.id ? 'hover:ring-2 hover:ring-indigo-400' : ''}`}
+                    } ${connectingFrom && connectingFrom.blockId !== block.id && mode !== 'readonly' ? 'hover:ring-2 hover:ring-indigo-400' : ''}`}
                     style={{
                       left: `${bx}px`,
                       top: `${by}px`,
@@ -1175,7 +1233,7 @@ export default function CanvasArea() {
                       minHeight: `${bh}px`,
                     }}
                   >
-                    {isBlockActive && (
+                    {isBlockActive && mode !== 'readonly' && (
                       <BlockResizer
                         pageId={page.id}
                         blockId={block.id}
@@ -1188,19 +1246,25 @@ export default function CanvasArea() {
 
                     <div
                       onPointerDown={(e) => {
-                        if (!connectingFrom)
+                        if (mode !== 'readonly' && !connectingFrom)
                           startBlockDrag(e, page.id, block.id, px, py, bx, by);
                       }}
-                      className="absolute top-0 left-0 right-0 h-8 sm:h-6 bg-transparent hover:bg-zinc-50/80 dark:hover:bg-zinc-800/50 rounded-t-2xl flex items-center justify-center cursor-move transition-colors select-none z-40 touch-none"
+                      className={`absolute top-0 left-0 right-0 h-8 sm:h-6 bg-transparent rounded-t-2xl flex items-center justify-center transition-colors select-none z-40 touch-none ${
+                        mode === 'readonly'
+                          ? 'cursor-default'
+                          : 'cursor-move hover:bg-zinc-50/80 dark:hover:bg-zinc-800/50'
+                      }`}
                     >
-                      <div className="flex gap-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full" />
-                        <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full" />
-                        <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full" />
-                      </div>
+                      {mode !== 'readonly' && (
+                        <div className="flex gap-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full" />
+                          <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full" />
+                          <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full" />
+                        </div>
+                      )}
                     </div>
 
-                    {activeBlockId === block.id && (
+                    {activeBlockId === block.id && mode !== 'readonly' && (
                       <div className="absolute -top-4 -right-4 sm:-top-3 sm:-right-3 flex gap-1.5 sm:gap-1 z-30 animate-in fade-in zoom-in-95 duration-100">
                         <button
                           type="button"
@@ -1259,7 +1323,11 @@ export default function CanvasArea() {
                       onPointerDown={(e) => e.stopPropagation()}
                       className="h-full"
                     >
-                      {renderBlock(page.id, block, isBlockActive)}
+                      {renderBlock(
+                        page.id,
+                        block,
+                        isBlockActive && mode !== 'readonly'
+                      )}
                     </div>
                   </div>
                 );
@@ -1288,6 +1356,7 @@ export default function CanvasArea() {
     removePage,
     addConnection,
     removeBlockFromPage,
+    mode,
   ]);
 
   if (isLoading) {
@@ -1323,7 +1392,7 @@ export default function CanvasArea() {
       <div className="absolute top-6 left-6 z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 shadow-sm pointer-events-none hidden sm:flex items-center gap-4 animate-in fade-in duration-300 transition-colors">
         <div className="flex items-center gap-1.5">
           <MousePointer2 className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-          <span className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+          <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
             Radar
           </span>
         </div>
@@ -1356,41 +1425,45 @@ export default function CanvasArea() {
       </div>
 
       <div className="absolute bottom-24 sm:bottom-8 scale-90 sm:scale-100 left-1/2 -translate-x-1/2 z-50 flex items-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/60 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-1.5 pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300 transition-colors">
-        <button
-          onClick={undo}
-          className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
-          title="Undo"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-          >
-            <path d="M3 7v6h6" />
-            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
-          </svg>
-        </button>
-        <button
-          onClick={redo}
-          className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
-          title="Redo"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-          >
-            <path d="M21 7v6h-6" />
-            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
-          </svg>
-        </button>
-        <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-2" />
+        {mode !== 'readonly' && (
+          <>
+            <button
+              onClick={undo}
+              className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
+              title="Undo"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path d="M3 7v6h6" />
+                <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+              </svg>
+            </button>
+            <button
+              onClick={redo}
+              className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
+              title="Redo"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path d="M21 7v6h-6" />
+                <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+              </svg>
+            </button>
+            <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-2" />
+          </>
+        )}
         <button
           onClick={() => setZoom(Math.max(10, zoom - 10))}
           className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"

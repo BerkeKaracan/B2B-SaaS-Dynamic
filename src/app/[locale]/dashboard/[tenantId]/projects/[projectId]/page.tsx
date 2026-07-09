@@ -42,7 +42,6 @@ export default function ProjectDesignPage() {
   const recordId = useCanvasStore((state) => state.recordId);
   const updateMetadata = useCanvasStore((state) => state.updateMetadata);
 
-  // --- OTOMATİK KAYDETME MOTORU ---
   useAutoSave(tenantId, recordId || projectId);
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -55,6 +54,9 @@ export default function ProjectDesignPage() {
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('viewer');
+
+  const mode = useCanvasStore((state) => state.mode);
+  const setMode = useCanvasStore((state) => state.setMode);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -214,16 +216,39 @@ export default function ProjectDesignPage() {
   return (
     <div className="flex flex-col h-full w-full min-w-0 bg-[#fafafb] relative selection:bg-zinc-200 overscroll-none touch-none">
       <div className="h-12 md:h-14 border-b border-zinc-200/80 bg-white px-3 md:px-6 flex items-center justify-between shrink-0 shadow-xs relative z-10">
-        <div className="flex items-center gap-2 md:gap-3">
-          <span className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-100 px-2 md:px-2.5 py-1 rounded-md border border-zinc-200/50">
+        <div className="flex items-center gap-3">
+          <span className="hidden sm:inline-block text-[9px] md:text-[10px] font-black text-zinc-400 uppercase tracking-widest bg-zinc-50 px-2 md:px-2.5 py-1 rounded-md border border-zinc-200/50">
             {projectTemplate === 'kanban'
-              ? 'Kanban Mode'
+              ? 'Kanban'
               : projectTemplate === 'notepad'
                 ? 'NotePad'
                 : projectTemplate === 'timeline'
                   ? 'Time Schema'
-                  : 'Design Mode'}
+                  : 'Canvas'}
           </span>
+
+          <div className="flex items-center bg-zinc-100/80 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-inner">
+            <button
+              onClick={() => setMode('design')}
+              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all duration-200 ${
+                mode === 'design'
+                  ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+              }`}
+            >
+              Design
+            </button>
+            <button
+              onClick={() => setMode('readonly')}
+              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all duration-200 ${
+                mode === 'readonly'
+                  ? 'bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+              }`}
+            >
+              Read-Only
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
