@@ -953,7 +953,7 @@ export default function CanvasArea() {
             e.dataTransfer.dropEffect = 'copy';
           }}
           onDrop={(e) => handleDropOnPage(e, page)}
-          className={`canvas-bg absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] rounded-2xl transition-all duration-300 focus:outline-none flex flex-col ${
+          className={`canvas-bg absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] rounded-2xl transition-shadow duration-200 focus:outline-none flex flex-col ${
             isPageActive
               ? 'ring-2 ring-indigo-500 shadow-2xl z-40'
               : 'ring-1 ring-zinc-200/80 dark:ring-zinc-800/80 hover:shadow-xl z-0'
