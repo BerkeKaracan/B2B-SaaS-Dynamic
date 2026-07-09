@@ -3,80 +3,43 @@ import { useEffect, useRef } from 'react';
 import { useCanvasStore } from '@/store/useCanvasStore';
 
 export function useAutoSave(tenantId: string, recordId: string | null) {
-  const {
-    title,
-    description,
-    date,
-    pages,
-    connections,
-    saveProject,
-    metadata,
-  } = useCanvasStore();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isFirstRender = useRef(true);
-
-  const notepadStrokes = metadata?.notepadStrokes;
-  const notepadTexts = metadata?.notepadTexts;
-  const notepadTitle = metadata?.notepadTitle;
-
-  const tasks = metadata?.tasks;
-  const timelineEvents = metadata?.timelineEvents;
-  const timelineViews = metadata?.timelineViews;
-
-  const databaseProperties = metadata?.databaseProperties;
-  const databaseRows = metadata?.databaseRows;
-  const databaseTitle = metadata?.databaseTitle;
-
-  const whiteboardStrokes = metadata?.whiteboardStrokes;
-  const whiteboardTexts = metadata?.whiteboardTexts;
-  const whiteboardTitle = metadata?.whiteboardTitle;
-
-  const mindmapNodes = metadata?.mindmapNodes;
-  const retrospectiveCards = metadata?.retrospectiveCards;
+  const isInitialLoad = useRef(true);
 
   useEffect(() => {
-    if (!recordId) return;
+    if (!recordId || !tenantId) return;
 
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    isInitialLoad.current = true;
+    const initTimer = setTimeout(() => {
+      isInitialLoad.current = false;
+    }, 1000);
 
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    const unsubscribe = useCanvasStore.subscribe((state, prevState) => {
+      if (isInitialLoad.current) return;
+      const hasDataChanged =
+        state.pages !== prevState.pages ||
+        state.connections !== prevState.connections ||
+        state.metadata !== prevState.metadata ||
+        state.title !== prevState.title ||
+        state.description !== prevState.description;
 
-    timeoutRef.current = setTimeout(() => {
-      saveProject(tenantId);
-    }, 1500);
+      if (hasDataChanged) {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        timeoutRef.current = setTimeout(() => {
+          useCanvasStore.getState().saveProject(tenantId);
+        }, 1500);
+      }
+    });
 
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      unsubscribe(); 
+      clearTimeout(initTimer);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
-  }, [
-    title,
-    description,
-    date,
-    pages,
-    connections,
-    saveProject,
-    tenantId,
-    recordId,
-    notepadStrokes,
-    notepadTexts,
-    notepadTitle,
-    tasks,
-    timelineEvents,
-    timelineViews, // EKLENDİ
-    databaseProperties,
-    databaseRows,
-    databaseTitle,
-    whiteboardStrokes,
-    whiteboardTexts,
-    whiteboardTitle,
-    mindmapNodes,
-    retrospectiveCards,
-  ]);
-
-  useEffect(() => {
-    isFirstRender.current = true;
-  }, [recordId]);
+  }, [tenantId, recordId]);
 }
