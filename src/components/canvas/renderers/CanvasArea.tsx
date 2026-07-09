@@ -35,8 +35,12 @@ import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
 import { useCanvasCollaboration } from '@/hooks/useCanvasCollaboration';
 import { useZustandYjsSync } from '@/hooks/useZustandYjsSync';
 import { LiveCursors } from '../LiveCursors';
+import { useParams } from 'next/navigation';
 
 export default function CanvasArea() {
+  const params = useParams();
+  const routeProjectId = params?.projectId as string;
+  const [hasLoadedPos, setHasLoadedPos] = useState(false);
   const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
   const connections = useCanvasStore((s) => s.connections);
   const activePageId = useCanvasStore((s) => s.activePageId);
@@ -46,6 +50,7 @@ export default function CanvasArea() {
   const panX = useCanvasStore((s) => s.panX);
   const panY = useCanvasStore((s) => s.panY);
   const isLoading = useCanvasStore((s) => s.isLoading);
+  const recordId = useCanvasStore((s) => s.recordId);
 
   const [currentUser, setCurrentUser] = useState({
     name: 'Syncing User...',
@@ -184,6 +189,46 @@ export default function CanvasArea() {
       setAiPrompt('');
     }
   };
+
+  useEffect(() => {
+    if (!routeProjectId || typeof window === 'undefined') return;
+
+    const savedZoom = localStorage.getItem(`canvas_zoom_${routeProjectId}`);
+    const savedPanX = localStorage.getItem(`canvas_panX_${routeProjectId}`);
+    const savedPanY = localStorage.getItem(`canvas_panY_${routeProjectId}`);
+
+    if (savedZoom) setZoom(parseFloat(savedZoom));
+    if (savedPanX && savedPanY)
+      setPan(parseFloat(savedPanX), parseFloat(savedPanY));
+
+    setTimeout(() => setHasLoadedPos(true), 100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeProjectId]);
+
+  useEffect(() => {
+    if (!hasLoadedPos || !routeProjectId || typeof window === 'undefined')
+      return;
+
+    const timeout = setTimeout(() => {
+      localStorage.setItem(`canvas_zoom_${routeProjectId}`, zoom.toString());
+      localStorage.setItem(`canvas_panX_${routeProjectId}`, panX.toString());
+      localStorage.setItem(`canvas_panY_${routeProjectId}`, panY.toString());
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [zoom, panX, panY, routeProjectId, hasLoadedPos]);
+
+  useEffect(() => {
+    if (recordId && typeof window !== 'undefined') {
+      const savedZoom = localStorage.getItem(`canvas_zoom_${recordId}`);
+      const savedPanX = localStorage.getItem(`canvas_panX_${recordId}`);
+      const savedPanY = localStorage.getItem(`canvas_panY_${recordId}`);
+
+      if (savedZoom) setZoom(parseFloat(savedZoom));
+      if (savedPanX && savedPanY)
+        setPan(parseFloat(savedPanX), parseFloat(savedPanY));
+    }
+  }, [recordId]);
 
   useEffect(() => {
     if (!provider) return;
