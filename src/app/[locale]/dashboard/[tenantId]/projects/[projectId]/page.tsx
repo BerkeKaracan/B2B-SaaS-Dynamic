@@ -67,8 +67,6 @@ export default function ProjectDesignPage() {
             data.record_data?.template === 'retrospective'
           ) {
             setShowEngineToolkit(false);
-          } else {
-            setShowEngineToolkit(true);
           }
         }
       } catch (err) {
@@ -78,7 +76,8 @@ export default function ProjectDesignPage() {
       }
     };
     if (projectId) fetchInitialData();
-    return () => setShowEngineToolkit(true);
+
+    return () => setShowEngineToolkit(false);
   }, [projectId, setShowEngineToolkit]);
 
   const openShareModal = async () => {

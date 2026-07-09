@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
 interface LayoutState {
   isPrimarySidebarOpen: boolean;
@@ -10,9 +10,10 @@ interface LayoutState {
 }
 
 export const useLayoutStore = create<LayoutState>((set) => ({
-  isPrimarySidebarOpen: true,
+  isPrimarySidebarOpen: false,
   isSecondarySidebarOpen: false,
-  showEngineToolkit: true,
+
+  showEngineToolkit: false,
 
   togglePrimarySidebar: () =>
     set((state) => ({ isPrimarySidebarOpen: !state.isPrimarySidebarOpen })),
