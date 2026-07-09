@@ -14,7 +14,6 @@ import { LoadingSpinner } from '@/components/ui/loading';
 import { useTranslations } from 'next-intl';
 import {
   Search,
-  Briefcase,
   Archive,
   FolderPlus,
   MoreVertical,
@@ -31,6 +30,8 @@ import {
   MessageSquare,
   ChevronDown,
   KanbanSquare,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 
 type ProjectRecord = {
@@ -42,6 +43,7 @@ type ProjectRecord = {
     updated_by?: string;
     template?: string;
     is_global_shared?: string;
+    is_locked?: string;
   };
 };
 
@@ -197,6 +199,7 @@ export default function ProjectCardsGrid({
             status: 'active',
             visibility: newProjectVisibility,
             template: selectedTemplate,
+            is_locked: 'false',
           },
         }),
       });
@@ -247,6 +250,45 @@ export default function ProjectCardsGrid({
         method: 'PATCH',
         body: JSON.stringify({
           record_data: { ...currentData, visibility: newVisibility },
+        }),
+      });
+      if (!res.ok) fetchProjects();
+    } catch (error) {
+      fetchProjects();
+    }
+  };
+
+  const toggleProjectLock = async (
+    e: React.MouseEvent,
+    projectId: string,
+    currentData: RecordData
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpenMenuId(null);
+
+    const isCurrentlyLocked = currentData.is_locked === 'true';
+    const newStatus = isCurrentlyLocked ? 'false' : 'true';
+
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === projectId
+          ? {
+              ...p,
+              record_data: {
+                ...p.record_data,
+                is_locked: newStatus,
+              },
+            }
+          : p
+      )
+    );
+
+    try {
+      const res = await fetchAPI(`/api/records/${projectId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          record_data: { ...currentData, is_locked: newStatus },
         }),
       });
       if (!res.ok) fetchProjects();
@@ -471,6 +513,7 @@ export default function ProjectCardsGrid({
                 project.record_data?.visibility === 'just_admin';
               const isGlobalShared =
                 project.record_data?.is_global_shared === 'true';
+              const isLocked = project.record_data?.is_locked === 'true';
               const displayName = getProjectDisplayName(
                 project.record_data ?? {},
                 project.id
@@ -577,6 +620,32 @@ export default function ProjectCardsGrid({
 
                                   <button
                                     onClick={(e) =>
+                                      toggleProjectLock(
+                                        e,
+                                        project.id,
+                                        project.record_data
+                                      )
+                                    }
+                                    className={`w-full px-4 py-2 text-xs font-medium flex items-center justify-between ${
+                                      isLocked
+                                        ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                                        : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                                    }`}
+                                  >
+                                    {isLocked
+                                      ? 'Unlock Project'
+                                      : 'Lock (Read-Only)'}
+                                    {isLocked ? (
+                                      <Unlock className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <Lock className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+
+                                  <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+
+                                  <button
+                                    onClick={(e) =>
                                       archiveProject(
                                         e,
                                         project.id,
@@ -626,6 +695,12 @@ export default function ProjectCardsGrid({
                       {timeAgo}
                     </div>
                     <div className="flex items-center gap-2">
+                      {isLocked && (
+                        <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-800">
+                          <Lock className="w-3 h-3" />
+                          <span>Read-Only</span>
+                        </div>
+                      )}
                       {isGlobalShared && (
                         <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-800">
                           <Globe className="w-3 h-3" />

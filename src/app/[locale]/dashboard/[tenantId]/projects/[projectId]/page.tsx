@@ -6,6 +6,7 @@ import CanvasArea from '@/components/canvas/renderers/CanvasArea';
 import { fetchAPI } from '@/services/api';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useLayoutStore } from '@/store/useLayoutStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import StaticKanbanBoard from '@/components/kanban/StaticKanbanBoard';
 import NotepadBoard from '@/components/notepad/NotepadBoard';
 import TimelineBoard from '@/components/timeline/TimelineBoard';
@@ -26,6 +27,7 @@ type RecordDataProps = {
   is_global_public?: boolean | string;
   collaborators?: Collaborator[];
   template?: string;
+  is_locked?: string;
   [key: string]: unknown;
 };
 
@@ -41,6 +43,9 @@ export default function ProjectDesignPage() {
   const recordId = useCanvasStore((state) => state.recordId);
   const updateMetadata = useCanvasStore((state) => state.updateMetadata);
 
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin' || user?.role === 'owner';
+
   useAutoSave(tenantId, recordId || projectId);
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -54,7 +59,6 @@ export default function ProjectDesignPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('viewer');
 
-  // TYPE-SAFE MODE ACCESS
   const mode = useCanvasStore((state) =>
     'mode' in state ? (state as { mode: string }).mode : 'design'
   );
@@ -64,7 +68,8 @@ export default function ProjectDesignPage() {
       : () => {}
   );
 
-  // --- YENİ EKLENEN: READ-ONLY İSE SOL MENÜYÜ GİZLE ---
+  const isLocked = String(recordData?.is_locked) === 'true';
+
   useEffect(() => {
     if (mode === 'readonly') {
       setShowEngineToolkit(false);
@@ -82,6 +87,8 @@ export default function ProjectDesignPage() {
       ].includes(template);
       if (isStandardCanvas) {
         setShowEngineToolkit(true);
+      } else {
+        setShowEngineToolkit(false);
       }
     }
   }, [mode, recordData?.template, setShowEngineToolkit]);
@@ -94,26 +101,14 @@ export default function ProjectDesignPage() {
           const data = await res.json();
           setRecordData(data.record_data);
 
-          const currentMode = useCanvasStore.getState();
-          const isReadOnly =
-            'mode' in currentMode &&
-            (currentMode as { mode: string }).mode === 'readonly';
+          const isProjectLocked =
+            String(data.record_data?.is_locked) === 'true';
+          const currentUser = useAuthStore.getState().user;
+          const userIsAdmin =
+            currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
-          if (!isReadOnly) {
-            if (
-              data.record_data?.template === 'kanban' ||
-              data.record_data?.template === 'notepad' ||
-              data.record_data?.template === 'document' ||
-              data.record_data?.template === 'whiteboard' ||
-              data.record_data?.template === 'timeline' ||
-              data.record_data?.template === 'database' ||
-              data.record_data?.template === 'mindmap' ||
-              data.record_data?.template === 'retrospective'
-            ) {
-              setShowEngineToolkit(false);
-            } else {
-              setShowEngineToolkit(true);
-            }
+          if (isProjectLocked && !userIsAdmin) {
+            setMode('readonly');
           }
         }
       } catch (err) {
@@ -124,7 +119,7 @@ export default function ProjectDesignPage() {
     };
     if (projectId) fetchInitialData();
     return () => setShowEngineToolkit(true);
-  }, [projectId, setShowEngineToolkit]);
+  }, [projectId, setMode, setShowEngineToolkit]);
 
   const openShareModal = async () => {
     setIsModalOpen(true);
@@ -263,28 +258,50 @@ export default function ProjectDesignPage() {
                   : 'Canvas'}
           </span>
 
-          <div className="flex items-center bg-zinc-100/80 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-inner">
-            <button
-              onClick={() => setMode('design')}
-              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all duration-200 ${
-                mode === 'design'
-                  ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-              }`}
-            >
-              Design
-            </button>
-            <button
-              onClick={() => setMode('readonly')}
-              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all duration-200 ${
-                mode === 'readonly'
-                  ? 'bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-              }`}
-            >
-              Read-Only
-            </button>
-          </div>
+          {!isLocked || isAdmin ? (
+            <div className="flex items-center bg-zinc-100/80 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-inner">
+              <button
+                onClick={() => setMode('design')}
+                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all duration-200 ${
+                  mode === 'design'
+                    ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                }`}
+              >
+                Design
+              </button>
+              <button
+                onClick={() => setMode('readonly')}
+                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all duration-200 ${
+                  mode === 'readonly'
+                    ? 'bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                }`}
+              >
+                Read-Only
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 px-3 py-1 rounded-lg border border-amber-200 dark:border-amber-800 shadow-inner">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-amber-600 dark:text-amber-400"
+              >
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                Locked (Read-Only)
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
