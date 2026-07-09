@@ -939,7 +939,7 @@ export default function CanvasArea() {
               <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
               <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
 
-              <div className="relative group flex items-center justify-center">
+              <div tabIndex={0} className="relative group flex items-center justify-center focus:outline-none">
                 <div
                   className="w-7 h-7 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm cursor-pointer transition-transform hover:scale-105"
                   style={{ backgroundColor: pageBgColor }}
@@ -1355,7 +1355,7 @@ export default function CanvasArea() {
         {renderedPages}
       </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/60 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-1.5 pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300 transition-colors">
+      <div className="absolute bottom-24 sm:bottom-8 scale-90 sm:scale-100 left-1/2 -translate-x-1/2 z-50 flex items-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/60 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-1.5 pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300 transition-colors">
         <button
           onClick={undo}
           className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"

@@ -212,7 +212,7 @@ export default function ProjectDesignPage() {
   const projectTemplate = recordData?.template || 'blank';
 
   return (
-    <div className="flex flex-col h-full w-full min-w-0 bg-[#fafafb] relative selection:bg-zinc-200">
+    <div className="flex flex-col h-full w-full min-w-0 bg-[#fafafb] relative selection:bg-zinc-200 overscroll-none touch-none">
       <div className="h-12 md:h-14 border-b border-zinc-200/80 bg-white px-3 md:px-6 flex items-center justify-between shrink-0 shadow-xs relative z-10">
         <div className="flex items-center gap-2 md:gap-3">
           <span className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest bg-zinc-100 px-2 md:px-2.5 py-1 rounded-md border border-zinc-200/50">
