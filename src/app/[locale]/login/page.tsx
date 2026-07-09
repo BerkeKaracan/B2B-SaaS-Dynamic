@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import Cookies from 'js-cookie';
 import { supabase } from '@/lib/supabaseClient';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -188,7 +189,7 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fafafb]">
         <div className="flex flex-col items-center gap-4">
-          <span className="w-10 h-10 border-4 border-zinc-200 border-t-indigo-600 rounded-full animate-spin"></span>
+          <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
           <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest animate-pulse">
             Authenticating
           </span>
@@ -431,7 +432,7 @@ export default function LoginPage() {
               >
                 {loading ? (
                   <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    <Loader2 className="w-4 h-4 text-white animate-spin" />
                     Authenticating...
                   </>
                 ) : (
