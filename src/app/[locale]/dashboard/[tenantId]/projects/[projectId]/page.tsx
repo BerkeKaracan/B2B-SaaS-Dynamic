@@ -10,7 +10,6 @@ import StaticKanbanBoard from '@/components/kanban/StaticKanbanBoard';
 import NotepadBoard from '@/components/notepad/NotepadBoard';
 import TimelineBoard from '@/components/timeline/TimelineBoard';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LoadingSpinner } from '@/components/ui/loading';
 import DatabaseBoard from '@/components/database/DatabaseBoard';
 import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
 import MindMapBoard from '@/components/mindmap/MindMapBoard';
@@ -55,8 +54,37 @@ export default function ProjectDesignPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('viewer');
 
-  const mode = useCanvasStore((state) => state.mode);
-  const setMode = useCanvasStore((state) => state.setMode);
+  // TYPE-SAFE MODE ACCESS
+  const mode = useCanvasStore((state) =>
+    'mode' in state ? (state as { mode: string }).mode : 'design'
+  );
+  const setMode = useCanvasStore((state) =>
+    'setMode' in state
+      ? (state as { setMode: (m: string) => void }).setMode
+      : () => {}
+  );
+
+  // --- YENİ EKLENEN: READ-ONLY İSE SOL MENÜYÜ GİZLE ---
+  useEffect(() => {
+    if (mode === 'readonly') {
+      setShowEngineToolkit(false);
+    } else if (mode === 'design') {
+      const template = recordData?.template || 'blank';
+      const isStandardCanvas = ![
+        'kanban',
+        'notepad',
+        'document',
+        'whiteboard',
+        'timeline',
+        'database',
+        'mindmap',
+        'retrospective',
+      ].includes(template);
+      if (isStandardCanvas) {
+        setShowEngineToolkit(true);
+      }
+    }
+  }, [mode, recordData?.template, setShowEngineToolkit]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -65,19 +93,27 @@ export default function ProjectDesignPage() {
         if (res.ok) {
           const data = await res.json();
           setRecordData(data.record_data);
-          if (
-            data.record_data?.template === 'kanban' ||
-            data.record_data?.template === 'notepad' ||
-            data.record_data?.template === 'document' ||
-            data.record_data?.template === 'whiteboard' ||
-            data.record_data?.template === 'timeline' ||
-            data.record_data?.template === 'database' ||
-            data.record_data?.template === 'mindmap' ||
-            data.record_data?.template === 'retrospective'
-          ) {
-            setShowEngineToolkit(false);
-          } else {
-            setShowEngineToolkit(true);
+
+          const currentMode = useCanvasStore.getState();
+          const isReadOnly =
+            'mode' in currentMode &&
+            (currentMode as { mode: string }).mode === 'readonly';
+
+          if (!isReadOnly) {
+            if (
+              data.record_data?.template === 'kanban' ||
+              data.record_data?.template === 'notepad' ||
+              data.record_data?.template === 'document' ||
+              data.record_data?.template === 'whiteboard' ||
+              data.record_data?.template === 'timeline' ||
+              data.record_data?.template === 'database' ||
+              data.record_data?.template === 'mindmap' ||
+              data.record_data?.template === 'retrospective'
+            ) {
+              setShowEngineToolkit(false);
+            } else {
+              setShowEngineToolkit(true);
+            }
           }
         }
       } catch (err) {

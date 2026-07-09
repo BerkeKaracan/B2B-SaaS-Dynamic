@@ -38,7 +38,9 @@ import { useZustandYjsSync } from '@/hooks/useZustandYjsSync';
 import { LiveCursors } from '../LiveCursors';
 
 export default function CanvasArea() {
-  const mode = useCanvasStore((s) => s.mode) || 'design';
+  const mode = useCanvasStore((s) =>
+    'mode' in s ? (s as { mode: string }).mode : 'design'
+  );
 
   const params = useParams();
   const routeProjectId = params?.projectId as string;
@@ -278,7 +280,11 @@ export default function CanvasArea() {
           }
         }
 
-        const currentMode = (useCanvasStore.getState() as any).mode;
+        const storeState = useCanvasStore.getState();
+        const currentMode =
+          'mode' in storeState
+            ? (storeState as { mode: string }).mode
+            : 'design';
 
         if (
           (e.ctrlKey || e.metaKey) &&
@@ -1139,30 +1145,72 @@ export default function CanvasArea() {
 
           {page.type === 'kanban' ? (
             <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl">
+              {mode === 'readonly' && (
+                <div
+                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  title="Read-Only Mode"
+                />
+              )}
               <StaticKanbanBoard projectId={page.id} />
             </div>
           ) : page.type === 'notes' || page.type === 'document' ? (
             <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
+              {mode === 'readonly' && (
+                <div
+                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  title="Read-Only Mode"
+                />
+              )}
               <NotepadBoard projectId={page.id} />
             </div>
           ) : page.type === 'whiteboard' ? (
             <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
+              {mode === 'readonly' && (
+                <div
+                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  title="Read-Only Mode"
+                />
+              )}
               <WhiteboardBoard projectId={page.id} />
             </div>
           ) : page.type === 'mindmap' ? (
             <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
+              {mode === 'readonly' && (
+                <div
+                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  title="Read-Only Mode"
+                />
+              )}
               <MindMapBoard projectId={page.id} />
             </div>
           ) : page.type === 'timeline' ? (
             <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
+              {mode === 'readonly' && (
+                <div
+                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  title="Read-Only Mode"
+                />
+              )}
               <TimelineBoard projectId={page.id} />
             </div>
           ) : page.type === 'database' ? (
             <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
+              {mode === 'readonly' && (
+                <div
+                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  title="Read-Only Mode"
+                />
+              )}
               <DatabaseBoard projectId={page.id} />
             </div>
           ) : page.type === 'retrospective' ? (
             <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
+              {mode === 'readonly' && (
+                <div
+                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  title="Read-Only Mode"
+                />
+              )}
               <RetrospectiveBoard projectId={page.id} />
             </div>
           ) : (
