@@ -11,14 +11,14 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import {
   User,
   Shield,
-  Settings,
   LogOut,
   ChevronDown,
-  Zap,
   MessageSquare,
   X,
   Users,
   Sparkles,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import AiChatbot from '@/components/chat/AiChatbot';
 import TeamChat from '@/components/chat/TeamChat';
@@ -127,16 +127,16 @@ export default function Navbar({
 
           <div className="ml-4 flex items-center h-full">
             {isSaving ? (
-              <div className="flex items-center gap-2 px-2.5 py-1 bg-zinc-50 dark:bg-zinc-800 rounded-md border border-zinc-100 dark:border-zinc-700">
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                  Saving
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-100/80 dark:bg-zinc-800/80 backdrop-blur-md rounded-full border border-zinc-200/80 dark:border-zinc-700 shadow-sm animate-in fade-in duration-200">
+                <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
+                <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-widest">
+                  Saving...
                 </span>
               </div>
             ) : showSaved ? (
-              <div className="flex items-center gap-2 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/30 rounded-md border border-emerald-100 dark:border-emerald-800 transition-opacity duration-300">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 backdrop-blur-md rounded-full border border-emerald-200/50 dark:border-emerald-500/20 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
                   Saved
                 </span>
               </div>
