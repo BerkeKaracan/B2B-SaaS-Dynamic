@@ -19,6 +19,7 @@ import {
   Sparkles,
   Loader2,
   CheckCircle2,
+  SlidersHorizontal,
 } from 'lucide-react';
 import AiChatbot from '@/components/chat/AiChatbot';
 import TeamChat from '@/components/chat/TeamChat';
@@ -178,26 +179,17 @@ export default function Navbar({
           {showProjectInfo && (
             <button
               onClick={toggleSecondarySidebar}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-extrabold bg-zinc-50 dark:bg-zinc-900 border hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-all group ${
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 text-[11px] font-bold rounded-full transition-all duration-200 border shadow-sm active:scale-95 group focus:outline-none ${
                 isSecondarySidebarOpen
-                  ? 'border-zinc-300 dark:border-zinc-600 text-zinc-950 dark:text-white'
-                  : 'border-zinc-200/80 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white'
+                  ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400'
+                  : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
-              <div className="relative w-3.5 h-3.5 rounded-full border-[2px] border-current flex items-center justify-center shrink-0">
-                <div
-                  className={`absolute inset-0 flex items-start justify-center transition-all duration-300 ${
-                    isSecondarySidebarOpen
-                      ? 'animate-[spin_2s_linear_infinite]'
-                      : ''
-                  }`}
-                >
-                  <div className="w-1 h-1 bg-current rounded-full -mt-[1px]"></div>
-                </div>
-              </div>
-
-              <span className="hidden sm:inline tracking-wider">
-                PROJECT INFO
+              <SlidersHorizontal
+                className={`w-3.5 h-3.5 transition-transform duration-300 ${isSecondarySidebarOpen ? 'rotate-90' : ''}`}
+              />
+              <span className="hidden sm:inline tracking-wider uppercase">
+                Project Info
               </span>
             </button>
           )}
