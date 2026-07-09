@@ -400,200 +400,60 @@ export default function ProjectCardsGrid({
     });
   };
 
-  const { displayedProjects, activeCount, privateCount, archivedCount } =
-    useMemo(() => {
-      const active = projects.filter(
-        (p) => p.record_data?.status !== 'archived'
-      ).length;
-      const archived = projects.filter(
-        (p) => p.record_data?.status === 'archived'
-      ).length;
-      const privateProjects = projects.filter(
-        (p) => p.record_data?.visibility === 'just_admin'
-      ).length;
+  const { displayedProjects } = useMemo(() => {
+    const filtered = projects.filter((p) => {
+      const hasPermission =
+        isAdmin || p.record_data?.visibility !== 'just_admin';
+      const isArchived = p.record_data?.status === 'archived';
+      const matchesSearch = getProjectDisplayName(p.record_data ?? {}, p.id)
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      return (
+        hasPermission &&
+        (showArchived ? isArchived : !isArchived) &&
+        matchesSearch
+      );
+    });
 
-      const filtered = projects.filter((p) => {
-        const hasPermission =
-          isAdmin || p.record_data?.visibility !== 'just_admin';
-        const isArchived = p.record_data?.status === 'archived';
-        const matchesSearch = getProjectDisplayName(p.record_data ?? {}, p.id)
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
-        return (
-          hasPermission &&
-          (showArchived ? isArchived : !isArchived) &&
-          matchesSearch
-        );
-      });
-
-      return {
-        displayedProjects: filtered,
-        activeCount: active,
-        privateCount: privateProjects,
-        archivedCount: archived,
-      };
-    }, [projects, isAdmin, showArchived, searchQuery]);
-
-  const recentProject = useMemo(() => {
-    const activeProjects = projects.filter(
-      (p) => p.record_data?.status !== 'archived'
-    );
-    if (!activeProjects.length) return null;
-
-    return [...activeProjects].sort((a, b) => {
-      const dateA = new Date(a.record_data?.updated_at || 0).getTime();
-      const dateB = new Date(b.record_data?.updated_at || 0).getTime();
-      return dateB - dateA;
-    })[0];
-  }, [projects]);
+    return { displayedProjects: filtered };
+  }, [projects, isAdmin, showArchived, searchQuery]);
 
   return (
     <div className="flex-1 w-full relative transition-colors duration-300">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-        {recentProject ? (
-          <Link
-            href={`/dashboard/${tenantId}/projects/${recentProject.id}`}
-            className="group relative overflow-hidden bg-zinc-950 dark:bg-white rounded-2xl p-5 border border-zinc-800 dark:border-zinc-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between h-[130px]"
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-3xl -z-10 group-hover:bg-indigo-500/20 transition-colors"></div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-indigo-400 dark:text-indigo-600">
-                <Clock className="w-4 h-4" />
-                <span className="text-[11px] font-bold uppercase tracking-widest">
-                  {t('jumpBackIn')}
-                </span>
-              </div>
-              <div className="w-6 h-6 rounded-full bg-zinc-800 dark:bg-zinc-100 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <svg
-                  className="w-3 h-3 text-white dark:text-zinc-900"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white dark:text-zinc-900 truncate">
-                {getProjectDisplayName(
-                  recentProject.record_data ?? {},
-                  recentProject.id
-                )}
-              </h3>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 font-medium">
-                {formatTimeAgo(recentProject.record_data?.updated_at)}{' '}
-                {t('updated')}
-              </p>
-            </div>
-          </Link>
-        ) : (
-          <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl p-5 border border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col justify-center items-center text-center h-[130px]">
-            <Briefcase className="w-6 h-6 text-zinc-400 mb-2" />
-            <p className="text-sm font-medium text-zinc-500">
-              {t('noActiveProject')}
-            </p>
-          </div>
-        )}
-
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between h-[130px]">
-          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-            <Database className="w-4 h-4 text-emerald-500" />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-              {t('workspaceUsage')}
-            </span>
-          </div>
-          <div>
-            <div className="flex items-end justify-between mb-2">
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-zinc-900 dark:text-white leading-none">
-                  {activeCount}
-                </span>
-                <span className="text-sm font-medium text-zinc-500">/ 50</span>
-              </div>
-              <span className="text-xs font-bold text-zinc-500">
-                {t('projectsLabel')}
-              </span>
-            </div>
-            <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
-                style={{ width: `${Math.min((activeCount / 50) * 100, 100)}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between h-[130px]">
-          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 mb-3">
-            <Shield className="w-4 h-4 text-blue-500" />
-            <span className="text-[11px] font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400">
-              {t('securityOverview')}
-            </span>
-          </div>
-          <div className="flex flex-col gap-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-300">
-                <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                {t('teamPublic')}
-              </div>
-              <span className="text-sm font-bold text-zinc-900 dark:text-white">
-                {activeCount - privateCount}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-300">
-                <div className="w-2 h-2 rounded-full bg-rose-500"></div>
-                {t('adminPrivate')}
-              </div>
-              <span className="text-sm font-bold text-zinc-900 dark:text-white">
-                {privateCount}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div className="relative group w-full max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
-            <Search className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-focus-within:text-zinc-900 dark:group-focus-within:text-zinc-100 transition-colors duration-300" />
-          </div>
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex-1 w-full relative group max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 w-4 h-4 transition-colors group-focus-within:text-indigo-500" />
           <input
             type="text"
             placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="relative z-0 w-full pl-10 pr-4 py-2.5 bg-zinc-50/60 dark:bg-zinc-900/60 backdrop-blur-sm border border-zinc-200/60 dark:border-zinc-800/60 rounded-xl text-sm font-medium text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 dark:focus:border-indigo-500 transition-all shadow-sm"
+            className="w-full bg-zinc-50/50 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 transition-all"
           />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full md:w-auto">
           {isAdmin && (
             <button
               onClick={() => setShowArchived(!showArchived)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all transform-gpu active:scale-95 ${
+              className={`flex-1 md:flex-none px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${
                 showArchived
                   ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700'
-                  : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 shadow-sm'
+                  : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800'
               }`}
             >
-              {showArchived ? t('btnActive') : t('btnArchived')}
+              <Archive className="w-4 h-4" />
+              <span>{showArchived ? t('btnActive') : t('btnArchived')}</span>
             </button>
           )}
 
           {!showArchived && isAdmin && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 font-semibold text-sm rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all shadow-sm transform-gpu active:scale-95"
+              className="flex-1 md:flex-none px-4 py-2.5 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 text-sm font-bold rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2 shadow-sm active:scale-95 whitespace-nowrap"
             >
               <FolderPlus className="w-4 h-4" />
-              {t('btnNewProject')}
+              <span>{t('btnNewProject')}</span>
             </button>
           )}
         </div>
