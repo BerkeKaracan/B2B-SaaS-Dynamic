@@ -15,6 +15,7 @@ import DatabaseBoard from '@/components/database/DatabaseBoard';
 import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
 import MindMapBoard from '@/components/mindmap/MindMapBoard';
 import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
+import { useAutoSave } from '@/hooks/useAutoSave';
 
 type Collaborator = {
   email: string;
@@ -32,9 +33,17 @@ type RecordDataProps = {
 export default function ProjectDesignPage() {
   const params = useParams();
   const projectId = params.projectId as string;
+  const tenantId = params.tenantId as string;
+
   const setShowEngineToolkit = useLayoutStore(
     (state) => state.setShowEngineToolkit
   );
+
+  const recordId = useCanvasStore((state) => state.recordId);
+  const updateMetadata = useCanvasStore((state) => state.updateMetadata);
+
+  // --- OTOMATİK KAYDETME MOTORU ---
+  useAutoSave(tenantId, recordId || projectId);
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
@@ -46,8 +55,6 @@ export default function ProjectDesignPage() {
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('viewer');
-
-  const updateMetadata = useCanvasStore((state) => state.updateMetadata);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -67,6 +74,8 @@ export default function ProjectDesignPage() {
             data.record_data?.template === 'retrospective'
           ) {
             setShowEngineToolkit(false);
+          } else {
+            setShowEngineToolkit(true);
           }
         }
       } catch (err) {
@@ -76,8 +85,7 @@ export default function ProjectDesignPage() {
       }
     };
     if (projectId) fetchInitialData();
-
-    return () => setShowEngineToolkit(false);
+    return () => setShowEngineToolkit(true);
   }, [projectId, setShowEngineToolkit]);
 
   const openShareModal = async () => {
