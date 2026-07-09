@@ -892,17 +892,48 @@ export default function CanvasArea() {
                 className="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 text-[11px] font-bold px-3 py-1.5 rounded-lg outline-none w-32 sm:w-40 focus:ring-2 focus:ring-indigo-500/20 transition-all border border-transparent dark:border-zinc-800"
               />
               <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
-              <div className="relative flex items-center justify-center p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer overflow-hidden w-7 h-7 border border-zinc-200 dark:border-zinc-700">
-                <input
-                  type="color"
-                  value={pageBgColor}
-                  onChange={(e) =>
-                    updatePageSettings(page.id, {
-                      backgroundColor: e.target.value,
-                    })
-                  }
-                  className="absolute -top-2 -left-2 w-12 h-12 cursor-pointer border-0 p-0"
+              <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+
+              <div className="relative group flex items-center justify-center">
+                <div
+                  className="w-7 h-7 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm cursor-pointer transition-transform hover:scale-105"
+                  style={{ backgroundColor: pageBgColor }}
                 />
+
+                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100]">
+                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-2 grid grid-cols-5 gap-1.5 w-max">
+                    {[
+                      '#ffffff',
+                      '#f87171',
+                      '#fb923c',
+                      '#facc15',
+                      '#4ade80',
+                      '#2dd4bf',
+                      '#60a5fa',
+                      '#a855f7',
+                      '#f472b6',
+                      '#18181b',
+                    ].map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updatePageSettings(page.id, {
+                            backgroundColor: color,
+                          });
+                        }}
+                        className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
+                          pageBgColor === color
+                            ? 'border-indigo-500 scale-110 shadow-sm'
+                            : 'border-zinc-200 dark:border-zinc-700 dark:border-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-400'
+                        }`}
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
