@@ -26,7 +26,8 @@ import {
   Archive,
   Folder,
   Star,
-  Activity
+  Activity,
+  Key,
 } from 'lucide-react';
 import { fetchAPI } from '@/services/api';
 import { useTenantStore } from '@/store/useTenantStore';
@@ -602,6 +603,14 @@ export default function WorkspaceSidebar() {
                     >
                       <CreditCard className="w-4 h-4" strokeWidth={2} />
                       Billing
+                    </Link>
+                    <Link
+                      href={`/dashboard/${tenantId}/developer`}
+                      onClick={() => setIsSettingsOpen(false)}
+                      className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors"
+                    >
+                      <Key className="w-4 h-4" strokeWidth={2} />
+                      {t('developer')}
                     </Link>
                   </div>
                 </div>

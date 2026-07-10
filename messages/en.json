@@ -769,7 +769,8 @@
       "cancel": "Cancel",
       "create": "Create Module",
       "creating": "Creating..."
-    }
+    },
+    "developer": "Developer & API"
   },
   "chatbot": {
     "title": "Ask AI Anything",
@@ -817,5 +818,32 @@
     "proFeature2": "Unlimited Team Members",
     "proFeature3": "24/7 Dedicated Support",
     "proFeature4": "Advanced Security & SSO"
+  },
+  "DeveloperSettings": {
+    "title": "Developer & API",
+    "subtitle": "Manage your API keys and webhooks for external integrations.",
+    "apiKeys": {
+      "title": "API Keys",
+      "description": "Use these keys to authenticate API requests.",
+      "newKey": "New Key",
+      "table": {
+        "name": "Name",
+        "token": "Token",
+        "createdAt": "Created At",
+        "actions": "Actions"
+      },
+      "active": "Active",
+      "productionKey": "Production Key",
+      "developmentKey": "Development Key",
+      "date1": "Oct 12, 2026",
+      "date2": "Oct 10, 2026"
+    },
+    "webhooks": {
+      "title": "Webhooks",
+      "description": "Receive real-time HTTP requests when an event occurs in the system.",
+      "addEndpoint": "Add Endpoint",
+      "emptyTitle": "No webhooks added yet",
+      "emptyDescription": "Add an endpoint to start listening to events."
+    }
   }
 }

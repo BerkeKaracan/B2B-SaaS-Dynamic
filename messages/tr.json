@@ -769,7 +769,8 @@
       "cancel": "İptal",
       "create": "Modül Oluştur",
       "creating": "Oluşturuluyor..."
-    }
+    },
+    "developer": "Geliştirici & API"
   },
   "chatbot": {
     "title": "Yapay Zekaya Sorun",
@@ -817,5 +818,32 @@
     "proFeature2": "Sınırsız Ekip Üyesi",
     "proFeature3": "7/24 Özel Destek",
     "proFeature4": "Gelişmiş Güvenlik ve SSO"
+  },
+  "DeveloperSettings": {
+    "title": "Geliştirici ve API",
+    "subtitle": "Dış servislerle entegrasyon için API anahtarlarınızı ve webhook'larınızı yönetin.",
+    "apiKeys": {
+      "title": "API Anahtarları",
+      "description": "API isteklerini doğrulamak için bu anahtarları kullanın.",
+      "newKey": "Yeni Anahtar",
+      "table": {
+        "name": "İsim",
+        "token": "Token",
+        "createdAt": "Oluşturulma Tarihi",
+        "actions": "İşlemler"
+      },
+      "active": "Aktif",
+      "productionKey": "Production Anahtarı",
+      "developmentKey": "Development Anahtarı",
+      "date1": "12 Eki 2026",
+      "date2": "10 Eki 2026"
+    },
+    "webhooks": {
+      "title": "Webhook'lar",
+      "description": "Sistemde bir olay gerçekleştiğinde gerçek zamanlı HTTP istekleri alın.",
+      "addEndpoint": "Endpoint Ekle",
+      "emptyTitle": "Henüz webhook eklenmedi",
+      "emptyDescription": "Olayları dinlemeye başlamak için bir endpoint ekleyin."
+    }
   }
 }
