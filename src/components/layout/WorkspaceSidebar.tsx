@@ -24,6 +24,7 @@ import {
   BarChart2,
   Trash2,
   Archive,
+  Folder,
 } from 'lucide-react';
 import { fetchAPI } from '@/services/api';
 import { useTenantStore } from '@/store/useTenantStore';
@@ -40,6 +41,13 @@ type WorkspaceItem = {
   tier?: string;
 };
 
+type ProjectRecordItem = {
+  record_data: {
+    folder?: string;
+    status?: string;
+  };
+};
+
 export default function WorkspaceSidebar() {
   const params = useParams();
   const pathname = usePathname();
@@ -49,6 +57,7 @@ export default function WorkspaceSidebar() {
   const isOnProject = Boolean(params.projectId);
 
   const view = searchParams.get('view');
+  const currentFolder = searchParams.get('folder');
 
   const t = useTranslations('WorkspaceSidebar');
 
@@ -60,6 +69,8 @@ export default function WorkspaceSidebar() {
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
 
   const [myWorkspaces, setMyWorkspaces] = useState<WorkspaceItem[]>([]);
+  const [folders, setFolders] = useState<string[]>([]);
+
   const [isWorkspaceDropdownOpen, setIsWorkspaceDropdownOpen] = useState(false);
   const workspaceDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -71,10 +82,10 @@ export default function WorkspaceSidebar() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
   const [isInsightsOpen, setIsInsightsOpen] = useState(true);
   const [isModulesOpen, setIsModulesOpen] = useState(true);
-
   const [isStorageOpen, setIsStorageOpen] = useState(
     view === 'archive' || view === 'trash'
   );
+  const [isProjectsFoldersOpen, setIsProjectsFoldersOpen] = useState(true);
 
   const settingsRef = useRef<HTMLDivElement>(null);
 
@@ -104,11 +115,12 @@ export default function WorkspaceSidebar() {
       try {
         if (tenantId) fetchTenant(tenantId);
 
-        const [modulesRes, workspacesRes] = await Promise.all([
+        const [modulesRes, workspacesRes, projectsRes] = await Promise.all([
           fetchAPI(
             `/api/records?tenant_id=${tenantId}&module_name=workspace_modules`
           ),
           fetchAPI(`/api/tenants/me/list`),
+          fetchAPI(`/api/records?tenant_id=${tenantId}&module_name=projects`),
         ]);
 
         if (modulesRes.ok) {
@@ -127,6 +139,21 @@ export default function WorkspaceSidebar() {
           if (Array.isArray(wData)) {
             setMyWorkspaces(wData);
           }
+        }
+
+        if (projectsRes.ok) {
+          const pData: ProjectRecordItem[] = await projectsRes.json();
+          const uniqueFolders = Array.from(
+            new Set(
+              pData
+                .filter(
+                  (p) =>
+                    p.record_data?.folder && p.record_data.status !== 'trashed'
+                )
+                .map((p) => p.record_data.folder as string)
+            )
+          );
+          setFolders(uniqueFolders.sort());
         }
       } catch (error) {
         console.error('Failed to fetch workspace data:', error);
@@ -179,7 +206,7 @@ export default function WorkspaceSidebar() {
   };
 
   const isProjectsActive =
-    pathname.endsWith('/projects') && !view && !isOnProject;
+    pathname.endsWith('/projects') && !view && !currentFolder && !isOnProject;
   const isArchiveActive = pathname.endsWith('/projects') && view === 'archive';
   const isTrashActive = pathname.endsWith('/projects') && view === 'trash';
 
@@ -280,24 +307,80 @@ export default function WorkspaceSidebar() {
                 {t('menu')}
               </span>
               <ChevronRight
-                className={`w-3.5 h-3.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isMenuOpen ? 'rotate-90' : ''}`}
+                className={`w-3.5 h-3.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ${
+                  isMenuOpen ? 'rotate-90' : ''
+                }`}
               />
             </div>
 
             <div
-              className={`space-y-0.5 overflow-hidden transition-all duration-200 ${isMenuOpen ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}
+              className={`space-y-0.5 overflow-hidden transition-all duration-200 ${
+                isMenuOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+              }`}
             >
-              <Link
-                href={`/dashboard/${tenantId}/projects`}
-                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(isProjectsActive)}`}
-              >
-                <LayoutDashboard className="w-4 h-4" strokeWidth={2} />
-                {t('projects')}
-              </Link>
+              <div className="relative">
+                <div className="flex items-center w-full">
+                  <Link
+                    href={`/dashboard/${tenantId}/projects`}
+                    className={`flex-1 flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(
+                      isProjectsActive
+                    )}`}
+                  >
+                    <LayoutDashboard className="w-4 h-4" strokeWidth={2} />
+                    All Projects
+                  </Link>
+                  {folders.length > 0 && (
+                    <button
+                      onClick={() =>
+                        setIsProjectsFoldersOpen(!isProjectsFoldersOpen)
+                      }
+                      className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 absolute right-1"
+                    >
+                      <ChevronRight
+                        className={`w-3.5 h-3.5 transition-all duration-200 ${
+                          isProjectsFoldersOpen ? 'rotate-90' : ''
+                        }`}
+                      />
+                    </button>
+                  )}
+                </div>
+
+                {folders.length > 0 && (
+                  <div
+                    className={`ml-4 pl-3 mt-1 space-y-0.5 border-l border-zinc-200 dark:border-zinc-800 overflow-hidden transition-all duration-200 ${
+                      isProjectsFoldersOpen
+                        ? 'max-h-[300px] opacity-100'
+                        : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    {folders.map((folder) => {
+                      const isActive = currentFolder === folder;
+                      return (
+                        <Link
+                          key={folder}
+                          href={`/dashboard/${tenantId}/projects?folder=${encodeURIComponent(
+                            folder
+                          )}`}
+                          className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
+                            isActive
+                              ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 font-medium'
+                              : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100'
+                          }`}
+                        >
+                          <Folder className="w-3.5 h-3.5" />
+                          <span className="truncate">{folder}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               <Link
                 href={`/dashboard/${tenantId}/my-tasks`}
-                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/my-tasks'))}`}
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(
+                  pathname.endsWith('/my-tasks')
+                )}`}
               >
                 <CheckCircle className="w-4 h-4" strokeWidth={2} />
                 {t('myTasks')}
@@ -305,7 +388,9 @@ export default function WorkspaceSidebar() {
 
               <Link
                 href={`/dashboard/${tenantId}/ai`}
-                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/ai'))}`}
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(
+                  pathname.endsWith('/ai')
+                )}`}
               >
                 <Sparkles className="w-4 h-4" strokeWidth={2} />
                 {t('aiAssistant')}
@@ -313,7 +398,9 @@ export default function WorkspaceSidebar() {
 
               <Link
                 href={`/dashboard/${tenantId}/community`}
-                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/community'))}`}
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(
+                  pathname.endsWith('/community')
+                )}`}
               >
                 <Globe className="w-4 h-4" strokeWidth={2} />
                 {t('communityHub')}
@@ -331,16 +418,24 @@ export default function WorkspaceSidebar() {
                   {t('insights')}
                 </span>
                 <ChevronRight
-                  className={`w-3.5 h-3.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isInsightsOpen ? 'rotate-90' : ''}`}
+                  className={`w-3.5 h-3.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ${
+                    isInsightsOpen ? 'rotate-90' : ''
+                  }`}
                 />
               </div>
 
               <div
-                className={`overflow-hidden transition-all duration-200 ${isInsightsOpen ? 'max-h-[150px] opacity-100' : 'max-h-0 opacity-0'}`}
+                className={`overflow-hidden transition-all duration-200 ${
+                  isInsightsOpen
+                    ? 'max-h-[150px] opacity-100'
+                    : 'max-h-0 opacity-0'
+                }`}
               >
                 <Link
                   href={`/dashboard/${tenantId}/analytics`}
-                  className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/analytics'))}`}
+                  className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(
+                    pathname.endsWith('/analytics')
+                  )}`}
                 >
                   <BarChart2 className="w-4 h-4" strokeWidth={2} />
                   {t('analytics')}
@@ -359,18 +454,26 @@ export default function WorkspaceSidebar() {
                   {t('customModules')}
                 </span>
                 <ChevronRight
-                  className={`w-3.5 h-3.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isModulesOpen ? 'rotate-90' : ''}`}
+                  className={`w-3.5 h-3.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ${
+                    isModulesOpen ? 'rotate-90' : ''
+                  }`}
                 />
               </div>
 
               <div
-                className={`space-y-0.5 overflow-hidden transition-all duration-200 ${isModulesOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
+                className={`space-y-0.5 overflow-hidden transition-all duration-200 ${
+                  isModulesOpen
+                    ? 'max-h-[500px] opacity-100'
+                    : 'max-h-0 opacity-0'
+                }`}
               >
                 {customModules.map((mod) => (
                   <Link
                     key={mod.slug}
                     href={`/dashboard/${tenantId}/${mod.slug}`}
-                    className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.includes(`/${mod.slug}`) && !isOnProject)}`}
+                    className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(
+                      pathname.includes(`/${mod.slug}`) && !isOnProject
+                    )}`}
                   >
                     <div className="w-4 h-4 flex items-center justify-center">
                       <div className="w-1.5 h-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500" />
@@ -391,16 +494,24 @@ export default function WorkspaceSidebar() {
                 Storage
               </span>
               <ChevronRight
-                className={`w-3.5 h-3.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isStorageOpen ? 'rotate-90' : ''}`}
+                className={`w-3.5 h-3.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ${
+                  isStorageOpen ? 'rotate-90' : ''
+                }`}
               />
             </div>
 
             <div
-              className={`space-y-0.5 overflow-hidden transition-all duration-200 ${isStorageOpen ? 'max-h-[150px] opacity-100' : 'max-h-0 opacity-0'}`}
+              className={`space-y-0.5 overflow-hidden transition-all duration-200 ${
+                isStorageOpen
+                  ? 'max-h-[150px] opacity-100'
+                  : 'max-h-0 opacity-0'
+              }`}
             >
               <Link
                 href={`/dashboard/${tenantId}/projects?view=archive`}
-                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(isArchiveActive)}`}
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(
+                  isArchiveActive
+                )}`}
               >
                 <Archive className="w-4 h-4" strokeWidth={2} />
                 Archive
@@ -408,7 +519,9 @@ export default function WorkspaceSidebar() {
 
               <Link
                 href={`/dashboard/${tenantId}/projects?view=trash`}
-                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(isTrashActive)}`}
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(
+                  isTrashActive
+                )}`}
               >
                 <Trash2 className="w-4 h-4" strokeWidth={2} />
                 Trash
@@ -417,13 +530,15 @@ export default function WorkspaceSidebar() {
           </div>
 
           {isAdmin && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 mt-2 rounded-md text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-            >
-              <Plus className="w-4 h-4" strokeWidth={2} />
-              {t('addModule')}
-            </button>
+            <div className="mt-6 pt-4 pb-2 border-t border-zinc-200/80 dark:border-zinc-800/80">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-500 transition-all active:scale-95"
+              >
+                <Plus className="w-4 h-4" strokeWidth={2} />
+                {t('addModule')}
+              </button>
+            </div>
           )}
         </nav>
 
@@ -466,7 +581,14 @@ export default function WorkspaceSidebar() {
 
               <button
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-sm transition-colors ${isSettingsOpen || pathname.includes('/settings') || pathname.includes('/team') || pathname.includes('/billing') ? 'bg-zinc-200/50 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400 font-medium hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-sm transition-colors ${
+                  isSettingsOpen ||
+                  pathname.includes('/settings') ||
+                  pathname.includes('/team') ||
+                  pathname.includes('/billing')
+                    ? 'bg-zinc-200/50 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 font-medium'
+                    : 'text-zinc-600 dark:text-zinc-400 font-medium hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100'
+                }`}
               >
                 <div className="flex items-center gap-2.5">
                   <Settings className="w-4 h-4" strokeWidth={2} />
