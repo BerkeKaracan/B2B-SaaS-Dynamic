@@ -1,7 +1,12 @@
 'use client';
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { useParams, usePathname, useRouter } from 'next/navigation';
+import {
+  useParams,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useTranslations } from 'next-intl';
 import {
@@ -17,6 +22,8 @@ import {
   ChevronRight,
   ChevronsUpDown,
   BarChart2,
+  Trash2,
+  Archive,
 } from 'lucide-react';
 import { fetchAPI } from '@/services/api';
 import { useTenantStore } from '@/store/useTenantStore';
@@ -36,9 +43,12 @@ type WorkspaceItem = {
 export default function WorkspaceSidebar() {
   const params = useParams();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const tenantId = params.tenantId as string;
   const isOnProject = Boolean(params.projectId);
+
+  const view = searchParams.get('view');
 
   const t = useTranslations('WorkspaceSidebar');
 
@@ -61,6 +71,10 @@ export default function WorkspaceSidebar() {
   const [isMenuOpen, setIsMenuOpen] = useState(true);
   const [isInsightsOpen, setIsInsightsOpen] = useState(true);
   const [isModulesOpen, setIsModulesOpen] = useState(true);
+
+  const [isStorageOpen, setIsStorageOpen] = useState(
+    view === 'archive' || view === 'trash'
+  );
 
   const settingsRef = useRef<HTMLDivElement>(null);
 
@@ -90,11 +104,10 @@ export default function WorkspaceSidebar() {
       try {
         if (tenantId) fetchTenant(tenantId);
 
-        const [modulesRes, projectsRes, workspacesRes] = await Promise.all([
+        const [modulesRes, workspacesRes] = await Promise.all([
           fetchAPI(
             `/api/records?tenant_id=${tenantId}&module_name=workspace_modules`
           ),
-          fetchAPI(`/api/records?tenant_id=${tenantId}`),
           fetchAPI(`/api/tenants/me/list`),
         ]);
 
@@ -164,6 +177,11 @@ export default function WorkspaceSidebar() {
     }
     return 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium';
   };
+
+  const isProjectsActive =
+    pathname.endsWith('/projects') && !view && !isOnProject;
+  const isArchiveActive = pathname.endsWith('/projects') && view === 'archive';
+  const isTrashActive = pathname.endsWith('/projects') && view === 'trash';
 
   return (
     <>
@@ -271,7 +289,7 @@ export default function WorkspaceSidebar() {
             >
               <Link
                 href={`/dashboard/${tenantId}/projects`}
-                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(pathname.endsWith('/projects') && !isOnProject)}`}
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(isProjectsActive)}`}
               >
                 <LayoutDashboard className="w-4 h-4" strokeWidth={2} />
                 {t('projects')}
@@ -364,6 +382,40 @@ export default function WorkspaceSidebar() {
             </div>
           )}
 
+          <div className="mb-2 mt-4">
+            <div
+              onClick={() => setIsStorageOpen(!isStorageOpen)}
+              className="flex items-center justify-between px-2 py-1 mb-1 cursor-pointer group"
+            >
+              <span className="text-[12px] font-bold text-zinc-500 dark:text-zinc-400">
+                Storage
+              </span>
+              <ChevronRight
+                className={`w-3.5 h-3.5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isStorageOpen ? 'rotate-90' : ''}`}
+              />
+            </div>
+
+            <div
+              className={`space-y-0.5 overflow-hidden transition-all duration-200 ${isStorageOpen ? 'max-h-[150px] opacity-100' : 'max-h-0 opacity-0'}`}
+            >
+              <Link
+                href={`/dashboard/${tenantId}/projects?view=archive`}
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(isArchiveActive)}`}
+              >
+                <Archive className="w-4 h-4" strokeWidth={2} />
+                Archive
+              </Link>
+
+              <Link
+                href={`/dashboard/${tenantId}/projects?view=trash`}
+                className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(isTrashActive)}`}
+              >
+                <Trash2 className="w-4 h-4" strokeWidth={2} />
+                Trash
+              </Link>
+            </div>
+          </div>
+
           {isAdmin && (
             <button
               onClick={() => setIsModalOpen(true)}
@@ -376,7 +428,7 @@ export default function WorkspaceSidebar() {
         </nav>
 
         <div
-          className="p-3 shrink-0 flex flex-col gap-1 relative"
+          className="p-3 shrink-0 flex flex-col gap-1 relative border-t border-zinc-200/60 dark:border-white/5"
           ref={settingsRef}
         >
           {isAdmin && (

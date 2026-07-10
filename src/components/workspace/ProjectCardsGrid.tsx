@@ -1,7 +1,7 @@
 'use client';
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { WORKSPACE_MODULE } from '@/lib/workspace';
 import {
   getProjectDisplayName,
@@ -69,8 +69,30 @@ export default function ProjectCardsGrid({
 }) {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const tenantId = params.tenantId as string;
   const activeModule = moduleName || WORKSPACE_MODULE;
+
+  const view = searchParams.get('view') || 'active';
+
+  const headerContent = useMemo(() => {
+    if (view === 'trash') {
+      return {
+        title: 'Trash',
+        desc: 'Manage deleted projects. Items here will be permanently removed after 30 days.',
+      };
+    }
+    if (view === 'archive') {
+      return {
+        title: 'Archived Projects',
+        desc: 'View and restore your frozen or completed workspaces.',
+      };
+    }
+    return {
+      title: 'Active Workspaces',
+      desc: 'Select a live record to load into the engine canvas framework.',
+    };
+  }, [view]);
 
   const t = useTranslations('ProjectsPage');
 
@@ -81,7 +103,6 @@ export default function ProjectCardsGrid({
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [newProjectName, setNewProjectName] = useState('');
@@ -104,54 +125,49 @@ export default function ProjectCardsGrid({
     () => [
       {
         id: 'blank',
-        name: t('templates.blank'),
+        name: 'Blank',
         icon: LayoutTemplate,
         color: 'text-zinc-500 dark:text-zinc-400',
       },
       {
         id: 'kanban',
-        name: t('templates.kanban'),
+        name: 'Kanban',
         icon: KanbanSquare,
         color: 'text-blue-500',
       },
       {
         id: 'document',
-        name: t('templates.document'),
+        name: 'Document',
         icon: FileText,
         color: 'text-amber-500',
       },
       {
         id: 'whiteboard',
-        name: t('templates.whiteboard'),
+        name: 'Whiteboard',
         icon: PenTool,
         color: 'text-emerald-500',
       },
       {
         id: 'timeline',
-        name: t('templates.timeline'),
+        name: 'Timeline',
         icon: Clock,
         color: 'text-purple-500',
       },
       {
         id: 'database',
-        name: t('templates.database'),
+        name: 'Database',
         icon: Database,
         color: 'text-indigo-500',
       },
-      {
-        id: 'mindmap',
-        name: t('templates.mindmap'),
-        icon: Network,
-        color: 'text-pink-500',
-      },
+      { id: 'mindmap', name: 'Mindmap', icon: Network, color: 'text-pink-500' },
       {
         id: 'retrospective',
-        name: t('templates.retrospective'),
+        name: 'Retrospective',
         icon: MessageSquare,
         color: 'text-rose-500',
       },
     ],
-    [t]
+    []
   );
 
   const selectedTemplateData =
@@ -311,15 +327,11 @@ export default function ProjectCardsGrid({
 
     setConfirmDialog({
       isOpen: true,
-      title: isCurrentlyGlobal
-        ? t('dialogs.removeFromHubTitle')
-        : t('dialogs.publishToHubTitle'),
+      title: isCurrentlyGlobal ? 'Remove from Hub' : 'Publish to Hub',
       message: isCurrentlyGlobal
-        ? t('dialogs.removeFromHubMsg')
-        : t('dialogs.publishToHubMsg'),
-      confirmText: isCurrentlyGlobal
-        ? t('dialogs.unpublishBtn')
-        : t('dialogs.publishBtn'),
+        ? 'This project will be removed from the global gallery.'
+        : 'This project will be visible in the global gallery.',
+      confirmText: isCurrentlyGlobal ? 'Remove' : 'Publish',
       type: isCurrentlyGlobal ? 'danger' : 'warning',
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -361,9 +373,10 @@ export default function ProjectCardsGrid({
     setOpenMenuId(null);
     setConfirmDialog({
       isOpen: true,
-      title: t('dialogs.archiveTitle'),
-      message: t('dialogs.archiveMsg'),
-      confirmText: t('dialogs.archiveBtn'),
+      title: 'Archive Project',
+      message:
+        'Are you sure you want to archive this project? You can restore it later from the Archive menu.',
+      confirmText: 'Archive',
       type: 'warning',
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -379,6 +392,46 @@ export default function ProjectCardsGrid({
             method: 'PATCH',
             body: JSON.stringify({
               record_data: { ...currentData, status: 'archived' },
+            }),
+          });
+          if (!res.ok) fetchProjects();
+        } catch (error) {
+          fetchProjects();
+        }
+      },
+    });
+  };
+
+  const moveToTrash = (
+    e: React.MouseEvent,
+    projectId: string,
+    currentData: RecordData
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpenMenuId(null);
+
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Move to Trash',
+      message:
+        'This project will be moved to the trash. It will be kept for 30 days before being permanently deleted.',
+      confirmText: 'Move to Trash',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === projectId
+              ? { ...p, record_data: { ...p.record_data, status: 'trashed' } }
+              : p
+          )
+        );
+        try {
+          const res = await fetchAPI(`/api/records/${projectId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              record_data: { ...currentData, status: 'trashed' },
             }),
           });
           if (!res.ok) fetchProjects();
@@ -423,9 +476,10 @@ export default function ProjectCardsGrid({
     setOpenMenuId(null);
     setConfirmDialog({
       isOpen: true,
-      title: t('dialogs.deleteTitle'),
-      message: t('dialogs.deleteMsg'),
-      confirmText: t('dialogs.deleteBtn'),
+      title: 'Delete Permanently',
+      message:
+        'Are you absolutely sure? This action cannot be undone and the project will be permanently erased.',
+      confirmText: 'Delete Forever',
       type: 'danger',
       onConfirm: async () => {
         setConfirmDialog(null);
@@ -444,30 +498,51 @@ export default function ProjectCardsGrid({
 
   const { displayedProjects } = useMemo(() => {
     const filtered = projects.filter((p) => {
+      const status = p.record_data?.status || 'active';
+
+      if (view === 'trash') {
+        if (status !== 'trashed') return false;
+      } else if (view === 'archive') {
+        if (status !== 'archived') return false;
+      } else {
+        if (status === 'trashed' || status === 'archived') return false;
+      }
+
       const hasPermission =
         isAdmin || p.record_data?.visibility !== 'just_admin';
-      const isArchived = p.record_data?.status === 'archived';
       const matchesSearch = getProjectDisplayName(p.record_data ?? {}, p.id)
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
-      return (
-        hasPermission &&
-        (showArchived ? isArchived : !isArchived) &&
-        matchesSearch
-      );
+
+      return hasPermission && matchesSearch;
     });
 
     return { displayedProjects: filtered };
-  }, [projects, isAdmin, showArchived, searchQuery]);
+  }, [projects, isAdmin, searchQuery, view]);
 
   return (
     <div className="flex-1 w-full relative transition-colors duration-300">
+      <div className="mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <h1 className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
+          {headerContent.title}
+        </h1>
+        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mt-1.5">
+          {headerContent.desc}
+        </p>
+      </div>
+
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex-1 w-full relative group max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 w-4 h-4 transition-colors group-focus-within:text-indigo-500" />
           <input
             type="text"
-            placeholder={t('searchPlaceholder')}
+            placeholder={
+              view === 'trash'
+                ? 'Search in trash...'
+                : view === 'archive'
+                  ? 'Search in archives...'
+                  : t('searchPlaceholder')
+            }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-zinc-50/50 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 transition-all"
@@ -475,28 +550,26 @@ export default function ProjectCardsGrid({
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
-          {isAdmin && (
-            <button
-              onClick={() => setShowArchived(!showArchived)}
-              className={`flex-1 md:flex-none px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 ${
-                showArchived
-                  ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700'
-                  : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-              }`}
-            >
+          {view === 'trash' ? (
+            <div className="px-4 py-2 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold rounded-xl flex items-center gap-2 border border-rose-100 dark:border-rose-900/50">
+              <Trash2 className="w-4 h-4" />
+              <span className="text-sm">Trash</span>
+            </div>
+          ) : view === 'archive' ? (
+            <div className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-bold rounded-xl flex items-center gap-2 border border-zinc-200 dark:border-zinc-700">
               <Archive className="w-4 h-4" />
-              <span>{showArchived ? t('btnActive') : t('btnArchived')}</span>
-            </button>
-          )}
-
-          {!showArchived && isAdmin && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex-1 md:flex-none px-4 py-2.5 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 text-sm font-bold rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2 shadow-sm active:scale-95 whitespace-nowrap"
-            >
-              <FolderPlus className="w-4 h-4" />
-              <span>{t('btnNewProject')}</span>
-            </button>
+              <span className="text-sm">Archive</span>
+            </div>
+          ) : (
+            isAdmin && (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex-1 md:flex-none px-4 py-2.5 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 text-sm font-bold rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2 shadow-sm active:scale-95 whitespace-nowrap"
+              >
+                <FolderPlus className="w-4 h-4" />
+                <span>{t('btnNewProject')}</span>
+              </button>
+            )
           )}
         </div>
       </div>
@@ -509,6 +582,7 @@ export default function ProjectCardsGrid({
         ) : (
           <>
             {displayedProjects.map((project) => {
+              const status = project.record_data?.status || 'active';
               const isJustAdmin =
                 project.record_data?.visibility === 'just_admin';
               const isGlobalShared =
@@ -528,9 +602,12 @@ export default function ProjectCardsGrid({
 
               const baseClasses =
                 'group relative rounded-xl bg-white dark:bg-zinc-900 flex flex-col transition-all duration-200 transform-gpu will-change-transform border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-md';
-              const hoverClasses = !showArchived
-                ? 'hover:-translate-y-0.5 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer'
-                : 'opacity-75 grayscale';
+
+              const hoverClasses =
+                status === 'active'
+                  ? 'hover:-translate-y-0.5 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer'
+                  : 'opacity-80 grayscale-[20%] cursor-default';
+
               const cardClasses = `${baseClasses} ${hoverClasses} ${isOpen ? 'z-50' : 'z-10'}`;
 
               const cardContent = (
@@ -538,7 +615,9 @@ export default function ProjectCardsGrid({
                   <div className="p-5 flex-1 flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 truncate group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors">
+                        <h3
+                          className={`text-base font-semibold truncate transition-colors ${status !== 'active' ? 'text-zinc-600 dark:text-zinc-400 line-through decoration-zinc-300 dark:decoration-zinc-600' : 'text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-700 dark:group-hover:text-zinc-300'}`}
+                        >
                           {displayName}
                         </h3>
                         <div className="flex items-center gap-1.5 mt-1 text-xs text-zinc-500 dark:text-zinc-400">
@@ -563,9 +642,10 @@ export default function ProjectCardsGrid({
                           >
                             <MoreVertical className="w-4 h-4" />
                           </button>
+
                           {isOpen && (
                             <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-lg rounded-lg py-1.5 z-[100] transform-gpu">
-                              {!showArchived ? (
+                              {status === 'active' && (
                                 <>
                                   <button
                                     onClick={(e) =>
@@ -593,9 +673,7 @@ export default function ProjectCardsGrid({
                                   >
                                     {t('menus.makeAdminOnly')}
                                   </button>
-
                                   <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-
                                   <button
                                     onClick={(e) =>
                                       toggleGlobalShare(
@@ -611,13 +689,11 @@ export default function ProjectCardsGrid({
                                     }`}
                                   >
                                     {isGlobalShared
-                                      ? t('menus.removeFromHub')
-                                      : t('menus.publishToHub')}
+                                      ? 'Remove from Hub'
+                                      : 'Publish to Hub'}
                                     <Globe className="w-3.5 h-3.5" />
                                   </button>
-
                                   <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-
                                   <button
                                     onClick={(e) =>
                                       toggleProjectLock(
@@ -641,9 +717,7 @@ export default function ProjectCardsGrid({
                                       <Lock className="w-3.5 h-3.5" />
                                     )}
                                   </button>
-
                                   <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-
                                   <button
                                     onClick={(e) =>
                                       archiveProject(
@@ -652,12 +726,28 @@ export default function ProjectCardsGrid({
                                         project.record_data
                                       )
                                     }
-                                    className="w-full text-left px-4 py-2 text-xs font-medium text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                    className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-between"
                                   >
-                                    {t('menus.archiveProject')}
+                                    Archive Project
+                                    <Archive className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={(e) =>
+                                      moveToTrash(
+                                        e,
+                                        project.id,
+                                        project.record_data
+                                      )
+                                    }
+                                    className="w-full px-4 py-2 text-xs font-medium flex items-center justify-between text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 mt-1"
+                                  >
+                                    Move to Trash
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 </>
-                              ) : (
+                              )}
+
+                              {status === 'archived' && (
                                 <>
                                   <button
                                     onClick={(e) =>
@@ -669,7 +759,38 @@ export default function ProjectCardsGrid({
                                     }
                                     className="w-full text-left px-4 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                                   >
-                                    {t('menus.restoreProject')}
+                                    Restore Project
+                                  </button>
+                                  <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+                                  <button
+                                    onClick={(e) =>
+                                      moveToTrash(
+                                        e,
+                                        project.id,
+                                        project.record_data
+                                      )
+                                    }
+                                    className="w-full px-4 py-2 text-xs font-medium flex items-center justify-between text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  >
+                                    Move to Trash
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
+
+                              {status === 'trashed' && (
+                                <>
+                                  <button
+                                    onClick={(e) =>
+                                      restoreProject(
+                                        e,
+                                        project.id,
+                                        project.record_data
+                                      )
+                                    }
+                                    className="w-full text-left px-4 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                                  >
+                                    Restore Project
                                   </button>
                                   <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
                                   <button
@@ -678,7 +799,7 @@ export default function ProjectCardsGrid({
                                     }
                                     className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                                   >
-                                    {t('menus.deletePermanently')}
+                                    Delete Permanently
                                   </button>
                                 </>
                               )}
@@ -695,26 +816,28 @@ export default function ProjectCardsGrid({
                       {timeAgo}
                     </div>
                     <div className="flex items-center gap-2">
-                      {isLocked && (
+                      {status === 'trashed' && (
+                        <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-900/30 px-1.5 py-0.5 rounded border border-rose-100 dark:border-rose-800">
+                          <Trash2 className="w-3 h-3" />
+                          <span>Trash</span>
+                        </div>
+                      )}
+                      {status === 'archived' && (
+                        <div className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400 font-bold bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+                          <Archive className="w-3 h-3" />
+                          <span>Archived</span>
+                        </div>
+                      )}
+                      {isLocked && status === 'active' && (
                         <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-800">
                           <Lock className="w-3 h-3" />
                           <span>Read-Only</span>
                         </div>
                       )}
-                      {isGlobalShared && (
-                        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-800">
-                          <Globe className="w-3 h-3" />
-                          {t('tags.hub')}
-                        </div>
-                      )}
-                      {isJustAdmin ? (
+                      {isJustAdmin && status === 'active' && (
                         <div className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300">
                           <Shield className="w-3 h-3" />
                           {t('tags.private')}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                          {t('tags.team')}
                         </div>
                       )}
                     </div>
@@ -722,11 +845,7 @@ export default function ProjectCardsGrid({
                 </>
               );
 
-              return showArchived ? (
-                <div key={project.id} className={cardClasses}>
-                  {cardContent}
-                </div>
-              ) : (
+              return status === 'active' ? (
                 <Link
                   key={project.id}
                   href={`/dashboard/${tenantId}/projects/${project.id}`}
@@ -734,6 +853,10 @@ export default function ProjectCardsGrid({
                 >
                   {cardContent}
                 </Link>
+              ) : (
+                <div key={project.id} className={cardClasses}>
+                  {cardContent}
+                </div>
               );
             })}
 
@@ -741,7 +864,11 @@ export default function ProjectCardsGrid({
               <div className="col-span-full py-16 flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50">
                 <Search className="w-6 h-6 text-zinc-400 dark:text-zinc-500 mb-3" />
                 <p className="text-sm text-zinc-900 dark:text-zinc-100 font-semibold">
-                  {t('noProjectsFound')}
+                  {view === 'trash'
+                    ? 'Trash is empty.'
+                    : view === 'archive'
+                      ? 'No archived projects.'
+                      : t('noProjectsFound')}
                 </p>
                 {searchQuery && (
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
@@ -900,7 +1027,7 @@ export default function ProjectCardsGrid({
                 onClick={() => setConfirmDialog(null)}
                 className="px-4 py-2 rounded-lg text-sm font-semibold text-zinc-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors active:scale-95 transform-gpu"
               >
-                {t('cancel')}
+                Cancel
               </button>
               <button
                 onClick={confirmDialog.onConfirm}
