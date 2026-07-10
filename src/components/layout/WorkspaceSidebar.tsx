@@ -25,6 +25,8 @@ import {
   Trash2,
   Archive,
   Folder,
+  Star,
+  Activity
 } from 'lucide-react';
 import { fetchAPI } from '@/services/api';
 import { useTenantStore } from '@/store/useTenantStore';
@@ -207,6 +209,8 @@ export default function WorkspaceSidebar() {
 
   const isProjectsActive =
     pathname.endsWith('/projects') && !view && !currentFolder && !isOnProject;
+  const isFavoritesActive =
+    pathname.endsWith('/projects') && view === 'favorites' && !isOnProject;
   const isArchiveActive = pathname.endsWith('/projects') && view === 'archive';
   const isTrashActive = pathname.endsWith('/projects') && view === 'trash';
 
@@ -318,6 +322,19 @@ export default function WorkspaceSidebar() {
                 isMenuOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
               }`}
             >
+              <Link
+                href={`/dashboard/${tenantId}/projects?view=favorites`}
+                className={`flex-1 flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(
+                  isFavoritesActive
+                )}`}
+              >
+                <Star
+                  className={`w-4 h-4 ${isFavoritesActive ? 'text-amber-500 fill-amber-500' : ''}`}
+                  strokeWidth={2}
+                />
+                Favorites
+              </Link>
+
               <div className="relative">
                 <div className="flex items-center w-full">
                   <Link
@@ -361,13 +378,15 @@ export default function WorkspaceSidebar() {
                           href={`/dashboard/${tenantId}/projects?folder=${encodeURIComponent(
                             folder
                           )}`}
-                          className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
+                          className={`group flex items-center gap-3 px-2 py-1.5 rounded-lg text-[13px] transition-all duration-200 ${
                             isActive
-                              ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 font-medium'
+                              ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 font-semibold'
                               : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100'
                           }`}
                         >
-                          <Folder className="w-3.5 h-3.5" />
+                          <Folder
+                            className={`w-3.5 h-3.5 transition-colors ${isActive ? 'text-indigo-500' : 'text-zinc-400 group-hover:text-zinc-600'}`}
+                          />
                           <span className="truncate">{folder}</span>
                         </Link>
                       );
@@ -439,6 +458,15 @@ export default function WorkspaceSidebar() {
                 >
                   <BarChart2 className="w-4 h-4" strokeWidth={2} />
                   {t('analytics')}
+                </Link>
+                <Link
+                  href={`/dashboard/${tenantId}/activity`}
+                  className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors ${getLinkStyle(
+                    pathname.endsWith('/activity')
+                  )}`}
+                >
+                  <Activity className="w-4 h-4" strokeWidth={2} />
+                  Activity Log
                 </Link>
               </div>
             </div>

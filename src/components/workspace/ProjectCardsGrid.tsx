@@ -33,7 +33,9 @@ import {
   Lock,
   Unlock,
   Folder,
+  Star,
 } from 'lucide-react';
+import { logActivity } from '@/lib/activityLogger';
 
 type ProjectRecord = {
   id: string;
@@ -46,6 +48,7 @@ type ProjectRecord = {
     is_global_shared?: string;
     is_locked?: string;
     folder?: string;
+    favorite_at?: string | null;
   };
 };
 
@@ -104,6 +107,19 @@ export default function ProjectCardsGrid({
     onConfirm: () => void;
   } | null>(null);
 
+  const getUserDisplayName = (u: typeof user) => {
+    if (!u) return 'Unknown User';
+
+    const safeUser = u as unknown as Record<string, unknown>;
+
+    return (
+      (safeUser.name as string) ||
+      (safeUser.full_name as string) ||
+      (safeUser.email as string) ||
+      'Unknown User'
+    );
+  };
+
   const headerContent = useMemo(() => {
     if (view === 'trash') {
       return {
@@ -115,6 +131,12 @@ export default function ProjectCardsGrid({
       return {
         title: 'Archived Projects',
         desc: 'View and restore your frozen or completed workspaces.',
+      };
+    }
+    if (view === 'favorites') {
+      return {
+        title: 'Favorites',
+        desc: 'Quick access to your most important and starred projects.',
       };
     }
     if (currentFolder) {
@@ -225,12 +247,21 @@ export default function ProjectCardsGrid({
             template: selectedTemplate,
             is_locked: 'false',
             folder: newProjectFolder.trim() || undefined,
+            favorite_at: null,
           },
         }),
       });
 
       if (res.ok) {
         const newRecord = await res.json();
+
+        logActivity(
+          tenantId,
+          getUserDisplayName(user),
+          'Created Project',
+          `Project: ${newProjectName}`
+        );
+
         setIsModalOpen(false);
         setNewProjectName('');
         setNewProjectFolder('');
@@ -249,6 +280,45 @@ export default function ProjectCardsGrid({
       }
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const toggleFavorite = async (
+    e: React.MouseEvent,
+    projectId: string,
+    currentData: RecordData
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const isCurrentlyFav = !!currentData.favorite_at;
+    const newFavoriteAt = isCurrentlyFav ? null : new Date().toISOString();
+
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === projectId
+          ? {
+              ...p,
+              record_data: { ...p.record_data, favorite_at: newFavoriteAt },
+            }
+          : p
+      )
+    );
+    try {
+      await fetchAPI(`/api/records/${projectId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          record_data: { ...currentData, favorite_at: newFavoriteAt },
+        }),
+      });
+      logActivity(
+        tenantId,
+        getUserDisplayName(user),
+        newFavoriteAt ? 'Added to Favorites' : 'Removed from Favorites',
+        `Project: ${currentData.name}`
+      );
+    } catch (error) {
+      fetchProjects();
     }
   };
 
@@ -278,6 +348,12 @@ export default function ProjectCardsGrid({
           record_data: { ...currentData, visibility: newVisibility },
         }),
       });
+      logActivity(
+        tenantId,
+        getUserDisplayName(user),
+        'Changed Visibility',
+        `Project: ${currentData.name} is now ${newVisibility}`
+      );
     } catch (error) {
       fetchProjects();
     }
@@ -306,6 +382,12 @@ export default function ProjectCardsGrid({
           record_data: { ...currentData, is_locked: newStatus },
         }),
       });
+      logActivity(
+        tenantId,
+        getUserDisplayName(user),
+        newStatus === 'true' ? 'Locked Project' : 'Unlocked Project',
+        `Project: ${currentData.name}`
+      );
     } catch (error) {
       fetchProjects();
     }
@@ -352,6 +434,12 @@ export default function ProjectCardsGrid({
               record_data: { ...currentData, is_global_shared: newStatus },
             }),
           });
+          logActivity(
+            tenantId,
+            getUserDisplayName(user),
+            newStatus === 'true' ? 'Published to Hub' : 'Removed from Hub',
+            `Project: ${currentData.name}`
+          );
         } catch (error) {
           fetchProjects();
         }
@@ -389,6 +477,12 @@ export default function ProjectCardsGrid({
               record_data: { ...currentData, status: 'archived' },
             }),
           });
+          logActivity(
+            tenantId,
+            getUserDisplayName(user),
+            'Archived Project',
+            `Project: ${currentData.name}`
+          );
         } catch (error) {
           fetchProjects();
         }
@@ -426,6 +520,12 @@ export default function ProjectCardsGrid({
               record_data: { ...currentData, status: 'trashed' },
             }),
           });
+          logActivity(
+            tenantId,
+            getUserDisplayName(user),
+            'Moved to Trash',
+            `Project: ${currentData.name}`
+          );
         } catch (error) {
           fetchProjects();
         }
@@ -455,12 +555,22 @@ export default function ProjectCardsGrid({
           record_data: { ...currentData, status: 'active' },
         }),
       });
+      logActivity(
+        tenantId,
+        getUserDisplayName(user),
+        'Restored Project',
+        `Project: ${currentData.name}`
+      );
     } catch (error) {
       fetchProjects();
     }
   };
 
-  const deletePermanently = (e: React.MouseEvent, projectId: string) => {
+  const deletePermanently = (
+    e: React.MouseEvent,
+    projectId: string,
+    currentData?: RecordData
+  ) => {
     e.preventDefault();
     e.stopPropagation();
     setOpenMenuId(null);
@@ -475,6 +585,12 @@ export default function ProjectCardsGrid({
         setProjects((prev) => prev.filter((p) => p.id !== projectId));
         try {
           await fetchAPI(`/api/records/${projectId}`, { method: 'DELETE' });
+          logActivity(
+            tenantId,
+            getUserDisplayName(user),
+            'Deleted Permanently',
+            `Project: ${currentData?.name || 'Unknown'}`
+          );
         } catch (error) {
           fetchProjects();
         }
@@ -483,7 +599,7 @@ export default function ProjectCardsGrid({
   };
 
   const { displayedProjects } = useMemo(() => {
-    const filtered = projects.filter((p) => {
+    let filtered = projects.filter((p) => {
       const status = p.record_data?.status || 'active';
       const folder = p.record_data?.folder;
 
@@ -491,6 +607,9 @@ export default function ProjectCardsGrid({
         if (status !== 'trashed') return false;
       } else if (view === 'archive') {
         if (status !== 'archived') return false;
+      } else if (view === 'favorites') {
+        if (status === 'trashed' || status === 'archived') return false;
+        if (!p.record_data?.favorite_at) return false;
       } else {
         if (status === 'trashed' || status === 'archived') return false;
         if (currentFolder && folder !== currentFolder) return false;
@@ -505,6 +624,13 @@ export default function ProjectCardsGrid({
       return hasPermission && matchesSearch;
     });
 
+    // Her durumda projelere recent (son güncellenme) sıralaması uyguluyoruz
+    filtered = filtered.sort((a, b) => {
+      const dateA = new Date(a.record_data?.updated_at || 0).getTime();
+      const dateB = new Date(b.record_data?.updated_at || 0).getTime();
+      return dateB - dateA;
+    });
+
     return { displayedProjects: filtered };
   }, [projects, isAdmin, searchQuery, view, currentFolder]);
 
@@ -512,6 +638,9 @@ export default function ProjectCardsGrid({
     <div className="flex-1 w-full relative transition-colors duration-300">
       <div className="mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
         <h1 className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-3">
+          {view === 'favorites' && (
+            <Star className="w-8 h-8 text-amber-500 fill-amber-500" />
+          )}
           {currentFolder && <Folder className="w-8 h-8 text-indigo-500" />}
           {headerContent.title}
         </h1>
@@ -530,7 +659,9 @@ export default function ProjectCardsGrid({
                 ? 'Search in trash...'
                 : view === 'archive'
                   ? 'Search in archives...'
-                  : t('searchPlaceholder')
+                  : view === 'favorites'
+                    ? 'Search in favorites...'
+                    : t('searchPlaceholder')
             }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -575,7 +706,9 @@ export default function ProjectCardsGrid({
               ? 'Trash is empty.'
               : view === 'archive'
                 ? 'No archived projects.'
-                : t('noProjectsFound')}
+                : view === 'favorites'
+                  ? 'No favorite projects yet.'
+                  : t('noProjectsFound')}
           </p>
         </div>
       ) : (
@@ -587,6 +720,7 @@ export default function ProjectCardsGrid({
             const isGlobalShared =
               project.record_data?.is_global_shared === 'true';
             const isLocked = project.record_data?.is_locked === 'true';
+            const isFavorite = !!project.record_data?.favorite_at;
             const displayName = getProjectDisplayName(
               project.record_data ?? {},
               project.id
@@ -612,8 +746,11 @@ export default function ProjectCardsGrid({
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <h3
-                        className={`text-base font-semibold truncate transition-colors ${status !== 'active' ? 'text-zinc-600 dark:text-zinc-400 line-through decoration-zinc-300 dark:decoration-zinc-600' : 'text-zinc-900 dark:text-zinc-100 group-hover:text-zinc-700 dark:group-hover:text-zinc-300'}`}
+                        className={`text-base font-semibold truncate transition-colors flex items-center gap-2 ${status !== 'active' ? 'text-zinc-600 line-through' : 'text-zinc-900 dark:text-zinc-100'}`}
                       >
+                        {status !== 'active' && (
+                          <Archive className="w-3.5 h-3.5 shrink-0" />
+                        )}
                         {displayName}
                       </h3>
                       <div className="flex items-center gap-1.5 mt-1 text-xs text-zinc-500 dark:text-zinc-400">
@@ -624,7 +761,19 @@ export default function ProjectCardsGrid({
                       </div>
                     </div>
                     {isAdmin && (
-                      <div className="relative shrink-0">
+                      <div className="relative shrink-0 flex items-center gap-1">
+                        {status === 'active' && (
+                          <button
+                            onClick={(e) =>
+                              toggleFavorite(e, project.id, project.record_data)
+                            }
+                            className={`p-1.5 rounded-md transition-colors ${isFavorite ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-zinc-400 hover:text-amber-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+                          >
+                            <Star
+                              className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`}
+                            />
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.preventDefault();
@@ -779,7 +928,11 @@ export default function ProjectCardsGrid({
                                 <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
                                 <button
                                   onClick={(e) =>
-                                    deletePermanently(e, project.id)
+                                    deletePermanently(
+                                      e,
+                                      project.id,
+                                      project.record_data
+                                    )
                                   }
                                   className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                                 >
@@ -847,7 +1000,7 @@ export default function ProjectCardsGrid({
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm p-4 transform-gpu">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md border border-zinc-200 dark:border-zinc-800 transform-gpu will-change-transform">
             <div className="p-6 border-b border-zinc-100 dark:border-zinc-800">
               <h2 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
@@ -870,7 +1023,6 @@ export default function ProjectCardsGrid({
                   className="w-full px-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-indigo-400"
                 />
               </div>
-
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                   <Folder className="w-3.5 h-3.5 text-zinc-400" /> Folder Name
@@ -956,6 +1108,44 @@ export default function ProjectCardsGrid({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {confirmDialog?.isOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm p-4 transform-gpu">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-full max-w-sm border border-zinc-200 dark:border-zinc-800 transform-gpu will-change-transform overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${confirmDialog.type === 'danger' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400'}`}
+              >
+                {confirmDialog.type === 'danger' ? (
+                  <Trash2 className="w-6 h-6" />
+                ) : (
+                  <AlertTriangle className="w-6 h-6" />
+                )}
+              </div>
+              <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
+                {confirmDialog.title}
+              </h2>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 leading-relaxed">
+                {confirmDialog.message}
+              </p>
+            </div>
+            <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-950/50 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-zinc-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors active:scale-95 transform-gpu"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDialog.onConfirm}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-sm transition-colors active:scale-95 transform-gpu ${confirmDialog.type === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700'}`}
+              >
+                {confirmDialog.confirmText}
+              </button>
+            </div>
           </div>
         </div>
       )}
