@@ -1,15 +1,30 @@
 import os
 import json
 import re
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from groq import AsyncGroq  
 from datetime import datetime
+
+from core.database import supabase
 
 router = APIRouter(
     prefix="/api/ai",
     tags=["AI Support"]
 )
+
+security = HTTPBearer()
+
+def verify_user(creds: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        token = creds.credentials
+        user_res = supabase.auth.get_user(token)
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="Unauthorized: invalid token")
+        return user_res.user
+    except Exception:
+        raise HTTPException(status_code=401, detail="Unauthorized: Session not found")
 
 class MagicWandRequest(BaseModel):
     text: str
@@ -29,7 +44,7 @@ class ChatRequest(BaseModel):
     workspace_context: str = ""
 
 @router.post("/magic-wand")
-async def magic_wand(req: MagicWandRequest):
+async def magic_wand(req: MagicWandRequest, user = Depends(verify_user)):
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing in backend")
@@ -68,9 +83,8 @@ async def magic_wand(req: MagicWandRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Engine Error: {str(e)}")
 
-
 @router.post("/generate-canvas")
-async def generate_canvas(req: GenerateCanvasRequest):
+async def generate_canvas(req: GenerateCanvasRequest, user = Depends(verify_user)):
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing")
@@ -183,7 +197,7 @@ async def generate_canvas(req: GenerateCanvasRequest):
         raise HTTPException(status_code=500, detail=f"AI Canvas Error: {str(e)}")
 
 @router.post("/chat")
-async def chat_with_canvas(req: ChatRequest):
+async def chat_with_canvas(req: ChatRequest, user = Depends(verify_user)):
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing")
