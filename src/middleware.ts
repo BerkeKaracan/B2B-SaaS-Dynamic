@@ -60,7 +60,7 @@ export async function middleware(request: NextRequest) {
 
   if (subdomain && subdomain !== 'www' && !basePath.startsWith('/dashboard')) {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+      const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
       const res = await fetch(`${apiUrl}/api/tenants/by-slug/${subdomain}`, {
         next: { revalidate: 3600 },
       });
