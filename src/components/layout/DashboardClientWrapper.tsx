@@ -22,6 +22,7 @@ export default function DashboardClientWrapper({
   const router = useRouter();
   const params = useParams();
   const projectId = params.projectId as string | undefined;
+
   const isDesignView = Boolean(projectId);
 
   const { loadProjectById, isLoading, clearCanvas, recordId } =
@@ -54,10 +55,10 @@ export default function DashboardClientWrapper({
 
   if (isCheckingAuth || isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-white">
+      <div className="flex h-screen w-full items-center justify-center bg-white dark:bg-black">
         <div className="flex flex-col items-center gap-3">
-          <span className="w-10 h-10 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin" />
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider animate-pulse">
+          <span className="w-10 h-10 border-4 border-zinc-200 dark:border-zinc-800 border-t-zinc-900 dark:border-t-white rounded-full animate-spin" />
+          <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider animate-pulse">
             Starting Engine...
           </span>
         </div>
@@ -68,7 +69,7 @@ export default function DashboardClientWrapper({
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white text-zinc-900 font-sans antialiased">
+    <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans antialiased">
       <Toaster richColors closeButton expand={false} position="bottom-right" />
       {user?.email && <RealtimeNotifier userEmail={user.email} />}
 
@@ -94,7 +95,13 @@ export default function DashboardClientWrapper({
         <div className="flex flex-1 min-w-0 overflow-hidden">
           {isDesignView && showEngineToolkit && <ItemSidebar />}
 
-          <main className="flex-1 relative w-full h-full bg-white z-0 overflow-hidden min-w-0">
+          <main
+            className={`flex-1 relative w-full h-full z-0 min-w-0 transition-colors duration-300 ${
+              isDesignView
+                ? 'overflow-hidden bg-[#FAFAFB] dark:bg-[#0A0A0A]'
+                : 'overflow-y-auto bg-white dark:bg-black'
+            }`}
+          >
             {children}
           </main>
 

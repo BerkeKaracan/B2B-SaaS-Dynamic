@@ -871,5 +871,41 @@
     "clickToUpload": "Yüklemek için tıklayın",
     "dragAndDrop": "veya sürükleyip bırakın",
     "supportedFormats": "SVG, PNG, JPG veya GIF (maks. 2MB)"
+  },
+  "profileSettingsPage": {
+    "title": "Kişisel Profil",
+    "description": "Fotoğrafınızı, kişisel bilgilerinizi ve tercihlerinizi buradan güncelleyin.",
+    "sections": {
+      "profilePicture": "Profil Fotoğrafı",
+      "personalInfo": "Kişisel Bilgiler",
+      "preferences": "Tercihler"
+    },
+    "fields": {
+      "fullName": "Ad Soyad",
+      "email": "E-posta Adresi",
+      "jobTitle": "Ünvan / Görev",
+      "timezone": "Saat Diliminiz",
+      "language": "Dil"
+    },
+    "upload": {
+      "clickToUpload": "Yüklemek için tıklayın",
+      "dragAndDrop": "veya sürükleyip bırakın",
+      "rules": "JPG, GIF veya PNG. Maksimum 2MB."
+    },
+    "buttons": {
+      "saveChanges": "Değişiklikleri Kaydet",
+      "saving": "Kaydediliyor..."
+    },
+    "hints": {
+      "readOnly": "Sadece Okunabilir",
+      "emailChangeWarning": "E-posta adresinizi değiştirmek için lütfen çalışma alanı yöneticisiyle iletişime geçin."
+    },
+    "messages": {
+      "updateSuccess": "Profil başarıyla güncellendi.",
+      "updateError": "Profil güncellenemedi.",
+      "avatarSuccess": "Profil fotoğrafı başarıyla yüklendi.",
+      "avatarError": "Profil fotoğrafı yüklenemedi.",
+      "invalidImage": "Lütfen geçerli bir resim dosyası seçin."
+    }
   }
 }

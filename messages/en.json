@@ -871,5 +871,41 @@
     "clickToUpload": "Click to upload",
     "dragAndDrop": "or drag and drop",
     "supportedFormats": "SVG, PNG, JPG or GIF (max. 2MB)"
+  },
+  "profileSettingsPage": {
+    "title": "Personal Profile",
+    "description": "Update your photo, personal details, and preferences here.",
+    "sections": {
+      "profilePicture": "Profile Picture",
+      "personalInfo": "Personal Information",
+      "preferences": "Preferences"
+    },
+    "fields": {
+      "fullName": "Full Name",
+      "email": "Email Address",
+      "jobTitle": "Job Title",
+      "timezone": "Your Timezone",
+      "language": "Language"
+    },
+    "upload": {
+      "clickToUpload": "Click to upload",
+      "dragAndDrop": "or drag and drop",
+      "rules": "JPG, GIF or PNG. Max size of 2MB."
+    },
+    "buttons": {
+      "saveChanges": "Save Changes",
+      "saving": "Saving..."
+    },
+    "hints": {
+      "readOnly": "Read Only",
+      "emailChangeWarning": "To change your email address, please contact workspace admin."
+    },
+    "messages": {
+      "updateSuccess": "Profile updated successfully.",
+      "updateError": "Failed to update profile.",
+      "avatarSuccess": "Avatar uploaded successfully.",
+      "avatarError": "Failed to upload avatar.",
+      "invalidImage": "Please select a valid image file."
+    }
   }
 }

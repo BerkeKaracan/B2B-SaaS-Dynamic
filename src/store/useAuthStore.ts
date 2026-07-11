@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import Cookies from 'js-cookie';
 import { fetchAPI } from '@/services/api';
 
-interface User {
+export interface User {
   id?: string;
   user_id?: string;
   email: string;
@@ -13,6 +13,14 @@ interface User {
   avatar_url?: string;
   custom_role_name?: string | null;
   department_name?: string | null;
+  job_title?: string | null;
+  timezone?: string | null;
+}
+
+export interface UpdateProfilePayload {
+  full_name?: string;
+  job_title?: string;
+  timezone?: string;
 }
 
 interface AuthState {
@@ -21,7 +29,7 @@ interface AuthState {
   isCheckingAuth: boolean;
   fetchUser: (tenantId?: string) => Promise<void>;
   logout: () => void;
-  updateProfile: (data: { full_name: string }) => Promise<void>;
+  updateProfile: (data: UpdateProfilePayload) => Promise<void>;
   uploadAvatar: (file: File) => Promise<string>;
   updatePassword: (password: string) => Promise<void>;
 }
@@ -56,7 +64,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const res = await fetchAPI('/api/auth/me', options);
 
       if (res.ok) {
-        const userData = await res.json();
+        const userData: User = await res.json();
         set({ user: userData, isAuthenticated: true, isCheckingAuth: false });
       } else {
         Cookies.remove('token');
@@ -79,7 +87,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (typeof window !== 'undefined') window.location.href = '/';
   },
 
-  updateProfile: async (data) => {
+  updateProfile: async (data: UpdateProfilePayload) => {
     const res = await fetchAPI('/api/auth/me', {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -88,7 +96,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (!res.ok) throw new Error('Failed to update profile');
 
     set((state) => ({
-      user: state.user ? { ...state.user, full_name: data.full_name } : null,
+      user: state.user ? { ...state.user, ...data } : null,
     }));
   },
 

@@ -216,9 +216,18 @@ export default function Navbar({
                 </div>
               ) : (
                 <>
-                  <div className="w-9 h-9 rounded-xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 flex items-center justify-center text-sm font-extrabold shadow-sm shrink-0">
-                    {initials}
-                  </div>
+                  {user.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.avatar_url}
+                      alt="Profile"
+                      className="w-9 h-9 rounded-xl object-cover border border-zinc-200/80 dark:border-zinc-700 shadow-sm shrink-0"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 flex items-center justify-center text-sm font-extrabold shadow-sm shrink-0">
+                      {initials}
+                    </div>
+                  )}
 
                   <div className="hidden sm:flex flex-col items-start justify-center">
                     <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 leading-none mb-1">
