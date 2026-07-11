@@ -93,7 +93,3 @@ async def root() -> dict[str, str]:
 @app.get("/health", tags=["System"])
 async def health_check() -> dict[str, str]:
     return {"status": "healthy", "service": "SaaS Engine API"}
-
-@app.get("/sentry-debug", tags=["System"])
-async def trigger_error():
-    division_by_zero = 1 / 0
