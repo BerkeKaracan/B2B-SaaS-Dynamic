@@ -88,8 +88,20 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   updateProfile: async (data: UpdateProfilePayload) => {
+    const activeTenantId =
+      Cookies.get('tenant_id') ||
+      (typeof window !== 'undefined'
+        ? localStorage.getItem('tenant_id')
+        : null);
+
+    const headers: Record<string, string> = {};
+    if (activeTenantId) {
+      headers['x-tenant-id'] = activeTenantId;
+    }
+
     const res = await fetchAPI('/api/auth/me', {
       method: 'PUT',
+      headers,
       body: JSON.stringify(data),
     });
 

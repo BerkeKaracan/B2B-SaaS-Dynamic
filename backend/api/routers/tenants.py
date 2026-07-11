@@ -154,7 +154,10 @@ def get_tenant_members(tenant_id: UUID, user: dict = Depends(get_user_role)):
                 try:
                     user_data = supabase_admin.auth.admin.get_user_by_id(uid)
                     if user_data and user_data.user:
-                        user_email_map[uid] = user_data.user.email
+                        user_email = user_data.user.email
+                        user_email_map[uid] = user_email
+                        
+                        supabase_admin.table("tenant_users").update({"email": user_email}).eq("user_id", uid).execute()
                 except Exception as e:
                     print(f"Failed to fetch email for {uid}: {e}")
 
@@ -222,18 +225,32 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
 
         real_user_id = None
         existing_user_query = supabase_admin.table("tenant_users").select("user_id").eq("email", request_email).limit(1).execute()
+        
         if existing_user_query.data:
             real_user_id = existing_user_query.data[0]["user_id"]
         else:
-            FRONTEND_URL = "https://b2-b-saa-s-dynamic.vercel.app"
-            redirect_url = f"{FRONTEND_URL}/accept-invite?tenant_id={tenant_id}"
-            auth_res = supabase_admin.auth.admin.invite_user_by_email(
-                request_email,
-                options={"redirect_to": redirect_url}
-            )
-            if not auth_res.user:
-                raise HTTPException(status_code=400, detail="Could not invite user.")
-            real_user_id = auth_res.user.id
+            try:
+                FRONTEND_URL = "https://b2-b-saa-s-dynamic.vercel.app"
+                redirect_url = f"{FRONTEND_URL}/accept-invite?tenant_id={tenant_id}"
+                auth_res = supabase_admin.auth.admin.invite_user_by_email(
+                    request_email,
+                    options={"redirect_to": redirect_url}
+                )
+                if auth_res and auth_res.user:
+                    real_user_id = auth_res.user.id
+                else:
+                    raise Exception("Auth invitation returned empty user")
+            except Exception as auth_err:
+                try:
+                    res_users = supabase_admin.auth.admin.list_users()
+                    users_list = getattr(res_users, "users", res_users) if res_users else []
+                    target_user = next((u for u in users_list if str(u.email).lower().strip() == request_email), None)
+                    if target_user:
+                        real_user_id = target_user.id
+                    else:
+                        raise HTTPException(status_code=400, detail=f"Kullanıcı davet edilemedi veya bulunamadı: {str(auth_err)}")
+                except Exception:
+                    raise HTTPException(status_code=400, detail="Kullanıcı platformda zaten kayıtlı ancak çalışma alanına eklenirken bir hata oluştu.")
 
         new_member = {
             "tenant_id": str(tenant_id),
