@@ -1,10 +1,16 @@
 'use client';
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchAPI } from '@/services/api';
 import Cookies from 'js-cookie';
 import { useTranslations } from 'next-intl';
-import { ShieldAlert, AlertCircle, CheckCircle2, Settings } from 'lucide-react';
+import {
+  ShieldAlert,
+  AlertCircle,
+  CheckCircle2,
+  Settings,
+  UploadCloud,
+} from 'lucide-react';
 
 type Notification = {
   type: 'error' | 'success';
@@ -25,12 +31,45 @@ export default function AdvancedSettingsPage({
   const [timezone, setTimezone] = useState<string>('Europe/Istanbul');
   const [logoUrl, setLogoUrl] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
 
+  const [isDragging, setIsDragging] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState<Notification | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const allTimezones = Intl.supportedValuesOf('timeZone');
+
+  useEffect(() => {
+    if (logoFile) {
+      const objectUrl = URL.createObjectURL(logoFile);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPreviewUrl(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [logoFile]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setLogoFile(e.dataTransfer.files[0]);
+    }
+  };
 
   const handleUpdateWorkspace = async () => {
     setIsSaving(true);
@@ -101,6 +140,7 @@ export default function AdvancedSettingsPage({
           const tenantData = await tenantRes.json();
           setWorkspaceName(tenantData.name || 'Workspace');
           setTimezone(tenantData.timezone || 'Europe/Istanbul');
+          setLogoUrl(tenantData.logo_url || '');
         }
       } catch (err) {
         console.error('Advanced Settings Error:', err);
@@ -187,35 +227,69 @@ export default function AdvancedSettingsPage({
               <Settings className="w-5 h-5" /> {t('workspaceSettings')}
             </h3>
 
-            <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-              <div className="w-20 h-20 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center overflow-hidden shrink-0">
-                {logoUrl ? (
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+              <div className="w-24 h-24 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                {previewUrl || logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={logoUrl}
+                    src={previewUrl || logoUrl}
                     alt="Workspace Logo"
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-zinc-400 font-bold">
+                  <span className="text-zinc-400 font-bold text-sm uppercase tracking-wider">
                     {t('logoText')}
                   </span>
                 )}
               </div>
-              <div className="flex-1">
-                <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+
+              <div className="flex-1 w-full">
+                <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2 ml-1">
                   {t('logoLabel')}
                 </label>
-                <input
-                  type="file"
-                  accept="image/jpeg, image/png"
-                  onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                  className="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 dark:file:bg-zinc-800 dark:file:text-zinc-300"
-                />
+
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`relative flex flex-col items-center justify-center w-full py-6 px-4 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 group
+                    ${
+                      isDragging
+                        ? 'border-zinc-900 bg-zinc-50 dark:border-white dark:bg-zinc-800/50'
+                        : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/50 dark:bg-zinc-900/50'
+                    }`}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/jpeg, image/png, image/gif, image/svg+xml"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setLogoFile(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  <div className="flex flex-col items-center justify-center gap-2 text-zinc-500 dark:text-zinc-400">
+                    <UploadCloud
+                      className={`w-8 h-8 mb-1 transition-colors ${isDragging ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'}`}
+                    />
+                    <p className="text-sm font-medium text-center">
+                      <span className="text-zinc-900 dark:text-white font-bold">
+                        {t('clickToUpload')}
+                      </span>{' '}
+                      {t('dragAndDrop')}
+                    </p>
+                    <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                      {t('supportedFormats')}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 pt-2">
               <div>
                 <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 ml-1">
                   {t('nameLabel')}
@@ -247,12 +321,15 @@ export default function AdvancedSettingsPage({
               </div>
             </div>
 
-            <button
-              onClick={handleUpdateWorkspace}
-              className="bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all shadow-sm"
-            >
-              {isSaving ? t('savingButton') : t('saveButton')}
-            </button>
+            <div className="pt-2">
+              <button
+                onClick={handleUpdateWorkspace}
+                className="bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all shadow-sm flex items-center gap-2"
+                disabled={isSaving}
+              >
+                {isSaving ? t('savingButton') : t('saveButton')}
+              </button>
+            </div>
           </div>
         </div>
 

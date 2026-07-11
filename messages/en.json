@@ -867,6 +867,9 @@
       "error": "Failed to update settings. Please check your inputs.",
       "matchError": "Workspace name did not match. Deletion cancelled.",
       "deleteError": "Failed to delete workspace. Ensure you have the right permissions."
-    }
+    },
+    "clickToUpload": "Click to upload",
+    "dragAndDrop": "or drag and drop",
+    "supportedFormats": "SVG, PNG, JPG or GIF (max. 2MB)"
   }
 }

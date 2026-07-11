@@ -867,6 +867,9 @@
       "error": "Ayarlar güncellenemedi. Lütfen girdilerinizi kontrol edin.",
       "matchError": "Çalışma alanı adı eşleşmedi. Silme işlemi iptal edildi.",
       "deleteError": "Çalışma alanı silinemedi. Doğru izinlere sahip olduğunuzdan emin olun."
-    }
+    },
+    "clickToUpload": "Yüklemek için tıklayın",
+    "dragAndDrop": "veya sürükleyip bırakın",
+    "supportedFormats": "SVG, PNG, JPG veya GIF (maks. 2MB)"
   }
 }
