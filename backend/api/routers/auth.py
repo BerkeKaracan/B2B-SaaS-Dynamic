@@ -202,9 +202,11 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
         
         custom_role_name = None
         department_name = None
+        job_title = None
+        timezone = None
 
         try:
-            query = supabase_admin.table("tenant_users").select("tenant_id, role, custom_role_id, department_id").eq("user_id", user_res.user.id)
+            query = supabase_admin.table("tenant_users").select("tenant_id, role, custom_role_id, department_id, job_title, timezone").eq("user_id", user_res.user.id)
             if current_tenant_id and current_tenant_id not in ["undefined", "null"]:
                 query = query.eq("tenant_id", current_tenant_id)
             else:
@@ -215,6 +217,8 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
                 role = role_res.data[0].get("role", "employee")
                 custom_role_id = role_res.data[0].get("custom_role_id")
                 department_id = role_res.data[0].get("department_id")
+                job_title = role_res.data[0].get("job_title")
+                timezone = role_res.data[0].get("timezone")
                 
                 if not resolved_tenant_id:
                     resolved_tenant_id = role_res.data[0].get("tenant_id")
@@ -266,14 +270,16 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
             "custom_role_name": custom_role_name,
             "department_name": department_name,
             "avatar_url": avatar_url,
-            "tenant_id": resolved_tenant_id
+            "tenant_id": resolved_tenant_id,
+            "job_title": job_title, 
+            "timezone": timezone    
         }
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
 
 
 @router.put("/me")
-def update_profile(request_data: UserProfileUpdate, creds: HTTPAuthorizationCredentials = Depends(security)):
+def update_profile(request: Request, request_data: UserProfileUpdate, creds: HTTPAuthorizationCredentials = Depends(security)):
     try:
         token = creds.credentials
         user_res = supabase.auth.get_user(token)
@@ -291,6 +297,19 @@ def update_profile(request_data: UserProfileUpdate, creds: HTTPAuthorizationCred
             {"user_metadata": current_metadata}
         )
         
+        if request_data.job_title is not None or request_data.timezone is not None:
+            current_tenant_id = request.headers.get("x-tenant-id") or request.headers.get("tenant-id")
+            
+            if current_tenant_id and current_tenant_id not in ["undefined", "null"]:
+                update_payload = {}
+                if request_data.job_title is not None:
+                    update_payload["job_title"] = request_data.job_title
+                if request_data.timezone is not None:
+                    update_payload["timezone"] = request_data.timezone
+                    
+                if update_payload:
+                    supabase_admin.table("tenant_users").update(update_payload).eq("user_id", user_id).eq("tenant_id", current_tenant_id).execute()
+
         return {"success": True, "message": "Profile updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
