@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useTranslations, useLocale } from 'next-intl';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter } from '@/i18n/routing';
 import {
   User,
   Mail,
@@ -53,8 +53,7 @@ export default function ProfileSettingsPage() {
   }, [user]);
 
   const handleLanguageChange = (newLocale: string) => {
-    const newPath = pathname.replace(`/${locale}`, `/${newLocale}`);
-    router.push(newPath);
+    router.replace(pathname, { locale: newLocale });
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -121,7 +120,7 @@ export default function ProfileSettingsPage() {
       setTimeout(() => setStatusMessage(null), 3000);
     } catch (error) {
       setStatusMessage({ type: 'error', text: t('messages.avatarError') });
-      setPreviewUrl(null); 
+      setPreviewUrl(null);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
