@@ -845,5 +845,28 @@
       "emptyTitle": "Henüz webhook eklenmedi",
       "emptyDescription": "Olayları dinlemeye başlamak için bir endpoint ekleyin."
     }
+  },
+  "settingsPage": {
+    "title": "Gelişmiş Ayarlar",
+    "description": "Çalışma alanınız için kritik ve geri alınamaz eylemleri yönetin.",
+    "workspaceSettings": "Çalışma Alanı Ayarları",
+    "logoLabel": "Çalışma Alanı Logosu",
+    "logoText": "Logo",
+    "nameLabel": "Çalışma Alanı Adı",
+    "namePlaceholder": "Çalışma Alanı Adı",
+    "timezoneLabel": "Çalışma Alanı Saat Dilimi",
+    "saveButton": "Değişiklikleri Kaydet",
+    "savingButton": "Kaydediliyor...",
+    "dangerZone": "Tehlikeli Bölge",
+    "dangerZoneDesc": "Geri alınamaz eylemler. Bir çalışma alanını silmek tüm verileri, projeleri ve ekip üyelerini kalıcı olarak kaldırır.",
+    "deleteWorkspace": "Çalışma Alanını Sil",
+    "deleteDesc": "Bu işlem geri alınamaz.",
+    "deletePrompt": "Silme işlemini onaylamak için lütfen çalışma alanı adını aynen yazın: \"{name}\"",
+    "notifications": {
+      "success": "Çalışma alanı ayarları başarıyla güncellendi!",
+      "error": "Ayarlar güncellenemedi. Lütfen girdilerinizi kontrol edin.",
+      "matchError": "Çalışma alanı adı eşleşmedi. Silme işlemi iptal edildi.",
+      "deleteError": "Çalışma alanı silinemedi. Doğru izinlere sahip olduğunuzdan emin olun."
+    }
   }
 }

@@ -19,6 +19,7 @@ export default function AdvancedSettingsPage({
   const resolvedParams = use(params);
   const tenantId = resolvedParams.tenantId;
   const router = useRouter();
+  const t = useTranslations('settingsPage');
 
   const [workspaceName, setWorkspaceName] = useState<string>('');
   const [timezone, setTimezone] = useState<string>('Europe/Istanbul');
@@ -28,6 +29,8 @@ export default function AdvancedSettingsPage({
 
   const [notification, setNotification] = useState<Notification | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const allTimezones = Intl.supportedValuesOf('timeZone');
 
   const handleUpdateWorkspace = async () => {
     setIsSaving(true);
@@ -64,12 +67,9 @@ export default function AdvancedSettingsPage({
         setLogoFile(null);
       }
 
-      showNotification('success', 'Workspace settings updated successfully!');
+      showNotification('success', t('notifications.success'));
     } catch (err) {
-      showNotification(
-        'error',
-        'Failed to update settings. Please check your inputs.'
-      );
+      showNotification('error', t('notifications.error'));
     } finally {
       setIsSaving(false);
     }
@@ -119,15 +119,12 @@ export default function AdvancedSettingsPage({
 
   const handleDeleteWorkspace = async () => {
     const confirmName = window.prompt(
-      `To confirm deletion, please type the workspace name exactly: "${workspaceName}"`
+      t('deletePrompt', { name: workspaceName })
     );
 
     if (confirmName !== workspaceName) {
       if (confirmName !== null) {
-        showNotification(
-          'error',
-          'Workspace name did not match. Deletion cancelled.'
-        );
+        showNotification('error', t('notifications.matchError'));
       }
       return;
     }
@@ -141,10 +138,7 @@ export default function AdvancedSettingsPage({
 
       router.push('/login');
     } catch (err: unknown) {
-      showNotification(
-        'error',
-        'Failed to delete workspace. Ensure you have the right permissions.'
-      );
+      showNotification('error', t('notifications.deleteError'));
     }
   };
 
@@ -166,17 +160,17 @@ export default function AdvancedSettingsPage({
           </div>
           <div>
             <h1 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
-              Advanced Settings
+              {t('title')}
             </h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
-              Manage critical and irreversible actions for your workspace.
+              {t('description')}
             </p>
           </div>
         </div>
 
         {notification && (
           <div
-            className={`mb-8 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 border shadow-sm ${notification.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-500/10 border-red-100 dark:border-red-500/20 text-red-700 dark:text-red-400'}`}
+            className={`mb-8 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 border shadow-sm ${notification.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-500/10 border-red-100 dark:border-red-900/20 text-red-700 dark:text-red-400'}`}
           >
             {notification.type === 'success' ? (
               <CheckCircle2 className="w-5 h-5" />
@@ -190,7 +184,7 @@ export default function AdvancedSettingsPage({
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden mb-8">
           <div className="p-6 md:p-8 space-y-6">
             <h3 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-4">
-              <Settings className="w-5 h-5" /> Workspace Settings
+              <Settings className="w-5 h-5" /> {t('workspaceSettings')}
             </h3>
 
             <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
@@ -203,45 +197,61 @@ export default function AdvancedSettingsPage({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-zinc-400 font-bold">Logo</span>
+                  <span className="text-zinc-400 font-bold">
+                    {t('logoText')}
+                  </span>
                 )}
               </div>
               <div className="flex-1">
                 <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                  Workspace Logo
+                  {t('logoLabel')}
                 </label>
                 <input
                   type="file"
                   accept="image/jpeg, image/png"
                   onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                  className="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200"
+                  className="block w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 dark:file:bg-zinc-800 dark:file:text-zinc-300"
                 />
               </div>
             </div>
 
             <div className="space-y-4">
-              <input
-                type="text"
-                value={workspaceName}
-                onChange={(e) => setWorkspaceName(e.target.value)}
-                placeholder="Workspace Name"
-                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
-              />
-              <select
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
-              >
-                <option value="UTC">UTC</option>
-                <option value="Europe/Istanbul">Europe/Istanbul</option>
-              </select>
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 ml-1">
+                  {t('nameLabel')}
+                </label>
+                <input
+                  type="text"
+                  value={workspaceName}
+                  onChange={(e) => setWorkspaceName(e.target.value)}
+                  placeholder={t('namePlaceholder')}
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white dark:focus:ring-white/10"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 ml-1">
+                  {t('timezoneLabel')}
+                </label>
+                <select
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white dark:focus:ring-white/10"
+                >
+                  {allTimezones.map((tz) => (
+                    <option key={tz} value={tz}>
+                      {tz.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <button
               onClick={handleUpdateWorkspace}
-              className="bg-zinc-900 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-zinc-800 transition-all"
+              className="bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all shadow-sm"
             >
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? t('savingButton') : t('saveButton')}
             </button>
           </div>
         </div>
@@ -252,11 +262,10 @@ export default function AdvancedSettingsPage({
           <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
             <div className="w-full md:w-1/3">
               <h3 className="text-base font-bold text-red-600 dark:text-red-500 flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5" /> Danger Zone
+                <ShieldAlert className="w-5 h-5" /> {t('dangerZone')}
               </h3>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">
-                Irreversible actions. Deleting a workspace removes all data,
-                projects, and team members permanently.
+                {t('dangerZoneDesc')}
               </p>
             </div>
 
@@ -264,17 +273,17 @@ export default function AdvancedSettingsPage({
               <div className="w-full p-5 bg-red-50/50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all">
                 <div>
                   <h4 className="text-sm font-bold text-zinc-900 dark:text-white">
-                    Delete Workspace
+                    {t('deleteWorkspace')}
                   </h4>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                    This action cannot be undone.
+                    {t('deleteDesc')}
                   </p>
                 </div>
                 <button
                   onClick={handleDeleteWorkspace}
                   className="bg-white dark:bg-zinc-900 text-red-600 dark:text-red-500 border border-red-200 dark:border-red-800 px-5 py-2.5 rounded-lg text-sm font-bold shadow-sm hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white dark:hover:border-red-600 hover:border-red-600 transition-all active:scale-95 shrink-0"
                 >
-                  Delete Workspace
+                  {t('deleteWorkspace')}
                 </button>
               </div>
             </div>

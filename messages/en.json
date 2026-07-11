@@ -845,5 +845,28 @@
       "emptyTitle": "No webhooks added yet",
       "emptyDescription": "Add an endpoint to start listening to events."
     }
+  },
+  "settingsPage": {
+    "title": "Advanced Settings",
+    "description": "Manage critical and irreversible actions for your workspace.",
+    "workspaceSettings": "Workspace Settings",
+    "logoLabel": "Workspace Logo",
+    "logoText": "Logo",
+    "nameLabel": "Workspace Name",
+    "namePlaceholder": "Workspace Name",
+    "timezoneLabel": "Workspace Timezone",
+    "saveButton": "Save Changes",
+    "savingButton": "Saving...",
+    "dangerZone": "Danger Zone",
+    "dangerZoneDesc": "Irreversible actions. Deleting a workspace removes all data, projects, and team members permanently.",
+    "deleteWorkspace": "Delete Workspace",
+    "deleteDesc": "This action cannot be undone.",
+    "deletePrompt": "To confirm deletion, please type the workspace name exactly: \"{name}\"",
+    "notifications": {
+      "success": "Workspace settings updated successfully!",
+      "error": "Failed to update settings. Please check your inputs.",
+      "matchError": "Workspace name did not match. Deletion cancelled.",
+      "deleteError": "Failed to delete workspace. Ensure you have the right permissions."
+    }
   }
 }
