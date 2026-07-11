@@ -465,7 +465,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-4 shrink-0">
           <Link
             href="/login"
-            className="hidden md:block text-[13px] font-extrabold text-zinc-500 hover:text-zinc-950 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-2 text-[13px] font-bold text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-zinc-800/50 rounded-xl transition-all duration-200 active:scale-95 cursor-pointer select-none"
           >
             {t('nav.signIn')}
           </Link>
