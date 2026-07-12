@@ -2,12 +2,14 @@ import os
 import json
 import re
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from groq import AsyncGroq  
 from datetime import datetime
 
 from core.database import supabase
+from core.ai_prompts import get_magic_wand_prompt, get_canvas_system_prompt, get_chat_prompt
 
 router = APIRouter(
     prefix="/api/ai",
@@ -21,10 +23,11 @@ def verify_user(creds: HTTPAuthorizationCredentials = Depends(security)):
         token = creds.credentials
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
-            raise HTTPException(status_code=401, detail="Unauthorized: invalid token")
+            raise HTTPException(status_code=401, detail="Unauthorized: Invalid token")
         return user_res.user
     except Exception:
         raise HTTPException(status_code=401, detail="Unauthorized: Session not found")
+
 
 class MagicWandRequest(BaseModel):
     text: str
@@ -43,6 +46,7 @@ class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     workspace_context: str = ""
 
+
 @router.post("/magic-wand")
 async def magic_wand(req: MagicWandRequest, user = Depends(verify_user)):
     api_key = os.environ.get("GROQ_API_KEY")
@@ -50,12 +54,7 @@ async def magic_wand(req: MagicWandRequest, user = Depends(verify_user)):
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing in backend")
 
     client = AsyncGroq(api_key=api_key)
-    
-    system_prompt = (
-        "You are a professional B2B SaaS Canvas assistant. "
-        "Provide clear, concise, and professional results. "
-        "Use Markdown format. Do not be overly wordy, just provide the result."
-    )
+    system_prompt = get_magic_wand_prompt()
     
     if req.action == "summarize":
         user_prompt = f"Please summarize the following text professionally:\n\n{req.text}"
@@ -72,16 +71,14 @@ async def magic_wand(req: MagicWandRequest, user = Depends(verify_user)):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            model="llama-3.3-70b-versatile", 
+            model="openai/gpt-oss-120b", 
             temperature=0.6,
             max_tokens=1024,
         )
-        
-        result_text = chat_completion.choices[0].message.content
-        return {"result": result_text}
-        
+        return {"result": chat_completion.choices[0].message.content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Engine Error: {str(e)}")
+
 
 @router.post("/generate-canvas")
 async def generate_canvas(req: GenerateCanvasRequest, user = Depends(verify_user)):
@@ -92,67 +89,7 @@ async def generate_canvas(req: GenerateCanvasRequest, user = Depends(verify_user
     client = AsyncGroq(api_key=api_key)
     current_date = datetime.now().strftime("%Y-%m-%d")
     
-    system_prompt = f"""You are an expert AI Canvas Architect for a B2B SaaS application.
-    You MUST return ONLY a valid JSON object. Do NOT wrap it in markdown tags.
-
-    CRITICAL TEMPORAL CONTEXT: Today's date is {current_date}.
-    
-    --- TEMPLATE DATA STRUCTURE ---
-    
-    IF THE USER ASKS FOR NOTES, A DOCUMENT, AN ARTICLE, OR A STRATEGY:
-    Set "type" to "notes".
-    Inside "metadata", you MUST provide "notepadTitle" and a long Markdown string inside "notepadContent".
-    Example:
-    {{
-        "type": "notes",
-        "title": "Strategy Notes",
-        "x": {req.x},
-        "y": {req.y},
-        "width": 1000,
-        "height": 800,
-        "metadata": {{
-            "notepadTitle": "Strategy Notes",
-            "notepadContent": "## Overview\\nThis is a plain text document."
-        }},
-        "blocks": []
-    }}
-
-    IF THE USER ASKS FOR A WHITEBOARD, CANVAS, BRAINSTORMING OR POST-ITS:
-    Set "type" to "whiteboard".
-    Inside "metadata", you MUST provide "whiteboardTitle" and a "whiteboardTexts" array.
-    CRITICAL ID RULE: Every object in "whiteboardTexts" MUST HAVE A MATHEMATICALLY UNIQUE "id".
-    Example:
-    {{
-        "type": "whiteboard",
-        "title": "Brainstorming Board",
-        "x": {req.x},
-        "y": {req.y},
-        "width": 1000,
-        "height": 800,
-        "metadata": {{
-            "whiteboardTitle": "Creative Board",
-            "whiteboardTexts": [
-                {{"id": "txt-A1", "x": 100, "y": 100, "content": "First idea", "color": "#18181b", "size": 32, "font": "Inter"}}
-            ],
-            "whiteboardStrokes": []
-        }},
-        "blocks": []
-    }}
-
-    JSON STRUCTURE MUST BE EXACTLY THIS:
-    {{
-        "type": "<PAGE_TYPE>",
-        "title": "<TITLE>",
-        "x": {req.x},
-        "y": {req.y},
-        "width": 1000,
-        "height": 800,
-        "metadata": {{
-            // REQUIRED FIELDS FOR THE TYPE GO HERE!
-        }},
-        "blocks": []
-    }}
-    """
+    system_prompt = get_canvas_system_prompt(current_date, req.x, req.y)
     
     try:
         chat_completion = await client.chat.completions.create(
@@ -160,10 +97,9 @@ async def generate_canvas(req: GenerateCanvasRequest, user = Depends(verify_user
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": req.prompt}
             ],
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             temperature=0.5, 
-            max_tokens=2500,
-            response_format={"type": "json_object"}
+            max_tokens=2500
         )
         
         result_text = chat_completion.choices[0].message.content.strip()
@@ -181,10 +117,19 @@ async def generate_canvas(req: GenerateCanvasRequest, user = Depends(verify_user
         if start_idx != -1 and end_idx != -1:
             result_text = result_text[start_idx:end_idx+1]
         
-        parsed_json = json.loads(result_text)
+        try:
+            parsed_json = json.loads(result_text)
+        except json.JSONDecodeError:
+            print(f"--- JSON PARSE RECOVERY ---\nBozuk Metin:\n{result_text}")
+            parsed_json = {
+                "type": "empty",
+                "title": "AI Error Recovery",
+                "blocks": []
+            }
         
         if isinstance(parsed_json, list):
             parsed_json = {"type": "empty", "title": "AI Generated Workspace", "blocks": parsed_json}
+            
         if "blocks" not in parsed_json:
             parsed_json["blocks"] = []
         if "type" not in parsed_json:
@@ -193,8 +138,9 @@ async def generate_canvas(req: GenerateCanvasRequest, user = Depends(verify_user
         return parsed_json
         
     except Exception as e:
-        print("--- AI PARSE ERROR ---")
+        print(f"--- AI FATAL ERROR DETAYI ---\n{str(e)}\n-------------------------")
         raise HTTPException(status_code=500, detail=f"AI Canvas Error: {str(e)}")
+
 
 @router.post("/chat")
 async def chat_with_canvas(req: ChatRequest, user = Depends(verify_user)):
@@ -204,27 +150,25 @@ async def chat_with_canvas(req: ChatRequest, user = Depends(verify_user)):
 
     client = AsyncGroq(api_key=api_key)
     
-    system_prompt = (
-        "You are an intelligent AI assistant integrated into a B2B SaaS Workspace. "
-        "Your job is to answer user questions based on their active canvas AND their allowed workspace projects.\n\n"
-        "--- CURRENT WORKSPACE CONTEXT (Canvas & Projects) ---\n"
-        f"{req.workspace_context}\n"
-        "---------------------------------------------------\n\n"
-        "ALWAYS base your answers on the context provided above. If a user asks about their projects, list them from the context. "
-        "Keep your answers helpful, concise, professional, and ALWAYS use Markdown format."
-    )
+    system_prompt = get_chat_prompt(req.workspace_context)
     
     groq_messages = [{"role": "system", "content": system_prompt}]
     for msg in req.messages:
         groq_messages.append({"role": msg.role, "content": msg.content})
 
-    try:
-        chat_completion = await client.chat.completions.create(
-            messages=groq_messages,
-            model="llama-3.3-70b-versatile",
-            temperature=0.7,
-            max_tokens=1024,
-        )
-        return {"reply": chat_completion.choices[0].message.content}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI Chat Error: {str(e)}")
+    async def event_generator():
+        try:
+            stream = await client.chat.completions.create(
+                messages=groq_messages,
+                model="openai/gpt-oss-120b",
+                temperature=0.7,
+                max_tokens=1024,
+                stream=True
+            )
+            async for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+        except Exception as e:
+            yield f"\n\n[AI Error: {str(e)}]"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

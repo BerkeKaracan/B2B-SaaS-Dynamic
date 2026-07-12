@@ -15,6 +15,22 @@ export interface Connection {
   toBlock: string;
 }
 
+const getEstimatedHeight = (type: string) => {
+  if (type === 'form') return 350;
+  if (type === 'asset_stream') return 300;
+  if (type === 'container') return 200;
+  if (type === 'text') return 100;
+  return 100;
+};
+
+const getSpacing = (type: string) => {
+  if (type === 'form') return 400;
+  if (type === 'asset_stream') return 350;
+  if (type === 'container') return 250;
+  if (type === 'text') return 120;
+  return 140;
+};
+
 interface CanvasState {
   recordId: string | null;
   pages: PageWithSettings[];
@@ -151,14 +167,62 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       pages: state.pages.map((p) => {
         if (p.id !== pageId) return p;
 
-        const blocksWithIds = newBlocks.map((b) => ({
-          ...b,
-          id: crypto.randomUUID(),
-        })) as BlockContent[];
+        const isAutoLayout = !['whiteboard', 'mindmap', 'kanban'].includes(
+          p.type
+        );
+        let currentY = 80;
+
+        if (isAutoLayout && p.blocks.length > 0) {
+          currentY =
+            Math.max(
+              ...p.blocks.map(
+                (b) => (b.y || 0) + (b.height || getEstimatedHeight(b.type))
+              )
+            ) + 80;
+        }
+
+        const blocksWithIds = newBlocks.map((b) => {
+          if (isAutoLayout) {
+            const positionedBlock = {
+              ...b,
+              id: crypto.randomUUID(),
+              x: 40,
+              y: currentY,
+            } as BlockContent;
+            currentY += getSpacing(b.type);
+            return positionedBlock;
+          } else {
+            return {
+              ...b,
+              id: crypto.randomUUID(),
+            } as BlockContent;
+          }
+        });
+
+        const combinedBlocks = [...p.blocks, ...blocksWithIds];
+        let newHeight = p.height || 800;
+
+        if (isAutoLayout) {
+          if (currentY + 250 > newHeight) {
+            newHeight = currentY + 250;
+          }
+        } else {
+          if (combinedBlocks.length > 0) {
+            const maxBottom = Math.max(
+              ...combinedBlocks.map(
+                (b) => (b.y || 0) + (b.height || getEstimatedHeight(b.type))
+              )
+            );
+            if (maxBottom + 250 > newHeight) {
+              newHeight = maxBottom + 250;
+            }
+          }
+        }
 
         return {
           ...p,
-          blocks: [...p.blocks, ...blocksWithIds],
+          height: newHeight,
+          blocks: combinedBlocks,
         };
       }),
     }));
@@ -169,31 +233,58 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((state) => {
       const pageId = crypto.randomUUID();
 
+      const isAutoLayout = !['whiteboard', 'mindmap', 'kanban'].includes(
+        pageData.type || ''
+      );
+
       let finalHeight = pageData.height || 800;
+      let processedBlocks: BlockContent[] = [];
 
       if (pageData.blocks && pageData.blocks.length > 0) {
-        const maxBottom = Math.max(
-          ...pageData.blocks.map((b) => (b.y || 0) + (b.height || 120))
-        );
-        if (maxBottom + 100 > finalHeight) {
-          finalHeight = maxBottom + 100;
+        if (isAutoLayout) {
+          let currentY = 80;
+          processedBlocks = pageData.blocks.map((b) => {
+            const positionedBlock = {
+              ...b,
+              id: crypto.randomUUID(),
+              x: 40,
+              y: currentY,
+            } as BlockContent;
+            currentY += getSpacing(b.type);
+            return positionedBlock;
+          });
+
+          if (currentY + 250 > finalHeight) {
+            finalHeight = currentY + 250;
+          }
+        } else {
+          processedBlocks = pageData.blocks.map((b) => ({
+            ...b,
+            id: crypto.randomUUID(),
+          })) as BlockContent[];
+
+          const maxBottom = Math.max(
+            ...processedBlocks.map((b) => {
+              return (b.y || 0) + (b.height || getEstimatedHeight(b.type));
+            })
+          );
+          if (maxBottom + 250 > finalHeight) {
+            finalHeight = maxBottom + 250;
+          }
         }
       }
 
       const newPage: PageWithSettings = {
         id: pageId,
-        type: pageData.type || 'empty',
+        type: isAutoLayout ? 'empty' : (pageData.type as PageContent['type']),
         title: pageData.title || 'AI Generated Workspace',
         x: pageData.x || 100,
         y: pageData.y || 100,
         width: pageData.width || 1000,
         height: finalHeight,
-        blocks: (pageData.blocks || []).map((b) => ({
-          ...b,
-          id: crypto.randomUUID(),
-        })) as BlockContent[],
+        blocks: processedBlocks,
         settings: {
-          backgroundColor: pageData.type === 'empty' ? '#ffffff' : '#f4f4f5',
+          backgroundColor: isAutoLayout ? '#ffffff' : '#f4f4f5',
           ...(pageData.metadata || {}),
         },
       };
@@ -545,11 +636,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
                 isMultiDrag && state.selectedBlocks.includes(b.id);
 
               if (isTargetBlock || isSelectedBlock) {
-                return {
-                  ...b,
-                  x: b.x + dx,
-                  y: b.y + dy,
-                };
+                return { ...b, x: b.x + dx, y: b.y + dy };
               }
               return b;
             }),

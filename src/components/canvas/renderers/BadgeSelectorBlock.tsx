@@ -1,7 +1,7 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { BlockContent } from "@/types/record";
-import * as Popover from "@radix-ui/react-popover";
+'use client';
+import React, { useState, useEffect } from 'react';
+import { BlockContent } from '@/types/record';
+import * as Popover from '@radix-ui/react-popover';
 import {
   Settings2,
   X,
@@ -11,7 +11,7 @@ import {
   List,
   Plus,
   Check,
-} from "lucide-react";
+} from 'lucide-react';
 
 interface BadgeSelectorBlockProps {
   block: BlockContent;
@@ -22,13 +22,13 @@ interface BadgeSelectorBlockProps {
 
 const getBadgeStyles = (str: string) => {
   const styles = [
-    "bg-zinc-100 text-zinc-700 border-zinc-200 hover:bg-zinc-200/80 ring-zinc-500/20",
-    "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200/80 ring-blue-500/20",
-    "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200/80 ring-emerald-500/20",
-    "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200/80 ring-amber-500/20",
-    "bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-200/80 ring-rose-500/20",
-    "bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200/80 ring-purple-500/20",
-    "bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200/80 ring-indigo-500/20",
+    'bg-zinc-100 text-zinc-700 border-zinc-200 hover:bg-zinc-200/80 ring-zinc-500/20',
+    'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200/80 ring-blue-500/20',
+    'bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200/80 ring-emerald-500/20',
+    'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200/80 ring-amber-500/20',
+    'bg-rose-100 text-rose-700 border-rose-200 hover:bg-rose-200/80 ring-rose-500/20',
+    'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200/80 ring-purple-500/20',
+    'bg-indigo-100 text-indigo-700 border-indigo-200 hover:bg-indigo-200/80 ring-indigo-500/20',
   ];
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -50,15 +50,25 @@ export default function BadgeSelectorBlock({
     if (!isActive) setIsSettingsOpen(false);
   }, [isActive]);
 
-  const label = (block.settings?.label as string) ?? "Status";
-  const jsonKey = (block.settings?.jsonKey as string) ?? "status_key";
-  const optionsString =
-    (block.settings?.options as string) ?? "To Do, In Progress, Done, Blocked";
-  const options = optionsString
-    .split(",")
-    .map((opt) => opt.trim())
-    .filter(Boolean);
-  const currentValue = (block.value as string) || "";
+  const label = (block.settings?.label as string) ?? 'Status';
+  const jsonKey = (block.settings?.jsonKey as string) ?? 'status_key';
+
+  let options: string[] = [];
+  const rawOptions = block.settings?.options;
+
+  if (Array.isArray(rawOptions)) {
+    options = rawOptions.map((opt) => String(opt).trim()).filter(Boolean);
+  } else if (typeof rawOptions === 'string' && rawOptions.trim() !== '') {
+    options = rawOptions
+      .split(',')
+      .map((opt) => opt.trim())
+      .filter(Boolean);
+  } else {
+    options = ['To Do', 'In Progress', 'Done', 'Blocked'];
+  }
+
+  const optionsString = options.join(', ');
+  const currentValue = (block.value as string) || '';
 
   return (
     <div className="relative w-full h-full flex flex-col justify-center">
@@ -70,8 +80,8 @@ export default function BadgeSelectorBlock({
             setIsSettingsOpen(!isSettingsOpen);
           }}
           className={`absolute -right-2.5 -top-4 z-20 flex items-center justify-center w-7 h-7 bg-white border border-zinc-200/80 rounded-full shadow-sm hover:bg-zinc-50 transition-all duration-200 ${
-            isActive ? "opacity-100" : "opacity-0 pointer-events-none"
-          } ${isSettingsOpen ? "text-indigo-600 border-indigo-200 ring-2 ring-indigo-500/10" : "text-zinc-400"}`}
+            isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          } ${isSettingsOpen ? 'text-indigo-600 border-indigo-200 ring-2 ring-indigo-500/10' : 'text-zinc-400'}`}
           title="Badge Settings"
         >
           <Settings2 className="w-3.5 h-3.5" />
@@ -158,8 +168,8 @@ export default function BadgeSelectorBlock({
               className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-full text-xs font-bold transition-all outline-none ${
                 currentValue
                   ? getBadgeStyles(currentValue)
-                  : "bg-zinc-50 border-zinc-200/80 text-zinc-500 hover:bg-zinc-100 border-dashed"
-              } ${isActive ? "ring-4" : ""}`}
+                  : 'bg-zinc-50 border-zinc-200/80 text-zinc-500 hover:bg-zinc-100 border-dashed'
+              } ${isActive ? 'ring-4' : ''}`}
             >
               {currentValue ? (
                 <>
@@ -192,7 +202,7 @@ export default function BadgeSelectorBlock({
                         key={idx}
                         onClick={() => onUpdate(opt)}
                         className={`flex items-center justify-between w-full text-left px-2 py-1.5 text-xs font-bold rounded-xl transition-colors outline-none ${
-                          isSelected ? "bg-zinc-100" : "hover:bg-zinc-50"
+                          isSelected ? 'bg-zinc-100' : 'hover:bg-zinc-50'
                         }`}
                       >
                         <div

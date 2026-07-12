@@ -56,7 +56,7 @@ export default function AiChatbot() {
       });
       context += '\n';
     });
-    return context;
+    return context.substring(0, 3000);
   };
 
   const handleGrantAccess = async () => {
@@ -145,27 +145,37 @@ export default function AiChatbot() {
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setMessages((prev) => [
-          ...prev,
-          { role: 'assistant', content: data.reply },
-        ]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'assistant',
-            content: '⚠️ Sorry, I encountered a server error.',
-          },
-        ]);
+      if (!res.ok) throw new Error('API Error');
+      if (!res.body) throw new Error('No body returned');
+
+      setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+      setIsLoading(false);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let aiText = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          aiText += chunk;
+          setMessages((prev) => {
+            const newMsgs = [...prev];
+            newMsgs[newMsgs.length - 1].content = aiText;
+            return newMsgs;
+          });
+        }
       }
     } catch (e) {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: '⚠️ Connection failed.' },
+        {
+          role: 'assistant',
+          content: '⚠️ Connection error occurred. Please try again.',
+        },
       ]);
-    } finally {
       setIsLoading(false);
     }
   };
