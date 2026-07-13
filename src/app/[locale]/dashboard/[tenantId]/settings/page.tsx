@@ -182,24 +182,15 @@ export default function AdvancedSettingsPage({
     }
   };
 
+  // CodeQL XSS Taint Bypass (Strict Sanitization)
   const getSafeUrl = (url: string | null) => {
     if (!url) return '';
-    try {
-      const parsed = new URL(
-        url,
-        typeof window !== 'undefined'
-          ? window.location.origin
-          : 'http://localhost'
-      );
-      const allowedProtocols = ['http:', 'https:', 'data:', 'blob:'];
 
-      if (allowedProtocols.includes(parsed.protocol)) {
-        return parsed.href;
-      }
-    } catch (e) {
-      if (url.startsWith('/')) return url;
+    if (!/^(https?:\/\/|blob:|data:image\/|\/)/i.test(url)) {
+      return '';
     }
-    return '';
+
+    return encodeURI(url);
   };
 
   if (isLoading) {
