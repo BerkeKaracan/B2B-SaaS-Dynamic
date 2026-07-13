@@ -87,11 +87,11 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.get("/")
 async def root():
-    return {"message": "SaaS Engine API is running"}
+    return {"status": "alive", "message": "SaaS Engine API is running"}
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "message": "Healthy"}
+    return {"status": "healthy", "service": "SaaS Engine API"}
 
 app.include_router(records.router)
 app.include_router(auth.router)
