@@ -184,13 +184,20 @@ export default function AdvancedSettingsPage({
 
   const getSafeUrl = (url: string | null) => {
     if (!url) return '';
-    if (
-      url.startsWith('http://') ||
-      url.startsWith('https://') ||
-      url.startsWith('data:') ||
-      url.startsWith('blob:')
-    ) {
-      return url;
+    try {
+      const parsed = new URL(
+        url,
+        typeof window !== 'undefined'
+          ? window.location.origin
+          : 'http://localhost'
+      );
+      const allowedProtocols = ['http:', 'https:', 'data:', 'blob:'];
+
+      if (allowedProtocols.includes(parsed.protocol)) {
+        return parsed.href;
+      }
+    } catch (e) {
+      if (url.startsWith('/')) return url;
     }
     return '';
   };
