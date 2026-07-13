@@ -2,19 +2,19 @@ name: Project CI Pipeline
 
 on:
   push:
-    branches: ["main", "master"]
+    branches: ['main', 'master']
   pull_request:
-    branches: ["main", "master"]
+    branches: ['main', 'master']
 
 jobs:
   frontend-ci:
     name: Frontend Build
     runs-on: ubuntu-latest
     env:
-      NEXT_PUBLIC_SUPABASE_URL: "https://dummy12345.supabase.co"
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-anon-key-for-ci-build"
-      RESEND_API_KEY: "re_dummy1234567890"
-      SENTRY_AUTH_TOKEN: "dummy-sentry-token-for-ci"
+      NEXT_PUBLIC_SUPABASE_URL: 'https://dummy12345.supabase.co'
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'dummy-anon-key-for-ci-build'
+      RESEND_API_KEY: 're_dummy1234567890'
+      SENTRY_AUTH_TOKEN: 'dummy-sentry-token-for-ci'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,8 +22,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -38,12 +38,12 @@ jobs:
     name: Backend Test Suite
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: "sqlite:///./test.db"
-      SUPABASE_URL: "https://dummy12345.supabase.co"
-      SUPABASE_KEY: "dummy-service-key-for-ci"
-      SUPABASE_SERVICE_ROLE_KEY: "dummy-service-role-key-for-ci"
-      REDIS_URL: "redis://localhost:6379"
-      PYTHONPATH: "."
+      DATABASE_URL: 'sqlite:///./test.db'
+      SUPABASE_URL: 'https://dummy12345.supabase.co'
+      SUPABASE_KEY: 'dummy-service-key-for-ci'
+      SUPABASE_SERVICE_ROLE_KEY: 'dummy-service-role-key-for-ci'
+      REDIS_URL: 'redis://localhost:6379'
+      PYTHONPATH: '.'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -51,8 +51,8 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-          cache: "pip"
+          python-version: '3.12'
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
@@ -62,7 +62,7 @@ jobs:
       - name: Run backend tests
         run: |
           cd backend
-          pytest
+          python -m pytest
 
   e2e-tests:
     name: End-to-End Tests (Playwright)
@@ -74,8 +74,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
