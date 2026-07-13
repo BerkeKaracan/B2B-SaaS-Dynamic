@@ -85,6 +85,14 @@ app.add_middleware(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+@app.get("/")
+async def root():
+    return {"message": "SaaS Engine API is running"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok", "message": "Healthy"}
+
 app.include_router(records.router)
 app.include_router(auth.router)
 app.include_router(tenants.router)
