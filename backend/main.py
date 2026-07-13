@@ -32,19 +32,19 @@ app = FastAPI(
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("saas_engine")
 
-# --- MONITORING MIDDLEWARE ---
+# --- MONITORING & SECURITY MIDDLEWARE ---
 @app.middleware("http")
-async def monitor_requests(request: Request, call_next):
+async def monitor_and_secure_requests(request: Request, call_next):
     start_time = time.time()
     response = await call_next(request)
     process_time = time.time() - start_time
     
     log_data = {
         "method": request.method,
-        "path": request.url.path,
-        "status": response.status_code,
-        "duration_ms": round(process_time * 1000, 2),
-        "ip": request.client.host if request.client else "unknown"
+        "url": str(request.url),
+        "process_time": f"{process_time:.4f}s",
+        "status_code": response.status_code,
+        "client_ip": request.client.host if request.client else "unknown"
     }
     
     if request.url.path.startswith("/api/"):
@@ -52,7 +52,17 @@ async def monitor_requests(request: Request, call_next):
             logger.error(f"API Error: {log_data}")
         else:
             logger.info(f"API Success: {log_data}")
-            
+
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: https: wss:"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    
+    if "server" in response.headers:
+        del response.headers["server"]
+                
     return response
 
 origins = [
@@ -82,14 +92,6 @@ app.include_router(public.router)
 app.include_router(notifications.router)
 app.include_router(ai.router)
 app.include_router(public_ai.router)
-app.include_router(tasks.router)
 app.include_router(github.router)
 app.include_router(chat.router)
-
-@app.get("/", tags=["System"])
-async def root() -> dict[str, str]:
-    return {"status": "alive", "message": "SaaS Engine API is running"}
-
-@app.get("/health", tags=["System"])
-async def health_check() -> dict[str, str]:
-    return {"status": "healthy", "service": "SaaS Engine API"}
+app.include_router(tasks.router)
