@@ -64,18 +64,34 @@ export default function LandingChatbot() {
 
   const parseMarkdown = (text: string) => {
     if (!text) return null;
+    return text.split('\n').map((line, i) => {
+      const isListItem = line.startsWith('- ');
+      const content = isListItem ? line.slice(2) : line;
 
-    let parsed = text
-      .replace(
-        /\*\*(.*?)\*\*/g,
-        '<strong class="font-bold text-indigo-950">$1</strong>'
-      )
-      .replace(/\n/g, '<br class="my-2" />');
-    parsed = parsed.replace(/^- (.*)$/gm, '<li class="ml-4 list-disc">$1</li>');
+      const parts = content.split(/\*\*(.*?)\*\*/g);
+      const renderedContent = parts.map((part, j) =>
+        j % 2 === 1 ? (
+          <strong key={j} className="font-bold text-indigo-950">
+            {part}
+          </strong>
+        ) : (
+          part
+        )
+      );
 
-    return (
-      <div className="space-y-2" dangerouslySetInnerHTML={{ __html: parsed }} />
-    );
+      if (isListItem) {
+        return (
+          <li key={i} className="ml-4 list-disc">
+            {renderedContent}
+          </li>
+        );
+      }
+      return (
+        <p key={i} className="my-2">
+          {renderedContent}
+        </p>
+      );
+    });
   };
 
   return (

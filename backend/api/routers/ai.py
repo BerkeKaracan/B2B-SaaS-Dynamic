@@ -77,8 +77,8 @@ async def magic_wand(req: MagicWandRequest, user = Depends(verify_user)):
         )
         return {"result": chat_completion.choices[0].message.content}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI Engine Error: {str(e)}")
-
+        print(f"Magic Wand Error: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred during the AI request.")
 
 @router.post("/generate-canvas")
 async def generate_canvas(req: GenerateCanvasRequest, user = Depends(verify_user)):
@@ -138,8 +138,8 @@ async def generate_canvas(req: GenerateCanvasRequest, user = Depends(verify_user
         return parsed_json
         
     except Exception as e:
-        print(f"--- AI FATAL ERROR DETAYI ---\n{str(e)}\n-------------------------")
-        raise HTTPException(status_code=500, detail=f"AI Canvas Error: {str(e)}")
+        print(f"--- AI FATAL ERROR ---\n{str(e)}\n-------------------------")
+        raise HTTPException(status_code=500, detail="An internal error occurred while generating the canvas.")
 
 
 @router.post("/chat")
@@ -169,6 +169,7 @@ async def chat_with_canvas(req: ChatRequest, user = Depends(verify_user)):
                 if chunk.choices and chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content
         except Exception as e:
-            yield f"\n\n[AI Error: {str(e)}]"
+            print(f"Chat Error: {e}")
+            yield f"\n\n[AI Error: An internal error occurred. Please try again later.]"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")

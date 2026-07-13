@@ -182,6 +182,19 @@ export default function AdvancedSettingsPage({
     }
   };
 
+  const getSafeUrl = (url: string | null) => {
+    if (!url) return '';
+    if (
+      url.startsWith('http://') ||
+      url.startsWith('https://') ||
+      url.startsWith('data:') ||
+      url.startsWith('blob:')
+    ) {
+      return url;
+    }
+    return '';
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 p-8 md:p-12 max-w-5xl mx-auto w-full animate-pulse">
@@ -232,7 +245,7 @@ export default function AdvancedSettingsPage({
                 {previewUrl || logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={previewUrl || logoUrl}
+                    src={getSafeUrl(previewUrl || logoUrl)}
                     alt="Workspace Logo"
                     className="w-full h-full object-cover"
                   />
