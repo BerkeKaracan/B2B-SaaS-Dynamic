@@ -2,6 +2,14 @@ import { create } from 'zustand';
 import { BlockContent, BlockType, PageContent } from '@/types/record';
 import { WORKSPACE_MODULE } from '@/lib/workspace';
 import { fetchAPI } from '@/services/api';
+import {
+  BLOCK_STACK_GAP,
+  BLOCK_STACK_ORIGIN_X,
+  BLOCK_STACK_ORIGIN_Y,
+  BLOCK_STACK_PAGE_PAD,
+  getBlockDefaultWidth,
+  resolveBlockHeight,
+} from '@/lib/blockConfig';
 
 export type PageWithSettings = PageContent & {
   settings?: Record<string, unknown>;
@@ -15,20 +23,34 @@ export interface Connection {
   toBlock: string;
 }
 
-const getEstimatedHeight = (type: string) => {
-  if (type === 'form') return 350;
-  if (type === 'asset_stream') return 300;
-  if (type === 'container') return 200;
-  if (type === 'text') return 100;
-  return 100;
-};
+const getEstimatedHeight = (type: string, height?: number | null) =>
+  resolveBlockHeight(type, height);
 
-const getSpacing = (type: string) => {
-  if (type === 'form') return 400;
-  if (type === 'asset_stream') return 350;
-  if (type === 'container') return 250;
-  if (type === 'text') return 120;
-  return 140;
+/** Pack AI blocks into a tight vertical stack; ignore AI x/y/height noise. */
+const layoutBlocksVertically = (
+  blocks: Partial<BlockContent>[],
+  startY: number
+): { positioned: BlockContent[]; nextY: number } => {
+  let currentY = startY;
+  const positioned = blocks.map((b) => {
+    const type = (b.type || 'form') as BlockType;
+    const height = getEstimatedHeight(type, b.height);
+    const width = b.width && b.width > 0 ? b.width : getBlockDefaultWidth(type);
+    const positionedBlock = {
+      ...b,
+      id: crypto.randomUUID(),
+      type,
+      value: b.value ?? '',
+      settings: b.settings || {},
+      x: BLOCK_STACK_ORIGIN_X,
+      y: currentY,
+      width,
+      height,
+    } as BlockContent;
+    currentY += height + BLOCK_STACK_GAP;
+    return positionedBlock;
+  });
+  return { positioned, nextY: currentY };
 };
 
 interface CanvasState {
@@ -351,52 +373,58 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         const isAutoLayout = !['whiteboard', 'mindmap', 'kanban'].includes(
           p.type
         );
-        let currentY = 80;
 
-        if (isAutoLayout && p.blocks.length > 0) {
-          currentY =
-            Math.max(
-              ...p.blocks.map(
-                (b) => (b.y || 0) + (b.height || getEstimatedHeight(b.type))
-              )
-            ) + 80;
-        }
+        let blocksWithIds: BlockContent[];
+        let stackBottom = 0;
 
-        const blocksWithIds = newBlocks.map((b) => {
-          if (isAutoLayout) {
-            const positionedBlock = {
-              ...b,
-              id: crypto.randomUUID(),
-              x: 40,
-              y: currentY,
-            } as BlockContent;
-            currentY += getSpacing(b.type);
-            return positionedBlock;
-          } else {
-            return {
-              ...b,
-              id: crypto.randomUUID(),
-            } as BlockContent;
+        if (isAutoLayout) {
+          let startY = BLOCK_STACK_ORIGIN_Y;
+          if (p.blocks.length > 0) {
+            startY =
+              Math.max(
+                ...p.blocks.map(
+                  (b) =>
+                    (b.y || 0) + getEstimatedHeight(b.type, b.height)
+                )
+              ) + BLOCK_STACK_GAP;
           }
-        });
+          const laidOut = layoutBlocksVertically(newBlocks, startY);
+          blocksWithIds = laidOut.positioned;
+          stackBottom = laidOut.nextY;
+        } else {
+          blocksWithIds = newBlocks.map(
+            (b) =>
+              ({
+                ...b,
+                id: crypto.randomUUID(),
+              }) as BlockContent
+          );
+          stackBottom =
+            blocksWithIds.length > 0
+              ? Math.max(
+                  ...blocksWithIds.map(
+                    (b) =>
+                      (b.y || 0) + getEstimatedHeight(b.type, b.height)
+                  )
+                )
+              : 0;
+        }
 
         const combinedBlocks = [...p.blocks, ...blocksWithIds];
         let newHeight = p.height || 800;
 
         if (isAutoLayout) {
-          if (currentY + 250 > newHeight) {
-            newHeight = currentY + 250;
+          if (stackBottom + BLOCK_STACK_PAGE_PAD > newHeight) {
+            newHeight = stackBottom + BLOCK_STACK_PAGE_PAD;
           }
-        } else {
-          if (combinedBlocks.length > 0) {
-            const maxBottom = Math.max(
-              ...combinedBlocks.map(
-                (b) => (b.y || 0) + (b.height || getEstimatedHeight(b.type))
-              )
-            );
-            if (maxBottom + 250 > newHeight) {
-              newHeight = maxBottom + 250;
-            }
+        } else if (combinedBlocks.length > 0) {
+          const maxBottom = Math.max(
+            ...combinedBlocks.map(
+              (b) => (b.y || 0) + getEstimatedHeight(b.type, b.height)
+            )
+          );
+          if (maxBottom + BLOCK_STACK_PAGE_PAD > newHeight) {
+            newHeight = maxBottom + BLOCK_STACK_PAGE_PAD;
           }
         }
 
@@ -418,26 +446,21 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         pageData.type || ''
       );
 
-      let finalHeight = pageData.height || 800;
+      let finalHeight = 800;
       let processedBlocks: BlockContent[] = [];
 
       if (pageData.blocks && pageData.blocks.length > 0) {
         if (isAutoLayout) {
-          let currentY = 80;
-          processedBlocks = pageData.blocks.map((b) => {
-            const positionedBlock = {
-              ...b,
-              id: crypto.randomUUID(),
-              x: 40,
-              y: currentY,
-            } as BlockContent;
-            currentY += getSpacing(b.type);
-            return positionedBlock;
-          });
-
-          if (currentY + 250 > finalHeight) {
-            finalHeight = currentY + 250;
-          }
+          const laidOut = layoutBlocksVertically(
+            pageData.blocks,
+            BLOCK_STACK_ORIGIN_Y
+          );
+          processedBlocks = laidOut.positioned;
+          // Prefer packed height — AI often returns height: 1000+ with huge empty space.
+          finalHeight = Math.max(
+            480,
+            laidOut.nextY + BLOCK_STACK_PAGE_PAD
+          );
         } else {
           processedBlocks = pageData.blocks.map((b) => ({
             ...b,
@@ -445,14 +468,17 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           })) as BlockContent[];
 
           const maxBottom = Math.max(
-            ...processedBlocks.map((b) => {
-              return (b.y || 0) + (b.height || getEstimatedHeight(b.type));
-            })
+            ...processedBlocks.map(
+              (b) => (b.y || 0) + getEstimatedHeight(b.type, b.height)
+            )
           );
-          if (maxBottom + 250 > finalHeight) {
-            finalHeight = maxBottom + 250;
-          }
+          finalHeight = Math.max(
+            pageData.height || 800,
+            maxBottom + BLOCK_STACK_PAGE_PAD
+          );
         }
+      } else if (!isAutoLayout && pageData.height) {
+        finalHeight = pageData.height;
       }
 
       const newPage: PageWithSettings = {

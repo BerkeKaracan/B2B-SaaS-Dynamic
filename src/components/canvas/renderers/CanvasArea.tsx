@@ -11,6 +11,7 @@ import React, {
 import { useParams } from 'next/navigation';
 import { useCanvasStore, PageWithSettings } from '@/store/useCanvasStore';
 import { BlockContent, BlockType, PageContent } from '@/types/record';
+import { getBlockDefaultHeight } from '@/lib/blockConfig';
 import { ConnectionLayer } from './ConnectionLayer';
 import { LassoLayer } from './LassoLayer';
 import { fetchAPI } from '@/services/api';
@@ -631,7 +632,9 @@ export default function CanvasArea() {
           const blockAbsX = sourcePage.x + block.x;
           const blockAbsY = sourcePage.y + block.y;
           const blockCenterX = blockAbsX + (block.width || 320) / 2;
-          const blockCenterY = blockAbsY + (block.height || 120) / 2;
+          const blockCenterY =
+            blockAbsY +
+            (block.height || getBlockDefaultHeight(block.type)) / 2;
 
           const targetPage = [...state.pages].reverse().find((p) => {
             if (p.id === sourcePage.id) return false;
@@ -1339,7 +1342,7 @@ export default function CanvasArea() {
                 const bx = block.x ?? 20;
                 const by = block.y ?? 20;
                 const bw = block.width ?? 320;
-                const bh = block.height ?? 120;
+                const bh = block.height ?? getBlockDefaultHeight(block.type);
 
                 return (
                   <div

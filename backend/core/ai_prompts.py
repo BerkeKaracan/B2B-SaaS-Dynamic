@@ -137,7 +137,7 @@ CRITICAL TEMPORAL CONTEXT: Today's date is {current_date}. Use this for all time
 
 --- 2. ELITE UX/UI DESIGN PHILOSOPHY ---
 1. INTERNAL LABELS ONLY (CRITICAL): For every 'form', 'checkbox', 'dropdown', 'badge_selector', 'date', OR 'asset_stream' block, you MUST provide its title/question using the `label` property INSIDE its own `settings` object.
-2. ZERO MATH REQUIRED FOR CUSTOM PAGES: If generating a custom layout ("type": "empty"), the system will auto-align all blocks vertically. DO NOT attempt to calculate 'y' coordinates. Set "x": 0 and "y": 0 for ALL blocks in an "empty" page.
+2. ZERO MATH REQUIRED FOR CUSTOM PAGES: If generating a custom layout ("type": "empty"), the system will auto-align all blocks vertically with tight spacing. DO NOT attempt to calculate 'x', 'y', 'width', or 'height'. Omit them or set "x": 0, "y": 0 for ALL blocks in an "empty" page. Never invent large height values.
 3. TEMPLATE MATH: If generating a template (like "whiteboard", "kanban", "mindmap"), you MUST provide realistic 'x' and 'y' coordinates to position elements beautifully across the canvas.
 
 --- 3. PAGE TEMPLATES ---
