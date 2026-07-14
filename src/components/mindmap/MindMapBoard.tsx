@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from 'react';
 import { useTranslations } from 'next-intl';
 import {
   Plus,
@@ -19,14 +25,41 @@ type MindNode = {
   y: number;
   parentId: string | null;
   color?: string;
+  page_id?: string;
 };
 
 export default function MindMapBoard({ projectId }: { projectId: string }) {
-  void projectId;
-
   const t = useTranslations('MindMapBoard');
   const containerRef = useRef<HTMLDivElement>(null);
-  const { metadata, updateMetadata } = useCanvasStore();
+  const metadata = useCanvasStore((s) => s.metadata);
+  const pages = useCanvasStore((s) => s.pages);
+  const updateMetadata = useCanvasStore((s) => s.updateMetadata);
+  const updatePageSettings = useCanvasStore((s) => s.updatePageSettings);
+
+  // Standalone mindmap project → global metadata; frame on the infinite canvas
+  // → that page's own settings (keyed by page.id) so frames stay isolated.
+  const canvasPage = useMemo(
+    () => pages.find((p) => p.id === projectId),
+    [pages, projectId]
+  );
+  const isPageScoped = !!canvasPage;
+  const storedNodes = useMemo(() => {
+    const raw = isPageScoped
+      ? ((canvasPage?.settings || {}) as Record<string, unknown>).mindmapNodes
+      : metadata.mindmapNodes;
+    return (raw as MindNode[] | undefined) || undefined;
+  }, [isPageScoped, canvasPage?.settings, metadata.mindmapNodes]);
+
+  const persistNodes = useCallback(
+    (next: MindNode[]) => {
+      if (isPageScoped) {
+        updatePageSettings(projectId, { mindmapNodes: next });
+      } else {
+        updateMetadata({ mindmapNodes: next });
+      }
+    },
+    [isPageScoped, projectId, updatePageSettings, updateMetadata]
+  );
 
   const [isMounted, setIsMounted] = useState(false);
   const [nodes, setNodes] = useState<MindNode[]>([]);
@@ -34,28 +67,62 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
-    const aiNodes = metadata.mindmapNodes as MindNode[];
+  }, []);
 
-    if (aiNodes && aiNodes.length > 0) {
-      setNodes(aiNodes);
-    } else {
-      setNodes([
-        {
-          id: 'root',
-          text: t('centralIdea'),
-          x: window.innerWidth / 2 - 100,
-          y: window.innerHeight / 2 - 100,
-          parentId: null,
-          color: 'bg-indigo-600',
-        },
-      ]);
+  useEffect(() => {
+    if (!isMounted) return;
+    if (storedNodes && storedNodes.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNodes(storedNodes);
+    }
+  }, [storedNodes, isMounted]);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    if (!storedNodes || storedNodes.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNodes((prev) =>
+        prev.length > 0
+          ? prev
+          : [
+              {
+                id: 'root',
+                text: t('centralIdea'),
+                x: window.innerWidth / 2 - 100,
+                y: window.innerHeight / 2 - 100,
+                parentId: null,
+                color: 'bg-indigo-600',
+              },
+            ]
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isMounted]);
+
+  // Live bridge: AI chat may append nodes while local state already has a root.
+  useEffect(() => {
+    const handleAiNode = (event: Event) => {
+      const detail = (event as CustomEvent<MindNode>).detail;
+      if (!detail?.id || !detail?.text) return;
+      // On the infinite canvas, only the targeted frame reacts.
+      if (isPageScoped && detail.page_id && detail.page_id !== projectId) {
+        return;
+      }
+      setNodes((prev) => {
+        if (prev.some((n) => n.id === detail.id)) return prev;
+        const next = [...prev, detail];
+        persistNodes(next);
+        return next;
+      });
+    };
+    window.addEventListener('onAiMindmapNodeCreated', handleAiNode);
+    return () =>
+      window.removeEventListener('onAiMindmapNodeCreated', handleAiNode);
+  }, [persistNodes, isPageScoped, projectId]);
 
   const saveNodes = (newNodes: MindNode[]) => {
     setNodes(newNodes);
-    updateMetadata({ mindmapNodes: newNodes });
+    persistNodes(newNodes);
   };
 
   const [pan, setPan] = useState({ x: 0, y: 0 });

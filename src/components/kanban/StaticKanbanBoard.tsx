@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -143,10 +149,36 @@ export default function StaticKanbanBoard({
   const params = useParams();
   const tenantId = params?.tenantId as string;
 
-  const { metadata, updateMetadata } = useCanvasStore();
+  const { metadata, updateMetadata, pages, updatePageSettings } =
+    useCanvasStore();
+
+  // A Kanban board can render in two ways:
+  //  1) Standalone template project → data lives in the project's top-level
+  //     record_data (== store `metadata`), and `projectId` is the record id.
+  //  2) A frame inside the infinite canvas → data must live on that page's own
+  //     `settings` (keyed by `page.id`), so multiple Kanban frames stay isolated.
+  const canvasPage = useMemo(
+    () => pages.find((p) => p.id === projectId),
+    [pages, projectId]
+  );
+  const isPageScoped = !!canvasPage;
+  const pageSettings = (canvasPage?.settings || {}) as Record<string, unknown>;
+
+  const persistTasks = useCallback(
+    (next: Task[]) => {
+      if (isPageScoped) {
+        updatePageSettings(projectId, { tasks: next, kanbanTasks: next });
+      } else {
+        updateMetadata({ tasks: next, kanbanTasks: next });
+      }
+    },
+    [isPageScoped, projectId, updatePageSettings, updateMetadata]
+  );
 
   const columns = useMemo(() => {
-    const aiCols = (metadata.kanbanColumns as AIColumnData[]) || [];
+    const aiCols = (isPageScoped
+      ? (pageSettings.kanbanColumns as AIColumnData[])
+      : (metadata.kanbanColumns as AIColumnData[])) || [];
     if (aiCols && aiCols.length > 0) {
       return aiCols.map((c, i) => ({
         id: c.id || c.title || `col-${i}`,
@@ -155,13 +187,15 @@ export default function StaticKanbanBoard({
       }));
     }
     return DEFAULT_COLUMNS;
-  }, [metadata.kanbanColumns]);
+  }, [isPageScoped, pageSettings.kanbanColumns, metadata.kanbanColumns]);
 
   const tasks = useMemo(() => {
-    const rawTasks = (metadata.tasks ||
-      metadata.kanbanTasks ||
-      []) as AITaskData[];
-    return rawTasks.map((t, i) => ({
+    const rawTasks = (
+      isPageScoped
+        ? pageSettings.tasks || pageSettings.kanbanTasks
+        : metadata.tasks || metadata.kanbanTasks
+    ) as AITaskData[] | undefined;
+    return (rawTasks || []).map((t, i) => ({
       // eslint-disable-next-line react-hooks/purity
       id: t.id || `ai-task-${i}-${Date.now()}`,
       title: t.title || t.content || 'Untitled Task',
@@ -176,7 +210,19 @@ export default function StaticKanbanBoard({
       deadline: t.deadline || undefined,
       commitCode: t.commitCode || undefined,
     })) as Task[];
-  }, [metadata.tasks, metadata.kanbanTasks, columns]);
+  }, [
+    isPageScoped,
+    pageSettings.tasks,
+    pageSettings.kanbanTasks,
+    metadata.tasks,
+    metadata.kanbanTasks,
+    columns,
+  ]);
+
+  const tasksRef = useRef<Task[]>(tasks);
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
 
   const collaborators =
     (metadata.collaborators as { email: string; role: string }[]) || [];
@@ -340,9 +386,93 @@ export default function StaticKanbanBoard({
   };
 
   const updateTasks = (newTasks: Task[]) => {
-    updateMetadata({ tasks: newTasks });
+    persistTasks(newTasks);
     syncTasksToBackend(newTasks);
   };
+
+  // Bridge: AiChatbot dispatches `onAiTaskCreated` after a successful tool INSERT.
+  // On infinite canvas, this board's `projectId` prop is the page/frame id, while
+  // AI events carry the parent custom_records id — accept either target.
+  useEffect(() => {
+    const handleAiTaskCreated = (event: Event) => {
+      const customEvent = event as CustomEvent<Record<string, unknown>>;
+      const detail = customEvent.detail;
+      if (!detail) return;
+
+      const eventBoardId =
+        (detail.board_id as string | undefined) ||
+        (detail.page_id as string | undefined);
+      const eventProjectId =
+        (detail.project_id as string | undefined) ||
+        (detail.module_id as string | undefined);
+      const routeProjectId = (params?.projectId as string | undefined) || '';
+      const storeRecordId = useCanvasStore.getState().recordId;
+
+      if (isPageScoped) {
+        // A frame on the infinite canvas only accepts events aimed at its page.
+        // This prevents an AI task from being duplicated across every Kanban frame.
+        if (eventBoardId) {
+          if (eventBoardId !== projectId) return;
+        } else {
+          return;
+        }
+      } else if (eventBoardId) {
+        if (eventBoardId !== projectId) return;
+      } else if (eventProjectId) {
+        const matchesThisBoard = eventProjectId === projectId;
+        const matchesParentProject =
+          eventProjectId === routeProjectId ||
+          (!!storeRecordId && eventProjectId === storeRecordId);
+        if (!matchesThisBoard && !matchesParentProject) return;
+      }
+
+      const rawStatus = String(detail.status || columns[0]?.id || 'TO DO');
+      const normalizedStatus =
+        columns.find(
+          (c) =>
+            c.id === rawStatus ||
+            c.title === rawStatus ||
+            c.id.toUpperCase() === rawStatus.toUpperCase()
+        )?.id ||
+        columns[0]?.id ||
+        rawStatus;
+
+      const priorityValue = String(detail.priority || 'NO PRIORITY');
+      const priority: TaskPriority =
+        priorityValue in PRIORITIES
+          ? (priorityValue as TaskPriority)
+          : 'NO PRIORITY';
+
+      const newTask: Task = {
+        id: String(detail.id || detail.db_id || `ai-${Date.now()}`),
+        title: String(detail.title || 'Untitled Task'),
+        description: String(detail.description || ''),
+        assignee: String(detail.assignee || 'Unassigned'),
+        createdBy: String(detail.createdBy || 'AI Assistant'),
+        updatedBy: String(detail.updatedBy || 'AI Assistant'),
+        priority,
+        status: normalizedStatus,
+        startDate: (detail.startDate as string | undefined) || undefined,
+        deadline: (detail.deadline as string | undefined) || undefined,
+        commitCode: (detail.commitCode as string | undefined) || undefined,
+      };
+
+      const current = tasksRef.current;
+      if (current.some((t) => t.id === newTask.id)) {
+        return;
+      }
+
+      const nextTasks = [...current, newTask];
+      tasksRef.current = nextTasks;
+      // Instant UI update via Zustand — DB write already done by create_task.
+      persistTasks(nextTasks);
+    };
+
+    window.addEventListener('onAiTaskCreated', handleAiTaskCreated);
+    return () => {
+      window.removeEventListener('onAiTaskCreated', handleAiTaskCreated);
+    };
+  }, [projectId, columns, persistTasks, isPageScoped, params?.projectId]);
 
   const handleOpenAddModal = (status: TaskStatus) => {
     setEditingTaskId(null);

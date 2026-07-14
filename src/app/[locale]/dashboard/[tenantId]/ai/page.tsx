@@ -74,15 +74,18 @@ export default function AIPage({
         body: JSON.stringify({
           messages: [...messages, userMessage],
           workspace_context:
-            "You are a highly intelligent, general-purpose B2B SaaS AI assistant. The user is in a dedicated, full-screen AI planning area. Help them brainstorm, create project plans, write content, or answer general questions. Use Markdown extensively for structuring your answers (lists, bold text, headers).",
+            "You are a highly intelligent, general-purpose B2B SaaS AI assistant. The user is in a dedicated, full-screen AI planning area. Help them brainstorm, create project plans, write content, or answer general questions. Use Markdown extensively for structuring your answers (lists, bold text, headers). If they ask to create a task, use the create_task tool.",
+          tenant_id: tenantId,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
+        const assistantText =
+          data.message || data.reply || "Done — how else can I help?";
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: data.reply },
+          { role: "assistant", content: assistantText },
         ]);
       } else {
         setMessages((prev) => [

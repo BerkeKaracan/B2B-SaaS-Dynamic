@@ -121,6 +121,15 @@ interface CanvasState {
     newY: number
   ) => void;
   updateMetadata: (newData: Record<string, unknown>) => void;
+  appendKanbanTask: (task: Record<string, unknown>) => void;
+  appendMindmapNode: (node: Record<string, unknown>) => void;
+  applyNotepadUpdate: (data: {
+    content?: string;
+    title?: string;
+    mode?: string;
+    moduleId?: string;
+  }) => void;
+  appendWhiteboardNote: (note: Record<string, unknown>, moduleId?: string) => void;
 
   addGeneratedBlocks: (
     pageId: string,
@@ -160,6 +169,178 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   updateMetadata: (newData) =>
     set((state) => ({ metadata: { ...state.metadata, ...newData } })),
+
+  appendKanbanTask: (task) =>
+    set((state) => {
+      const existing = (
+        (state.metadata.tasks as Record<string, unknown>[] | undefined) ||
+        (state.metadata.kanbanTasks as Record<string, unknown>[] | undefined) ||
+        []
+      ).slice();
+      const alreadyExists = existing.some(
+        (item) => item && item.id && item.id === task.id
+      );
+      if (alreadyExists) {
+        return state;
+      }
+      const nextTasks = [...existing, task];
+
+      const boardId =
+        (task.board_id as string | undefined) ||
+        (task.page_id as string | undefined);
+      const pages = state.pages.map((p) => {
+        const isTarget =
+          (boardId && p.id === boardId) ||
+          (!boardId && p.type === 'kanban');
+        if (!isTarget) return p;
+        const settings = { ...(p.settings || {}) } as Record<string, unknown>;
+        const pageTasks = (
+          (settings.tasks as Record<string, unknown>[] | undefined) ||
+          (settings.kanbanTasks as Record<string, unknown>[] | undefined) ||
+          []
+        ).slice();
+        if (!pageTasks.some((t) => t?.id === task.id)) pageTasks.push(task);
+        settings.tasks = pageTasks;
+        settings.kanbanTasks = pageTasks;
+        return { ...p, settings };
+      });
+
+      return {
+        pages,
+        metadata: {
+          ...state.metadata,
+          tasks: nextTasks,
+          kanbanTasks: nextTasks,
+        },
+      };
+    }),
+
+  appendMindmapNode: (node) =>
+    set((state) => {
+      const existing = (
+        (state.metadata.mindmapNodes as Record<string, unknown>[] | undefined) ||
+        []
+      ).slice();
+      if (existing.some((n) => n?.id === node.id)) return state;
+      const nextNodes = [...existing, node];
+      const pageId = node.page_id as string | undefined;
+      const pages = state.pages.map((p) => {
+        const isTarget =
+          (pageId && p.id === pageId) || (!pageId && p.type === 'mindmap');
+        if (!isTarget) return p;
+        const settings = { ...(p.settings || {}) } as Record<string, unknown>;
+        const pageNodes = (
+          (settings.mindmapNodes as Record<string, unknown>[] | undefined) ||
+          []
+        ).slice();
+        if (!pageNodes.some((n) => n?.id === node.id)) pageNodes.push(node);
+        settings.mindmapNodes = pageNodes;
+        return { ...p, settings };
+      });
+      return {
+        pages,
+        metadata: {
+          ...state.metadata,
+          mindmapNodes: nextNodes,
+        },
+      };
+    }),
+
+  applyNotepadUpdate: ({ content, title, mode, moduleId }) =>
+    set((state) => {
+      const targetId = moduleId || state.activePageId || state.recordId;
+      let matched = false;
+      const pages = state.pages.map((p) => {
+        const isExact = targetId ? p.id === targetId : false;
+        const isTypeMatch =
+          !matched &&
+          !state.pages.some((x) => x.id === targetId) &&
+          (p.type === 'notes' || p.type === 'document');
+        const isFallback =
+          !matched &&
+          !state.pages.some((x) => x.id === targetId) &&
+          !state.pages.some((x) =>
+            ['notes', 'document'].includes(x.type)
+          ) &&
+          p === state.pages[0];
+
+        if (!(isExact || isTypeMatch || isFallback)) return p;
+        matched = true;
+        const settings = { ...(p.settings || {}) } as Record<string, unknown>;
+        const existing = String(
+          settings.notepadContent || settings.documentContent || ''
+        );
+        if (content != null) {
+          settings.notepadContent =
+            mode === 'append'
+              ? `${existing.trim()}\n\n${content}`.trim()
+              : content;
+        }
+        if (title) settings.notepadTitle = title;
+        return {
+          ...p,
+          title: title || p.title,
+          settings,
+        };
+      });
+
+      const metadata = { ...state.metadata };
+      if (content != null) {
+        const existing = String(metadata.notepadContent || '');
+        metadata.notepadContent =
+          mode === 'append'
+            ? `${existing.trim()}\n\n${content}`.trim()
+            : content;
+      }
+      if (title) metadata.notepadTitle = title;
+
+      return { pages, metadata };
+    }),
+
+  appendWhiteboardNote: (note, moduleId) =>
+    set((state) => {
+      const targetId = moduleId || state.activePageId || state.recordId;
+      const hasExactPage = state.pages.some((x) => x.id === targetId);
+      const normalized: Record<string, unknown> = {
+        ...note,
+        content:
+          (note.content as string | undefined) ||
+          (note.text as string | undefined) ||
+          '',
+        text:
+          (note.text as string | undefined) ||
+          (note.content as string | undefined) ||
+          '',
+      };
+
+      const pages = state.pages.map((p) => {
+        const isExact = hasExactPage && p.id === targetId;
+        const isTypeMatch = !hasExactPage && p.type === 'whiteboard';
+        const isFallback =
+          !hasExactPage &&
+          !state.pages.some((x) => x.type === 'whiteboard') &&
+          p === state.pages[0];
+        if (!(isExact || isTypeMatch || isFallback)) return p;
+
+        const settings = { ...(p.settings || {}) } as Record<string, unknown>;
+        const texts = [
+          ...((settings.whiteboardTexts as Record<string, unknown>[]) || []),
+        ];
+        if (!texts.some((t) => t?.id === normalized.id)) texts.push(normalized);
+        settings.whiteboardTexts = texts;
+        return { ...p, settings };
+      });
+
+      const metadata = { ...state.metadata };
+      const metaTexts = [
+        ...((metadata.whiteboardTexts as Record<string, unknown>[]) || []),
+      ];
+      if (!metaTexts.some((t) => t?.id === normalized.id))
+        metaTexts.push(normalized);
+      metadata.whiteboardTexts = metaTexts;
+
+      return { pages, metadata };
+    }),
 
   addGeneratedBlocks: (pageId, newBlocks) => {
     get().saveHistory();

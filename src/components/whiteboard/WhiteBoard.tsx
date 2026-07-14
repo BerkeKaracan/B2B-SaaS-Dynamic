@@ -53,12 +53,18 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('WhiteboardBoard');
 
   const pages = useCanvasStore((state) => state.pages);
+  const metadata = useCanvasStore((state) => state.metadata);
   const updatePageSettings = useCanvasStore(
     (state) => state.updatePageSettings
   );
+  const updateMetadata = useCanvasStore((state) => state.updateMetadata);
 
-  const currentPage = pages.find((p) => p.id === projectId);
+  const currentPage =
+    pages.find((p) => p.id === projectId) ||
+    pages.find((p) => p.type === 'whiteboard') ||
+    pages[0];
   const settings = currentPage?.settings || {};
+  const pageKey = currentPage?.id || projectId;
 
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [texts, setTexts] = useState<FloatingText[]>([]);
@@ -86,13 +92,35 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
     if (settings.whiteboardStrokes)
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setStrokes(settings.whiteboardStrokes as Stroke[]);
-    if (settings.whiteboardTexts)
-      setTexts(settings.whiteboardTexts as FloatingText[]);
-    if (settings.whiteboardTitle) setTitle(settings.whiteboardTitle as string);
+
+    const rawTexts =
+      (settings.whiteboardTexts as Array<Record<string, unknown>> | undefined) ||
+      (metadata.whiteboardTexts as Array<Record<string, unknown>> | undefined) ||
+      [];
+    if (rawTexts.length > 0) {
+      setTexts(
+        rawTexts.map((item) => ({
+          id: String(item.id || crypto.randomUUID()),
+          x: Number(item.x || 0),
+          y: Number(item.y || 0),
+          content: String(item.content || item.text || ''),
+          color: String(item.color || '#fef3c7'),
+          size: Number(item.size || 18),
+          font: String(item.font || 'sans-serif'),
+        }))
+      );
+    }
+    if (settings.whiteboardTitle || metadata.whiteboardTitle) {
+      setTitle(
+        String(settings.whiteboardTitle || metadata.whiteboardTitle || '')
+      );
+    }
   }, [
     settings.whiteboardStrokes,
     settings.whiteboardTexts,
     settings.whiteboardTitle,
+    metadata.whiteboardTexts,
+    metadata.whiteboardTitle,
   ]);
 
   useEffect(() => {
@@ -101,18 +129,28 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
 
   const saveStrokes = (newStrokes: Stroke[]) => {
     setStrokes(newStrokes);
-    updatePageSettings(projectId, { whiteboardStrokes: newStrokes });
+    if (currentPage) {
+      updatePageSettings(pageKey, { whiteboardStrokes: newStrokes });
+    }
+    updateMetadata({ whiteboardStrokes: newStrokes });
   };
 
   const saveTexts = (newTexts: FloatingText[]) => {
     setTexts(newTexts);
-    updatePageSettings(projectId, { whiteboardTexts: newTexts });
+    if (currentPage) {
+      updatePageSettings(pageKey, { whiteboardTexts: newTexts });
+    }
+    updateMetadata({ whiteboardTexts: newTexts });
   };
 
   const saveTitle = (newTitle: string) => {
     setTitle(newTitle);
-    updatePageSettings(projectId, { whiteboardTitle: newTitle });
+    if (currentPage) {
+      updatePageSettings(pageKey, { whiteboardTitle: newTitle });
+    }
+    updateMetadata({ whiteboardTitle: newTitle });
   };
+
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

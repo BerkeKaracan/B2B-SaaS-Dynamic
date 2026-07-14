@@ -20,17 +20,28 @@ interface CustomStyle extends React.CSSProperties {
 export default function NotepadBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('NotepadBoard');
 
-  const { updatePageTitle, pages, updatePageSettings } = useCanvasStore();
+  const { updatePageTitle, pages, updatePageSettings, metadata, updateMetadata } =
+    useCanvasStore();
 
-  const currentPage = pages.find((p) => p.id === projectId);
+  const currentPage =
+    pages.find((p) => p.id === projectId) ||
+    pages.find((p) => ['notes', 'document'].includes(p.type)) ||
+    pages[0];
 
   const settings = currentPage?.settings || {};
+  const pageKey = currentPage?.id || projectId;
 
   const [title, setTitle] = useState(
-    (settings.notepadTitle as string) || currentPage?.title || ''
+    (settings.notepadTitle as string) ||
+      (metadata.notepadTitle as string) ||
+      currentPage?.title ||
+      ''
   );
   const [content, setContent] = useState(
-    (settings.notepadContent as string) || ''
+    (settings.notepadContent as string) ||
+      (settings.documentContent as string) ||
+      (metadata.notepadContent as string) ||
+      ''
   );
   const [isClient, setIsClient] = useState(false);
 
@@ -40,27 +51,48 @@ export default function NotepadBoard({ projectId }: { projectId: string }) {
   }, []);
 
   useEffect(() => {
-    if (settings.notepadTitle !== undefined) {
+    const nextTitle =
+      (settings.notepadTitle as string | undefined) ??
+      (metadata.notepadTitle as string | undefined);
+    const nextContent =
+      (settings.notepadContent as string | undefined) ??
+      (settings.documentContent as string | undefined) ??
+      (metadata.notepadContent as string | undefined);
+
+    if (nextTitle !== undefined) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTitle(settings.notepadTitle as string);
+      setTitle(nextTitle);
     }
-    if (settings.notepadContent !== undefined) {
-      setContent(settings.notepadContent as string);
+    if (nextContent !== undefined) {
+      setContent(nextContent);
     }
-  }, [settings.notepadTitle, settings.notepadContent]);
+  }, [
+    settings.notepadTitle,
+    settings.notepadContent,
+    settings.documentContent,
+    metadata.notepadTitle,
+    metadata.notepadContent,
+  ]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle);
-    updatePageTitle(projectId, newTitle || 'Untitled Note');
-    updatePageSettings(projectId, { notepadTitle: newTitle });
+    if (currentPage) {
+      updatePageTitle(pageKey, newTitle || 'Untitled Note');
+      updatePageSettings(pageKey, { notepadTitle: newTitle });
+    }
+    updateMetadata({ notepadTitle: newTitle });
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
     setContent(newContent);
-    updatePageSettings(projectId, { notepadContent: newContent });
+    if (currentPage) {
+      updatePageSettings(pageKey, { notepadContent: newContent });
+    }
+    updateMetadata({ notepadContent: newContent });
   };
+
 
   if (!isClient) return null;
 
