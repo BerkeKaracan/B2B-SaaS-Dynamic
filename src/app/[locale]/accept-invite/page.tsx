@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ShieldAlert,
 } from "lucide-react";
+import { getApiBaseUrl } from "@/lib/apiBase";
 
 function AcceptInviteContent() {
   const router = useRouter();
@@ -77,10 +78,7 @@ function AcceptInviteContent() {
     setError("");
 
     try {
-      const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-      const res = await fetch(`${API_BASE_URL}/api/tenants/set-password`, {
+      const res = await fetch(`${getApiBaseUrl()}/api/tenants/set-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

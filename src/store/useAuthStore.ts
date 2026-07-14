@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import Cookies from 'js-cookie';
 import { fetchAPI } from '@/services/api';
+import { getApiBaseUrl } from '@/lib/apiBase';
 
 export interface User {
   id?: string;
@@ -116,12 +117,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
 
-    const API_BASE_URL =
-      process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
     const formData = new FormData();
     formData.append('file', file);
 
-    const res = await fetch(`${API_BASE_URL}/api/auth/avatar`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/auth/avatar`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,

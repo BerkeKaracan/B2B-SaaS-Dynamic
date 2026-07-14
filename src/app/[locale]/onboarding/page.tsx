@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { authService, fetchAPI } from '@/services/api';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
+import { getApiBaseUrl } from '@/lib/apiBase';
 
 interface OnboardingResponseData {
   tenant_id?: string;
@@ -30,9 +31,7 @@ export default function OnboardingPage() {
       }
 
       try {
-        const API_BASE_URL =
-          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const res = await fetch(`${getApiBaseUrl()}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

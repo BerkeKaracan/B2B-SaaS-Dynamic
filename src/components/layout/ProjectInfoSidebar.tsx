@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useLayoutStore } from "@/store/useLayoutStore";
+import { getApiBaseUrl } from "@/lib/apiBase";
 
 // Dynamic type mapping for backend custom_records
 type ProjectRecord = {
@@ -30,11 +31,9 @@ export default function ProjectSidebar() {
     const fetchSidebarProjects = async () => {
       try {
         const token = localStorage.getItem("token");
-        const API_BASE_URL =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
         const res = await fetch(
-          `${API_BASE_URL}/api/records/?tenant_id=${tenantId}&module_name=${currentModuleName}`,
+          `${getApiBaseUrl()}/api/records/?tenant_id=${tenantId}&module_name=${currentModuleName}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

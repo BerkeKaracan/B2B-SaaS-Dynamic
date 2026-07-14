@@ -31,12 +31,15 @@ services:
       args:
         - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        - INTERNAL_API_URL=http://backend:8000
       dockerfile: Dockerfile
     container_name: b2b-frontend
     ports:
       - '3000:3000'
     env_file:
       - .env
+    environment:
+      - INTERNAL_API_URL=http://backend:8000
     depends_on:
       backend:
         condition: service_healthy

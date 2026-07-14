@@ -1,51 +1,53 @@
-import Cookies from "js-cookie";
-import { RecordResponse, RecordBase } from "@/types/record";
+import Cookies from 'js-cookie';
+import { RecordResponse, RecordBase } from '@/types/record';
+import { getApiBaseUrl } from '@/lib/apiBase';
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+/** @deprecated Prefer getApiBaseUrl() — kept for existing imports. */
+export const API_BASE_URL = getApiBaseUrl();
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
 
   let token: string | undefined;
 
-  if (typeof window !== "undefined") {
-    token = Cookies.get("token");
+  if (typeof window !== 'undefined') {
+    token = Cookies.get('token');
   } else {
     try {
-      const { cookies } = await import("next/headers");
+      const { cookies } = await import('next/headers');
       const cookieStore = await cookies();
-      token = cookieStore.get("token")?.value;
+      token = cookieStore.get('token')?.value;
     } catch (error) {
-      console.warn("fetchAPI: Could not read cookies in this server context.");
+      console.warn('fetchAPI: Could not read cookies in this server context.');
     }
   }
 
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-  const response = await fetch(`${API_BASE_URL}${cleanEndpoint}`, {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const base = getApiBaseUrl();
+  const response = await fetch(`${base}${cleanEndpoint}`, {
     ...options,
     headers,
   });
 
   if (response.status === 401) {
-    console.warn("Token expired or unauthorized request!");
+    console.warn('Token expired or unauthorized request!');
   }
 
   if (response.status === 429) {
     console.error(
-      "Too many requests were sent. System crashing was prevented.",
+      'Too many requests were sent. System crashing was prevented.'
     );
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       alert("You've tried too many times. Please wait a minute and try again.");
     }
-    throw new Error("Rate limit exceeded");
+    throw new Error('Rate limit exceeded');
   }
 
   return response;
@@ -54,7 +56,7 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
 export const recordService = {
   async getRecords(
     tenantId: string,
-    moduleName?: string,
+    moduleName?: string
   ): Promise<RecordResponse[]> {
     const url = moduleName
       ? `/api/records?tenant_id=${tenantId}&module_name=${moduleName}`
@@ -69,8 +71,8 @@ export const recordService = {
   },
 
   async createRecord(data: RecordBase): Promise<RecordResponse> {
-    const response = await fetchAPI("/api/records/", {
-      method: "POST",
+    const response = await fetchAPI('/api/records/', {
+      method: 'POST',
       body: JSON.stringify(data),
     });
 
@@ -83,10 +85,10 @@ export const recordService = {
 
   async updateRecord(
     id: string,
-    data: Partial<RecordBase>,
+    data: Partial<RecordBase>
   ): Promise<RecordResponse> {
     const response = await fetchAPI(`/api/records/${id}`, {
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
 
@@ -99,7 +101,7 @@ export const recordService = {
 
   async deleteRecord(id: string): Promise<void> {
     const response = await fetchAPI(`/api/records/${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
 
     if (!response.ok) {
@@ -113,8 +115,8 @@ export const authService = {
     usage_type: string;
     workspace_name?: string;
   }): Promise<Response> {
-    return await fetchAPI("/api/auth/onboarding", {
-      method: "POST",
+    return await fetchAPI('/api/auth/onboarding', {
+      method: 'POST',
       body: JSON.stringify(data),
     });
   },

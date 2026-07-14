@@ -17,6 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useTenantStore } from '@/store/useTenantStore';
+import { getApiBaseUrl } from '@/lib/apiBase';
 
 type Notification = {
   type: 'error' | 'success';
@@ -96,11 +97,9 @@ export default function AdvancedSettingsPage({
         formData.append('file', logoFile);
 
         const token = Cookies.get('token') || localStorage.getItem('token');
-        const API_BASE_URL =
-          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
         const logoRes = await fetch(
-          `${API_BASE_URL}/api/tenants/${tenantId}/logo`,
+          `${getApiBaseUrl()}/api/tenants/${tenantId}/logo`,
           {
             method: 'POST',
             headers: {

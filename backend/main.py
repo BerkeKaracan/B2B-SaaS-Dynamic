@@ -25,7 +25,9 @@ if settings.SENTRY_DSN:
 app = FastAPI(
     title="SaaS Engine API",
     description="B2B Multi-tenant SaaS API with flexible JSONB architecture",
-    version="1.0.0"
+    version="1.0.0",
+    # Behind Next.js reverse proxy — never 307 to internal Docker hostnames.
+    redirect_slashes=False,
 )
 
 # --- LOGGING SETUP ---

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Send, Bot, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { getApiBaseUrl } from '@/lib/apiBase';
 
 export default function LandingChatbot() {
   const [messages, setMessages] = useState<
@@ -26,9 +27,9 @@ export default function LandingChatbot() {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-      const response = await fetch(`${apiUrl}/api/public-ai/public-chat`, {
+      const response = await fetch(
+        `${getApiBaseUrl()}/api/public-ai/public-chat`,
+        {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -6,6 +6,8 @@ import { useAuthStore } from '@/store/useAuthStore';
 import Cookies from 'js-cookie';
 import { supabase } from '@/lib/supabaseClient';
 import { Loader2 } from 'lucide-react';
+import { getApiBaseUrl } from '@/lib/apiBase';
+import { fetchAPI } from '@/services/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,9 +21,7 @@ export default function LoginPage() {
 
   const redirectUser = async (tenantId: string, token: string) => {
     try {
-      const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const res = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}`, {
+      const res = await fetch(`${getApiBaseUrl()}/api/tenants/${tenantId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -77,11 +77,7 @@ export default function LoginPage() {
       }
 
       try {
-        const API_BASE_URL =
-          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetchAPI('/api/auth/me');
 
         if (res.ok) {
           const data = await res.json();
@@ -111,12 +107,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      const res = await fetchAPI('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 

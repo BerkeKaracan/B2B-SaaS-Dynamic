@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { getApiBaseUrl } from '@/lib/apiBase';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -28,8 +29,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [isChecking, setIsChecking] = useState(true);
 
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const API_BASE_URL = getApiBaseUrl();
 
   useEffect(() => {
     const token = Cookies.get('token');

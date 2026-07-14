@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useLayoutStore } from "@/store/useLayoutStore";
 import { useEffect, useState } from "react";
+import { getApiBaseUrl } from "@/lib/apiBase";
 
 export default function ProjectSidebar() {
   const { isPrimarySidebarOpen, togglePrimarySidebar } = useLayoutStore();
@@ -35,9 +36,7 @@ export default function ProjectSidebar() {
     const checkRole = async () => {
       try {
         const token = localStorage.getItem("token");
-        const API_BASE_URL =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const res = await fetch(`${getApiBaseUrl()}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
