@@ -10,6 +10,11 @@ import {
   CheckCircle2,
   Settings,
   UploadCloud,
+  Globe2,
+  Coins,
+  Building2,
+  ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import { useTenantStore } from '@/store/useTenantStore';
 
@@ -17,6 +22,9 @@ type Notification = {
   type: 'error' | 'success';
   msg: string;
 };
+
+const fieldClassName =
+  'w-full px-4 py-3 bg-zinc-50/80 border border-zinc-200 rounded-xl text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 focus:bg-white transition-all dark:bg-zinc-800/60 dark:border-zinc-700 dark:text-white dark:placeholder:text-zinc-500 dark:focus:ring-white/10 dark:focus:border-zinc-500 dark:focus:bg-zinc-800';
 
 export default function AdvancedSettingsPage({
   params,
@@ -206,133 +214,196 @@ export default function AdvancedSettingsPage({
 
   if (isLoading) {
     return (
-      <div className="flex-1 p-8 md:p-12 max-w-5xl mx-auto w-full animate-pulse">
-        <div className="h-10 bg-zinc-200 dark:bg-zinc-800 rounded w-1/4 mb-10"></div>
-        <div className="h-40 bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl"></div>
+      <div className="flex-1 overflow-y-auto bg-[#FAFAFB] dark:bg-black min-h-screen">
+        <div className="max-w-[920px] mx-auto w-full p-6 md:p-10 animate-pulse space-y-6">
+          <div className="h-16 bg-zinc-200/70 dark:bg-zinc-800 rounded-2xl w-2/3" />
+          <div className="h-48 bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl" />
+          <div className="h-40 bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl" />
+          <div className="h-32 bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#FAFAFB] dark:bg-black min-h-screen font-sans transition-colors duration-300">
-      <div className="max-w-[1000px] mx-auto w-full p-6 md:p-10 pb-32">
-        <div className="mb-10 flex items-center gap-4">
-          <div className="w-12 h-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl flex items-center justify-center shadow-sm shrink-0">
-            <ShieldAlert className="w-6 h-6 text-red-600 dark:text-red-500" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
-              {t('title')}
-            </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
-              {t('description')}
-            </p>
+      <div className="max-w-[920px] mx-auto w-full p-6 md:p-10 pb-36 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="mb-8 md:mb-10">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+              <Settings className="w-5 h-5 text-zinc-900 dark:text-white" />
+            </div>
+            <div className="min-w-0 pt-0.5">
+              <h1 className="text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
+                {t('title')}
+              </h1>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1.5 font-medium leading-relaxed max-w-xl">
+                {t('description')}
+              </p>
+            </div>
           </div>
         </div>
 
         {notification && (
           <div
-            className={`mb-8 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 border shadow-sm ${notification.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-500/10 border-red-100 dark:border-red-900/20 text-red-700 dark:text-red-400'}`}
+            className={`mb-6 p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 border shadow-sm ${
+              notification.type === 'success'
+                ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                : 'bg-red-50 dark:bg-red-500/10 border-red-100 dark:border-red-900/20 text-red-700 dark:text-red-400'
+            }`}
           >
             {notification.type === 'success' ? (
-              <CheckCircle2 className="w-5 h-5" />
+              <CheckCircle2 className="w-5 h-5 shrink-0" />
             ) : (
-              <AlertCircle className="w-5 h-5" />
+              <AlertCircle className="w-5 h-5 shrink-0" />
             )}
             <p className="text-sm font-semibold">{notification.msg}</p>
           </div>
         )}
 
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden mb-8">
-          <div className="p-6 md:p-8 space-y-6">
-            <h3 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-4">
-              <Settings className="w-5 h-5" /> {t('workspaceSettings')}
-            </h3>
-
-            <div className="flex flex-col sm:flex-row gap-6 items-start">
-              <div className="w-24 h-24 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
-                {previewUrl || logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={getSafeUrl(previewUrl || logoUrl)}
-                    alt="Workspace Logo"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-zinc-400 font-bold text-sm uppercase tracking-wider">
-                    {t('logoText')}
-                  </span>
-                )}
+        <div className="space-y-5">
+          {/* Branding */}
+          <section className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-6 md:px-8 py-5 border-b border-zinc-100 dark:border-zinc-800 bg-gradient-to-r from-zinc-50/80 to-transparent dark:from-zinc-800/40 dark:to-transparent">
+              <div className="flex items-center gap-2.5">
+                <ImageIcon className="w-4 h-4 text-zinc-400" />
+                <h2 className="text-sm font-extrabold text-zinc-900 dark:text-white uppercase tracking-widest">
+                  {t('branding')}
+                </h2>
               </div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1.5 font-medium">
+                {t('brandingDesc')}
+              </p>
+            </div>
 
-              <div className="flex-1 w-full">
-                <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2 ml-1">
-                  {t('logoLabel')}
-                </label>
+            <div className="p-6 md:p-8">
+              <div className="flex flex-col sm:flex-row gap-6 items-start">
+                <div className="relative shrink-0">
+                  <div className="w-28 h-28 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center overflow-hidden shadow-inner ring-4 ring-zinc-50 dark:ring-zinc-800/80">
+                    {previewUrl || logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={getSafeUrl(previewUrl || logoUrl)}
+                        alt="Workspace Logo"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Building2 className="w-8 h-8 text-zinc-300 dark:text-zinc-600" />
+                    )}
+                  </div>
+                  {logoFile && (
+                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[10px] font-bold px-2.5 py-1 shadow-sm">
+                      {t('newPreview')}
+                    </span>
+                  )}
+                </div>
 
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  className={`relative flex flex-col items-center justify-center w-full py-6 px-4 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 group
-                    ${
-                      isDragging
-                        ? 'border-zinc-900 bg-zinc-50 dark:border-white dark:bg-zinc-800/50'
-                        : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/50 dark:bg-zinc-900/50'
-                    }`}
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/jpeg, image/png, image/gif, image/svg+xml"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files.length > 0) {
-                        setLogoFile(e.target.files[0]);
-                      }
-                    }}
-                  />
-                  <div className="flex flex-col items-center justify-center gap-2 text-zinc-500 dark:text-zinc-400">
-                    <UploadCloud
-                      className={`w-8 h-8 mb-1 transition-colors ${isDragging ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'}`}
+                <div className="flex-1 w-full">
+                  <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2.5 ml-0.5">
+                    {t('logoLabel')}
+                  </label>
+
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`relative flex flex-col items-center justify-center w-full py-7 px-4 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-200 group
+                      ${
+                        isDragging
+                          ? 'border-zinc-900 bg-zinc-50 dark:border-white dark:bg-zinc-800/50 scale-[1.01]'
+                          : 'border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50/80 dark:border-zinc-700 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/40 dark:bg-zinc-900/40'
+                      }`}
+                  >
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/jpeg, image/png, image/gif, image/svg+xml"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          setLogoFile(e.target.files[0]);
+                        }
+                      }}
                     />
-                    <p className="text-sm font-medium text-center">
-                      <span className="text-zinc-900 dark:text-white font-bold">
-                        {t('clickToUpload')}
-                      </span>{' '}
-                      {t('dragAndDrop')}
-                    </p>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                      {t('supportedFormats')}
-                    </p>
+                    <div className="flex flex-col items-center justify-center gap-2 text-zinc-500 dark:text-zinc-400">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                          isDragging
+                            ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                            : 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500 group-hover:bg-zinc-200 group-hover:text-zinc-600 dark:group-hover:bg-zinc-700 dark:group-hover:text-zinc-300'
+                        }`}
+                      >
+                        <UploadCloud className="w-5 h-5" />
+                      </div>
+                      <p className="text-sm font-medium text-center">
+                        <span className="text-zinc-900 dark:text-white font-bold">
+                          {t('clickToUpload')}
+                        </span>{' '}
+                        {t('dragAndDrop')}
+                      </p>
+                      <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                        {t('supportedFormats')}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+          </section>
 
-            <div className="space-y-4 pt-2">
-              <div>
-                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 ml-1">
-                  {t('nameLabel')}
-                </label>
-                <input
-                  type="text"
-                  value={workspaceName}
-                  onChange={(e) => setWorkspaceName(e.target.value)}
-                  placeholder={t('namePlaceholder')}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white dark:focus:ring-white/10"
-                />
+          {/* General */}
+          <section className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-6 md:px-8 py-5 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <Building2 className="w-4 h-4 text-zinc-400" />
+                <h2 className="text-sm font-extrabold text-zinc-900 dark:text-white uppercase tracking-widest">
+                  {t('workspaceSettings')}
+                </h2>
               </div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1.5 font-medium">
+                {t('generalDesc')}
+              </p>
+            </div>
 
+            <div className="p-6 md:p-8">
+              <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2.5 ml-0.5">
+                {t('nameLabel')}
+              </label>
+              <input
+                type="text"
+                value={workspaceName}
+                onChange={(e) => setWorkspaceName(e.target.value)}
+                placeholder={t('namePlaceholder')}
+                className={fieldClassName}
+              />
+            </div>
+          </section>
+
+          {/* Localization */}
+          <section className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-6 md:px-8 py-5 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <Globe2 className="w-4 h-4 text-zinc-400" />
+                <h2 className="text-sm font-extrabold text-zinc-900 dark:text-white uppercase tracking-widest">
+                  {t('localization')}
+                </h2>
+              </div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1.5 font-medium">
+                {t('localizationDesc')}
+              </p>
+            </div>
+
+            <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 ml-1">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2.5 ml-0.5">
+                  <Globe2 className="w-3.5 h-3.5" />
                   {t('timezoneLabel')}
                 </label>
                 <select
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white dark:focus:ring-white/10"
+                  className={fieldClassName}
                 >
                   {allTimezones.map((tz) => (
                     <option key={tz} value={tz}>
@@ -343,13 +414,14 @@ export default function AdvancedSettingsPage({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 ml-1">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2.5 ml-0.5">
+                  <Coins className="w-3.5 h-3.5" />
                   {t('currencyLabel')}
                 </label>
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white dark:focus:ring-white/10"
+                  className={fieldClassName}
                 >
                   <option value="USD">USD ($)</option>
                   <option value="EUR">EUR (€)</option>
@@ -358,51 +430,66 @@ export default function AdvancedSettingsPage({
                 </select>
               </div>
             </div>
+          </section>
 
-            <div className="pt-2">
+          {/* Save bar */}
+          <div className="sticky bottom-4 z-10">
+            <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-lg shadow-zinc-900/5 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+                {t('unsavedHint')}
+              </p>
               <button
                 onClick={handleUpdateWorkspace}
-                className="bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all shadow-sm flex items-center gap-2"
+                className="bg-zinc-900 text-white dark:bg-white dark:text-zinc-950 px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shrink-0"
                 disabled={isSaving}
               >
-                {isSaving ? t('savingButton') : t('saveButton')}
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {t('savingButton')}
+                  </>
+                ) : (
+                  t('saveButton')
+                )}
               </button>
             </div>
           </div>
-        </div>
 
-        <div className="bg-white dark:bg-zinc-900 border border-red-200 dark:border-red-900/50 rounded-2xl shadow-sm overflow-hidden mb-20 relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 dark:bg-red-500/10 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+          {/* Danger zone */}
+          <section className="bg-white dark:bg-zinc-900 border border-red-200/80 dark:border-red-900/40 rounded-2xl shadow-sm overflow-hidden relative mt-2">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-red-500/[0.06] via-transparent to-transparent pointer-events-none" />
 
-          <div className="flex flex-col md:flex-row gap-6 p-6 lg:p-8">
-            <div className="w-full md:w-1/3">
-              <h3 className="text-base font-bold text-red-600 dark:text-red-500 flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5" /> {t('dangerZone')}
-              </h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">
+            <div className="relative px-6 md:px-8 py-5 border-b border-red-100 dark:border-red-900/30">
+              <div className="flex items-center gap-2.5">
+                <ShieldAlert className="w-4 h-4 text-red-500" />
+                <h2 className="text-sm font-extrabold text-red-600 dark:text-red-500 uppercase tracking-widest">
+                  {t('dangerZone')}
+                </h2>
+              </div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1.5 font-medium">
                 {t('dangerZoneDesc')}
               </p>
             </div>
 
-            <div className="w-full md:w-2/3 flex items-center">
-              <div className="w-full p-5 bg-red-50/50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all">
-                <div>
+            <div className="relative p-6 md:p-8">
+              <div className="rounded-2xl border border-red-100 dark:border-red-900/30 bg-red-50/40 dark:bg-red-950/20 p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="min-w-0">
                   <h4 className="text-sm font-bold text-zinc-900 dark:text-white">
                     {t('deleteWorkspace')}
                   </h4>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
                     {t('deleteDesc')}
                   </p>
                 </div>
                 <button
                   onClick={handleDeleteWorkspace}
-                  className="bg-white dark:bg-zinc-900 text-red-600 dark:text-red-500 border border-red-200 dark:border-red-800 px-5 py-2.5 rounded-lg text-sm font-bold shadow-sm hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white dark:hover:border-red-600 hover:border-red-600 transition-all active:scale-95 shrink-0"
+                  className="bg-white dark:bg-zinc-900 text-red-600 dark:text-red-500 border border-red-200 dark:border-red-800 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white dark:hover:border-red-600 hover:border-red-600 transition-all active:scale-[0.98] shrink-0"
                 >
                   {t('deleteWorkspace')}
                 </button>
               </div>
             </div>
-          </div>
+          </section>
         </div>
       </div>
     </div>
