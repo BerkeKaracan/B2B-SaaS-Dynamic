@@ -4,12 +4,12 @@ import Link from 'next/link';
 import Footer from '@/components/layout/Footer';
 import { useTranslations } from 'next-intl';
 import LandingChatbot from '@/components/chat/LandingChatbot';
-import DraggableFeatureBox from '@/components/ui/DraggableFeatureBox';
 import ColdStartAlert from '@/components/ColdStartAlert';
 import { Reveal } from '@/components/landing/Reveal';
 import HeroCanvasPreview from '@/components/landing/HeroCanvasPreview';
 import AiChatMock from '@/components/landing/AiChatMock';
 import LandingNavbar from '@/components/landing/LandingNavbar';
+import ArchitectureSection from '@/components/landing/ArchitectureSection';
 import { usePointerParallax } from '@/hooks/usePointerParallax';
 interface BackgroundShapeState {
   x: number;
@@ -631,145 +631,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-12 md:py-24 px-4 md:px-6 max-w-6xl mx-auto border-t border-zinc-200/60 mt-6 md:mt-10">
-          <Reveal className="text-center mb-10 md:mb-16">
-            <h2 className="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">
-              {t('architecture.title1')} <br className="hidden sm:block" />
-              <span className="text-zinc-400">{t('architecture.title2')}</span>
-            </h2>
-            <p className="text-zinc-500 mt-3 md:mt-4 max-w-2xl mx-auto text-sm md:text-lg leading-relaxed">
-              {t('architecture.desc')}
-            </p>
-          </Reveal>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
-            <DraggableFeatureBox
-              title={t('architecture.t1')}
-              desc={t('architecture.d1')}
-              deepDive={t('architecture.dd1')}
-              icon={
-                <svg
-                  className="w-5 h-5 md:w-6 md:h-6"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M11.987 22c5.523 0 10-4.477 10-10s-4.477-10-10-10-10 4.477-10 10 4.477 10 10 10zm-3.66-6.42l-1.32.96v-9.08l1.32-.96v9.08zm4.98 0l-1.32.96V11.2l-3.32 4.42-1.32-.96 4.64-5.38v7.3zm1.66 0l1.32.96V7.46l-1.32-.96v9.08z" />
-                </svg>
-              }
-            />
-
-            <DraggableFeatureBox
-              title={t('architecture.t2')}
-              desc={t('architecture.d2')}
-              deepDive={t('architecture.dd2')}
-              icon={
-                <svg
-                  className="w-5 h-5 md:w-6 md:h-6 text-emerald-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-              }
-            />
-
-            <DraggableFeatureBox
-              title={t('architecture.t3')}
-              desc={t('architecture.d3')}
-              deepDive={t('architecture.dd3')}
-              icon={
-                <svg
-                  className="w-5 h-5 md:w-6 md:h-6 text-indigo-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-.988-2.386l-.548-.547z"
-                  />
-                </svg>
-              }
-            />
-
-            <div className="hidden md:block">
-              <DraggableFeatureBox
-                title={t('architecture.t4')}
-                desc={t('architecture.d4')}
-                deepDive={t('architecture.dd4')}
-                icon={
-                  <svg
-                    className="w-5 h-5 md:w-6 md:h-6 text-green-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
-                    />
-                  </svg>
-                }
-              />
-            </div>
-
-            <div className="hidden md:block">
-              <DraggableFeatureBox
-                title={t('architecture.t5')}
-                desc={t('architecture.d5')}
-                deepDive={t('architecture.dd5')}
-                icon={
-                  <svg
-                    className="w-5 h-5 md:w-6 md:h-6 text-red-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                    />
-                  </svg>
-                }
-              />
-            </div>
-
-            <div className="hidden md:block">
-              <DraggableFeatureBox
-                title={t('architecture.t6')}
-                desc={t('architecture.d6')}
-                deepDive={t('architecture.dd6')}
-                icon={
-                  <svg
-                    className="w-5 h-5 md:w-6 md:h-6 text-blue-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                    />
-                  </svg>
-                }
-              />
-            </div>
-          </div>
-        </section>
+        <ArchitectureSection />
 
         <section className="py-12 lg:py-32 relative overflow-hidden border-t border-zinc-200/60 mt-6 md:mt-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-zinc-100 via-transparent to-transparent -z-10"></div>
