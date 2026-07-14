@@ -4,6 +4,21 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
+const isDev = process.env.NODE_ENV === 'development';
+
+/** Local API / HMR origins — never ship to production CSP. */
+const devConnectSrc = isDev
+  ? ' http://localhost:* http://127.0.0.1:*'
+  : '';
+
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: https: blob:",
+  `connect-src 'self' https: wss:${devConnectSrc}`,
+].join('; ');
+
 const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
@@ -40,8 +55,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; connect-src 'self' https: wss: http://localhost:* http://127.0.0.1:*;",
+            value: contentSecurityPolicy,
           },
           {
             key: 'Permissions-Policy',
