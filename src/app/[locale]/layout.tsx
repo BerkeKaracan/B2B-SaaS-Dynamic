@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   title: 'B2B SaaS Engine',
   description: 'Dynamic Notion-like SaaS',
   manifest: '/manifest.json',
+  icons: {
+    icon: [{ url: '/logo.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/apple-icon', sizes: '180x180', type: 'image/png' }],
+  },
 };
 
 export default async function RootLayout({

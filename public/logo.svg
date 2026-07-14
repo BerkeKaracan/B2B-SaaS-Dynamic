@@ -1,31 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="SaaS Engine">
   <defs>
-    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#27272a" />
-      <stop offset="100%" stop-color="#09090b" />
+    <linearGradient id="markBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181b"/>
+      <stop offset="100%" stop-color="#09090b"/>
     </linearGradient>
-    
-    <linearGradient id="text-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" />
-      <stop offset="100%" stop-color="#a1a1aa" />
-    </linearGradient>
+    <radialGradient id="skyGlow" cx="30%" cy="20%" r="55%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45"/>
+      <stop offset="55%" stop-color="#38bdf8" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 
-  <rect width="512" height="512" rx="128" fill="url(#bg-gradient)" />
-  
-  <path d="M-100 100 L612 812 M812 -100 L100 612" stroke="#ffffff" stroke-opacity="0.03" stroke-width="80" />
-  
-  <text 
-    x="50%" 
-    y="54%" 
-    font-family="system-ui, -apple-system, sans-serif" 
-    font-size="260" 
-    font-weight="900" 
-    fill="url(#text-gradient)" 
-    text-anchor="middle" 
-    dominant-baseline="middle" 
-    letter-spacing="-15"
-  >
-    B2
-  </text>
+  <!-- Squircle mark (matches in-app BrandMark) -->
+  <rect width="512" height="512" rx="128" fill="url(#markBg)"/>
+  <rect width="512" height="512" rx="128" fill="url(#skyGlow)"/>
+  <rect x="10" y="10" width="492" height="492" rx="118" fill="none" stroke="#27272a" stroke-width="12"/>
+
+  <text
+    x="50%"
+    y="54%"
+    font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+    font-size="248"
+    font-weight="900"
+    fill="#ffffff"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    letter-spacing="-18"
+  >B2</text>
 </svg>
