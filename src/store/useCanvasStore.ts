@@ -935,6 +935,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     try {
       await fetchAPI(`/api/records/${recordId}`, {
         method: 'PATCH',
+        ...(tenantId ? { headers: { 'x-tenant-id': tenantId } } : {}),
         body: JSON.stringify({
           record_data: {
             ...metadata,

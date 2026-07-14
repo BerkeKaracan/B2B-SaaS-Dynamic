@@ -211,6 +211,9 @@ export default function AnalyticsDashboardPage({
   }, [tenantId, router]);
 
   useEffect(() => {
+    // Initial data load on mount. fetchAnalytics sets loading state before its
+    // first await; that synchronous setState is intentional here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAnalytics();
   }, [fetchAnalytics]);
 
