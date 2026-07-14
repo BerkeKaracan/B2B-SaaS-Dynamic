@@ -24,7 +24,10 @@ import DraggableFeatureBox from '@/components/ui/DraggableFeatureBox';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import ColdStartAlert from '@/components/ColdStartAlert';
-
+import { Reveal } from '@/components/landing/Reveal';
+import HeroCanvasPreview from '@/components/landing/HeroCanvasPreview';
+import AiChatMock from '@/components/landing/AiChatMock';
+import { usePointerParallax } from '@/hooks/usePointerParallax';
 interface BackgroundShapeState {
   x: number;
   y: number;
@@ -38,6 +41,7 @@ export default function LandingPage() {
   const t = useTranslations('LandingPage');
 
   const [isMounted, setIsMounted] = useState(false);
+  const parallax = usePointerParallax(22);
 
   const [shapesState, setShapesState] = useState<BackgroundShapeState[]>([
     { x: -1000, y: -1000, visible: false },
@@ -134,6 +138,26 @@ export default function LandingPage() {
       <ColdStartAlert />
 
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-[1]">
+        {/* Soft color atmosphere that tracks the pointer */}
+        <div
+          className="lp-blob w-[420px] h-[420px] bg-sky-300/50 top-[8%] left-[12%]"
+          style={{
+            transform: `translate3d(${parallax.x * 0.6}px, ${parallax.y * 0.5}px, 0)`,
+          }}
+        />
+        <div
+          className="lp-blob w-[380px] h-[380px] bg-emerald-300/40 bottom-[12%] right-[8%]"
+          style={{
+            transform: `translate3d(${parallax.x * -0.45}px, ${parallax.y * -0.4}px, 0)`,
+          }}
+        />
+        <div
+          className="lp-blob w-[300px] h-[300px] bg-amber-200/35 top-[40%] right-[28%]"
+          style={{
+            transform: `translate3d(${parallax.x * 0.3}px, ${parallax.y * -0.35}px, 0)`,
+          }}
+        />
+
         <div
           className={`absolute w-48 h-48 border-[3px] border-dashed border-zinc-200 rounded-full transition-opacity duration-1000 ease-in-out animate-[spin_40s_linear_infinite] pulse-slow ${
             shapesState[0].visible ? 'opacity-40' : 'opacity-0'
@@ -141,7 +165,7 @@ export default function LandingPage() {
           style={{
             left: shapesState[0].x,
             top: shapesState[0].y,
-            transform: 'translate(-50%, -50%)',
+            transform: `translate(-50%, -50%) translate3d(${parallax.x * 0.2}px, ${parallax.y * 0.2}px, 0)`,
           }}
         ></div>
 
@@ -602,27 +626,38 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1 relative z-10">
-        <section className="pt-32 pb-12 md:pt-40 md:pb-20 px-4 md:px-6 flex flex-col items-center text-center max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-zinc-200/80 text-xs font-semibold text-zinc-600 mb-6 md:mb-8 shadow-sm">
-            <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+        <section className="pt-32 pb-12 md:pt-40 md:pb-16 px-4 md:px-6 flex flex-col items-center text-center max-w-4xl mx-auto">
+          <div
+            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/90 border border-zinc-200/80 text-xs font-semibold text-zinc-600 mb-6 md:mb-8 shadow-sm ${isMounted ? 'lp-hero-enter lp-hero-enter-d1' : 'opacity-0'}`}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+            </span>
             {t('hero.versionLive')}
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 mb-4 md:mb-6 leading-[1.1]">
+          <h1
+            className={`text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 mb-4 md:mb-6 leading-[1.1] ${isMounted ? 'lp-hero-enter lp-hero-enter-d2' : 'opacity-0'}`}
+          >
             {t('hero.title1')}{' '}
-            <span className="text-transparent bg-clip-text bg-linear-to-r from-zinc-900 to-zinc-500">
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-zinc-900 via-sky-700 to-zinc-500 lp-title-shimmer">
               {t('hero.title2')}
             </span>
           </h1>
 
-          <p className="text-base sm:text-lg md:text-xl text-zinc-500 mb-8 md:mb-10 max-w-2xl leading-relaxed">
+          <p
+            className={`text-base sm:text-lg md:text-xl text-zinc-500 mb-8 md:mb-10 max-w-2xl leading-relaxed ${isMounted ? 'lp-hero-enter lp-hero-enter-d3' : 'opacity-0'}`}
+          >
             {t('hero.subtitle')}
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full justify-center px-4 sm:px-0">
+          <div
+            className={`flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full justify-center px-4 sm:px-0 ${isMounted ? 'lp-hero-enter lp-hero-enter-d4' : 'opacity-0'}`}
+          >
             <Link
               href="/register"
-              className="w-full sm:w-auto px-6 py-4 md:px-8 bg-zinc-900 text-white rounded-xl font-bold text-[15px] md:text-base hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2"
+              className="lp-btn-shine w-full sm:w-auto px-6 py-4 md:px-8 bg-zinc-900 text-white rounded-xl font-bold text-[15px] md:text-base hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 active:scale-[0.98]"
             >
               {t('hero.createWorkspace')}
               <svg
@@ -634,6 +669,7 @@ export default function LandingPage() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="transition-transform group-hover:translate-x-0.5"
               >
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
@@ -641,10 +677,16 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/demo"
-              className="w-full sm:w-auto px-6 py-4 md:px-8 bg-white text-zinc-900 border-2 border-zinc-200 rounded-xl font-bold text-[15px] md:text-base hover:border-zinc-300 hover:bg-zinc-50 transition-all flex items-center justify-center gap-2 shadow-sm"
+              className="w-full sm:w-auto px-6 py-4 md:px-8 bg-white/90 text-zinc-900 border-2 border-zinc-200 rounded-xl font-bold text-[15px] md:text-base hover:border-sky-300 hover:bg-sky-50/50 transition-all flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
             >
               {t('hero.viewDemo')}
             </Link>
+          </div>
+
+          <div
+            className={`w-full ${isMounted ? 'lp-hero-enter lp-hero-enter-d5' : 'opacity-0'}`}
+          >
+            <HeroCanvasPreview />
           </div>
         </section>
 
@@ -749,8 +791,11 @@ export default function LandingPage() {
 
         <section className="py-12 md:py-24 px-4 md:px-6 max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
-            <div className="flex-1 space-y-5 md:space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-bold text-indigo-600 mb-2 shadow-sm">
+            <Reveal
+              className="flex-1 space-y-5 md:space-y-6"
+              variant="slide-left"
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-100 text-xs font-bold text-teal-700 mb-2 shadow-sm">
                 <svg
                   className="w-4 h-4"
                   fill="none"
@@ -768,7 +813,7 @@ export default function LandingPage() {
               </div>
               <h2 className="text-3xl md:text-5xl font-black text-zinc-900 tracking-tight leading-[1.1]">
                 {t('ai.title1')} <br className="hidden md:block" />
-                <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-500 to-violet-600">
+                <span className="text-transparent bg-clip-text bg-linear-to-r from-teal-600 to-sky-600">
                   {t('ai.title2')}
                 </span>
               </h2>
@@ -778,99 +823,50 @@ export default function LandingPage() {
 
               <ul className="space-y-3 md:space-y-4 mt-6 md:mt-8">
                 <li className="flex items-center gap-4 text-zinc-700 font-bold text-[13px] md:text-sm">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 shrink-0">
                     ✓
                   </div>
                   {t('ai.feat1')}
                 </li>
                 <li className="flex items-center gap-4 text-zinc-700 font-bold text-[13px] md:text-sm">
-                  <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 shrink-0">
                     ✓
                   </div>
                   {t('ai.feat2')}
                 </li>
                 <li className="flex items-center gap-4 text-zinc-700 font-bold text-[13px] md:text-sm">
-                  <div className="w-8 h-8 rounded-full bg-fuchsia-100 flex items-center justify-center text-fuchsia-600 shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
                     ✓
                   </div>
                   {t('ai.feat3')}
                 </li>
               </ul>
-            </div>
+            </Reveal>
 
-            <div className="flex-1 w-full bg-zinc-950 rounded-3xl md:rounded-4xl p-2 md:p-3 shadow-2xl rotate-1 hover:rotate-0 transition-transform duration-500 hover:shadow-indigo-500/20">
-              <div className="bg-zinc-900 rounded-[20px] md:rounded-3xl border border-zinc-800 p-4 md:p-6 flex flex-col h-auto md:h-[400px]">
-                <div className="flex items-center gap-2 mb-4 md:mb-6 pb-3 md:pb-4 border-b border-zinc-800/80">
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500"></div>
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500"></div>
-                  <span className="ml-2 text-[9px] md:text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-                    RAG_Engine_Active
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-4 md:gap-5 flex-1 overflow-hidden font-sans">
-                  <div className="self-end bg-indigo-600 text-white px-3 md:px-4 py-2.5 md:py-3 rounded-2xl rounded-tr-sm text-xs md:text-[13px] shadow-sm max-w-[85%] font-medium">
-                    {t('ai.chatQ')}
-                  </div>
-
-                  <div className="self-start flex gap-2 md:gap-3 max-w-[95%] md:max-w-[90%]">
-                    <div className="w-6 h-6 rounded-md bg-linear-to-br from-indigo-500 to-violet-600 shrink-0 flex items-center justify-center">
-                      <svg
-                        className="w-3.5 h-3.5 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M13 10V3L4 14h7v7l9-11h-7z"
-                        />
-                      </svg>
-                    </div>
-                    <div className="bg-zinc-800 text-zinc-300 px-3 md:px-4 py-3 rounded-2xl rounded-tl-sm text-xs md:text-[13px] shadow-sm border border-zinc-700/50 leading-relaxed">
-                      {t('ai.chatA1')}
-                      <br />
-                      <br />
-                      <span className="text-white font-bold">
-                        {t('ai.chatA2')}
-                      </span>
-                      <br />
-                      <span className="text-white font-bold">
-                        {t('ai.chatA3')}
-                      </span>
-                      <br />
-                      <span className="text-white font-bold">
-                        {t('ai.chatA4')}
-                      </span>
-                      <br />
-                      <br />
-                      {t('ai.chatA5')}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <Reveal className="flex-1 w-full" variant="slide-right" delay={120}>
+              <AiChatMock />
+            </Reveal>
           </div>
         </section>
 
         <LandingChatbot />
 
         <section className="py-12 md:py-24 px-4 md:px-6 max-w-6xl mx-auto">
-          <div className="text-center mb-10 md:mb-16">
+          <Reveal className="text-center mb-10 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold text-zinc-900 tracking-tight">
               {t('features.title')}
             </h2>
             <p className="text-zinc-500 mt-3 md:mt-4 text-sm md:text-base">
               {t('features.subtitle')}
             </p>
-          </div>
+          </Reveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
-            <div className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+            <Reveal
+              delay={0}
+              className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-sky-200 hover:shadow-lg group"
+            >
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-sky-50 rounded-xl border border-sky-100 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-sky-700 group-hover:scale-110 transition-transform">
                 <svg
                   width="20"
                   height="20"
@@ -890,10 +886,13 @@ export default function LandingPage() {
               <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
                 {t('features.f1Desc')}
               </p>
-            </div>
+            </Reveal>
 
-            <div className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+            <Reveal
+              delay={80}
+              className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg group"
+            >
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-50 rounded-xl border border-emerald-100 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-emerald-700 group-hover:scale-110 transition-transform">
                 <svg
                   width="20"
                   height="20"
@@ -911,10 +910,13 @@ export default function LandingPage() {
               <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
                 {t('features.f2Desc')}
               </p>
-            </div>
+            </Reveal>
 
-            <div className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+            <Reveal
+              delay={160}
+              className="p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-amber-200 hover:shadow-lg group"
+            >
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-amber-50 rounded-xl border border-amber-100 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-amber-700 group-hover:scale-110 transition-transform">
                 <svg
                   width="20"
                   height="20"
@@ -933,10 +935,13 @@ export default function LandingPage() {
               <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
                 {t('features.f3Desc')}
               </p>
-            </div>
+            </Reveal>
 
-            <div className="hidden md:block p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+            <Reveal
+              delay={0}
+              className="hidden md:block p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-rose-200 hover:shadow-lg group"
+            >
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-rose-50 rounded-xl border border-rose-100 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-rose-700 group-hover:scale-110 transition-transform">
                 <svg
                   width="20"
                   height="20"
@@ -959,10 +964,13 @@ export default function LandingPage() {
               <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
                 {t('features.f4Desc')}
               </p>
-            </div>
+            </Reveal>
 
-            <div className="hidden md:block p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
+            <Reveal
+              delay={80}
+              className="hidden md:block p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-teal-200 hover:shadow-lg group"
+            >
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-teal-50 rounded-xl border border-teal-100 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-teal-700 group-hover:scale-110 transition-transform">
                 <svg
                   width="20"
                   height="20"
@@ -983,9 +991,12 @@ export default function LandingPage() {
               <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
                 {t('features.f5Desc')}
               </p>
-            </div>
+            </Reveal>
 
-            <div className="hidden md:block p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group">
+            <Reveal
+              delay={160}
+              className="hidden md:block p-6 md:p-8 rounded-2xl bg-white/80 backdrop-blur-md border border-zinc-200/60 transition-all hover:-translate-y-1 hover:border-zinc-300 hover:shadow-lg group"
+            >
               <div className="w-10 h-10 md:w-12 md:h-12 bg-zinc-50 rounded-xl border border-zinc-200 shadow-sm flex items-center justify-center mb-5 md:mb-6 text-zinc-900 group-hover:scale-110 transition-transform">
                 <svg
                   width="20"
@@ -1008,12 +1019,12 @@ export default function LandingPage() {
               <p className="text-zinc-500 leading-relaxed text-xs md:text-sm">
                 {t('features.f6Desc')}
               </p>
-            </div>
+            </Reveal>
           </div>
         </section>
 
         <section className="py-12 md:py-24 px-4 md:px-6 max-w-6xl mx-auto border-t border-zinc-200/60 mt-6 md:mt-10">
-          <div className="text-center mb-10 md:mb-16">
+          <Reveal className="text-center mb-10 md:mb-16">
             <h2 className="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">
               {t('architecture.title1')} <br className="hidden sm:block" />
               <span className="text-zinc-400">{t('architecture.title2')}</span>
@@ -1021,7 +1032,7 @@ export default function LandingPage() {
             <p className="text-zinc-500 mt-3 md:mt-4 max-w-2xl mx-auto text-sm md:text-lg leading-relaxed">
               {t('architecture.desc')}
             </p>
-          </div>
+          </Reveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
             <DraggableFeatureBox
@@ -1229,9 +1240,15 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="w-full lg:w-7/12 relative z-10 group">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-blue-500/20 blur-[100px] rounded-full -z-10 transition-opacity duration-700 opacity-70 group-hover:opacity-100"></div>
-                <div className="relative w-full rounded-2xl md:rounded-3xl border border-zinc-200/80 shadow-2xl shadow-indigo-900/10 bg-white/60 backdrop-blur-xl p-2 md:p-3 transition-transform duration-700 hover:-translate-y-2">
+              <div
+                className="w-full lg:w-7/12 relative z-10 group"
+                style={{
+                  transform: `perspective(1200px) rotateY(${parallax.x * -0.08}deg) rotateX(${parallax.y * 0.06}deg)`,
+                  transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+                }}
+              >
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-sky-500/15 blur-[100px] rounded-full -z-10 transition-opacity duration-700 opacity-70 group-hover:opacity-100"></div>
+                <div className="relative w-full rounded-2xl md:rounded-3xl border border-zinc-200/80 shadow-2xl shadow-sky-900/10 bg-white/60 backdrop-blur-xl p-2 md:p-3 transition-transform duration-700 hover:-translate-y-2">
                   <div className="flex items-center gap-1.5 px-2 pb-2 md:pb-3 pt-1">
                     <div className="w-2.5 h-2.5 rounded-full bg-zinc-300"></div>
                     <div className="w-2.5 h-2.5 rounded-full bg-zinc-300"></div>
@@ -1282,7 +1299,7 @@ export default function LandingPage() {
               <div className="shrink-0 w-full md:w-auto flex flex-col items-center md:items-end">
                 <Link
                   href="/register"
-                  className="w-full md:w-auto px-6 py-4 md:px-8 bg-white text-zinc-950 font-extrabold rounded-2xl hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-1"
+                  className="lp-btn-shine w-full md:w-auto px-6 py-4 md:px-8 bg-white text-zinc-950 font-extrabold rounded-2xl hover:bg-zinc-100 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-1"
                 >
                   {t('promo.claim')}
                   <svg

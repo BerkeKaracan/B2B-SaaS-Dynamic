@@ -44,3 +44,304 @@
     user-select: text;
   }
 }
+
+/* ——— Landing page motion ——— */
+@layer utilities {
+  .lp-reveal {
+    opacity: 0;
+    transition:
+      opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+  }
+  .lp-reveal--fade-up {
+    transform: translate3d(0, 28px, 0);
+  }
+  .lp-reveal--fade {
+    transform: none;
+  }
+  .lp-reveal--scale {
+    transform: scale(0.96);
+  }
+  .lp-reveal--slide-left {
+    transform: translate3d(-32px, 0, 0);
+  }
+  .lp-reveal--slide-right {
+    transform: translate3d(32px, 0, 0);
+  }
+  .lp-reveal--in {
+    opacity: 1;
+    transform: none;
+  }
+
+  .lp-hero-enter {
+    opacity: 0;
+    animation: lpHeroIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .lp-hero-enter-d1 {
+    animation-delay: 0.08s;
+  }
+  .lp-hero-enter-d2 {
+    animation-delay: 0.2s;
+  }
+  .lp-hero-enter-d3 {
+    animation-delay: 0.34s;
+  }
+  .lp-hero-enter-d4 {
+    animation-delay: 0.48s;
+  }
+  .lp-hero-enter-d5 {
+    animation-delay: 0.62s;
+  }
+
+  .lp-title-shimmer {
+    background-size: 200% auto;
+    animation: lpShimmer 6s ease-in-out infinite;
+  }
+
+  .lp-btn-shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .lp-btn-shine::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(255, 255, 255, 0.22) 50%,
+      transparent 60%
+    );
+    transform: translateX(-120%);
+    transition: transform 0.6s ease;
+  }
+  .lp-btn-shine:hover::after {
+    transform: translateX(120%);
+  }
+
+  .lp-chat-in-right {
+    animation: lpChatRight 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .lp-chat-in-left {
+    animation: lpChatLeft 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .lp-typing-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: #a1a1aa;
+    animation: lpTyping 1s ease-in-out infinite;
+  }
+
+  .lp-ai-frame {
+    animation: lpFrameSettle 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .lp-hero-preview {
+    animation: lpHeroIn 1s cubic-bezier(0.22, 1, 0.36, 1) 0.7s both;
+  }
+
+  .lp-float-a {
+    animation: lpFloatA 7s ease-in-out infinite;
+  }
+  .lp-float-b {
+    animation: lpFloatB 8.5s ease-in-out infinite;
+  }
+  .lp-float-c {
+    animation: lpFloatC 6.5s ease-in-out infinite;
+  }
+  .lp-float-d {
+    animation: lpFloatD 9s ease-in-out infinite;
+  }
+
+  .lp-cursor-ghost {
+    animation: lpCursorPath 9s ease-in-out infinite;
+  }
+
+  .lp-pulse-ring {
+    animation: lpPulseRing 2.4s ease-out infinite;
+  }
+
+  .lp-blob {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(60px);
+    opacity: 0.45;
+    pointer-events: none;
+    will-change: transform;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@keyframes lpHeroIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lpShimmer {
+  0%,
+  100% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+}
+
+@keyframes lpChatRight {
+  from {
+    opacity: 0;
+    transform: translate3d(18px, 10px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lpChatLeft {
+  from {
+    opacity: 0;
+    transform: translate3d(-18px, 10px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lpTyping {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes lpFrameSettle {
+  from {
+    opacity: 0;
+    transform: rotate(3deg) translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(1deg) translateY(0);
+  }
+}
+
+@keyframes lpFloatA {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(6px, -10px, 0);
+  }
+}
+
+@keyframes lpFloatB {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-8px, 8px, 0);
+  }
+}
+
+@keyframes lpFloatC {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-1deg);
+  }
+  50% {
+    transform: translate3d(10px, -6px, 0) rotate(1deg);
+  }
+}
+
+@keyframes lpFloatD {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-6px, -12px, 0) scale(1.04);
+  }
+}
+
+@keyframes lpCursorPath {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  25% {
+    transform: translate3d(-80px, -40px, 0);
+  }
+  50% {
+    transform: translate3d(70px, -60px, 0);
+  }
+  75% {
+    transform: translate3d(40px, 50px, 0);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes lpPulseRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.45);
+    transform: scale(1);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(251, 113, 133, 0);
+    transform: scale(1.08);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(251, 113, 133, 0);
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-reveal,
+  .lp-hero-enter,
+  .lp-title-shimmer,
+  .lp-chat-in-right,
+  .lp-chat-in-left,
+  .lp-typing-dot,
+  .lp-ai-frame,
+  .lp-hero-preview,
+  .lp-float-a,
+  .lp-float-b,
+  .lp-float-c,
+  .lp-float-d,
+  .lp-cursor-ghost,
+  .lp-pulse-ring,
+  .lp-btn-shine::after {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
