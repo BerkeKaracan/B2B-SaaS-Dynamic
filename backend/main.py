@@ -8,7 +8,7 @@ from core.limiter import limiter
 import time
 import logging
 
-from api.routers import records, auth, tenants, public, notifications, ai, public_ai, github, chat
+from api.routers import records, auth, tenants, public, notifications, ai, public_ai, github, chat, fx
 from core.config import settings
 
 import sentry_sdk
@@ -103,3 +103,4 @@ app.include_router(public_ai.router)
 app.include_router(github.router)
 app.include_router(chat.router)
 app.include_router(tasks.router)
+app.include_router(fx.router)

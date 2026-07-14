@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useMemo } from 'react';
 import { fetchAPI } from '@/services/api';
 import Cookies from 'js-cookie';
 import {
@@ -12,35 +12,42 @@ import {
   Building,
   AlertCircle,
 } from 'lucide-react';
+import {
+  convertFromUsd,
+  formatMoney,
+  normalizeCurrency,
+  type FxRatesMap,
+  type SupportedCurrency,
+} from '@/lib/currency';
 
 interface TenantData {
   id: string;
   name: string;
   tier: string;
+  currency?: string;
 }
 
 type PlanType = 'basic' | 'advanced' | 'pro';
 
-const MOCK_INVOICES = [
-  {
-    id: 'INV-2026-004',
-    date: 'Jul 01, 2026',
-    amount: '$49.00',
-    status: 'Paid',
-  },
-  {
-    id: 'INV-2026-003',
-    date: 'Jun 01, 2026',
-    amount: '$49.00',
-    status: 'Paid',
-  },
-  {
-    id: 'INV-2026-002',
-    date: 'May 01, 2026',
-    amount: '$49.00',
-    status: 'Paid',
-  },
-];
+/** Plan prices quoted in USD (source of truth before FX conversion). */
+const PLAN_PRICES_USD = {
+  basic: { monthly: 0, annual: 0 },
+  advanced: { monthly: 49, annual: 470 },
+  pro: { monthly: 199, annual: 1900 },
+} as const;
+
+const MOCK_INVOICE_META = [
+  { id: 'INV-2026-004', date: 'Jul 01, 2026', amountUsd: 49 },
+  { id: 'INV-2026-003', date: 'Jun 01, 2026', amountUsd: 49 },
+  { id: 'INV-2026-002', date: 'May 01, 2026', amountUsd: 49 },
+] as const;
+
+const FALLBACK_RATES: FxRatesMap = {
+  USD: 1,
+  EUR: 0.88,
+  GBP: 0.75,
+  TRY: 47,
+};
 
 export default function BillingPage({
   params,
@@ -55,10 +62,14 @@ export default function BillingPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnnual, setIsAnnual] = useState(false);
+  const [fxRates, setFxRates] = useState<FxRatesMap>(FALLBACK_RATES);
+  const [fxSource, setFxSource] = useState<'live' | 'fallback'>('fallback');
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
     msg: string;
   } | null>(null);
+
+  const currency: SupportedCurrency = normalizeCurrency(tenant?.currency);
 
   const strictNoCacheHeaders = {
     'x-tenant-id': tenantId,
@@ -81,7 +92,7 @@ export default function BillingPage({
           cache: 'no-store' as RequestCache,
         };
 
-        const [tenantRes, teamRes] = await Promise.all([
+        const [tenantRes, teamRes, fxRes] = await Promise.all([
           fetchAPI(
             `/api/tenants/${tenantId}?t=${new Date().getTime()}`,
             fetchOptions
@@ -90,6 +101,7 @@ export default function BillingPage({
             `/api/tenants/${tenantId}/team?t=${new Date().getTime()}`,
             fetchOptions
           ),
+          fetchAPI(`/api/fx/rates?base=USD&symbols=EUR,GBP,TRY`),
         ]);
 
         if (tenantRes.ok) {
@@ -101,8 +113,25 @@ export default function BillingPage({
           const teamData = await teamRes.json();
           setTeamMemberCount(teamData.length || 1);
         }
+
+        if (fxRes.ok) {
+          const fxData = await fxRes.json();
+          const rates = (fxData.rates ?? {}) as FxRatesMap;
+          setFxRates({
+            USD: 1,
+            EUR: rates.EUR ?? FALLBACK_RATES.EUR,
+            GBP: rates.GBP ?? FALLBACK_RATES.GBP,
+            TRY: rates.TRY ?? FALLBACK_RATES.TRY,
+          });
+          setFxSource(fxData.source === 'live' ? 'live' : 'fallback');
+        } else {
+          setFxRates(FALLBACK_RATES);
+          setFxSource('fallback');
+        }
       } catch (error) {
         console.error('Failed to load billing or team data', error);
+        setFxRates(FALLBACK_RATES);
+        setFxSource('fallback');
       } finally {
         setIsLoading(false);
       }
@@ -111,6 +140,28 @@ export default function BillingPage({
     loadBillingData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
+
+  const formatUsdPrice = (amountUsd: number) =>
+    formatMoney(convertFromUsd(amountUsd, currency, fxRates), currency);
+
+  const planPrice = (plan: PlanType) => {
+    const usd = isAnnual
+      ? PLAN_PRICES_USD[plan].annual
+      : PLAN_PRICES_USD[plan].monthly;
+    return formatUsdPrice(usd);
+  };
+
+  const invoices = useMemo(
+    () =>
+      MOCK_INVOICE_META.map((invoice) => ({
+        ...invoice,
+        amount: formatUsdPrice(invoice.amountUsd),
+        status: 'Paid' as const,
+      })),
+    // formatUsdPrice closes over currency + fxRates
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currency, fxRates]
+  );
 
   const showNotification = (type: 'success' | 'error', msg: string) => {
     setNotification({ type, msg });
@@ -193,6 +244,18 @@ export default function BillingPage({
             Manage your workspace subscription, payment methods, and billing
             history.
           </p>
+          {fxSource === 'fallback' && (
+            <p className="text-xs text-amber-600 mt-2 font-medium flex items-center gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              Approximate rates (live FX unavailable). Prices shown in{' '}
+              {currency}.
+            </p>
+          )}
+          {fxSource === 'live' && (
+            <p className="text-xs text-zinc-400 mt-2 font-medium">
+              Prices converted from USD to {currency} using live ECB rates.
+            </p>
+          )}
         </div>
 
         {notification && (
@@ -311,7 +374,9 @@ export default function BillingPage({
               <h3 className="text-lg font-bold text-zinc-900">Basic</h3>
             </div>
             <div className="mb-6 flex items-end gap-1">
-              <span className="text-4xl font-black text-zinc-900">$0</span>
+              <span className="text-4xl font-black text-zinc-900">
+                {planPrice('basic')}
+              </span>
               <span className="text-sm font-medium text-zinc-500 mb-1">
                 /{isAnnual ? 'year' : 'month'}
               </span>
@@ -356,7 +421,7 @@ export default function BillingPage({
             </div>
             <div className="mb-6 flex items-end gap-1">
               <span className="text-4xl font-black text-zinc-900">
-                ${isAnnual ? '470' : '49'}
+                {planPrice('advanced')}
               </span>
               <span className="text-sm font-medium text-zinc-500 mb-1">
                 /{isAnnual ? 'year' : 'month'}
@@ -400,7 +465,7 @@ export default function BillingPage({
             </div>
             <div className="mb-6 flex items-end gap-1">
               <span className="text-4xl font-black text-zinc-900">
-                ${isAnnual ? '1900' : '199'}
+                {planPrice('pro')}
               </span>
               <span className="text-sm font-medium text-zinc-500 mb-1">
                 /{isAnnual ? 'year' : 'month'}
@@ -445,7 +510,7 @@ export default function BillingPage({
           </div>
 
           <div className="divide-y divide-zinc-100">
-            {MOCK_INVOICES.map((invoice) => (
+            {invoices.map((invoice) => (
               <div
                 key={invoice.id}
                 className="flex items-center justify-between p-4 px-6 hover:bg-zinc-50/50 transition-colors"
