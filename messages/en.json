@@ -32,7 +32,17 @@
       "communityHub": "Community Hub",
       "pricing": "Pricing",
       "signIn": "Sign In",
-      "deployWorkspace": "Deploy Workspace"
+      "deployWorkspace": "Deploy Workspace",
+      "exploreDocs": "Explore documentation",
+      "exploreDocsDesc": "Architecture, APIs, and canvas guides.",
+      "viewAllSolutions": "Browse all solutions",
+      "docsDesc": "Guides, references, and SDK notes.",
+      "changelogDesc": "What shipped recently.",
+      "hubDesc": "Live public frameworks to explore.",
+      "featured": "Featured",
+      "open": "Open",
+      "livePreview": "Live preview",
+      "docsShort": "Docs"
     },
     "hero": {
       "versionLive": "SaaS Engine v1.0 is Live",

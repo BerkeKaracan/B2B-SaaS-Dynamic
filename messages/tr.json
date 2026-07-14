@@ -32,7 +32,17 @@
       "communityHub": "Topluluk Merkezi",
       "pricing": "Fiyatlandırma",
       "signIn": "Giriş Yap",
-      "deployWorkspace": "Çalışma Alanı Kur"
+      "deployWorkspace": "Çalışma Alanı Kur",
+      "exploreDocs": "Dokümantasyonu keşfet",
+      "exploreDocsDesc": "Mimari, API ve tuval rehberleri.",
+      "viewAllSolutions": "Tüm çözümleri gör",
+      "docsDesc": "Rehberler, referanslar ve SDK notları.",
+      "changelogDesc": "Son çıkanlar.",
+      "hubDesc": "Keşfedilecek canlı public framework’ler.",
+      "featured": "Öne çıkan",
+      "open": "Aç",
+      "livePreview": "Canlı önizleme",
+      "docsShort": "Docs"
     },
     "hero": {
       "versionLive": "SaaS Engine v1.0 Yayında",
