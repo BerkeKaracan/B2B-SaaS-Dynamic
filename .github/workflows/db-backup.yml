@@ -17,9 +17,13 @@ jobs:
 
       - name: Backup Database
         env:
-          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PGHOST: aws-0-eu-central-1.pooler.supabase.com
+          PGPORT: 5432
+          PGUSER: postgres.vdfqqlyrrzcscaaizrac
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGDATABASE: postgres
         run: |
-          pg_dump "$DATABASE_URL" -x -O > backup.sql
+          pg_dump -x -O > backup.sql
 
       - name: Upload Backup as Artifact
         uses: actions/upload-artifact@v4
