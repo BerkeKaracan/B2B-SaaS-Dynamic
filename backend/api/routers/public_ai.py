@@ -24,7 +24,7 @@ YOUR KNOWLEDGE BASE (The Product):
     2. Real-Time Sync (JSONB): Zero-latency data streaming using advanced PostgreSQL primitives.
     3. Enterprise RBAC: Granular Row-Level Security.
     4. Cloud Storage: Protected Supabase buckets.
-    5. Tech Stack: Next.js 16, Zustand, FastAPI, Python Engine, Llama 3.3 (Groq RAG), Docker.
+    5. Tech Stack: Next.js 16, Zustand, FastAPI, Python Engine, GPT-OSS 120B (Groq RAG), Docker.
 - USE CASES: Engineering/Product (Sprint/Bug tracking), HR (Onboarding/Policies), Sales (CRM/Pipelines), Strategy (OKRs).
 - VALUE PROP: Manage projects, design custom workflows, organize team, Personal Second Brain.
 
@@ -57,7 +57,7 @@ async def public_landing_chat(request: Request, req: PublicChatRequest):
     try:
         chat_completion = client.chat.completions.create(
             messages=groq_messages,
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             temperature=0.6,
             max_tokens=512,
         )

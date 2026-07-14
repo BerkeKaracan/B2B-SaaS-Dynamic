@@ -58,7 +58,7 @@
       "title1": "Chat directly with",
       "title2": "your Canvas Data.",
       "desc": "Meet your context-aware AI assistant. Our built-in RAG engine reads your active blocks in real-time. Ask questions, summarize projects, or use the Generative Wand to let AI structure your thoughts instantly.",
-      "feat1": "Context-Aware Chatbot (Llama 3.3)",
+      "feat1": "Context-Aware Chatbot (GPT-OSS 120B)",
       "feat2": "Generative Magic Wand",
       "feat3": "Real-time Canvas Parsing",
       "chatQ": "Summarize the Q3 Roadmap items on my canvas.",
@@ -94,7 +94,7 @@
       "t2": "FastAPI & Python Engine",
       "d2": "High-performance asynchronous backend architecture to handle complex RAG pipelines and heavy data processing instantly.",
       "dd2": "Utilizes async endpoints to seamlessly manage thousands of concurrent WebSocket streams for AI tasks.",
-      "t3": "Llama 3.3 (Groq RAG)",
+      "t3": "GPT-OSS 120B (Groq RAG)",
       "d3": "State-of-the-art open-weight AI models providing real-time, context-aware generations directly inside your workspace.",
       "dd3": "Inference running at 800+ tokens per second. Fully contextualized with your active canvas elements.",
       "t4": "Supabase & PostgreSQL",
@@ -122,7 +122,7 @@
       "title1": "Unlock the",
       "title2": "Pro Edition",
       "title3": "today.",
-      "desc": "Join the beta now and get lifetime access to the Llama 3.3 RAG engine, unlimited dynamic blocks, and priority support. No credit card required for the first 14 days.",
+      "desc": "Join the beta now and get lifetime access to the GPT-OSS 120B RAG engine, unlimited dynamic blocks, and priority support. No credit card required for the first 14 days.",
       "claim": "Claim Your Offer",
       "spots": "Limited spots available"
     },
@@ -195,7 +195,7 @@
     },
     "ai": {
       "title": "Context-Aware AI",
-      "desc": "Chat with your canvas. Our built-in Llama 3.3 engine reads your blocks and helps you brainstorm, summarize, and generate content."
+      "desc": "Chat with your canvas. Our built-in GPT-OSS 120B engine reads your blocks and helps you brainstorm, summarize, and generate content."
     },
     "cta": {
       "title": "Ready to experience the difference?",
@@ -811,7 +811,7 @@
     "title": "Ask AI Anything",
     "desc": "Curious about how SaaS Engine works? Our AI is trained on all our documentation. Ask up to 10 questions for free before creating your account!",
     "poweredBy": "Powered by",
-    "engine": "Llama 3.3 Engine",
+    "engine": "GPT-OSS 120B Engine",
     "emptyState": "Hello! Ask me about features, pricing, or how to get started.",
     "thinking": "Thinking...",
     "limitTitle": "You have reached your free question limit.",

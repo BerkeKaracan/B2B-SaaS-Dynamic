@@ -58,7 +58,7 @@
       "title1": "Doğrudan Tuval Verilerinizle",
       "title2": "Sohbet Edin.",
       "desc": "Bağlamın farkında olan yapay zeka asistanınızla tanışın. Yerleşik RAG motorumuz aktif bloklarınızı gerçek zamanlı okur. Sorular sorun, projeleri özetleyin veya Üretken Asa'yı kullanarak AI'ın düşüncelerinizi anında yapılandırmasına izin verin.",
-      "feat1": "Bağlam Farkındalıklı Sohbet Botu (Llama 3.3)",
+      "feat1": "Bağlam Farkındalıklı Sohbet Botu (GPT-OSS 120B)",
       "feat2": "Üretken Sihirli Asa",
       "feat3": "Gerçek Zamanlı Tuval Analizi",
       "chatQ": "Tuvalimdeki 3. Çeyrek Yol Haritası maddelerini özetle.",
@@ -94,7 +94,7 @@
       "t2": "FastAPI ve Python Motoru",
       "d2": "Karmaşık RAG boru hatlarını ve ağır veri işlemeyi anında ele almak için yüksek performanslı asenkron arka uç mimarisi.",
       "dd2": "Yapay zeka görevleri için binlerce eşzamanlı WebSocket akışını sorunsuzca yönetmek için asenkron uç noktaları kullanır.",
-      "t3": "Llama 3.3 (Groq RAG)",
+      "t3": "GPT-OSS 120B (Groq RAG)",
       "d3": "Çalışma alanınızda doğrudan gerçek zamanlı, bağlam farkındalıklı üretimler sağlayan son teknoloji açık ağırlıklı yapay zeka modelleri.",
       "dd3": "Saniyede 800+ token hızında çalışan çıkarım motoru. Aktif tuval öğelerinizle tamamen bağlamsallaştırılmıştır.",
       "t4": "Supabase ve PostgreSQL",
@@ -122,7 +122,7 @@
       "title1": "Bugün",
       "title2": "Pro Sürümün",
       "title3": "kilidini açın.",
-      "desc": "Beta sürümüne hemen katılın ve Llama 3.3 RAG motoruna, sınırsız dinamik bloğa ve öncelikli desteğe ömür boyu erişim kazanın. İlk 14 gün için kredi kartı gerekmez.",
+      "desc": "Beta sürümüne hemen katılın ve GPT-OSS 120B RAG motoruna, sınırsız dinamik bloğa ve öncelikli desteğe ömür boyu erişim kazanın. İlk 14 gün için kredi kartı gerekmez.",
       "claim": "Teklifinizi Alın",
       "spots": "Sınırlı kontenjan"
     },
@@ -195,7 +195,7 @@
     },
     "ai": {
       "title": "Bağlam Farkındalıklı AI",
-      "desc": "Tuvalinizle sohbet edin. Yerleşik Llama 3.3 motorumuz bloklarınızı okur; beyin fırtınası yapmanıza, özetlemenize ve içerik üretmenize yardımcı olur."
+      "desc": "Tuvalinizle sohbet edin. Yerleşik GPT-OSS 120B motorumuz bloklarınızı okur; beyin fırtınası yapmanıza, özetlemenize ve içerik üretmenize yardımcı olur."
     },
     "cta": {
       "title": "Farkı deneyimlemeye hazır mısınız?",
@@ -811,7 +811,7 @@
     "title": "Yapay Zekaya Sorun",
     "desc": "SaaS Engine'in nasıl çalıştığını merak mı ediyorsunuz? Yapay zekamız tüm dokümantasyonumuzla eğitildi. Hesap oluşturmadan önce 10'a kadar soruyu ücretsiz sorabilirsiniz!",
     "poweredBy": "Altyapı",
-    "engine": "Llama 3.3 Engine",
+    "engine": "GPT-OSS 120B Engine",
     "emptyState": "Merhaba! Bana özellikler, fiyatlandırma veya nasıl başlanacağı hakkında sorular sorabilirsiniz.",
     "thinking": "Düşünüyor...",
     "limitTitle": "Ücretsiz soru sorma sınırınıza ulaştınız.",
