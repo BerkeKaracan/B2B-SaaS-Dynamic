@@ -17,7 +17,7 @@ jobs:
 
       - name: Backup Database
         env:
-          PGHOST: aws-0-eu-central-1.pooler.supabase.com
+          PGHOST: aws-1-eu-central-1.pooler.supabase.com
           PGPORT: 5432
           PGUSER: postgres.vdfqqlyrrzcscaaizrac
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
