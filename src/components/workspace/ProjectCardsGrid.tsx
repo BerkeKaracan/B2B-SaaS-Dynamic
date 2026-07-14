@@ -37,6 +37,7 @@ import {
   Filter,
   X,
   ArrowUpDown,
+  Sparkles,
 } from 'lucide-react';
 import { logActivity } from '@/lib/activityLogger';
 
@@ -138,12 +139,26 @@ export default function ProjectCardsGrid({
       return {
         title: 'Trash',
         desc: 'Manage deleted projects. Items here will be permanently removed after 30 days.',
+        badge: 'Storage · Trash',
+        Icon: Trash2,
+        accent: 'text-rose-600 dark:text-rose-400',
+        badgeClass:
+          'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 text-rose-700 dark:text-rose-300',
+        iconBox:
+          'border-rose-200/80 dark:border-rose-500/30',
       };
     }
     if (view === 'archive') {
       return {
         title: 'Archived Projects',
         desc: 'View and restore your frozen or completed workspaces.',
+        badge: 'Storage · Archive',
+        Icon: Archive,
+        accent: 'text-amber-600 dark:text-amber-400',
+        badgeClass:
+          'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20 text-amber-700 dark:text-amber-300',
+        iconBox:
+          'border-amber-200/80 dark:border-amber-500/30',
       };
     }
     if (view === 'favorites') {
@@ -163,6 +178,8 @@ export default function ProjectCardsGrid({
       desc: 'Select a live record to load into the engine canvas framework.',
     };
   }, [view, currentFolder]);
+
+  const isStorageView = view === 'trash' || view === 'archive';
 
   const TEMPLATES = useMemo(
     () => [
@@ -684,24 +701,86 @@ export default function ProjectCardsGrid({
 
   return (
     <div className="flex-1 w-full relative transition-colors duration-300">
-      <div className="mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <h1 className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-3">
-          {view === 'favorites' && (
-            <Star className="w-8 h-8 text-amber-500 fill-amber-500" />
-          )}
-          {currentFolder && <Folder className="w-8 h-8 text-indigo-500" />}
-          {headerContent.title}
-        </h1>
-        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mt-1.5">
-          {headerContent.desc}
-        </p>
+      <div
+        className={`relative z-10 mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500 ${
+          isStorageView ? 'flex flex-col sm:flex-row sm:items-end justify-between gap-6' : ''
+        }`}
+      >
+        {isStorageView && 'Icon' in headerContent && headerContent.Icon ? (
+          <div className="flex items-start gap-4">
+            <div
+              className={`w-12 h-12 bg-white dark:bg-zinc-900 border rounded-2xl flex items-center justify-center shadow-sm shrink-0 ${headerContent.iconBox}`}
+            >
+              {(() => {
+                const HeaderIcon = headerContent.Icon;
+                return (
+                  <HeaderIcon className={`w-5 h-5 ${headerContent.accent}`} />
+                );
+              })()}
+            </div>
+            <div className="min-w-0 pt-0.5">
+              <div
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest mb-2 ${headerContent.badgeClass}`}
+              >
+                <Sparkles className="w-3 h-3" />
+                {headerContent.badge}
+              </div>
+              <h1 className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
+                {headerContent.title}
+              </h1>
+              <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mt-1.5 max-w-xl leading-relaxed">
+                {headerContent.desc}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <h1 className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-3">
+              {view === 'favorites' && (
+                <Star className="w-8 h-8 text-amber-500 fill-amber-500" />
+              )}
+              {currentFolder && <Folder className="w-8 h-8 text-indigo-500" />}
+              {headerContent.title}
+            </h1>
+            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mt-1.5">
+              {headerContent.desc}
+            </p>
+          </>
+        )}
+
+        {isStorageView && (
+          <div className="flex items-center gap-3">
+            <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur border border-zinc-200/80 dark:border-zinc-800 rounded-2xl px-4 py-3 shadow-sm">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-0.5">
+                Items
+              </p>
+              <p className="text-2xl font-black text-zinc-900 dark:text-white tabular-nums leading-none">
+                {displayedProjects.length}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 md:p-5 flex flex-col gap-3 shadow-sm mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div
+        className={`relative z-10 border rounded-2xl p-4 md:p-5 flex flex-col gap-3 shadow-sm mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ${
+          isStorageView
+            ? 'bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-zinc-200/80 dark:border-zinc-800'
+            : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800'
+        }`}
+      >
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-1 min-w-0 w-full">
             <div className="relative group w-full sm:max-w-xs lg:max-w-sm shrink-0">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 w-4 h-4 transition-colors group-focus-within:text-indigo-500 pointer-events-none" />
+              <Search
+                className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 w-4 h-4 transition-colors pointer-events-none ${
+                  view === 'trash'
+                    ? 'group-focus-within:text-rose-500'
+                    : view === 'archive'
+                      ? 'group-focus-within:text-amber-500'
+                      : 'group-focus-within:text-indigo-500'
+                }`}
+              />
               <input
                 type="text"
                 placeholder={
@@ -715,7 +794,13 @@ export default function ProjectCardsGrid({
                 }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-zinc-50/50 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 transition-all"
+                className={`w-full bg-zinc-50/50 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 transition-all ${
+                  view === 'trash'
+                    ? 'focus:ring-rose-500/20 focus:border-rose-400/60'
+                    : view === 'archive'
+                      ? 'focus:ring-amber-500/20 focus:border-amber-400/60'
+                      : 'focus:ring-indigo-500/20 focus:border-indigo-500/50'
+                }`}
               />
             </div>
 
@@ -790,7 +875,7 @@ export default function ProjectCardsGrid({
                 <span className="text-sm">Trash</span>
               </div>
             ) : view === 'archive' ? (
-              <div className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-bold rounded-xl flex items-center gap-2 border border-zinc-200 dark:border-zinc-700">
+              <div className="px-4 py-2 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold rounded-xl flex items-center gap-2 border border-amber-100 dark:border-amber-500/20">
                 <Archive className="w-4 h-4" />
                 <span className="text-sm">Archive</span>
               </div>
@@ -844,24 +929,64 @@ export default function ProjectCardsGrid({
       </div>
 
       {isLoading ? (
-        <div className="py-20 flex justify-center items-center">
+        <div className="relative z-10 py-20 flex justify-center items-center">
           <LoadingSpinner size="lg" text="Loading workspaces..." />
         </div>
       ) : displayedProjects.length === 0 ? (
-        <div className="py-16 flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50">
-          <Search className="w-6 h-6 text-zinc-400 dark:text-zinc-500 mb-3" />
-          <p className="text-sm text-zinc-900 dark:text-zinc-100 font-semibold">
-            {view === 'trash'
-              ? 'Trash is empty.'
-              : view === 'archive'
-                ? 'No archived projects.'
-                : view === 'favorites'
-                  ? 'No favorite projects yet.'
-                  : t('noProjectsFound')}
-          </p>
+        <div
+          className={`relative z-10 py-16 flex flex-col items-center justify-center rounded-3xl border shadow-sm ${
+            isStorageView
+              ? 'border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 overflow-hidden'
+              : 'border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50'
+          }`}
+        >
+          {isStorageView && (
+            <div
+              className={`absolute inset-0 pointer-events-none ${
+                view === 'trash'
+                  ? 'bg-[radial-gradient(ellipse_at_top,_rgba(244,63,94,0.08),_transparent_60%)]'
+                  : 'bg-[radial-gradient(ellipse_at_top,_rgba(245,158,11,0.08),_transparent_60%)]'
+              }`}
+            />
+          )}
+          <div className="relative flex flex-col items-center">
+            <div
+              className={`w-14 h-14 mb-4 rounded-2xl flex items-center justify-center border ${
+                view === 'trash'
+                  ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20'
+                  : view === 'archive'
+                    ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20'
+                    : 'bg-zinc-100 dark:bg-zinc-800 border-transparent'
+              }`}
+            >
+              {view === 'trash' ? (
+                <Trash2 className="w-6 h-6 text-rose-500" />
+              ) : view === 'archive' ? (
+                <Archive className="w-6 h-6 text-amber-500" />
+              ) : (
+                <Search className="w-6 h-6 text-zinc-400 dark:text-zinc-500" />
+              )}
+            </div>
+            <p className="text-sm text-zinc-900 dark:text-zinc-100 font-semibold">
+              {view === 'trash'
+                ? 'Trash is empty.'
+                : view === 'archive'
+                  ? 'No archived projects.'
+                  : view === 'favorites'
+                    ? 'No favorite projects yet.'
+                    : t('noProjectsFound')}
+            </p>
+            {isStorageView && (
+              <p className="text-xs font-medium text-zinc-500 mt-1.5 max-w-sm text-center">
+                {view === 'trash'
+                  ? 'Deleted workspaces will appear here for 30 days before permanent removal.'
+                  : 'Freeze completed workspaces from the project menu to find them here.'}
+              </p>
+            )}
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in duration-500">
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in duration-500">
           {displayedProjects.map((project) => {
             const status = project.record_data?.status || 'active';
             const isJustAdmin =
@@ -882,12 +1007,18 @@ export default function ProjectCardsGrid({
               TEMPLATES.find((temp) => temp.id === templateType) ||
               TEMPLATES[0];
             const baseClasses =
-              'group relative rounded-xl bg-white dark:bg-zinc-900 flex flex-col transition-all duration-200 transform-gpu will-change-transform border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-md';
+              'group relative rounded-xl bg-white dark:bg-zinc-900 flex flex-col transition-all duration-200 transform-gpu will-change-transform border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-md overflow-hidden';
             const hoverClasses =
               status === 'active'
                 ? 'hover:-translate-y-0.5 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer'
-                : 'opacity-80 grayscale-[20%] cursor-default';
-            const cardClasses = `${baseClasses} ${hoverClasses} ${isOpen ? 'z-50' : 'z-10'}`;
+                : 'opacity-90 cursor-default';
+            const storageAccent =
+              status === 'trashed'
+                ? 'before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-rose-400'
+                : status === 'archived'
+                  ? 'before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-amber-400'
+                  : '';
+            const cardClasses = `${baseClasses} ${hoverClasses} ${storageAccent} ${isOpen ? 'z-50' : 'z-10'}`;
 
             const cardContent = (
               <>
