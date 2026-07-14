@@ -3,6 +3,7 @@
 import React, { use } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Shield, Sparkles, Zap } from "lucide-react";
+import BrandLogo from "@/components/brand/BrandLogo";
 
 type SolutionContent = {
   title: string;
@@ -169,15 +170,7 @@ export default function SolutionLandingPage({
       </div>
 
       <header className="h-16 border-b border-zinc-200/50 bg-white/75 backdrop-blur-md px-6 lg:px-10 flex items-center justify-between sticky top-0 z-50">
-        <Link
-          href="/"
-          className="flex items-center gap-3 font-extrabold text-sm tracking-tight uppercase"
-        >
-          <div className="w-7 h-7 bg-zinc-950 rounded-lg flex items-center justify-center text-white text-[10px] font-mono border border-zinc-800">
-            B2
-          </div>
-          SaaS Engine
-        </Link>
+        <BrandLogo size="sm" />
         <div className="flex items-center gap-4">
           <Link
             href="/pricing"

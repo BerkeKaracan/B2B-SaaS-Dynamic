@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService, fetchAPI } from '@/services/api';
 import Link from 'next/link';
+import BrandLogo from '@/components/brand/BrandLogo';
 import Cookies from 'js-cookie';
 import { getApiBaseUrl } from '@/lib/apiBase';
 
@@ -138,11 +139,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafafb] font-sans text-zinc-900 px-4">
       <div className="w-full max-w-lg">
         <div className="flex justify-center mb-8">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-              <span className="text-white text-sm font-bold font-mono">B2</span>
-            </div>
-          </Link>
+          <BrandLogo showWordmark={false} size="md" markClassName="group-hover:scale-105 transition-transform" />
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl border border-zinc-200/60 p-8 sm:p-10 relative overflow-hidden">

@@ -2,6 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import BrandLogo from "@/components/brand/BrandLogo";
 
 export default function Footer() {
   const t = useTranslations("Footer");
@@ -11,15 +12,8 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto px-6">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-16">
           <div className="col-span-2 md:col-span-2">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-zinc-950 rounded-lg flex items-center justify-center shadow-md border border-zinc-800">
-                <span className="text-white text-xs font-black font-mono tracking-tighter">
-                  B2
-                </span>
-              </div>
-              <span className="text-base font-extrabold text-zinc-900 tracking-tight uppercase">
-                SaaS Engine
-              </span>
+            <div className="mb-6">
+              <BrandLogo href={false} size="md" showTagline />
             </div>
             <p className="text-zinc-500 text-sm leading-relaxed max-w-xs mb-6">
               {t("description")}

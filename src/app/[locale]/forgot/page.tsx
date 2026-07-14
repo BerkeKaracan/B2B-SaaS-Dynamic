@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
+import BrandLogo, { BrandMark } from "@/components/brand/BrandLogo";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -34,15 +35,8 @@ export default function ForgotPasswordPage() {
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none"></div>
 
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-zinc-950 text-sm font-black font-mono">
-              B2
-            </span>
-          </div>
-          <span className="text-base font-extrabold tracking-tight uppercase text-white">
-            SaaS Engine
-          </span>
+        <div className="relative z-10">
+          <BrandLogo size="md" inverted showTagline href={false} />
         </div>
 
         <div className="relative z-10 w-full max-w-lg mx-auto mt-10">
@@ -137,11 +131,7 @@ export default function ForgotPasswordPage() {
             )}
 
             <div className="lg:hidden flex flex-col items-center gap-3 mb-8">
-              <div className="w-10 h-10 bg-zinc-950 rounded-xl flex items-center justify-center shadow-lg border border-zinc-800">
-                <span className="text-white text-sm font-black font-mono">
-                  B2
-                </span>
-              </div>
+              <BrandMark size="md" />
             </div>
 
             <div className="mb-8">

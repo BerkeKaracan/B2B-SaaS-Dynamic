@@ -3,6 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import Footer from "@/components/layout/Footer";
+import BrandLogo from "@/components/brand/BrandLogo";
 import { ArrowLeft, BookOpen, ArrowRight } from "lucide-react";
 
 export default function BlogPage() {
@@ -38,16 +39,7 @@ export default function BlogPage() {
             {t("back")}
           </span>
         </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-zinc-950 rounded-xl flex items-center justify-center shadow-md">
-            <span className="text-white text-xs font-black font-mono tracking-tighter">
-              B2
-            </span>
-          </div>
-          <span className="text-sm font-black text-zinc-950 tracking-tight uppercase">
-            SaaS Engine
-          </span>
-        </div>
+        <BrandLogo href={false} size="sm" />
         <div className="w-16"></div>
       </header>
 

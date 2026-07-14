@@ -23,6 +23,7 @@ import {
   BookOpen,
   ExternalLink,
 } from 'lucide-react';
+import BrandLogo from '@/components/brand/BrandLogo';
 
 const megaPanel =
   'absolute top-[calc(100%+8px)] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_28px_70px_-20px_rgba(24,24,27,0.28)] rounded-3xl opacity-0 scale-[0.98] pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-300 ease-out origin-top z-50 overflow-hidden';
@@ -102,26 +103,11 @@ export default function LandingNavbar() {
         } rounded-2xl`}
       >
         <div className="h-14 md:h-16 px-3 sm:px-4 md:px-5 flex items-center justify-between gap-3">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 shrink-0 group active:scale-95 transition-transform"
+          <BrandLogo
+            showTagline
+            markClassName="group-hover:bg-zinc-800 transition-colors"
             onClick={closeMobile}
-          >
-            <div className="relative w-9 h-9 bg-zinc-950 rounded-xl flex items-center justify-center shadow-sm border border-zinc-800 group-hover:bg-zinc-800 transition-colors overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.35),transparent_55%)] opacity-80" />
-              <span className="relative text-white text-xs font-black font-mono tracking-tighter">
-                B2
-              </span>
-            </div>
-            <div className="min-w-0 leading-tight">
-              <span className="block text-sm font-black text-zinc-950 tracking-tight">
-                SaaS Engine
-              </span>
-              <span className="hidden sm:block text-[10px] font-bold uppercase tracking-widest text-sky-600/80">
-                Workspace OS
-              </span>
-            </div>
-          </Link>
+          />
 
           <nav className="hidden lg:flex items-center gap-0.5 h-full">
             {/* Platform mega */}

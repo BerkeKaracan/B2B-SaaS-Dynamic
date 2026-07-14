@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { BrandMark } from "@/components/brand/BrandLogo";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { fetchAPI } from "@/services/api";
@@ -469,11 +470,7 @@ export default function PublicSharePage() {
     <div className="min-h-screen bg-[#fafafb] text-zinc-900 font-sans selection:bg-zinc-100 flex flex-col overflow-hidden relative antialiased">
       <header className="relative z-50 h-14 border-b border-zinc-200 bg-white px-6 flex items-center justify-between shadow-xs shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 bg-zinc-950 rounded-md flex items-center justify-center">
-            <span className="text-white text-[10px] font-black font-mono">
-              B2
-            </span>
-          </div>
+          <BrandMark size="sm" />
           <div className="h-4 w-px bg-zinc-200"></div>
           <div className="flex flex-col min-w-0">
             <h1 className="text-xs font-semibold text-zinc-950 truncate max-w-[180px] sm:max-w-xs leading-none">

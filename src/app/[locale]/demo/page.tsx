@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { BrandMark } from '@/components/brand/BrandLogo';
 import { fetchAPI } from '@/services/api';
 import {
   Rocket,
@@ -170,13 +171,8 @@ export default function DemoHubPage() {
 
       <header className="relative z-50 h-14 border-b border-zinc-200/60 bg-white/70 backdrop-blur-md px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="w-8 h-8 bg-zinc-950 rounded-lg flex items-center justify-center shadow-sm border border-zinc-800 hover:scale-95 transition-transform"
-          >
-            <span className="text-white text-[10px] font-black font-mono">
-              B2
-            </span>
+          <Link href="/" className="hover:scale-95 transition-transform inline-flex">
+            <BrandMark size="sm" />
           </Link>
           <div className="h-4 w-px bg-zinc-300" />
           <span className="text-xs font-black uppercase tracking-widest text-zinc-950">

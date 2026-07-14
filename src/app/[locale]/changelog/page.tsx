@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import BrandLogo from '@/components/brand/BrandLogo';
 import { fetchAPI } from '@/services/api';
 import { Loader2 } from 'lucide-react';
 
@@ -64,15 +65,7 @@ export default function ChangelogPage() {
   return (
     <div className="min-h-screen bg-[#fafafb] text-zinc-900 font-sans antialiased selection:bg-zinc-200 flex flex-col">
       <header className="h-16 border-b border-zinc-200/50 bg-white/75 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-50">
-        <Link
-          href="/"
-          className="flex items-center gap-3 font-extrabold text-sm tracking-tight uppercase"
-        >
-          <div className="w-7 h-7 bg-zinc-950 rounded-lg flex items-center justify-center text-white text-[10px] font-mono">
-            B2
-          </div>
-          SaaS Engine
-        </Link>
+        <BrandLogo size="sm" />
         <Link
           href="/"
           className="text-xs font-bold text-zinc-500 hover:text-zinc-950 transition-colors"

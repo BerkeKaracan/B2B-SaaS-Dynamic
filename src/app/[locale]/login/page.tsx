@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import BrandLogo, { BrandMark } from '@/components/brand/BrandLogo';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import Cookies from 'js-cookie';
@@ -197,15 +198,8 @@ export default function LoginPage() {
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-fuchsia-500/10 rounded-full blur-[100px] pointer-events-none"></div>
 
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-[14px] flex items-center justify-center shadow-lg">
-            <span className="text-zinc-950 text-sm font-black font-mono">
-              B2
-            </span>
-          </div>
-          <span className="text-base font-extrabold tracking-tight uppercase text-white">
-            SaaS Engine
-          </span>
+        <div className="relative z-10">
+          <BrandLogo size="md" inverted showTagline href={false} />
         </div>
 
         <div className="relative z-10 w-full max-w-lg mx-auto mt-10">
@@ -254,11 +248,7 @@ export default function LoginPage() {
         <div className="w-full max-w-[440px] relative z-10">
           <div className="bg-white p-8 sm:p-12 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-zinc-200/80 relative">
             <div className="lg:hidden flex flex-col items-center gap-3 mb-10">
-              <div className="w-12 h-12 bg-zinc-950 rounded-2xl flex items-center justify-center shadow-lg border border-zinc-800">
-                <span className="text-white text-base font-black font-mono">
-                  B2
-                </span>
-              </div>
+              <BrandMark size="lg" />
             </div>
 
             <div className="mb-8 text-center">

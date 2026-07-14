@@ -12,6 +12,7 @@ import {
   Terminal,
   Cpu,
 } from "lucide-react";
+import { BrandMark } from "@/components/brand/BrandLogo";
 
 export default function DocsAndArchitecturePage() {
   return (
@@ -19,11 +20,7 @@ export default function DocsAndArchitecturePage() {
       <header className="border-b border-zinc-200 bg-white sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-zinc-950 rounded-lg flex items-center justify-center">
-              <span className="text-white text-xs font-black font-mono">
-                B2
-              </span>
-            </div>
+            <BrandMark size="sm" />
             <span className="font-extrabold text-sm tracking-tight uppercase text-zinc-900">
               Architecture & Docs
             </span>
