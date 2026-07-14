@@ -7,11 +7,10 @@ import {
   CheckCircle2,
   Receipt,
   Download,
-  Zap,
-  Shield,
-  Building,
   AlertCircle,
 } from 'lucide-react';
+import BillingPlanCards from '@/components/billing/BillingPlanCards';
+import { getPlan, type PlanId } from '@/lib/plans';
 import {
   convertFromUsd,
   formatMoney,
@@ -26,15 +25,6 @@ interface TenantData {
   tier: string;
   currency?: string;
 }
-
-type PlanType = 'basic' | 'advanced' | 'pro';
-
-/** Plan prices quoted in USD (source of truth before FX conversion). */
-const PLAN_PRICES_USD = {
-  basic: { monthly: 0, annual: 0 },
-  advanced: { monthly: 49, annual: 470 },
-  pro: { monthly: 199, annual: 1900 },
-} as const;
 
 const MOCK_INVOICE_META = [
   { id: 'INV-2026-004', date: 'Jul 01, 2026', amountUsd: 49 },
@@ -144,13 +134,6 @@ export default function BillingPage({
   const formatUsdPrice = (amountUsd: number) =>
     formatMoney(convertFromUsd(amountUsd, currency, fxRates), currency);
 
-  const planPrice = (plan: PlanType) => {
-    const usd = isAnnual
-      ? PLAN_PRICES_USD[plan].annual
-      : PLAN_PRICES_USD[plan].monthly;
-    return formatUsdPrice(usd);
-  };
-
   const invoices = useMemo(
     () =>
       MOCK_INVOICE_META.map((invoice) => ({
@@ -168,7 +151,7 @@ export default function BillingPage({
     setTimeout(() => setNotification(null), 4000);
   };
 
-  const handleUpgradePlan = async (selectedTier: PlanType) => {
+  const handleUpgradePlan = async (selectedTier: PlanId) => {
     if (!tenant) return;
     if (tenant.tier === selectedTier) return;
 
@@ -189,7 +172,7 @@ export default function BillingPage({
         'success',
         `Successfully upgraded to ${selectedTier.toUpperCase()} plan!`
       );
-    } catch (err: unknown) {
+    } catch {
       showNotification('error', 'Error updating plan. Please try again.');
     } finally {
       setIsUpdating(false);
@@ -210,17 +193,15 @@ export default function BillingPage({
     });
   };
 
-  const currentTier = tenant?.tier || 'basic';
-
-  const activeUsage = {
-    basic: { max: 3, current: teamMemberCount },
-    advanced: { max: 50, current: teamMemberCount },
-    pro: { max: 999, current: teamMemberCount },
-  }[currentTier as PlanType] || { max: 3, current: teamMemberCount };
-
+  const rawTier = tenant?.tier || 'basic';
+  const currentTier: PlanId =
+    rawTier === 'advanced' || rawTier === 'pro' || rawTier === 'basic'
+      ? rawTier
+      : 'basic';
+  const seatLimit = getPlan(currentTier).seatLimit;
   const usagePercentage = Math.min(
     100,
-    (activeUsage.current / activeUsage.max) * 100
+    (teamMemberCount / seatLimit) * 100
   );
 
   if (isLoading) {
@@ -299,9 +280,8 @@ export default function BillingPage({
                   Team Seats Usage
                 </span>
                 <span className="text-sm font-medium text-zinc-500">
-                  {activeUsage.current} /{' '}
-                  {activeUsage.max === 999 ? 'Unlimited' : activeUsage.max}{' '}
-                  seats
+                  {teamMemberCount} /{' '}
+                  {seatLimit === 999 ? 'Unlimited' : seatLimit} seats
                 </span>
               </div>
               <div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden">
@@ -343,159 +323,15 @@ export default function BillingPage({
           </div>
         </div>
 
-        <div className="flex justify-center mb-8">
-          <div className="bg-zinc-100 p-1 rounded-xl flex items-center shadow-inner">
-            <button
-              onClick={() => setIsAnnual(false)}
-              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${!isAnnual ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setIsAnnual(true)}
-              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${isAnnual ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-            >
-              Annually{' '}
-              <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                Save 20%
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div
-            className={`relative bg-white border rounded-2xl shadow-sm p-8 transition-all ${currentTier === 'basic' ? 'border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200/80 hover:border-zinc-300'}`}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-zinc-100 rounded-lg">
-                <Zap className="w-5 h-5 text-zinc-700" />
-              </div>
-              <h3 className="text-lg font-bold text-zinc-900">Basic</h3>
-            </div>
-            <div className="mb-6 flex items-end gap-1">
-              <span className="text-4xl font-black text-zinc-900">
-                {planPrice('basic')}
-              </span>
-              <span className="text-sm font-medium text-zinc-500 mb-1">
-                /{isAnnual ? 'year' : 'month'}
-              </span>
-            </div>
-            <ul className="space-y-3 mb-8">
-              {[
-                'Up to 3 team members',
-                'Basic project management',
-                'Community support',
-              ].map((feature, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2 text-sm text-zinc-600 font-medium"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />{' '}
-                  {feature}
-                </li>
-              ))}
-            </ul>
-            <button
-              disabled={currentTier === 'basic' || isUpdating}
-              onClick={() => handleUpgradePlan('basic')}
-              className="w-full py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50"
-            >
-              {currentTier === 'basic' ? 'Current Plan' : 'Downgrade'}
-            </button>
-          </div>
-
-          <div
-            className={`relative bg-white border rounded-2xl shadow-sm p-8 transition-all ${currentTier === 'advanced' ? 'border-indigo-600 ring-1 ring-indigo-600' : 'border-zinc-200/80 hover:border-zinc-300'}`}
-          >
-            {currentTier !== 'advanced' && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-full">
-                Most Popular
-              </div>
-            )}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-indigo-50 rounded-lg">
-                <Building className="w-5 h-5 text-indigo-600" />
-              </div>
-              <h3 className="text-lg font-bold text-zinc-900">Advanced</h3>
-            </div>
-            <div className="mb-6 flex items-end gap-1">
-              <span className="text-4xl font-black text-zinc-900">
-                {planPrice('advanced')}
-              </span>
-              <span className="text-sm font-medium text-zinc-500 mb-1">
-                /{isAnnual ? 'year' : 'month'}
-              </span>
-            </div>
-            <ul className="space-y-3 mb-8">
-              {[
-                'Up to 50 team members',
-                'Advanced analytics dashboard',
-                'Priority email support',
-                'Custom user roles',
-              ].map((feature, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2 text-sm text-zinc-600 font-medium"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />{' '}
-                  {feature}
-                </li>
-              ))}
-            </ul>
-            <button
-              disabled={currentTier === 'advanced' || isUpdating}
-              onClick={() => handleUpgradePlan('advanced')}
-              className={`w-full py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${currentTier === 'advanced' ? 'bg-white border border-zinc-200 text-zinc-900' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg'}`}
-            >
-              {currentTier === 'advanced'
-                ? 'Current Plan'
-                : 'Upgrade to Advanced'}
-            </button>
-          </div>
-
-          <div
-            className={`relative bg-white border rounded-2xl shadow-sm p-8 transition-all ${currentTier === 'pro' ? 'border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200/80 hover:border-zinc-300'}`}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-zinc-900 rounded-lg">
-                <Shield className="w-5 h-5 text-white" />
-              </div>
-              <h3 className="text-lg font-bold text-zinc-900">Pro</h3>
-            </div>
-            <div className="mb-6 flex items-end gap-1">
-              <span className="text-4xl font-black text-zinc-900">
-                {planPrice('pro')}
-              </span>
-              <span className="text-sm font-medium text-zinc-500 mb-1">
-                /{isAnnual ? 'year' : 'month'}
-              </span>
-            </div>
-            <ul className="space-y-3 mb-8">
-              {[
-                'Unlimited team members',
-                'Dedicated account manager',
-                '24/7 phone support',
-                'Audit logs & compliance',
-              ].map((feature, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2 text-sm text-zinc-600 font-medium"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-zinc-900 shrink-0 mt-0.5" />{' '}
-                  {feature}
-                </li>
-              ))}
-            </ul>
-            <button
-              disabled={currentTier === 'pro' || isUpdating}
-              onClick={() => handleUpgradePlan('pro')}
-              className={`w-full py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${currentTier === 'pro' ? 'bg-white border border-zinc-200 text-zinc-900' : 'bg-zinc-900 text-white hover:bg-zinc-800 shadow-md hover:shadow-lg'}`}
-            >
-              {currentTier === 'pro' ? 'Current Plan' : 'Upgrade to Pro'}
-            </button>
-          </div>
-        </div>
+        <BillingPlanCards
+          mode="workspace"
+          formatPrice={formatUsdPrice}
+          currentTier={currentTier}
+          onSelectPlan={handleUpgradePlan}
+          isUpdating={isUpdating}
+          isAnnual={isAnnual}
+          onAnnualChange={setIsAnnual}
+        />
 
         <div className="bg-white border border-zinc-200/80 rounded-2xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-zinc-100/80 flex items-center justify-between bg-zinc-50/50">
