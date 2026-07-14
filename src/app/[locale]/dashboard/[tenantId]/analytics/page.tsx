@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { fetchAPI } from '@/services/api';
@@ -14,6 +14,8 @@ import {
   ListTodo,
   AlertCircle,
   Loader2,
+  RefreshCw,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   BarChart,
@@ -148,54 +150,69 @@ export default function AnalyticsDashboardPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [notification, setNotification] = useState<Notification | null>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const showNotification = (type: 'error' | 'success', msg: string) => {
     setNotification({ type, msg });
     setTimeout(() => setNotification(null), 4000);
   };
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const token = Cookies.get('token') || localStorage.getItem('token');
-        if (!token) {
-          router.push('/login');
-          return;
-        }
-
-        const authRes = await fetchAPI('/api/auth/me');
-        if (!authRes.ok) throw new Error('Not logged in');
-        const authData = await authRes.json();
-
-        if (authData.role !== 'owner' && authData.role !== 'admin') {
-          router.push(`/dashboard/${tenantId}/projects`);
-          return;
-        }
-
-        const res = await fetchAPI(
-          `/api/tenants/${tenantId}/analytics?t=${new Date().getTime()}`,
-          {
-            headers: { 'x-tenant-id': tenantId },
-            cache: 'no-store',
-          }
-        );
-
-        if (res.ok) {
-          const analyticsResult: AnalyticsResponse = await res.json();
-          setMetrics(analyticsResult.metrics ?? EMPTY_METRICS);
-          setChartData(analyticsResult.chartData ?? []);
-          setTasksByPriority(analyticsResult.tasksByPriority ?? []);
-          setProjectsByTemplate(analyticsResult.projectsByTemplate ?? []);
-        }
-      } catch (error) {
-        console.error('Failed to load analytics', error);
-      } finally {
-        setIsLoading(false);
+  // Access control is enforced by the backend `/analytics` endpoint (per-tenant
+  // admin/owner). We drive the UI purely off its response so the page always
+  // opens: 401 → login, 403 → access-denied state, other errors → retry state.
+  const fetchAnalytics = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(false);
+    setAccessDenied(false);
+    try {
+      const token =
+        Cookies.get('token') ||
+        (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+      if (!token) {
+        router.push('/login');
+        return;
       }
-    };
 
-    fetchAnalytics();
+      const res = await fetchAPI(
+        `/api/tenants/${tenantId}/analytics?t=${new Date().getTime()}`,
+        {
+          headers: { 'x-tenant-id': tenantId },
+          cache: 'no-store',
+        }
+      );
+
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+      if (res.status === 403) {
+        setAccessDenied(true);
+        return;
+      }
+      if (!res.ok) {
+        setLoadError(true);
+        return;
+      }
+
+      const analyticsResult: AnalyticsResponse = await res.json();
+      setMetrics(analyticsResult.metrics ?? EMPTY_METRICS);
+      setChartData(analyticsResult.chartData ?? []);
+      setTasksByPriority(analyticsResult.tasksByPriority ?? []);
+      setProjectsByTemplate(analyticsResult.projectsByTemplate ?? []);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Failed to load analytics', error);
+      setLoadError(true);
+    } finally {
+      setIsLoading(false);
+    }
   }, [tenantId, router]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   const taskStatusData = [
     { name: 'To Do', value: metrics.tasks_todo },
@@ -305,6 +322,51 @@ export default function AnalyticsDashboardPage({
     );
   }
 
+  if (accessDenied) {
+    return (
+      <div className="h-full flex flex-col justify-center items-center p-10 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center mb-4">
+          <ShieldAlert className="w-7 h-7 text-amber-600" />
+        </div>
+        <h2 className="text-xl font-black text-zinc-900">Analytics is restricted</h2>
+        <p className="text-sm text-zinc-500 mt-2 max-w-md font-medium">
+          Only workspace owners and admins can view analytics. Ask an admin to
+          upgrade your role if you need access.
+        </p>
+        <button
+          onClick={() => router.push(`/dashboard/${tenantId}/projects`)}
+          className="mt-6 bg-zinc-900 hover:bg-zinc-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all active:scale-95"
+        >
+          Back to Projects
+        </button>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="h-full flex flex-col justify-center items-center p-10 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center mb-4">
+          <AlertCircle className="w-7 h-7 text-red-600" />
+        </div>
+        <h2 className="text-xl font-black text-zinc-900">
+          Couldn&apos;t load analytics
+        </h2>
+        <p className="text-sm text-zinc-500 mt-2 max-w-md font-medium">
+          Something went wrong while fetching your workspace metrics. Please try
+          again.
+        </p>
+        <button
+          onClick={fetchAnalytics}
+          className="mt-6 flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all active:scale-95"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   const kpiCards = [
     {
       label: 'Total Projects',
@@ -352,20 +414,43 @@ export default function AnalyticsDashboardPage({
             <p className="text-sm text-zinc-500 mt-1 font-medium">
               Real-time workspace metrics from projects, tasks, and team data.
             </p>
+            {lastUpdated && (
+              <p className="text-xs text-zinc-400 mt-1 font-medium">
+                Updated{' '}
+                {lastUpdated.toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            )}
           </div>
 
-          <button
-            onClick={handleExportCSV}
-            disabled={isExporting}
-            className="mt-4 md:mt-0 flex items-center gap-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-900 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isExporting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            {isExporting ? 'Exporting...' : 'Export to CSV'}
-          </button>
+          <div className="mt-4 md:mt-0 flex items-center gap-2">
+            <button
+              onClick={fetchAnalytics}
+              disabled={isLoading}
+              className="flex items-center gap-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-900 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              title="Refresh analytics"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}
+              />
+              Refresh
+            </button>
+
+            <button
+              onClick={handleExportCSV}
+              disabled={isExporting}
+              className="flex items-center gap-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-900 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {isExporting ? 'Exporting...' : 'Export to CSV'}
+            </button>
+          </div>
         </div>
 
         {notification && (
