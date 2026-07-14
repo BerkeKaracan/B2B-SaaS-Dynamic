@@ -34,8 +34,55 @@ import DatabaseBoard from '@/components/database/DatabaseBoard';
 import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
 
 import { useCanvasCollaboration } from '@/hooks/useCanvasCollaboration';
+import type { CursorState } from '@/hooks/useCanvasCollaboration';
 import { useZustandYjsSync } from '@/hooks/useZustandYjsSync';
+import { useCanvasNavigation } from '@/hooks/useCanvasNavigation';
 import { LiveCursors } from '../LiveCursors';
+
+const MIN_ZOOM = 10;
+const MAX_ZOOM = 400;
+
+type CanvasWorldProps = {
+  pages: PageWithSettings[];
+  connections: ReturnType<typeof useCanvasStore.getState>['connections'];
+  cursors: Record<string, CursorState>;
+  currentUserKey: string;
+  connectingFrom: { pageId: string; blockId: string } | null;
+  mousePos: { x: number; y: number };
+  lassoStart: { x: number; y: number } | null;
+  lassoEnd: { x: number; y: number } | null;
+  renderedPages: React.ReactNode;
+  onRemoveConnection: (id: string) => void;
+};
+
+/** Isolated from pan/zoom so viewport transforms do not re-reconcile pages/blocks. */
+const CanvasWorld = React.memo(function CanvasWorld({
+  connections,
+  pages,
+  cursors,
+  currentUserKey,
+  connectingFrom,
+  mousePos,
+  lassoStart,
+  lassoEnd,
+  renderedPages,
+  onRemoveConnection,
+}: CanvasWorldProps) {
+  return (
+    <>
+      <ConnectionLayer
+        connections={connections}
+        pages={pages}
+        connectingFrom={connectingFrom}
+        mousePos={mousePos}
+        onRemoveConnection={onRemoveConnection}
+      />
+      <LassoLayer lassoStart={lassoStart} lassoEnd={lassoEnd} />
+      <LiveCursors cursors={cursors} currentUserKey={currentUserKey} />
+      {renderedPages}
+    </>
+  );
+});
 
 export default function CanvasArea() {
   const mode = useCanvasStore((s) =>
@@ -104,6 +151,18 @@ export default function CanvasArea() {
   const addGeneratedBlocks = useCanvasStore((s) => s.addGeneratedBlocks);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const transformRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const spacePanRafRef = useRef<number | null>(null);
+  const pinchRafRef = useRef<number | null>(null);
+  const pendingSpaceDeltaRef = useRef({ x: 0, y: 0 });
+  const pendingPinchDeltaRef = useRef(0);
+  const lastSpaceClientRef = useRef({ x: 0, y: 0 });
+
+  useCanvasNavigation(containerRef, {
+    transformRef,
+    gridRef,
+  });
 
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -158,7 +217,6 @@ export default function CanvasArea() {
 
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [isSpacePanning, setIsSpacePanning] = useState(false);
-  const [spacePanStart, setSpacePanStart] = useState({ x: 0, y: 0 });
 
   const activePointers = useRef<
     Map<number, { clientX: number; clientY: number }>
@@ -370,10 +428,62 @@ export default function CanvasArea() {
 
         if (prevTouchDistance.current !== null) {
           const delta = distance - prevTouchDistance.current;
-          if (Math.abs(delta) > 2) {
-            const currentStore = useCanvasStore.getState();
-            const nextZoom = (currentStore.zoom ?? 100) + (delta > 0 ? 4 : -4);
-            setZoom(Math.max(10, Math.min(400, nextZoom)));
+          if (Math.abs(delta) > 1) {
+            pendingPinchDeltaRef.current += delta;
+            if (pinchRafRef.current == null) {
+              pinchRafRef.current = requestAnimationFrame(() => {
+                pinchRafRef.current = null;
+                const pinchDelta = pendingPinchDeltaRef.current;
+                pendingPinchDeltaRef.current = 0;
+                if (Math.abs(pinchDelta) < 0.5) return;
+
+                const container = containerRef.current;
+                if (!container) return;
+
+                const livePts = Array.from(activePointers.current.values());
+                if (livePts.length < 2) return;
+
+                const currentStore = useCanvasStore.getState();
+                const oldZoom = currentStore.zoom ?? 100;
+                const oldPanX = currentStore.panX ?? 0;
+                const oldPanY = currentStore.panY ?? 0;
+
+                const zoomFactor = Math.exp(pinchDelta * 0.004);
+                const nextZoom = Math.max(
+                  MIN_ZOOM,
+                  Math.min(MAX_ZOOM, oldZoom * zoomFactor)
+                );
+                if (nextZoom === oldZoom) return;
+
+                const rect = container.getBoundingClientRect();
+                // Zoom around the midpoint between the two fingers.
+                const midX =
+                  (livePts[0].clientX + livePts[1].clientX) / 2 - rect.left;
+                const midY =
+                  (livePts[0].clientY + livePts[1].clientY) / 2 - rect.top;
+                const scale = oldZoom / 100;
+                const nextScale = nextZoom / 100;
+                const nextPanX =
+                  midX - ((midX - oldPanX) / scale) * nextScale;
+                const nextPanY =
+                  midY - ((midY - oldPanY) / scale) * nextScale;
+
+                if (transformRef.current) {
+                  transformRef.current.style.transform = `translate3d(${nextPanX}px, ${nextPanY}px, 0) scale(${nextScale})`;
+                }
+                if (gridRef.current) {
+                  const cell = 40 * nextScale;
+                  gridRef.current.style.backgroundSize = `${cell}px ${cell}px`;
+                  gridRef.current.style.backgroundPosition = `${nextPanX}px ${nextPanY}px`;
+                }
+
+                useCanvasStore.setState({
+                  zoom: nextZoom,
+                  panX: nextPanX,
+                  panY: nextPanY,
+                });
+              });
+            }
           }
         }
         prevTouchDistance.current = distance;
@@ -394,13 +504,36 @@ export default function CanvasArea() {
       if (connectingFrom) setMousePos({ x: mouseCanvasX, y: mouseCanvasY });
 
       if (isSpacePanning) {
-        const dx = e.clientX - spacePanStart.x;
-        const dy = e.clientY - spacePanStart.y;
-        useCanvasStore.setState((prev) => ({
-          panX: prev.panX + dx,
-          panY: prev.panY + dy,
-        }));
-        setSpacePanStart({ x: e.clientX, y: e.clientY });
+        pendingSpaceDeltaRef.current.x +=
+          e.clientX - lastSpaceClientRef.current.x;
+        pendingSpaceDeltaRef.current.y +=
+          e.clientY - lastSpaceClientRef.current.y;
+        lastSpaceClientRef.current = { x: e.clientX, y: e.clientY };
+
+        if (spacePanRafRef.current == null) {
+          spacePanRafRef.current = requestAnimationFrame(() => {
+            spacePanRafRef.current = null;
+            const { x: dx, y: dy } = pendingSpaceDeltaRef.current;
+            pendingSpaceDeltaRef.current = { x: 0, y: 0 };
+            if (dx === 0 && dy === 0) return;
+
+            const prev = useCanvasStore.getState();
+            const nextPanX = (prev.panX ?? 0) + dx;
+            const nextPanY = (prev.panY ?? 0) + dy;
+            const zoom = prev.zoom ?? 100;
+
+            if (transformRef.current) {
+              transformRef.current.style.transform = `translate3d(${nextPanX}px, ${nextPanY}px, 0) scale(${zoom / 100})`;
+            }
+            if (gridRef.current) {
+              const cell = 40 * (zoom / 100);
+              gridRef.current.style.backgroundSize = `${cell}px ${cell}px`;
+              gridRef.current.style.backgroundPosition = `${nextPanX}px ${nextPanY}px`;
+            }
+
+            useCanvasStore.setState({ panX: nextPanX, panY: nextPanY });
+          });
+        }
       } else if (lassoStart) {
         setLassoEnd({ x: mouseCanvasX, y: mouseCanvasY });
         const minX = Math.min(lassoStart.x, mouseCanvasX);
@@ -589,25 +722,8 @@ export default function CanvasArea() {
     saveHistory,
     setSelectedBlocks,
     isSpacePanning,
-    spacePanStart,
     transferBlockToPage,
-    setZoom,
   ]);
-
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const currentStore = useCanvasStore.getState();
-    let nextZoom = currentStore.zoom ?? 100;
-
-    if (e.ctrlKey) {
-      nextZoom -= e.deltaY * 0.5;
-    } else {
-      nextZoom -= e.deltaY * 0.1;
-    }
-
-    const clampedZoom = Math.max(10, Math.min(400, nextZoom));
-    setZoom(clampedZoom);
-  };
 
   const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -651,7 +767,8 @@ export default function CanvasArea() {
       if (e.button === 1 || (e.button === 0 && isSpacePressed) || isTouch) {
         e.preventDefault();
         setIsSpacePanning(true);
-        setSpacePanStart({ x: e.clientX, y: e.clientY });
+        lastSpaceClientRef.current = { x: e.clientX, y: e.clientY };
+        pendingSpaceDeltaRef.current = { x: 0, y: 0 };
         setActivePage(null);
         setActiveBlock(null);
         setSelectedBlocks([]);
@@ -1423,17 +1540,18 @@ export default function CanvasArea() {
   return (
     <div
       ref={containerRef}
-      className={`canvas-bg absolute inset-0 overflow-hidden select-none touch-none bg-[#F9F9FB] dark:bg-zinc-950 transition-colors duration-300 ${cursorStyle}`}
+      className={`canvas-bg absolute inset-0 overflow-hidden select-none touch-none bg-[#F9F9FB] dark:bg-zinc-950 transition-colors duration-300 transform-gpu ${cursorStyle}`}
       onPointerDown={handlePointerDown}
-      onWheel={handleWheel}
     >
       <div
+        ref={gridRef}
         className="canvas-bg absolute inset-0 infinite-grid-layer pointer-events-none opacity-100 dark:opacity-20 transition-opacity duration-300"
         style={{
           backgroundImage: `linear-gradient(to right, #e4e4e7 1px, transparent 1px), linear-gradient(to bottom, #e4e4e7 1px, transparent 1px)`,
           backgroundSize: `${40 * (zoom / 100)}px ${40 * (zoom / 100)}px`,
           backgroundPosition: `${panX}px ${panY}px`,
           willChange: 'background-position, background-size',
+          transform: 'translateZ(0)',
         }}
       />
 
@@ -1452,24 +1570,27 @@ export default function CanvasArea() {
       </div>
 
       <div
-        className="absolute inset-0 pointer-events-none"
+        ref={transformRef}
+        className="absolute inset-0 pointer-events-none transform-gpu"
         style={{
           transform: `translate3d(${panX}px, ${panY}px, 0) scale(${zoom / 100})`,
           transformOrigin: '0 0',
           willChange: 'transform',
+          backfaceVisibility: 'hidden',
         }}
       >
-        <ConnectionLayer
+        <CanvasWorld
           connections={connections}
           pages={pages}
+          cursors={cursors}
+          currentUserKey={currentUser.name}
           connectingFrom={connectingFrom}
           mousePos={mousePos}
+          lassoStart={lassoStart}
+          lassoEnd={lassoEnd}
+          renderedPages={renderedPages}
           onRemoveConnection={removeConnection}
         />
-        <LassoLayer lassoStart={lassoStart} lassoEnd={lassoEnd} />
-        <LiveCursors cursors={cursors} currentUserKey={currentUser.name} />
-
-        {renderedPages}
       </div>
 
       <div className="absolute bottom-24 sm:bottom-8 scale-90 sm:scale-100 left-1/2 -translate-x-1/2 z-50 flex items-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/60 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-1.5 pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300 transition-colors">
@@ -1513,16 +1634,16 @@ export default function CanvasArea() {
           </>
         )}
         <button
-          onClick={() => setZoom(Math.max(10, zoom - 10))}
+          onClick={() => setZoom(Math.max(MIN_ZOOM, zoom - 10))}
           className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
         >
           <Minus className="w-4 h-4" />
         </button>
         <span className="text-[11px] font-black text-zinc-700 dark:text-zinc-300 min-w-[48px] text-center tracking-widest px-1">
-          {zoom}%
+          {Math.round(zoom)}%
         </span>
         <button
-          onClick={() => setZoom(Math.min(400, zoom + 10))}
+          onClick={() => setZoom(Math.min(MAX_ZOOM, zoom + 10))}
           className="w-10 h-10 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
         >
           <Plus className="w-4 h-4" />
