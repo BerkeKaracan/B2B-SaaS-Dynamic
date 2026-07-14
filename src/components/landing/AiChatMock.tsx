@@ -2,27 +2,27 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 /**
  * Animated RAG chat mock — messages enter in sequence with a typing beat.
  */
 export default function AiChatMock() {
   const t = useTranslations('LandingPage');
-  const [step, setStep] = useState(0);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const [animatedStep, setAnimatedStep] = useState(0);
+  const step = prefersReducedMotion ? 3 : animatedStep;
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setStep(3);
-      return;
-    }
+    if (prefersReducedMotion) return;
 
     const timers = [
-      window.setTimeout(() => setStep(1), 400),
-      window.setTimeout(() => setStep(2), 1100),
-      window.setTimeout(() => setStep(3), 2200),
+      window.setTimeout(() => setAnimatedStep(1), 400),
+      window.setTimeout(() => setAnimatedStep(2), 1100),
+      window.setTimeout(() => setAnimatedStep(3), 2200),
     ];
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [prefersReducedMotion]);
 
   return (
     <div className="flex-1 w-full bg-zinc-950 rounded-3xl md:rounded-4xl p-2 md:p-3 shadow-2xl lp-ai-frame">
@@ -68,8 +68,14 @@ export default function AiChatMock() {
               </div>
               <div className="bg-zinc-800 text-zinc-400 px-4 py-3 rounded-2xl rounded-tl-sm border border-zinc-700/50 flex items-center gap-1.5">
                 <span className="lp-typing-dot" />
-                <span className="lp-typing-dot" style={{ animationDelay: '0.15s' }} />
-                <span className="lp-typing-dot" style={{ animationDelay: '0.3s' }} />
+                <span
+                  className="lp-typing-dot"
+                  style={{ animationDelay: '0.15s' }}
+                />
+                <span
+                  className="lp-typing-dot"
+                  style={{ animationDelay: '0.3s' }}
+                />
               </div>
             </div>
           )}

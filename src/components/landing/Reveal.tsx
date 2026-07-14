@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 
 type RevealProps = {
   children: React.ReactNode;
@@ -18,16 +19,15 @@ export function Reveal({
   once = true,
 }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
   const [inView, setInView] = useState(false);
+  const visible = prefersReducedMotion || inView;
 
   useEffect(() => {
+    if (prefersReducedMotion) return;
+
     const el = ref.current;
     if (!el) return;
-
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setInView(true);
-      return;
-    }
 
     const io = new IntersectionObserver(
       ([entry]) => {
@@ -43,12 +43,12 @@ export function Reveal({
 
     io.observe(el);
     return () => io.disconnect();
-  }, [once]);
+  }, [once, prefersReducedMotion]);
 
   return (
     <div
       ref={ref}
-      className={`lp-reveal lp-reveal--${variant} ${inView ? 'lp-reveal--in' : ''} ${className}`}
+      className={`lp-reveal lp-reveal--${variant} ${visible ? 'lp-reveal--in' : ''} ${className}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
