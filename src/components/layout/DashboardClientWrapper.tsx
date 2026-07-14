@@ -69,7 +69,7 @@ export default function DashboardClientWrapper({
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans antialiased">
+    <div className="ui-chrome flex h-[100dvh] w-full flex-col overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans antialiased">
       <Toaster richColors closeButton expand={false} position="bottom-right" />
       {user?.email && <RealtimeNotifier userEmail={user.email} />}
 

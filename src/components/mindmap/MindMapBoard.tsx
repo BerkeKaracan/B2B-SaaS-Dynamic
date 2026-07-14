@@ -335,7 +335,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
                 ) : (
                   <span
                     onClick={() => setEditingNodeId(node.id)}
-                    className="font-bold text-sm text-center truncate w-full cursor-text select-none"
+                    className="font-bold text-sm text-center truncate w-full cursor-default select-none"
                   >
                     {node.text}
                   </span>

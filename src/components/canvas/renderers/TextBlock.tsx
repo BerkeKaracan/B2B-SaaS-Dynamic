@@ -231,14 +231,14 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
             fontStyle: isItalic ? "italic" : "normal",
             textDecoration: isUnderline ? "underline" : "none",
           }}
-          className={`w-full h-full bg-transparent resize-none overflow-hidden focus:outline-none leading-relaxed p-1 placeholder-zinc-300 transition-all ${isAiLoading ? "opacity-50 animate-pulse" : ""}`}
+          className={`w-full h-full bg-transparent resize-none overflow-hidden focus:outline-none leading-relaxed p-1 placeholder-zinc-300 transition-all allow-text-select ${isAiLoading ? "opacity-50 animate-pulse" : ""}`}
           placeholder="Type something or use AI..."
           spellCheck={false}
         />
       ) : (
         <div
           onClick={() => setIsEditing(true)}
-          className={`w-full h-full cursor-text p-1 leading-relaxed ${isAiLoading ? "opacity-50 animate-pulse" : ""}`}
+          className={`w-full h-full cursor-text p-1 leading-relaxed allow-text-select ${isAiLoading ? "opacity-50 animate-pulse" : ""}`}
           style={{
             fontSize,
             color,

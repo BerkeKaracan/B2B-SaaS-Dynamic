@@ -28,4 +28,19 @@
     background-color: var(--bg);
     color: var(--text);
   }
+
+  /*
+   * Prevent the text caret (I-beam) from appearing next to labels,
+   * cards, and empty padding — only real fields stay selectable.
+   */
+  .ui-chrome {
+    user-select: none;
+  }
+
+  .ui-chrome input:not([type='button']):not([type='submit']):not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']),
+  .ui-chrome textarea,
+  .ui-chrome [contenteditable='true'],
+  .ui-chrome .allow-text-select {
+    user-select: text;
+  }
 }

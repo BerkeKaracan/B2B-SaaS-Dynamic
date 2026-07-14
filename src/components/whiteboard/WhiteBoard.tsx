@@ -807,7 +807,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
                   e.target.style.height = 'auto';
                   e.target.style.height = `${e.target.scrollHeight}px`;
                 }}
-                className="bg-transparent border border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 border-dashed focus:border-blue-200 dark:focus:border-blue-500/50 focus:border-solid rounded-3xl outline-none resize-none overflow-hidden p-3 transition-all select-text"
+                className="bg-transparent border border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 border-dashed focus:border-blue-200 dark:focus:border-blue-500/50 focus:border-solid rounded-3xl outline-none resize-none overflow-hidden p-3 transition-all allow-text-select"
                 style={{
                   color: text.color,
                   fontSize: `${text.size}px`,

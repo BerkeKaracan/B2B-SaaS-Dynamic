@@ -1389,7 +1389,7 @@ export default function CanvasArea() {
                         setConnectingFrom(null);
                       }
                     }}
-                    className={`absolute bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 pt-10 sm:pt-8 cursor-default select-text group transition-shadow ${
+                    className={`absolute bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 pt-10 sm:pt-8 cursor-default select-none group transition-shadow ${
                       isBlockActive
                         ? 'ring-2 ring-indigo-500 shadow-xl z-50'
                         : 'shadow-sm hover:shadow-md z-10'
