@@ -12,18 +12,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install PostgreSQL Client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-
-      - name: Backup Database
+      - name: Backup Database via Docker
         env:
           PGHOST: aws-1-eu-central-1.pooler.supabase.com
-          PGPORT: 5432
           PGUSER: postgres.vdfqqlyrrzcscaaizrac
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          PGDATABASE: postgres
         run: |
-          pg_dump -x -O > backup.sql
+          docker run --rm \
+            -e PGPASSWORD="$PGPASSWORD" \
+            postgres:17 \
+            pg_dump -h $PGHOST -p 5432 -U $PGUSER -d postgres -x -O > backup.sql
 
       - name: Upload Backup as Artifact
         uses: actions/upload-artifact@v4
