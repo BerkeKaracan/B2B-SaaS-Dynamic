@@ -10,6 +10,7 @@ export interface Tenant {
   usage_type?: string;
   timezone?: string;
   date_format?: string;
+  currency?: string;
 }
 
 interface TenantState {

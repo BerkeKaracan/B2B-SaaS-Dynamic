@@ -855,6 +855,7 @@
     "nameLabel": "Workspace Name",
     "namePlaceholder": "Workspace Name",
     "timezoneLabel": "Workspace Timezone",
+    "currencyLabel": "Currency Preference",
     "saveButton": "Save Changes",
     "savingButton": "Saving...",
     "dangerZone": "Danger Zone",

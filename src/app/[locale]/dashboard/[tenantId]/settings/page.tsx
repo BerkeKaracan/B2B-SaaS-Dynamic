@@ -11,6 +11,7 @@ import {
   Settings,
   UploadCloud,
 } from 'lucide-react';
+import { useTenantStore } from '@/store/useTenantStore';
 
 type Notification = {
   type: 'error' | 'success';
@@ -26,9 +27,11 @@ export default function AdvancedSettingsPage({
   const tenantId = resolvedParams.tenantId;
   const router = useRouter();
   const t = useTranslations('settingsPage');
+  const updateTenantState = useTenantStore((state) => state.updateTenantState);
 
   const [workspaceName, setWorkspaceName] = useState<string>('');
   const [timezone, setTimezone] = useState<string>('Europe/Istanbul');
+  const [currency, setCurrency] = useState<string>('TRY');
   const [logoUrl, setLogoUrl] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
 
@@ -76,7 +79,7 @@ export default function AdvancedSettingsPage({
     try {
       const res = await fetchAPI(`/api/tenants/${tenantId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ name: workspaceName, timezone }),
+        body: JSON.stringify({ name: workspaceName, timezone, currency }),
       });
       if (!res.ok) throw new Error('Failed to update workspace details.');
 
@@ -104,7 +107,14 @@ export default function AdvancedSettingsPage({
         const logoData = await logoRes.json();
         setLogoUrl(logoData.logo_url);
         setLogoFile(null);
+        updateTenantState({ logo_url: logoData.logo_url });
       }
+
+      updateTenantState({
+        name: workspaceName,
+        timezone,
+        currency,
+      });
 
       showNotification('success', t('notifications.success'));
     } catch (err) {
@@ -140,6 +150,7 @@ export default function AdvancedSettingsPage({
           const tenantData = await tenantRes.json();
           setWorkspaceName(tenantData.name || 'Workspace');
           setTimezone(tenantData.timezone || 'Europe/Istanbul');
+          setCurrency(tenantData.currency || 'TRY');
           setLogoUrl(tenantData.logo_url || '');
         }
       } catch (err) {
@@ -328,6 +339,22 @@ export default function AdvancedSettingsPage({
                       {tz.replace(/_/g, ' ')}
                     </option>
                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 ml-1">
+                  {t('currencyLabel')}
+                </label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-950/20 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white dark:focus:ring-white/10"
+                >
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="TRY">TRY (₺)</option>
                 </select>
               </div>
             </div>

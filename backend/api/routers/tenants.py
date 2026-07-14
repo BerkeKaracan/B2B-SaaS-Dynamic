@@ -35,6 +35,7 @@ class UpdateTenantRequest(BaseModel):
     name: str
     timezone: Optional[str] = "UTC"
     date_format: Optional[str] = "YYYY-MM-DD"
+    currency: Optional[str] = "TRY"
 
 class TransferOwnershipRequest(BaseModel):
     new_owner_member_id: UUID
@@ -66,7 +67,7 @@ def get_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
     try:
         if str(tenant_id) not in user["tenant_roles"]:
             raise HTTPException(status_code=403, detail="Workspace access denied")
-        response = user["client"].table("tenants").select("id, name, tier, logo_url, timezone, date_format, slug, created_at, usage_type").eq("id", str(tenant_id)).execute()
+        response = user["client"].table("tenants").select("id, name, tier, logo_url, timezone, date_format, currency, slug, created_at, usage_type").eq("id", str(tenant_id)).execute()
         if not response.data:
             raise HTTPException(status_code=404, detail="Workspace not found")
         return response.data[0]
@@ -366,11 +367,18 @@ def update_tenant(tenant_id: UUID, request: UpdateTenantRequest, user: dict = De
         if current_role not in ["admin", "owner"]:
             raise HTTPException(status_code=403, detail="Unauthorized: Only admins and owners can rename workspace")
             
-        supabase_admin.table("tenants").update({
+        update_payload = {
             "name": request.name,
             "timezone": request.timezone,
-            "date_format": request.date_format
-        }).eq("id", str(tenant_id)).execute()
+            "date_format": request.date_format,
+        }
+        if request.currency is not None:
+            allowed_currencies = {"USD", "EUR", "GBP", "TRY"}
+            if request.currency not in allowed_currencies:
+                raise HTTPException(status_code=400, detail="Invalid currency")
+            update_payload["currency"] = request.currency
+
+        supabase_admin.table("tenants").update(update_payload).eq("id", str(tenant_id)).execute()
         return {"message": "Workspace renamed successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

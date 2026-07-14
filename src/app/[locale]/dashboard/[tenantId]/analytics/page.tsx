@@ -12,6 +12,8 @@ import {
   Users,
   TrendingUp,
   ListTodo,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import {
   BarChart,
@@ -26,6 +28,36 @@ import {
   Cell,
   Legend,
 } from 'recharts';
+
+type Notification = {
+  type: 'error' | 'success';
+  msg: string;
+};
+
+interface ProjectExportRecord {
+  id: string;
+  module_name?: string;
+  created_at?: string;
+  record_data?: {
+    name?: string;
+    status?: string;
+    template?: string;
+    visibility?: string;
+    folder?: string;
+    [key: string]: unknown;
+  };
+}
+
+const escapeCsvCell = (value: unknown): string => {
+  const str = value == null ? '' : String(value);
+  if (/[",\n\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
+const rowsToCsv = (rows: unknown[][]): string =>
+  rows.map((row) => row.map(escapeCsvCell).join(',')).join('\r\n');
 
 interface ChartDataPoint {
   month: string;
@@ -114,6 +146,13 @@ export default function AnalyticsDashboardPage({
     TemplateBreakdown[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [notification, setNotification] = useState<Notification | null>(null);
+
+  const showNotification = (type: 'error' | 'success', msg: string) => {
+    setNotification({ type, msg });
+    setTimeout(() => setNotification(null), 4000);
+  };
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -169,53 +208,93 @@ export default function AnalyticsDashboardPage({
     count: item.count,
   }));
 
-  const handleExportCSV = () => {
-    const rows: string[] = [
-      'Workspace Analytics Report',
-      `Generated,${new Date().toISOString()}`,
-      '',
-      'Summary Metrics',
-      'Metric,Value',
-      `Total Projects,${metrics.total_projects}`,
-      `Active Projects,${metrics.active_projects}`,
-      `Archived Projects,${metrics.archived_projects}`,
-      `Total Tasks,${metrics.total_tasks}`,
-      `Tasks To Do,${metrics.tasks_todo}`,
-      `Tasks In Progress,${metrics.tasks_in_progress}`,
-      `Tasks Done,${metrics.tasks_done}`,
-      `Completion Rate,${metrics.completion_rate}%`,
-      `Team Members,${metrics.team_members}`,
-      '',
-      'Monthly Activity',
-      'Month,Projects Created,Tasks Completed,Active Tasks',
-      ...chartData.map(
-        (row) =>
-          `${row.month},${row.projectsCreated},${row.tasksCompleted},${row.activeTasks}`
-      ),
-      '',
-      'Tasks by Priority',
-      'Priority,Count',
-      ...tasksByPriority.map((row) => `${row.priority},${row.count}`),
-      '',
-      'Projects by Template',
-      'Template,Count',
-      ...projectsByTemplate.map(
-        (row) => `${TEMPLATE_LABELS[row.template] || row.template},${row.count}`
-      ),
-    ];
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      const res = await fetchAPI(
+        `/api/records?tenant_id=${tenantId}&module_name=projects`,
+        {
+          headers: { 'x-tenant-id': tenantId },
+          cache: 'no-store',
+        }
+      );
 
-    const blob = new Blob([rows.join('\n')], {
-      type: 'text/csv;charset=utf-8;',
-    });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
+      if (!res.ok) {
+        throw new Error('Failed to fetch workspace records for export.');
+      }
 
-    link.setAttribute('href', url);
-    link.setAttribute('download', `workspace_analytics_${tenantId}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const projects: ProjectExportRecord[] = await res.json();
+
+      const csvRows: unknown[][] = [
+        ['Workspace Export'],
+        ['Generated At', new Date().toISOString()],
+        ['Tenant ID', tenantId],
+        [],
+        ['Summary Metrics'],
+        ['Metric', 'Value'],
+        ['Total Projects', metrics.total_projects],
+        ['Active Projects', metrics.active_projects],
+        ['Archived Projects', metrics.archived_projects],
+        ['Total Tasks', metrics.total_tasks],
+        ['Tasks To Do', metrics.tasks_todo],
+        ['Tasks In Progress', metrics.tasks_in_progress],
+        ['Tasks Done', metrics.tasks_done],
+        ['Completion Rate', `${metrics.completion_rate}%`],
+        ['Team Members', metrics.team_members],
+        [],
+        ['Projects'],
+        [
+          'ID',
+          'Name',
+          'Status',
+          'Template',
+          'Visibility',
+          'Folder',
+          'Module',
+          'Created At',
+        ],
+        ...projects.map((project) => {
+          const data = project.record_data ?? {};
+          return [
+            project.id,
+            data.name ?? '',
+            data.status ?? '',
+            TEMPLATE_LABELS[String(data.template ?? '')] ||
+              data.template ||
+              '',
+            data.visibility ?? '',
+            data.folder ?? '',
+            project.module_name ?? 'projects',
+            project.created_at ?? '',
+          ];
+        }),
+      ];
+
+      const csvString = rowsToCsv(csvRows);
+      const blob = new Blob([csvString], {
+        type: 'text/csv;charset=utf-8;',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+
+      link.href = url;
+      link.download = 'workspace-export.csv';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showNotification('success', 'Workspace export downloaded successfully.');
+    } catch (error) {
+      console.error('CSV export failed:', error);
+      showNotification(
+        'error',
+        'Failed to export workspace data. Please try again.'
+      );
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (isLoading) {
@@ -277,12 +356,34 @@ export default function AnalyticsDashboardPage({
 
           <button
             onClick={handleExportCSV}
-            className="mt-4 md:mt-0 flex items-center gap-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-900 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all"
+            disabled={isExporting}
+            className="mt-4 md:mt-0 flex items-center gap-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-900 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            <Download className="w-4 h-4" />
-            Export to CSV
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {isExporting ? 'Exporting...' : 'Export to CSV'}
           </button>
         </div>
+
+        {notification && (
+          <div
+            className={`p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 border shadow-sm ${
+              notification.type === 'success'
+                ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                : 'bg-red-50 border-red-100 text-red-700'
+            }`}
+          >
+            {notification.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 shrink-0" />
+            )}
+            <p className="text-sm font-semibold">{notification.msg}</p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {kpiCards.map((card) => (

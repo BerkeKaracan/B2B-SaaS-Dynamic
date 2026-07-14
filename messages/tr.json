@@ -855,6 +855,7 @@
     "nameLabel": "Çalışma Alanı Adı",
     "namePlaceholder": "Çalışma Alanı Adı",
     "timezoneLabel": "Çalışma Alanı Saat Dilimi",
+    "currencyLabel": "Para Birimi",
     "saveButton": "Değişiklikleri Kaydet",
     "savingButton": "Kaydediliyor...",
     "dangerZone": "Tehlikeli Bölge",

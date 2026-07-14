@@ -77,6 +77,7 @@ export interface Database {
           name: string;
           timezone: string | null;
           logo_url: string | null;
+          currency: string | null;
         };
         Insert: {
           created_at?: string | null;
@@ -84,6 +85,7 @@ export interface Database {
           name: string;
           timezone?: string | null;
           logo_url?: string | null;
+          currency?: string | null;
         };
         Update: {
           created_at?: string | null;
@@ -91,6 +93,7 @@ export interface Database {
           name?: string;
           timezone?: string | null;
           logo_url?: string | null;
+          currency?: string | null;
         };
       };
       tenant_users: {
