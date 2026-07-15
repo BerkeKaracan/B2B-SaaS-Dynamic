@@ -212,7 +212,9 @@ export default function RegisterPage() {
         </div>
 
         <div className="relative z-10 flex items-center justify-between text-[11px] font-black text-zinc-600 uppercase tracking-widest mt-10">
-          <span>© {new Date().getFullYear()} SaaS Engine Inc.</span>
+          <span>
+            © {new Date().getFullYear()} B2 SaaS Engine · Portfolio demo
+          </span>
           <span>SOC2 Type II Certified</span>
         </div>
       </div>

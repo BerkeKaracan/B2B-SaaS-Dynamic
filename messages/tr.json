@@ -172,6 +172,7 @@
     },
     "bottom": {
       "rights": "Tüm hakları saklıdır.",
+      "attribution": "B2 SaaS Engine · Portföy demosu.",
       "privacy": "Gizlilik Politikası",
       "terms": "Hizmet Şartları"
     }
@@ -346,9 +347,9 @@
   },
   "BlogPage": {
     "back": "Geri Dön",
-    "badge": "Blogumuz",
+    "badge": "İlgili sayfalar",
     "title": "İçgörüler ve Güncellemeler",
-    "subtitle": "Şirketinizi ölçeklendirmek için en son haberler, mühendislik notları ve kaynaklar.",
+    "subtitle": "Bir dergi değil — bu portföy demosu için changelog, docs ve ürün özelliklerine kısa bağlantılar.",
     "readMore": "İlgili içeriği gör",
     "posts": {
       "1": {

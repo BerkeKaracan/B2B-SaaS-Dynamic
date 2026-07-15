@@ -515,6 +515,17 @@ export default function PublicSharePage() {
         </div>
       </header>
 
+      {!['kanban', 'notepad', 'timeline'].includes(template) && (
+        <div className="relative z-40 shrink-0 border-b border-amber-200/80 bg-amber-50 px-6 py-2.5 text-amber-900">
+          <p className="text-xs font-medium leading-relaxed">
+            <span className="font-bold">Limited share preview</span>
+            {template === 'blank'
+              ? ' — public share shows frames and blocks only. Full typed boards (whiteboard, mindmap, database, retrospective) render inside the app.'
+              : ` — “${template}” is not fully rendered on public share yet. Open the project in the app for the complete board.`}
+          </p>
+        </div>
+      )}
+
       {renderWorkspaceContent()}
 
       {isCloneModalOpen && (

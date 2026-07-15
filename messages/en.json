@@ -172,6 +172,7 @@
     },
     "bottom": {
       "rights": "All rights reserved.",
+      "attribution": "B2 SaaS Engine · Portfolio demo.",
       "privacy": "Privacy Policy",
       "terms": "Terms of Service"
     }
@@ -346,9 +347,9 @@
   },
   "BlogPage": {
     "back": "Go Back",
-    "badge": "Our Blog",
+    "badge": "Related pages",
     "title": "Insights & Updates",
-    "subtitle": "The latest news, engineering deep-dives, and resources for scaling your company.",
+    "subtitle": "Not a magazine — short links to changelog, docs, and product features for this portfolio demo.",
     "readMore": "Explore related",
     "posts": {
       "1": {

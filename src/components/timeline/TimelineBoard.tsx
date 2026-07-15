@@ -104,12 +104,25 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   const params = useParams();
   const tenantId = params.tenantId as string;
 
-  // EKLENDİ: Performans için tüm metadata yerine sadece gerekli verileri seçiyoruz
   const updateMetadata = useCanvasStore((state) => state.updateMetadata);
+  const updatePageSettings = useCanvasStore((state) => state.updatePageSettings);
+  const pages = useCanvasStore((state) => state.pages);
   const metadataEvents = useCanvasStore(
-    (state) => state.metadata.timelineEvents as TimelineEvent[]
+    (state) => state.metadata.timelineEvents as TimelineEvent[] | undefined
   );
   const metadataName = useCanvasStore((state) => state.metadata.name);
+
+  const canvasPage = useMemo(
+    () => pages.find((p) => p.id === projectId),
+    [pages, projectId]
+  );
+  const isPageScoped = !!canvasPage;
+  const pageSettings = (canvasPage?.settings || {}) as Record<string, unknown>;
+  const scopedEvents = (
+    isPageScoped
+      ? (pageSettings.timelineEvents as TimelineEvent[] | undefined)
+      : metadataEvents
+  ) as TimelineEvent[] | undefined;
 
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [savedViews, setSavedViews] = useState<TimelineSavedView[]>([]);
@@ -177,19 +190,19 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
     fetchTimelineData();
   }, [tenantId, projectId]);
 
-  // EKLENDİ: Yapay zekadan veya başka bir yerden veri geldiğinde çalışır
+  // AI / store push path — page-scoped on Infinite, metadata on standalone
   useEffect(() => {
     if (isInternalUpdate.current) {
       isInternalUpdate.current = false;
-      return; // Biz sürükle-bırak yaptıysak kodu çalıştırma (FPS kurtarıcı)
+      return;
     }
 
-    if (metadataEvents) {
+    if (scopedEvents) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setEvents(metadataEvents);
+      setEvents(scopedEvents);
 
-      if (metadataEvents.length > 0) {
-        const sortedDates = metadataEvents
+      if (scopedEvents.length > 0) {
+        const sortedDates = scopedEvents
           .map((e) => new Date(e.monthKey).getTime())
           .sort((a, b) => b - a);
         const furthestDate = new Date(sortedDates[0]);
@@ -198,13 +211,12 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         if (diffDays > daysCount) {
-          // Maksimum 60 güne kadar otomatik genişlet (Tarayıcı çökmesini engeller)
           setDaysCount(Math.min(diffDays + 15, 60));
         }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [metadataEvents]);
+  }, [scopedEvents]);
 
   const syncDataToDB = async (
     newEvents: TimelineEvent[],
@@ -266,8 +278,12 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
 
   const updateEvents = (newEvents: TimelineEvent[]) => {
     setEvents(newEvents);
-    isInternalUpdate.current = true; // Kilit devreye girer
-    updateMetadata({ timelineEvents: newEvents }); // Mağazayı sorunsuzca günceller
+    isInternalUpdate.current = true;
+    if (isPageScoped) {
+      updatePageSettings(projectId, { timelineEvents: newEvents });
+    } else {
+      updateMetadata({ timelineEvents: newEvents });
+    }
     syncDataToDB(newEvents, savedViews);
   };
 

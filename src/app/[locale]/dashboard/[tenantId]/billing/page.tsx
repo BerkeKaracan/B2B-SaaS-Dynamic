@@ -170,7 +170,7 @@ export default function BillingPage({
       setTenant({ ...tenant, tier: selectedTier });
       showNotification(
         'success',
-        `Successfully upgraded to ${selectedTier.toUpperCase()} plan!`
+        `Demo tier switched to ${selectedTier.toUpperCase()} (no charge).`
       );
     } catch {
       showNotification('error', 'Error updating plan. Please try again.');
@@ -217,13 +217,20 @@ export default function BillingPage({
     <div className="flex-1 overflow-y-auto bg-[#FAFAFB] h-full min-h-[100dvh] font-sans">
       <div className="max-w-[1200px] mx-auto w-full p-6 md:p-10 pb-32">
         <div className="mb-10">
+          <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-amber-900">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <p className="text-sm font-medium leading-relaxed">
+              <span className="font-bold">Portfolio demo</span> — no real
+              charges, Stripe, or payment methods. Plan buttons only switch a
+              demo tier for this workspace.
+            </p>
+          </div>
           <h1 className="text-3xl font-black text-zinc-900 tracking-tight flex items-center gap-3">
             <CreditCard className="w-8 h-8 text-zinc-900" />
             Billing & Plans
           </h1>
           <p className="text-sm text-zinc-500 mt-1 font-medium">
-            Manage your workspace subscription, payment methods, and billing
-            history.
+            Switch demo tiers and explore usage UI. Nothing here is billed.
           </p>
           {fxSource === 'fallback' && (
             <p className="text-xs text-amber-600 mt-2 font-medium flex items-center gap-1.5">

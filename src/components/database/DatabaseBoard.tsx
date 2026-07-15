@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Plus,
   Search,
@@ -51,54 +51,125 @@ export interface DatabaseSavedView {
   sortConfig: { propId: string; dir: 'asc' | 'desc' } | null;
 }
 
+const DEFAULT_PROPERTIES: Property[] = [
+  { id: 'prop-title', name: 'Name', type: 'text' },
+];
+
+const DEFAULT_ROWS: RowRecord[] = [
+  { id: 'row-1', 'prop-title': '' },
+  { id: 'row-2', 'prop-title': '' },
+  { id: 'row-3', 'prop-title': '' },
+];
+
 const generateId = (prefix: string) => {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 };
 
-export default function DatabaseBoard({
-  projectId: _projectId,
-}: DatabaseBoardProps) {
-  const { metadata, updateMetadata } = useCanvasStore();
+export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
+  const { metadata, updateMetadata, pages, updatePageSettings } =
+    useCanvasStore();
+
+  // Standalone template → top-level metadata; Infinite frame → page.settings
+  const canvasPage = useMemo(
+    () => pages.find((p) => p.id === projectId),
+    [pages, projectId]
+  );
+  const isPageScoped = !!canvasPage;
+  const pageSettings = useMemo(
+    () => (canvasPage?.settings || {}) as Record<string, unknown>,
+    [canvasPage?.settings]
+  );
+
+  const dataSource = useMemo(() => {
+    return isPageScoped ? pageSettings : metadata;
+  }, [isPageScoped, pageSettings, metadata]);
+
+  const persistDatabase = useCallback(
+    (partial: Record<string, unknown>) => {
+      if (isPageScoped) {
+        updatePageSettings(projectId, partial);
+      } else {
+        updateMetadata(partial);
+      }
+    },
+    [isPageScoped, projectId, updatePageSettings, updateMetadata]
+  );
+
+  const properties = useMemo(
+    () =>
+      (dataSource.databaseProperties as Property[] | undefined) ||
+      DEFAULT_PROPERTIES,
+    [dataSource.databaseProperties]
+  );
+
+  const rows = useMemo(
+    () =>
+      (dataSource.databaseRows as RowRecord[] | undefined) || DEFAULT_ROWS,
+    [dataSource.databaseRows]
+  );
+
+  const savedViews = useMemo(
+    () =>
+      (dataSource.databaseSavedViews as DatabaseSavedView[] | undefined) ||
+      [],
+    [dataSource.databaseSavedViews]
+  );
+
+  const dbTitle = useMemo(
+    () =>
+      (dataSource.databaseTitle as string | undefined) || 'Untitled Database',
+    [dataSource.databaseTitle]
+  );
+
   const [isClient, setIsClient] = useState(false);
-
-  const [properties, setProperties] = useState<Property[]>(
-    (metadata?.databaseProperties as Property[]) || [
-      { id: 'prop-title', name: 'Name', type: 'text' },
-    ]
-  );
-
-  const [rows, setRows] = useState<RowRecord[]>(
-    (metadata?.databaseRows as RowRecord[]) || [
-      { id: 'row-1', 'prop-title': '' },
-      { id: 'row-2', 'prop-title': '' },
-      { id: 'row-3', 'prop-title': '' },
-    ]
-  );
-
-  const savedViews = (metadata.databaseSavedViews as DatabaseSavedView[]) || [];
-
-  const [dbTitle, setDbTitle] = useState(
-    (metadata?.databaseTitle as string) || 'Untitled Database'
-  );
-
   const [isPropertyMenuOpen, setIsPropertyMenuOpen] = useState(false);
   const [openRowMenu, setOpenRowMenu] = useState<string | null>(null);
-
   const [isExporting, setIsExporting] = useState(false);
-
   const [filterQuery, setFilterQuery] = useState('');
   const [sortConfig, setSortConfig] = useState<{
     propId: string;
     dir: 'asc' | 'desc';
   } | null>(null);
-
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
-
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
 
   const filterRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
+
+  // Migrate legacy global metadata into this frame once (only if no other frame already owns DB data)
+  useEffect(() => {
+    if (!isPageScoped) return;
+    if (pageSettings.databaseRows !== undefined) return;
+    if (
+      metadata.databaseRows === undefined &&
+      metadata.databaseProperties === undefined
+    )
+      return;
+    const otherOwns = pages.some(
+      (p) =>
+        p.id !== projectId &&
+        (p.settings as Record<string, unknown> | undefined)?.databaseRows !==
+          undefined
+    );
+    if (otherOwns) return;
+    updatePageSettings(projectId, {
+      databaseProperties: metadata.databaseProperties ?? DEFAULT_PROPERTIES,
+      databaseRows: metadata.databaseRows ?? DEFAULT_ROWS,
+      databaseTitle: metadata.databaseTitle ?? 'Untitled Database',
+      databaseSavedViews: metadata.databaseSavedViews ?? [],
+    });
+  }, [
+    isPageScoped,
+    projectId,
+    pages,
+    pageSettings.databaseRows,
+    metadata.databaseRows,
+    metadata.databaseProperties,
+    metadata.databaseTitle,
+    metadata.databaseSavedViews,
+    updatePageSettings,
+  ]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -128,18 +199,15 @@ export default function DatabaseBoard({
   }, []);
 
   const saveProperties = (newProps: Property[]) => {
-    setProperties(newProps);
-    updateMetadata({ databaseProperties: newProps });
+    persistDatabase({ databaseProperties: newProps });
   };
 
   const saveRows = (newRows: RowRecord[]) => {
-    setRows(newRows);
-    updateMetadata({ databaseRows: newRows });
+    persistDatabase({ databaseRows: newRows });
   };
 
   const saveTitle = (newTitle: string) => {
-    setDbTitle(newTitle);
-    updateMetadata({ databaseTitle: newTitle });
+    persistDatabase({ databaseTitle: newTitle });
   };
 
   const [activeDateCell, setActiveDateCell] = useState<{
@@ -229,7 +297,7 @@ export default function DatabaseBoard({
       sortConfig,
     };
     const updatedViews = [...savedViews, newView];
-    updateMetadata({ databaseSavedViews: updatedViews });
+    persistDatabase({ databaseSavedViews: updatedViews });
     setActiveViewId(newView.id);
     setIsFilterOpen(false);
     toast.success(`View "${viewName}" saved!`);
@@ -253,7 +321,7 @@ export default function DatabaseBoard({
     e.stopPropagation();
     if (window.confirm('Delete this view?')) {
       const updatedViews = savedViews.filter((v) => v.id !== viewId);
-      updateMetadata({ databaseSavedViews: updatedViews });
+      persistDatabase({ databaseSavedViews: updatedViews });
       if (activeViewId === viewId) applyView(null);
       toast.success('View deleted.');
     }

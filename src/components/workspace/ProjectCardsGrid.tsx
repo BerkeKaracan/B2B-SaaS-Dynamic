@@ -66,7 +66,7 @@ type VisibilityFilter = 'all' | 'public' | 'just_admin';
 type SortOption = 'recent' | 'name_asc' | 'name_desc';
 
 const selectClassName =
-  'appearance-none pl-9 pr-8 py-2.5 bg-zinc-50/50 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 transition-all cursor-pointer min-w-[140px]';
+  'appearance-none pl-9 pr-8 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-zinc-100/10 focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors cursor-pointer min-w-[9.5rem] hover:border-zinc-300 dark:hover:border-zinc-700';
 
 const formatTimeAgo = (dateStr?: string) => {
   if (!dateStr) return 'Just now';
@@ -814,139 +814,123 @@ export default function ProjectCardsGrid({
       </div>
 
       <div
-        className={`relative z-10 border rounded-2xl p-4 md:p-5 flex flex-col gap-3 shadow-sm mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ${
+        className={`relative z-10 mb-8 rounded-2xl border shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 ${
           isStorageView
             ? 'bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-zinc-200/80 dark:border-zinc-800'
             : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800'
         }`}
       >
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-1 min-w-0 w-full">
-            <div className="relative group w-full sm:max-w-xs lg:max-w-sm shrink-0">
-              <Search
-                className={`absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 w-4 h-4 transition-colors pointer-events-none ${
-                  view === 'trash'
-                    ? 'group-focus-within:text-rose-500'
-                    : view === 'archive'
-                      ? 'group-focus-within:text-amber-500'
-                      : 'group-focus-within:text-indigo-500'
-                }`}
-              />
-              <input
-                type="text"
-                placeholder={
-                  view === 'trash'
-                    ? t('filters.searchTrash')
-                    : view === 'archive'
-                      ? t('filters.searchArchive')
-                      : view === 'favorites'
-                        ? t('filters.searchFavorites')
-                        : t('searchPlaceholder')
-                }
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full bg-zinc-50/50 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 transition-all ${
-                  view === 'trash'
-                    ? 'focus:ring-rose-500/20 focus:border-rose-400/60'
-                    : view === 'archive'
-                      ? 'focus:ring-amber-500/20 focus:border-amber-400/60'
-                      : 'focus:ring-indigo-500/20 focus:border-indigo-500/50'
-                }`}
-              />
+        <div className="flex flex-col gap-3 p-3 md:p-4 md:flex-row md:items-center md:gap-3">
+          <div className="relative group min-w-0 flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none group-focus-within:text-zinc-600 dark:group-focus-within:text-zinc-300 transition-colors" />
+            <input
+              type="text"
+              placeholder={
+                view === 'trash'
+                  ? t('filters.searchTrash')
+                  : view === 'archive'
+                    ? t('filters.searchArchive')
+                    : view === 'favorites'
+                      ? t('filters.searchFavorites')
+                      : t('searchPlaceholder')
+              }
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-10 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-10 pr-9 text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-zinc-100/10 focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                aria-label={t('filters.clear')}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="relative">
+              <LayoutTemplate className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+              <select
+                value={templateFilter}
+                onChange={(e) => setTemplateFilter(e.target.value)}
+                className={selectClassName}
+                aria-label={t('filters.template')}
+              >
+                <option value="all">{t('filters.allTemplates')}</option>
+                {TEMPLATES.map((temp) => (
+                  <option key={temp.id} value={temp.id}>
+                    {temp.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <LayoutTemplate className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-                <select
-                  value={templateFilter}
-                  onChange={(e) => setTemplateFilter(e.target.value)}
-                  className={selectClassName}
-                  aria-label={t('filters.template')}
-                >
-                  <option value="all">{t('filters.allTemplates')}</option>
-                  {TEMPLATES.map((temp) => (
-                    <option key={temp.id} value={temp.id}>
-                      {temp.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-              </div>
+            <div className="relative">
+              <Shield className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+              <select
+                value={visibilityFilter}
+                onChange={(e) =>
+                  setVisibilityFilter(e.target.value as VisibilityFilter)
+                }
+                className={selectClassName}
+                aria-label={t('filters.visibility')}
+              >
+                <option value="all">{t('filters.allVisibility')}</option>
+                <option value="public">{t('teamPublic')}</option>
+                <option value="just_admin">{t('adminPrivate')}</option>
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+            </div>
 
-              <div className="relative">
-                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-                <select
-                  value={visibilityFilter}
-                  onChange={(e) =>
-                    setVisibilityFilter(e.target.value as VisibilityFilter)
-                  }
-                  className={selectClassName}
-                  aria-label={t('filters.visibility')}
-                >
-                  <option value="all">{t('filters.allVisibility')}</option>
-                  <option value="public">{t('teamPublic')}</option>
-                  <option value="just_admin">{t('adminPrivate')}</option>
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-              </div>
-
-              <div className="relative">
-                <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className={selectClassName}
-                  aria-label={t('filters.sort')}
-                >
-                  <option value="recent">{t('filters.sortRecent')}</option>
-                  <option value="name_asc">{t('filters.sortNameAsc')}</option>
-                  <option value="name_desc">{t('filters.sortNameDesc')}</option>
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-              </div>
-
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  {t('filters.clear')}
-                </button>
-              )}
+            <div className="relative">
+              <ArrowUpDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className={selectClassName}
+                aria-label={t('filters.sort')}
+              >
+                <option value="recent">{t('filters.sortRecent')}</option>
+                <option value="name_asc">{t('filters.sortNameAsc')}</option>
+                <option value="name_desc">{t('filters.sortNameDesc')}</option>
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full lg:w-auto shrink-0">
+          <div className="flex items-center gap-2 w-full md:w-auto shrink-0 md:ml-auto">
             {view === 'trash' ? (
-              <div className="px-4 py-2 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold rounded-xl flex items-center gap-2 border border-rose-100 dark:border-rose-900/50">
+              <div className="h-10 px-3 inline-flex items-center gap-2 rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 text-sm font-semibold border border-rose-100 dark:border-rose-500/20">
                 <Trash2 className="w-4 h-4" />
-                <span className="text-sm">Trash</span>
+                Trash
               </div>
             ) : view === 'archive' ? (
-              <div className="px-4 py-2 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold rounded-xl flex items-center gap-2 border border-amber-100 dark:border-amber-500/20">
+              <div className="h-10 px-3 inline-flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 text-sm font-semibold border border-amber-100 dark:border-amber-500/20">
                 <Archive className="w-4 h-4" />
-                <span className="text-sm">Archive</span>
+                Archive
               </div>
             ) : (
               isAdmin && (
                 <button
+                  type="button"
                   onClick={() => setIsModalOpen(true)}
-                  className="flex-1 lg:flex-none px-4 py-2.5 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 text-sm font-bold rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2 shadow-sm active:scale-95 whitespace-nowrap"
+                  className="h-10 flex-1 md:flex-none px-4 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 text-sm font-bold rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors inline-flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] whitespace-nowrap"
                 >
                   <FolderPlus className="w-4 h-4" />
-                  <span>{t('btnNewProject')}</span>
+                  {t('btnNewProject')}
                 </button>
               )
             )}
           </div>
         </div>
 
-        {(templateFilter !== 'all' || visibilityFilter !== 'all') && (
-          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-zinc-100 dark:border-zinc-800">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-zinc-400">
+        {hasActiveFilters && (
+          <div className="flex flex-wrap items-center gap-2 px-3 md:px-4 py-2.5 border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-950/40 rounded-b-2xl">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
               <Filter className="w-3 h-3" />
               {t('filters.active')}
             </span>
@@ -954,27 +938,45 @@ export default function ProjectCardsGrid({
               <button
                 type="button"
                 onClick={() => setTemplateFilter('all')}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-500/20 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
               >
                 {TEMPLATES.find((temp) => temp.id === templateFilter)?.name}
-                <X className="w-3 h-3" />
+                <X className="w-3 h-3 text-zinc-400" />
               </button>
             )}
             {visibilityFilter !== 'all' && (
               <button
                 type="button"
                 onClick={() => setVisibilityFilter('all')}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
               >
                 {visibilityFilter === 'public'
                   ? t('teamPublic')
                   : t('adminPrivate')}
-                <X className="w-3 h-3" />
+                <X className="w-3 h-3 text-zinc-400" />
+              </button>
+            )}
+            {searchQuery.trim() && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors max-w-[12rem]"
+              >
+                <span className="truncate">“{searchQuery.trim()}”</span>
+                <X className="w-3 h-3 text-zinc-400 shrink-0" />
               </button>
             )}
             <span className="text-xs font-medium text-zinc-400 ml-auto tabular-nums">
               {t('filters.resultCount', { count: displayedProjects.length })}
             </span>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200/70 dark:hover:bg-zinc-800 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+              {t('filters.clear')}
+            </button>
           </div>
         )}
       </div>

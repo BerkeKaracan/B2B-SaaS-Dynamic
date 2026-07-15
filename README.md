@@ -1,94 +1,142 @@
-# B2B Multi-Tenant SaaS Engine
+# B2 SaaS Engine
 
-A modular, multi-tenant Software as a Service (SaaS) platform featuring a decoupled architecture. The frontend is built with Next.js, while the backend is powered by FastAPI and Supabase, designed for scalability and type safety.
+**Portfolio / demo product (v1)** — a multi-tenant workspace OS built to show full-stack product engineering, not a commercial company.
 
-## Architecture Overview
+There is **no real legal entity**, **no Stripe**, and **no real customers**. Names like “ACME Corp.” or “SaaS Engine Inc.” on the marketing surface are **intentionally fake** for the demo UI.
 
-The system relies on a strict separation of concerns. The Next.js frontend handles state management and user interfaces, communicating with a FastAPI backend that acts as a secure gateway to the Supabase PostgreSQL database. This allows for flexible rate limiting, logging, and business logic execution outside the client layer.
+Live intent: LinkedIn / portfolio share with a working register → dashboard → Infinite canvas + board templates experience.
 
-## Tech Stack
+---
 
-**Frontend Layer:**
+## What this is
 
-- Framework: Next.js (App Router)
-- State Management: Zustand
-- Styling: Tailwind CSS & Lucide React
-- Language: TypeScript (Strict mode enabled)
+| Layer | Role |
+|-------|------|
+| **Next.js** (App Router) | Marketing site, auth UI, dashboard, Infinite canvas, board templates |
+| **FastAPI** | Secure API gateway (tenants, records, AI helpers, rate limits) |
+| **Supabase** | Auth + PostgreSQL (RLS) |
 
-**Backend & Database Layer:**
+**Workspace surfaces:** Infinite (blank + blocks), Kanban, Notepad/Document, Whiteboard, Mindmap, Timeline, Database, Retrospective — also usable as standalone project templates.
 
-- API Framework: FastAPI (Python 3.12+)
-- Data Validation: Pydantic v2
-- Database: Supabase (PostgreSQL) with Row Level Security (RLS)
-- Authentication: Supabase Auth / GoTrue Admin API
+**Billing:** Demo only (tier flips / mock invoices). Real payments are **out of scope** for v1.
 
-**Infrastructure & CI/CD:**
+---
 
-- Primary path: Docker & Docker Compose (frontend + backend images)
-- CI: GitHub Actions (`ci.yml` — lint, build, pytest, Playwright)
-- Optional backup demo: `db-backup.yml` (secrets-driven `pg_dump` → GitHub artifact; not production DR)
-- Optional reference: `k8s/` manifests (AWS ALB Ingress samples — not the active deploy path)
+## Tech stack
 
-## Key Features
+- **Frontend:** Next.js, TypeScript, Zustand, Tailwind, next-intl, Yjs (collab)
+- **Backend:** FastAPI, Pydantic v2, Redis (rate limiting)
+- **Data / auth:** Supabase (Postgres + Auth)
+- **CI:** GitHub Actions (`ci.yml` — lint, build, pytest, Playwright)
+- **Deploy path:** Docker Compose (primary). `k8s/` is reference only.
 
-- Multi-Tenant Isolation: Centralized resource and data separation per tenant to ensure data privacy.
-- Interactive Modules: Built-in dynamic workspace tools including Kanban boards, Mindmaps, and Whiteboards.
-- Automated CI/CD: Integrated GitHub Actions workflows for automated frontend builds and backend testing (pytest).
-- Rate Limiting & Security: Configured at the FastAPI layer to prevent abuse and enforce API quotas.
-- End-to-End Type Safety: Synchronized TypeScript definitions automatically generated from the Supabase schema to eliminate runtime data errors.
+---
 
-## Getting Started
+## Quick start (Docker)
 
-### Prerequisites
+**Prerequisites:** Node 20+, Docker Compose, a Supabase project.
 
-- Node.js (v20+)
-- Python (3.12+)
-- Docker & Docker Compose
-- Supabase Project Credentials
+```bash
+git clone https://github.com/BerkeKaracan/B2B-SaaS-Dynamic.git
+cd B2B-SaaS-Dynamic
 
-### Local Development Setup
+cp .env.example .env
+cp backend/.env.example backend/.env
+# Fill Supabase URL/keys in both files
 
-1. Clone the repository:
-   git clone [https://github.com/berkekaracan/b2b-saas-dynamic.git](https://github.com/berkekaracan/b2b-saas-dynamic.git)
-   cd b2b-saas-dynamic
+docker compose up -d --build
+```
 
-2. Environment Configuration:
-   Copy the example environment files and update them with your targeted Supabase API credentials.
-   cp .env.example .env
-   cp backend/.env.example backend/.env
+- Frontend: http://localhost:3000  
+- Backend docs: http://localhost:8000/docs  
+- Backend logs: `docker logs b2b-backend -f`
 
-3. Launch Container Ecosystem:
-   Use Docker Compose to build and run the services in the background.
-   docker compose up -d --build
+### Local frontend without Docker
 
-4. Monitor Backend Logs:
-   docker logs b2b-backend -f
+```bash
+npm install
+npm run dev
+```
 
-## Deployment model
+Backend still needs `backend/.env` and a running API (`uvicorn` or the Compose backend service).
 
-**Supported / primary:** Docker Compose (and the two service Dockerfiles). This is what local and portfolio demos should use.
+---
 
-**CI:** `.github/workflows/ci.yml` verifies frontend and backend on every push/PR to `main`.
+## Environment checklist
 
-**Optional:**
-- Database backup workflow — configure `SUPABASE_DB_HOST`, `SUPABASE_DB_USER`, and `SUPABASE_DB_PASSWORD` (plus optional port/name) as repository secrets. Uploads a nightly dump artifact; use Supabase PITR for real recovery.
-- `k8s/` — reference manifests only; see [k8s/README.md](k8s/README.md).
+### Frontend (`.env` — see [.env.example](.env.example))
 
-## Project Directory Structure
+| Variable | Required | Notes |
+|----------|----------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Public anon key |
+| `NEXT_PUBLIC_SITE_URL` | **Prod yes** | Canonical URL for sitemap / robots / Open Graph (e.g. `https://your-domain.com`) |
+| `NEXT_PUBLIC_API_URL` | Prod yes | Browser → API base (e.g. `https://api.your-domain.com`) |
+| `NEXT_PUBLIC_ROOT_DOMAIN` | Optional | Tenant subdomain routing; defaults exist for local/demo |
+| `INTERNAL_API_URL` | Docker | Set by Compose to `http://backend:8000` |
+| `RESEND_API_KEY` | Optional | Email features |
+| `SENTRY_AUTH_TOKEN` | Optional | Source maps / Sentry release |
+| `NOTION_API_KEY` / `NOTION_PAGE_ID` | Optional | Notion export |
+| `CSP_ALLOW_LOCALHOST` | Local only | Never on Vercel |
 
-````
+### Backend (`backend/.env` — see [backend/.env.example](backend/.env.example))
+
+| Variable | Required | Notes |
+|----------|----------|--------|
+| `DATABASE_URL` | Yes | Postgres connection string |
+| `SUPABASE_URL` | Yes | Same project as frontend |
+| `SUPABASE_KEY` / `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-side Supabase access |
+| `REDIS_URL` | Yes | Rate limiting |
+| `GROQ_API_KEY` | Optional | AI routes |
+| `GITHUB_TOKEN` / repo vars | Optional | GitHub integrations |
+
+### Production share checklist
+
+1. Set `NEXT_PUBLIC_SITE_URL` to the live HTTPS origin.
+2. Validate the URL once with [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/).
+3. Smoke: landing → Platform/Solutions → pricing → register → Infinite blank + Kanban.
+
+---
+
+## Demo caveats (honest v1)
+
+- **Forgot password** — UI demo only (not a real reset flow).
+- **Billing** — demo tiers; no Stripe.
+- **Infinite** — Database / Retrospective / Timeline frames are page-scoped (isolated per frame), same pattern as Kanban.
+- **Public share** — full board render for kanban / notepad / timeline; other types fall back to a simpler view.
+- **Blog / community** — thin marketing stubs (real GitHub link; contact via mailto).
+
+Privacy / legal pages already state this is a **portfolio demonstration**, not a commercial service.
+
+---
+
+## Repo layout
+
+```
 .
-├── backend/
-│ ├── api/ # FastAPI routers (Auth, Tenants, Records, Notifications)
-│ ├── core/ # DB Clients, Rate Limiters, and System Configuration
-│ ├── models/ # Pydantic schemas for request/response validation
-│ └── tests/ # Pytest test suite for health checks and route protection
-├── src/
-│ ├── app/ # Next.js App Router (Dashboard, Settings, Workspaces)
-│ ├── components/ # Reusable UI components and layout fragments
-│ ├── store/ # Zustand global state management
-│ ├── types/ # TypeScript type definitions (including generated Supabase types)
-│ └── middleware.ts # Multi-tenant edge domain interceptor
-├── k8s/ # Optional Kubernetes reference manifests (not active deploy path)
-└── .github/ # CI and optional backup workflows
-````
+├── backend/          # FastAPI app, models, tests
+├── src/              # Next.js app, components, stores
+├── messages/         # en / tr i18n
+├── k8s/              # Optional reference manifests (not primary deploy)
+└── .github/workflows # ci.yml (+ optional db-backup.yml)
+```
+
+---
+
+## Scripts
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Next.js dev server |
+| `npm run build` / `npm start` | Production Next.js |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest unit tests |
+| `docker compose up -d --build` | Full stack |
+
+Backend tests: `pytest` under `backend/` (also run in CI).
+
+---
+
+## License / attribution
+
+Built by **Berke Karacan** as an engineering portfolio project. Not affiliated with a real “SaaS Engine Inc.” entity.

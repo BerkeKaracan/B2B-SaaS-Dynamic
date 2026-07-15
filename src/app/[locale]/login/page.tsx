@@ -239,7 +239,9 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 flex items-center justify-between text-[10px] font-black text-zinc-500 uppercase tracking-widest mt-10">
-          <span>© {new Date().getFullYear()} SaaS Engine Inc.</span>
+          <span>
+            © {new Date().getFullYear()} B2 SaaS Engine · Portfolio demo
+          </span>
           <span>SOC2 Type II Certified</span>
         </div>
       </div>

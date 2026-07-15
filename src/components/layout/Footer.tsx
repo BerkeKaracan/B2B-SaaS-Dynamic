@@ -135,7 +135,8 @@ export default function Footer() {
 
         <div className="pt-8 border-t border-zinc-100 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-zinc-400 text-sm font-medium">
-            © {new Date().getFullYear()} SaaS Engine Inc. {t("bottom.rights")}
+            © {new Date().getFullYear()} {t('bottom.attribution')}{' '}
+            {t('bottom.rights')}
           </p>
           <div className="flex gap-6 text-sm font-medium text-zinc-400">
             <Link

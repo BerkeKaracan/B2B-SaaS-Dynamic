@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -16,16 +16,43 @@ type RetroCard = {
 };
 
 export default function RetrospectiveBoard({
-  projectId: _projectId,
+  projectId,
 }: {
   projectId: string;
 }) {
   const t = useTranslations("RetrospectiveBoard");
-  const { metadata, updateMetadata } = useCanvasStore();
+  const { metadata, updateMetadata, pages, updatePageSettings } =
+    useCanvasStore();
   const { user } = useAuthStore();
 
-  const [cards, setCards] = useState<RetroCard[]>(
-    (metadata.retrospectiveCards as RetroCard[]) || [],
+  const canvasPage = useMemo(
+    () => pages.find((p) => p.id === projectId),
+    [pages, projectId],
+  );
+  const isPageScoped = !!canvasPage;
+  const pageSettings = useMemo(
+    () => (canvasPage?.settings || {}) as Record<string, unknown>,
+    [canvasPage?.settings],
+  );
+
+  const dataSource = useMemo(() => {
+    return isPageScoped ? pageSettings : metadata;
+  }, [isPageScoped, pageSettings, metadata]);
+
+  const persistCards = useCallback(
+    (newCards: RetroCard[]) => {
+      if (isPageScoped) {
+        updatePageSettings(projectId, { retrospectiveCards: newCards });
+      } else {
+        updateMetadata({ retrospectiveCards: newCards });
+      }
+    },
+    [isPageScoped, projectId, updatePageSettings, updateMetadata],
+  );
+
+  const cards = useMemo(
+    () => (dataSource.retrospectiveCards as RetroCard[] | undefined) || [],
+    [dataSource.retrospectiveCards],
   );
 
   const [newCardContent, setNewCardContent] = useState<{
@@ -36,14 +63,36 @@ export default function RetrospectiveBoard({
     mad: "",
   });
 
+  useEffect(() => {
+    if (!isPageScoped) return;
+    if (pageSettings.retrospectiveCards !== undefined) return;
+    if (metadata.retrospectiveCards === undefined) return;
+    const otherOwns = pages.some(
+      (p) =>
+        p.id !== projectId &&
+        (p.settings as Record<string, unknown> | undefined)
+          ?.retrospectiveCards !== undefined,
+    );
+    if (otherOwns) return;
+    updatePageSettings(projectId, {
+      retrospectiveCards: metadata.retrospectiveCards,
+    });
+  }, [
+    isPageScoped,
+    projectId,
+    pages,
+    pageSettings.retrospectiveCards,
+    metadata.retrospectiveCards,
+    updatePageSettings,
+  ]);
+
   const currentUserIdentifier = user?.email || user?.id || "anonymous";
   const currentUserName = user?.email
     ? user.email.split("@")[0]
     : t("anonymous");
 
   const saveCards = (newCards: RetroCard[]) => {
-    setCards(newCards);
-    updateMetadata({ retrospectiveCards: newCards });
+    persistCards(newCards);
   };
 
   const addCard = (columnId: "glad" | "sad" | "mad") => {
