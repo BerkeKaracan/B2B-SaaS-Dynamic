@@ -1,13 +1,34 @@
-"use client";
-import React from "react";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
-import Footer from "@/components/layout/Footer";
-import BrandLogo from "@/components/brand/BrandLogo";
-import { ArrowLeft, Mail, MessageCircle, MapPin, Send } from "lucide-react";
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import Footer from '@/components/layout/Footer';
+import BrandLogo from '@/components/brand/BrandLogo';
+import { ArrowLeft, Mail, MessageCircle, MapPin, Send } from 'lucide-react';
 
 export default function ContactPage() {
-  const t = useTranslations("ContactPage");
+  const t = useTranslations('ContactPage');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+
+  const contactEmail = t('info.email.value');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const body = [
+      `Name: ${name.trim() || '—'}`,
+      `Reply-to: ${email.trim() || '—'}`,
+      '',
+      message.trim() || '—',
+    ].join('\n');
+    const mailto = `mailto:${contactEmail}?subject=${encodeURIComponent(
+      subject.trim() || 'SaaS Engine inquiry'
+    )}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+  };
 
   return (
     <div className="min-h-screen bg-[#fafafb] text-zinc-900 font-sans flex flex-col selection:bg-zinc-200">
@@ -18,7 +39,7 @@ export default function ContactPage() {
         >
           <ArrowLeft className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
           <span className="text-sm font-bold text-zinc-500 group-hover:text-zinc-900 transition-colors">
-            {t("back")}
+            {t('back')}
           </span>
         </Link>
         <BrandLogo href={false} size="sm" />
@@ -30,13 +51,13 @@ export default function ContactPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-xs font-bold text-zinc-600 mb-6">
               <MessageCircle className="w-3.5 h-3.5 text-blue-500" />
-              {t("badge")}
+              {t('badge')}
             </div>
             <h1 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight mb-6 leading-[1.1]">
-              {t("title")}
+              {t('title')}
             </h1>
             <p className="text-lg text-zinc-500 leading-relaxed font-medium mb-12">
-              {t("subtitle")}
+              {t('subtitle')}
             </p>
 
             <div className="space-y-8">
@@ -46,16 +67,16 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-zinc-900 mb-1">
-                    {t("info.email.title")}
+                    {t('info.email.title')}
                   </h3>
                   <p className="text-sm text-zinc-500 font-medium mb-2">
-                    {t("info.email.desc")}
+                    {t('info.email.desc')}
                   </p>
                   <a
-                    href={`mailto:${t("info.email.value")}`}
+                    href={`mailto:${contactEmail}`}
                     className="text-blue-600 font-bold hover:text-blue-700 transition-colors"
                   >
-                    {t("info.email.value")}
+                    {contactEmail}
                   </a>
                 </div>
               </div>
@@ -66,13 +87,13 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-zinc-900 mb-1">
-                    {t("info.location.title")}
+                    {t('info.location.title')}
                   </h3>
                   <p className="text-sm text-zinc-500 font-medium mb-2">
-                    {t("info.location.desc")}
+                    {t('info.location.desc')}
                   </p>
                   <span className="text-zinc-900 font-bold">
-                    {t("info.location.value")}
+                    {t('info.location.value')}
                   </span>
                 </div>
               </div>
@@ -82,28 +103,33 @@ export default function ContactPage() {
           <div className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-zinc-200/80 shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -z-10 pointer-events-none"></div>
 
-            <form
-              className="space-y-6 relative z-10"
-              onSubmit={(e) => e.preventDefault()}
-            >
+            <form className="space-y-6 relative z-10" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-zinc-900">
-                    {t("form.name")}
+                    {t('form.name')}
                   </label>
                   <input
                     type="text"
-                    placeholder={t("form.namePlaceholder")}
+                    name="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    placeholder={t('form.namePlaceholder')}
                     className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium placeholder:text-zinc-400"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-zinc-900">
-                    {t("form.email")}
+                    {t('form.email')}
                   </label>
                   <input
                     type="email"
-                    placeholder={t("form.emailPlaceholder")}
+                    name="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    placeholder={t('form.emailPlaceholder')}
                     className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium placeholder:text-zinc-400"
                   />
                 </div>
@@ -111,31 +137,43 @@ export default function ContactPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-bold text-zinc-900">
-                  {t("form.subject")}
+                  {t('form.subject')}
                 </label>
                 <input
                   type="text"
-                  placeholder={t("form.subjectPlaceholder")}
+                  name="subject"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  required
+                  placeholder={t('form.subjectPlaceholder')}
                   className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium placeholder:text-zinc-400"
                 />
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-bold text-zinc-900">
-                  {t("form.message")}
+                  {t('form.message')}
                 </label>
                 <textarea
+                  name="message"
                   rows={5}
-                  placeholder={t("form.messagePlaceholder")}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  required
+                  placeholder={t('form.messagePlaceholder')}
                   className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium placeholder:text-zinc-400 resize-none"
-                ></textarea>
+                />
               </div>
 
+              <p className="text-xs font-medium text-zinc-400">
+                {t('form.mailtoHint', { email: contactEmail })}
+              </p>
+
               <button
-                type="button"
+                type="submit"
                 className="w-full flex items-center justify-center gap-2 py-4 bg-zinc-900 text-white rounded-xl font-extrabold text-sm hover:bg-zinc-800 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
               >
-                {t("form.button")}
+                {t('form.button')}
                 <Send className="w-4 h-4" />
               </button>
             </form>

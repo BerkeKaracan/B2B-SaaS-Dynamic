@@ -1,31 +1,32 @@
-"use client";
-import React from "react";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
-import Footer from "@/components/layout/Footer";
-import BrandLogo from "@/components/brand/BrandLogo";
-import { ArrowLeft, BookOpen, ArrowRight } from "lucide-react";
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import Footer from '@/components/layout/Footer';
+import BrandLogo from '@/components/brand/BrandLogo';
+import { ArrowLeft, BookOpen, ArrowRight } from 'lucide-react';
+
+const posts = [
+  {
+    id: '1',
+    href: '/changelog',
+    imgGradient: 'from-blue-500/20 to-indigo-500/20',
+  },
+  {
+    id: '2',
+    href: '/docs',
+    imgGradient: 'from-emerald-500/20 to-teal-500/20',
+  },
+  {
+    id: '3',
+    href: '/features',
+    imgGradient: 'from-rose-500/20 to-pink-500/20',
+  },
+] as const;
 
 export default function BlogPage() {
-  const t = useTranslations("BlogPage");
-
-  const posts = [
-    {
-      id: "1",
-      color: "bg-blue-500",
-      imgGradient: "from-blue-500/20 to-indigo-500/20",
-    },
-    {
-      id: "2",
-      color: "bg-emerald-500",
-      imgGradient: "from-emerald-500/20 to-teal-500/20",
-    },
-    {
-      id: "3",
-      color: "bg-rose-500",
-      imgGradient: "from-rose-500/20 to-pink-500/20",
-    },
-  ];
+  const t = useTranslations('BlogPage');
 
   return (
     <div className="min-h-screen bg-[#fafafb] text-zinc-900 font-sans flex flex-col selection:bg-zinc-200">
@@ -36,7 +37,7 @@ export default function BlogPage() {
         >
           <ArrowLeft className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
           <span className="text-sm font-bold text-zinc-500 group-hover:text-zinc-900 transition-colors">
-            {t("back")}
+            {t('back')}
           </span>
         </Link>
         <BrandLogo href={false} size="sm" />
@@ -47,37 +48,33 @@ export default function BlogPage() {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-xs font-bold text-zinc-600 mb-6">
             <BookOpen className="w-3.5 h-3.5 text-zinc-500" />
-            {t("badge")}
+            {t('badge')}
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight mb-6">
-            {t("title")}
+            {t('title')}
           </h1>
           <p className="text-lg text-zinc-500 max-w-2xl mx-auto leading-relaxed">
-            {t("subtitle")}
+            {t('subtitle')}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {posts.map((post) => (
             <Link
-              href="/register"
+              href={post.href}
               key={post.id}
               className="group flex flex-col bg-white rounded-3xl border border-zinc-200/80 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
             >
               <div
                 className={`h-48 w-full bg-linear-to-br ${post.imgGradient} relative overflow-hidden flex items-center justify-center`}
               >
-                <div
-                  className={`absolute inset-0 bg-white/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
-                ></div>
-                <div className="w-16 h-16 bg-white/50 rounded-2xl border border-white/60 shadow-sm rotate-3 group-hover:rotate-6 transition-transform duration-300"></div>
+                <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="w-16 h-16 bg-white/50 rounded-2xl border border-white/60 shadow-sm rotate-3 group-hover:rotate-6 transition-transform duration-300" />
               </div>
 
               <div className="p-6 flex-1 flex flex-col">
                 <div className="flex items-center justify-between mb-4">
-                  <span
-                    className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-600`}
-                  >
+                  <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-zinc-100 text-zinc-600">
                     {t(`posts.${post.id}.category`)}
                   </span>
                   <span className="text-xs font-medium text-zinc-400">
@@ -94,7 +91,7 @@ export default function BlogPage() {
                 </p>
 
                 <div className="flex items-center gap-2 text-sm font-bold text-zinc-900 group-hover:text-blue-600 transition-colors mt-auto">
-                  {t("readMore")}{" "}
+                  {t('readMore')}{' '}
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </div>
               </div>

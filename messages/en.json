@@ -349,7 +349,7 @@
     "badge": "Our Blog",
     "title": "Insights & Updates",
     "subtitle": "The latest news, engineering deep-dives, and resources for scaling your company.",
-    "readMore": "Read Article",
+    "readMore": "Explore related",
     "posts": {
       "1": {
         "category": "Product",
@@ -379,18 +379,18 @@
     "cards": {
       "discord": {
         "title": "Discord Server",
-        "desc": "Join our official server. Chat with the core team, ask questions, and showcase your canvas setups.",
-        "btn": "Join Discord"
+        "desc": "Public Discord is coming soon. Until then, reach us by email for questions and feedback.",
+        "btn": "Contact us"
       },
       "github": {
-        "title": "GitHub Discussions",
+        "title": "GitHub Repository",
         "desc": "Found a bug or have a feature request? Hop into our GitHub repository and contribute.",
-        "btn": "View GitHub"
+        "btn": "View on GitHub"
       },
       "forum": {
-        "title": "Community Forum",
-        "desc": "Read deep-dive tutorials, share custom templates, and read release notes.",
-        "btn": "Browse Forum"
+        "title": "Release notes",
+        "desc": "Read what shipped recently — changelogs, architecture notes, and product updates.",
+        "btn": "View changelog"
       }
     }
   },
@@ -547,7 +547,8 @@
       "subjectPlaceholder": "How can we help?",
       "message": "Message",
       "messagePlaceholder": "Tell us a little about your project...",
-      "button": "Send Message"
+      "button": "Send Message",
+      "mailtoHint": "Opens your email client to send to {email}."
     }
   },
   "PrivacyPage": {

@@ -349,7 +349,7 @@
     "badge": "Blogumuz",
     "title": "İçgörüler ve Güncellemeler",
     "subtitle": "Şirketinizi ölçeklendirmek için en son haberler, mühendislik notları ve kaynaklar.",
-    "readMore": "Makaleyi Oku",
+    "readMore": "İlgili içeriği gör",
     "posts": {
       "1": {
         "category": "Ürün",
@@ -379,18 +379,18 @@
     "cards": {
       "discord": {
         "title": "Discord Sunucusu",
-        "desc": "Resmi sunucumuza katılın. Çekirdek ekiple sohbet edin, sorular sorun ve tuval kurulumlarınızı sergileyin.",
-        "btn": "Discord'a Katıl"
+        "desc": "Herkese açık Discord yakında. Şimdilik soru ve geri bildirim için e-posta ile ulaşın.",
+        "btn": "Bize yazın"
       },
       "github": {
-        "title": "GitHub Tartışmaları",
+        "title": "GitHub Deposu",
         "desc": "Bir hata mı buldunuz veya özellik talebiniz mi var? GitHub depomuza girin ve katkıda bulunun.",
-        "btn": "GitHub'ı İncele"
+        "btn": "GitHub'da aç"
       },
       "forum": {
-        "title": "Topluluk Forumu",
-        "desc": "Derinlemesine eğitimleri okuyun, özel şablonları paylaşın ve sürüm notlarını inceleyin.",
-        "btn": "Foruma Göz At"
+        "title": "Sürüm notları",
+        "desc": "Son çıkanları okuyun — changelog, mimari notlar ve ürün güncellemeleri.",
+        "btn": "Changelog'u gör"
       }
     }
   },
@@ -547,7 +547,8 @@
       "subjectPlaceholder": "Size nasıl yardımcı olabiliriz?",
       "message": "Mesajınız",
       "messagePlaceholder": "Bize projenizden biraz bahsedin...",
-      "button": "Mesajı Gönder"
+      "button": "Mesajı Gönder",
+      "mailtoHint": "Mesajı {email} adresine göndermek için e-posta istemcinizi açar."
     }
   },
   "PrivacyPage": {

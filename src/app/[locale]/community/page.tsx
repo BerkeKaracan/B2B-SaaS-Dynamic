@@ -1,13 +1,16 @@
-"use client";
-import React from "react";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
-import Footer from "@/components/layout/Footer";
-import BrandLogo from "@/components/brand/BrandLogo";
-import { ArrowLeft, Users, MessageSquare, LayoutTemplate } from "lucide-react";
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import Footer from '@/components/layout/Footer';
+import BrandLogo from '@/components/brand/BrandLogo';
+import { ArrowLeft, Users, MessageSquare, LayoutTemplate } from 'lucide-react';
+
+const GITHUB_REPO = 'https://github.com/BerkeKaracan/B2B-SaaS-Dynamic';
 
 export default function CommunityPage() {
-  const t = useTranslations("CommunityPage");
+  const t = useTranslations('CommunityPage');
 
   return (
     <div className="min-h-screen bg-[#fafafb] text-zinc-900 font-sans flex flex-col selection:bg-zinc-200">
@@ -18,7 +21,7 @@ export default function CommunityPage() {
         >
           <ArrowLeft className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
           <span className="text-sm font-bold text-zinc-500 group-hover:text-zinc-900 transition-colors">
-            {t("back")}
+            {t('back')}
           </span>
         </Link>
         <BrandLogo href={false} size="sm" />
@@ -29,13 +32,13 @@ export default function CommunityPage() {
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-xs font-bold text-zinc-600 mb-6">
             <Users className="w-3.5 h-3.5 text-indigo-500" />
-            {t("badge")}
+            {t('badge')}
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight mb-6 leading-[1.1]">
-            {t("title")}
+            {t('title')}
           </h1>
           <p className="text-lg text-zinc-500 max-w-2xl mx-auto leading-relaxed">
-            {t("subtitle")}
+            {t('subtitle')}
           </p>
         </div>
 
@@ -46,17 +49,17 @@ export default function CommunityPage() {
               <MessageSquare className="w-6 h-6" />
             </div>
             <h3 className="text-xl font-bold text-zinc-900 mb-3">
-              {t("cards.discord.title")}
+              {t('cards.discord.title')}
             </h3>
             <p className="text-zinc-500 leading-relaxed font-medium mb-8 flex-1">
-              {t("cards.discord.desc")}
+              {t('cards.discord.desc')}
             </p>
-            <a
-              href="#"
+            <Link
+              href="/contact"
               className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl font-bold transition-colors"
             >
-              {t("cards.discord.btn")}
-            </a>
+              {t('cards.discord.btn')}
+            </Link>
           </div>
 
           <div className="bg-white p-8 rounded-4xl border border-zinc-200/80 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col relative overflow-hidden group">
@@ -79,16 +82,18 @@ export default function CommunityPage() {
               </svg>
             </div>
             <h3 className="text-xl font-bold text-zinc-900 mb-3">
-              {t("cards.github.title")}
+              {t('cards.github.title')}
             </h3>
             <p className="text-zinc-500 leading-relaxed font-medium mb-8 flex-1">
-              {t("cards.github.desc")}
+              {t('cards.github.desc')}
             </p>
             <a
-              href="#"
+              href={GITHUB_REPO}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-bold transition-colors"
             >
-              {t("cards.github.btn")}
+              {t('cards.github.btn')}
             </a>
           </div>
 
@@ -98,17 +103,17 @@ export default function CommunityPage() {
               <LayoutTemplate className="w-6 h-6" />
             </div>
             <h3 className="text-xl font-bold text-zinc-900 mb-3">
-              {t("cards.forum.title")}
+              {t('cards.forum.title')}
             </h3>
             <p className="text-zinc-500 leading-relaxed font-medium mb-8 flex-1">
-              {t("cards.forum.desc")}
+              {t('cards.forum.desc')}
             </p>
-            <a
-              href="#"
+            <Link
+              href="/changelog"
               className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-xl font-bold transition-colors"
             >
-              {t("cards.forum.btn")}
-            </a>
+              {t('cards.forum.btn')}
+            </Link>
           </div>
         </div>
       </main>

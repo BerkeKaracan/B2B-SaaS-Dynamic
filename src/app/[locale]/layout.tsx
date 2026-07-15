@@ -88,6 +88,10 @@ export default async function RootLayout({
           >
             <WakeUpBackend />
             {children}
+            <CookieConsent />
+            <Toaster position="bottom-right" />
+            <Analytics />
+            <SpeedInsights />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

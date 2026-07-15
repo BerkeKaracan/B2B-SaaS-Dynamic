@@ -154,7 +154,7 @@ export default function OpenGraphImage() {
               fontWeight: 700,
             }}
           >
-            b2saasengine
+            B2 SaaS Engine
           </div>
           <span style={{ fontSize: 16, fontWeight: 600, color: '#71717a' }}>
             Multi-tenant · Canvas · AI
