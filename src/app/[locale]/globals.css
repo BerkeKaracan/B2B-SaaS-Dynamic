@@ -37,7 +37,10 @@
     user-select: none;
   }
 
-  .ui-chrome input:not([type='button']):not([type='submit']):not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']),
+  .ui-chrome
+    input:not([type='button']):not([type='submit']):not([type='checkbox']):not(
+      [type='radio']
+    ):not([type='file']):not([type='range']):not([type='color']),
   .ui-chrome textarea,
   .ui-chrome [contenteditable='true'],
   .ui-chrome .allow-text-select {

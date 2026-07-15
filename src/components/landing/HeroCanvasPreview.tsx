@@ -49,7 +49,10 @@ export default function HeroCanvasPreview() {
 
         {/* Cursor ghost */}
         <div className="lp-cursor-ghost absolute left-[48%] top-[42%] w-4 h-4 pointer-events-none">
-          <svg viewBox="0 0 24 24" className="w-5 h-5 text-zinc-800 drop-shadow">
+          <svg
+            viewBox="0 0 24 24"
+            className="w-5 h-5 text-zinc-800 drop-shadow"
+          >
             <path
               fill="currentColor"
               d="M5.5 3.21V20.8c0 .1.1.2.2.15l5.3-3.05 2.7 6.05c.05.1.2.15.3.05l2.05-1c.1-.05.15-.2.05-.3l-2.7-6.05 5.9-.35c.15 0 .2-.2.1-.3L5.7 3.05c-.1-.1-.2 0-.2.16z"
