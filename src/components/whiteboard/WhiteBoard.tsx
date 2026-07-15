@@ -479,86 +479,93 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
     }
   };
 
+  const isBoardEmpty = strokes.length === 0 && texts.length === 0;
+  const toolBtnBase =
+    'p-2 rounded-lg transition-colors';
+  const toolBtnIdle =
+    'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100';
+  const toolBtnActive =
+    'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900';
+
   return (
     <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden select-none transition-colors duration-300">
-      <div className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 shrink-0 shadow-sm flex items-center justify-between relative z-20 transition-colors duration-300">
-        <div className="flex items-center gap-1 border-r border-zinc-200 dark:border-zinc-800 pr-4 h-full">
+      <div className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-3 sm:px-4 shrink-0 flex items-center justify-between relative z-20">
+        <div className="flex items-center gap-0.5 border-r border-zinc-200 dark:border-zinc-800 pr-3 h-full">
           <button
+            type="button"
             onClick={() => setActiveTool('hand')}
-            className={`p-2.5 rounded-xl transition-all ${
-              activeTool === 'hand'
-                ? 'bg-zinc-950 dark:bg-zinc-100 text-white dark:text-zinc-950 shadow-md'
-                : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white'
+            className={`${toolBtnBase} ${
+              activeTool === 'hand' ? toolBtnActive : toolBtnIdle
             }`}
             title={t('pan')}
           >
-            <Hand size={18} strokeWidth={2.5} />
+            <Hand size={17} strokeWidth={2.25} />
           </button>
 
-          <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-700 mx-1"></div>
+          <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
 
           <button
+            type="button"
             onClick={() => setActiveTool('pen')}
-            className={`p-2.5 rounded-xl transition-all ${
-              activeTool === 'pen'
-                ? 'bg-zinc-950 dark:bg-zinc-100 text-white dark:text-zinc-950 shadow-md'
-                : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white'
+            className={`${toolBtnBase} ${
+              activeTool === 'pen' ? toolBtnActive : toolBtnIdle
             }`}
             title={t('pen')}
           >
-            <Pen size={18} strokeWidth={2.5} />
+            <Pen size={17} strokeWidth={2.25} />
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTool('highlighter')}
-            className={`p-2.5 rounded-xl transition-all ${
+            className={`${toolBtnBase} ${
               activeTool === 'highlighter'
-                ? 'bg-yellow-400 dark:bg-yellow-500/80 text-yellow-950 shadow-md'
-                : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white'
+                ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-200'
+                : toolBtnIdle
             }`}
             title={t('highlighter')}
           >
-            <Highlighter size={18} strokeWidth={2.5} />
+            <Highlighter size={17} strokeWidth={2.25} />
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTool('eraser')}
-            className={`p-2.5 rounded-xl transition-all ${
+            className={`${toolBtnBase} ${
               activeTool === 'eraser'
-                ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-inner'
-                : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white'
+                ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                : toolBtnIdle
             }`}
             title={t('eraser')}
           >
-            <Eraser size={18} strokeWidth={2.5} />
+            <Eraser size={17} strokeWidth={2.25} />
           </button>
 
-          <div className="w-px h-8 bg-zinc-200 dark:bg-zinc-700 mx-2"></div>
+          <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1.5" />
 
           <button
+            type="button"
             onClick={() => setActiveTool('text')}
-            className={`p-2.5 rounded-xl transition-all ${
-              activeTool === 'text'
-                ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-md'
-                : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white'
+            className={`${toolBtnBase} ${
+              activeTool === 'text' ? toolBtnActive : toolBtnIdle
             }`}
             title={t('text')}
           >
-            <Type size={18} strokeWidth={2.5} />
+            <Type size={17} strokeWidth={2.25} />
           </button>
         </div>
 
-        <div className="flex-1 px-4 flex items-center justify-start gap-4">
+        <div className="flex-1 px-3 flex items-center justify-start gap-3 min-w-0">
           {activeTool === 'text' ? (
-            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-4 duration-200 bg-blue-50/50 dark:bg-blue-900/20 p-1.5 rounded-xl border border-blue-100 dark:border-blue-900/50">
-              <div className="flex flex-col px-2">
-                <span className="text-[9px] font-black text-blue-500 dark:text-blue-400 uppercase tracking-widest mb-0.5">
+            <div className="flex items-center gap-2.5 animate-in fade-in slide-in-from-left-2 duration-200 bg-zinc-50 dark:bg-zinc-800/60 p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700">
+              <div className="flex flex-col px-1.5">
+                <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
                   {t('font')}
                 </span>
                 <select
                   value={activeFont}
                   onChange={(e) => setActiveFont(e.target.value)}
-                  className="bg-transparent text-zinc-800 dark:text-zinc-200 text-xs font-bold focus:outline-none cursor-pointer"
+                  className="bg-transparent text-zinc-800 dark:text-zinc-200 text-xs font-semibold focus:outline-none cursor-pointer"
                 >
                   {FONTS.map((font) => (
                     <option
@@ -572,15 +579,15 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
                   ))}
                 </select>
               </div>
-              <div className="w-px h-6 bg-blue-200 dark:bg-blue-800 mx-1"></div>
-              <div className="flex flex-col px-2">
-                <span className="text-[9px] font-black text-blue-500 dark:text-blue-400 uppercase tracking-widest mb-0.5">
+              <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700" />
+              <div className="flex flex-col px-1.5">
+                <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
                   {t('size')}
                 </span>
                 <select
                   value={activeFontSize}
                   onChange={(e) => setActiveFontSize(Number(e.target.value))}
-                  className="bg-transparent text-zinc-800 dark:text-zinc-200 text-xs font-bold focus:outline-none cursor-pointer"
+                  className="bg-transparent text-zinc-800 dark:text-zinc-200 text-xs font-semibold focus:outline-none cursor-pointer"
                 >
                   {SIZES.map((size) => (
                     <option
@@ -593,15 +600,16 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
                   ))}
                 </select>
               </div>
-              <div className="w-px h-6 bg-blue-200 dark:bg-blue-800 mx-1"></div>
-              <div className="flex items-center gap-1.5 px-2">
+              <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700" />
+              <div className="flex items-center gap-1.5 px-1.5">
                 {COLORS.map((color) => (
                   <button
+                    type="button"
                     key={color}
                     onClick={() => setActiveColor(color)}
-                    className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                    className={`w-5 h-5 rounded-full border-2 transition-transform ${
                       activeColor === color
-                        ? 'scale-110 border-blue-400 shadow-sm'
+                        ? 'scale-110 border-zinc-500 dark:border-zinc-400 shadow-sm'
                         : 'border-transparent dark:border-zinc-700 hover:scale-105'
                     }`}
                     style={{ backgroundColor: color }}
@@ -610,9 +618,9 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
               </div>
             </div>
           ) : activeTool === 'pen' || activeTool === 'highlighter' ? (
-            <div className="flex items-center gap-4 animate-in fade-in slide-in-from-left-4 duration-200">
+            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-200">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
                   {t('thickness')}
                 </span>
                 <input
@@ -621,18 +629,19 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
                   max="20"
                   value={strokeWidth}
                   onChange={(e) => setStrokeWidth(Number(e.target.value))}
-                  className="w-24 accent-zinc-950 dark:accent-zinc-100"
+                  className="w-24 accent-zinc-900 dark:accent-zinc-100"
                 />
               </div>
-              <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-700 mx-2"></div>
+              <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700" />
               <div className="flex items-center gap-1.5">
                 {COLORS.map((color) => (
                   <button
+                    type="button"
                     key={color}
                     onClick={() => setActiveColor(color)}
-                    className={`w-6 h-6 rounded-full border-2 transition-transform ${
+                    className={`w-5 h-5 rounded-full border-2 transition-transform ${
                       activeColor === color
-                        ? 'scale-110 border-zinc-400 dark:border-zinc-500 shadow-sm'
+                        ? 'scale-110 border-zinc-500 dark:border-zinc-400 shadow-sm'
                         : 'border-transparent dark:border-zinc-700 hover:scale-105'
                     }`}
                     style={{ backgroundColor: color }}
@@ -641,8 +650,8 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
               </div>
             </div>
           ) : activeTool === 'eraser' ? (
-            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-200">
-              <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
+              <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
                 {t('eraserSize')}
               </span>
               <input
@@ -654,36 +663,44 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
                 className="w-24 accent-zinc-500 dark:accent-zinc-400"
               />
             </div>
-          ) : null}
+          ) : (
+            <span className="hidden md:inline text-[11px] font-medium text-zinc-400 dark:text-zinc-500 tracking-wide truncate">
+              {t('panHint')}
+            </span>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 border-l border-zinc-200 dark:border-zinc-800 pl-4">
+        <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-3 shrink-0">
           <button
+            type="button"
             onClick={() => toast.success('Image module ready to implement.')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors hidden sm:flex"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             <ImageIcon size={14} /> Image
           </button>
           <button
+            type="button"
             onClick={() =>
               toast('Widget module ready to implement.', { icon: '🧩' })
             }
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors hidden sm:flex"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             <Blocks size={14} /> Widget
           </button>
           <button
+            type="button"
             onClick={() => toast.error('Link module is under construction.')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors hidden sm:flex"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             <Link2 size={14} /> Link
           </button>
-          <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800 mx-1"></div>
+          <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
           <button
+            type="button"
             onClick={handleClearBoard}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
           >
-            <Trash2 size={14} />{' '}
+            <Trash2 size={14} />
             <span className="hidden lg:inline">{t('clear')}</span>
           </button>
         </div>
@@ -691,7 +708,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
 
       <div
         ref={containerRef}
-        className={`flex-1 relative w-full h-full ${
+        className={`flex-1 relative w-full h-full min-h-0 ${
           activeTool === 'hand'
             ? 'cursor-default'
             : activeTool === 'text'
@@ -705,26 +722,39 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
         onPointerCancel={handlePointerCancel}
       >
         <div
-          className="absolute inset-0 pointer-events-none opacity-50 dark:opacity-20"
+          className="absolute inset-0 pointer-events-none opacity-40 dark:opacity-25"
           style={{
             backgroundImage:
-              'radial-gradient(#cbd5e1 1.5px, transparent 1.5px)',
+              'radial-gradient(rgba(113,113,122,0.45) 1px, transparent 1px)',
             backgroundSize: '24px 24px',
           }}
-        ></div>
+        />
 
         <canvas
           ref={canvasRef}
           className="absolute inset-0 z-10 w-full h-full pointer-events-none"
         />
 
-        <div className="absolute top-6 left-6 z-30">
+        {isBoardEmpty && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+            <div className="text-center px-6 max-w-sm">
+              <p className="text-sm font-semibold text-zinc-400 dark:text-zinc-500 tracking-tight">
+                {t('emptyTitle')}
+              </p>
+              <p className="mt-1.5 text-[11px] font-medium text-zinc-400/90 dark:text-zinc-600 leading-relaxed">
+                {t('emptyHint')}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="absolute top-5 left-5 sm:top-6 sm:left-6 z-30">
           <input
             type="text"
             value={title}
             onChange={(e) => saveTitle(e.target.value)}
             placeholder={t('titlePlaceholder')}
-            className="text-4xl font-black tracking-tighter text-zinc-900 dark:text-zinc-100 bg-transparent border-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-700 w-[500px]"
+            className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 bg-transparent border-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-600 w-[min(500px,70vw)]"
             style={{ pointerEvents: 'auto' }}
           />
         </div>
@@ -753,17 +783,17 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
               }}
             >
               <div
-                className={`absolute -top-12 left-0 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-md rounded-full flex items-center gap-1 px-1.5 py-1 transition-all duration-200 z-50 
+                className={`absolute -top-11 left-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)] rounded-full flex items-center gap-0.5 px-1 py-0.5 transition-all duration-200 z-50 
         after:absolute after:content-[''] after:w-full after:h-8 after:-bottom-8 after:left-0
         ${
           activeTool === 'hand' || activeTool === 'text'
-            ? 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 focus-within:opacity-100 focus-within:translate-y-0'
+            ? 'opacity-0 translate-y-1.5 group-hover:opacity-100 group-hover:translate-y-0 focus-within:opacity-100 focus-within:translate-y-0'
             : 'opacity-0 pointer-events-none'
         }`}
               >
                 <div
                   onPointerDown={(e) => startTextDrag(e, text)}
-                  className={`p-1.5 rounded-full cursor-grab active:cursor-grabbing hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors ${
+                  className={`p-1.5 rounded-full cursor-grab active:cursor-grabbing hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 transition-colors ${
                     activeTool !== 'hand' ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                   title={
@@ -775,12 +805,13 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
                   <GripHorizontal size={14} />
                 </div>
 
-                <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-600"></div>
+                <div className="w-px h-3.5 bg-zinc-200 dark:bg-zinc-700" />
 
                 <button
+                  type="button"
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => handleDeleteText(text.id)}
-                  className="p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                  className="p-1.5 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                   title="Delete Text"
                 >
                   <Trash2 size={14} />
@@ -807,7 +838,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
                   e.target.style.height = 'auto';
                   e.target.style.height = `${e.target.scrollHeight}px`;
                 }}
-                className="bg-transparent border border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 border-dashed focus:border-blue-200 dark:focus:border-blue-500/50 focus:border-solid rounded-3xl outline-none resize-none overflow-hidden p-3 transition-all allow-text-select"
+                className="bg-transparent border border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 border-dashed focus:border-zinc-300 dark:focus:border-zinc-500 focus:border-solid rounded-2xl outline-none resize-none overflow-hidden p-3 transition-colors allow-text-select"
                 style={{
                   color: text.color,
                   fontSize: `${text.size}px`,

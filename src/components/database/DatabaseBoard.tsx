@@ -335,18 +335,18 @@ export default function DatabaseBoard({
   if (!isClient) return null;
 
   return (
-    <div className="flex flex-col h-full bg-transparent rounded-xl shadow-sm border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden font-sans relative z-10">
-      <div className="px-4 py-2.5 border-b border-zinc-200 flex items-center justify-between bg-white select-none shrink-0 relative z-50">
-        <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar hide-scrollbar-y pr-4 flex-1">
+    <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden font-sans z-10">
+      <div className="h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md select-none shrink-0 relative z-50">
+        <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar hide-scrollbar-y pr-4 flex-1 min-w-0">
           <button
             onClick={() => applyView(null)}
-            className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 rounded transition-colors whitespace-nowrap ${activeViewId === null ? 'text-zinc-900 bg-zinc-100' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700'}`}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap ${activeViewId === null ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
           >
-            <ListIcon className="w-4 h-4" /> Default View
+            <ListIcon className="w-3.5 h-3.5" /> Default View
           </button>
 
           {savedViews.length > 0 && (
-            <div className="h-4 w-px bg-zinc-300 mx-1 shrink-0"></div>
+            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 mx-1 shrink-0" />
           )}
 
           {savedViews.map((view) => (
@@ -356,13 +356,13 @@ export default function DatabaseBoard({
             >
               <button
                 onClick={() => applyView(view.id)}
-                className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1.5 pr-6 rounded transition-colors whitespace-nowrap ${activeViewId === view.id ? 'text-indigo-700 bg-indigo-50' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700'}`}
+                className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 pr-6 rounded-lg transition-colors whitespace-nowrap ${activeViewId === view.id ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
               >
                 <LayoutDashboard className="w-3.5 h-3.5" /> {view.name}
               </button>
               <button
                 onClick={(e) => handleDeleteView(e, view.id)}
-                className={`absolute right-1 w-4 h-4 rounded-full flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? 'hover:bg-indigo-200 text-indigo-700' : 'hover:bg-red-100 text-red-500'}`}
+                className={`absolute right-1 w-4 h-4 rounded-md flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300' : 'hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500'}`}
               >
                 <X className="w-2.5 h-2.5" />
               </button>
@@ -370,21 +370,21 @@ export default function DatabaseBoard({
           ))}
         </div>
 
-        <div className="flex items-center gap-2 pl-4 border-l border-zinc-100 shrink-0">
+        <div className="flex items-center gap-1.5 pl-4 border-l border-zinc-100 dark:border-zinc-800 shrink-0">
           <div className="relative" ref={filterRef}>
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors ${isFilterOpen || filterQuery ? 'bg-indigo-50 text-indigo-700' : 'text-zinc-500 hover:bg-zinc-100'}`}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${isFilterOpen || filterQuery ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
             >
               <Search className="w-3.5 h-3.5" /> Filter
               {filterQuery && (
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 ml-0.5" />
               )}
             </button>
 
             {isFilterOpen && (
-              <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-zinc-200 shadow-xl rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5 block">
+              <div className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
+                <label className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
                   Search Database
                 </label>
                 <div className="relative">
@@ -397,13 +397,13 @@ export default function DatabaseBoard({
                       setActiveViewId(null);
                     }}
                     placeholder="Type to search..."
-                    className="w-full pl-8 pr-3 py-1.5 text-xs font-medium border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full pl-8 pr-3 py-1.5 text-xs font-medium bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors placeholder:text-zinc-400"
                   />
                 </div>
-                <div className="pt-2 mt-2 border-t border-zinc-100 flex flex-col gap-1.5">
+                <div className="pt-2 mt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-1.5">
                   <button
                     onClick={handleSaveView}
-                    className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-semibold text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200/80 dark:hover:bg-zinc-700 transition-colors"
                   >
                     <BookmarkPlus className="w-3 h-3" /> Save as Custom View
                   </button>
@@ -413,7 +413,7 @@ export default function DatabaseBoard({
                         setFilterQuery('');
                         setActiveViewId(null);
                       }}
-                      className="w-full py-1.5 text-[10px] font-bold text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                      className="w-full py-1.5 text-[10px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors"
                     >
                       Clear Filter
                     </button>
@@ -426,17 +426,17 @@ export default function DatabaseBoard({
           <div className="relative" ref={sortRef}>
             <button
               onClick={() => setIsSortOpen(!isSortOpen)}
-              className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors ${isSortOpen || sortConfig ? 'bg-indigo-50 text-indigo-700' : 'text-zinc-500 hover:bg-zinc-100'}`}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${isSortOpen || sortConfig ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
             >
               <ArrowUpDown className="w-3.5 h-3.5" /> Sort
               {sortConfig && (
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 ml-0.5" />
               )}
             </button>
 
             {isSortOpen && (
-              <div className="absolute top-full mt-2 right-0 w-56 bg-white border border-zinc-200 shadow-xl rounded-xl p-2 z-50 animate-in fade-in slide-in-from-top-2">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 px-2 block">
+              <div className="absolute top-full mt-2 right-0 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-2 z-50 animate-in fade-in slide-in-from-top-2">
+                <label className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-2 block">
                   Sort By Column
                 </label>
                 <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar">
@@ -446,16 +446,16 @@ export default function DatabaseBoard({
                       setActiveViewId(null);
                       setIsSortOpen(false);
                     }}
-                    className={`px-2 py-1.5 text-xs font-bold rounded-lg text-left transition-colors ${!sortConfig ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-zinc-50 text-zinc-700'}`}
+                    className={`px-2 py-1.5 text-xs font-semibold rounded-lg text-left transition-colors ${!sortConfig ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
                   >
                     None (Default)
                   </button>
                   {properties.map((prop) => (
                     <div
                       key={prop.id}
-                      className="flex flex-col mt-1 pt-1 border-t border-zinc-100"
+                      className="flex flex-col mt-1 pt-1 border-t border-zinc-100 dark:border-zinc-800"
                     >
-                      <span className="text-[10px] font-bold text-zinc-400 px-2 mb-1 truncate">
+                      <span className="text-[10px] font-semibold text-zinc-400 px-2 mb-1 truncate">
                         {prop.name}
                       </span>
                       <button
@@ -464,7 +464,7 @@ export default function DatabaseBoard({
                           setActiveViewId(null);
                           setIsSortOpen(false);
                         }}
-                        className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === 'asc' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'hover:bg-zinc-50 text-zinc-700'}`}
+                        className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === 'asc' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
                       >
                         Ascending (A-Z)
                       </button>
@@ -474,7 +474,7 @@ export default function DatabaseBoard({
                           setActiveViewId(null);
                           setIsSortOpen(false);
                         }}
-                        className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === 'desc' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'hover:bg-zinc-50 text-zinc-700'}`}
+                        className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === 'desc' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
                       >
                         Descending (Z-A)
                       </button>
@@ -488,48 +488,56 @@ export default function DatabaseBoard({
           <button
             onClick={handleNotionExport}
             disabled={isExporting}
-            className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold px-3 py-1.5 rounded-md transition-colors shadow-sm disabled:opacity-70"
+            className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors border border-zinc-200 dark:border-zinc-700 shadow-sm disabled:opacity-70"
           >
             {isExporting ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <CloudUpload className="w-3.5 h-3.5" />
             )}
-            Export to Notion
+            Export
           </button>
 
           <button
             onClick={handleAddRow}
-            className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors shadow-sm ml-1"
+            className="flex items-center gap-1 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-sm ml-0.5"
           >
-            New
+            <Plus className="w-3.5 h-3.5" /> New
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-transparent p-8 pt-10 relative custom-scrollbar z-10">
-        <div className="mb-8 max-w-3xl">
+      <div className="flex-1 overflow-auto bg-transparent px-6 py-6 md:px-8 md:py-8 relative custom-scrollbar z-10">
+        <div className="mb-6 max-w-3xl">
           <input
             type="text"
             value={dbTitle}
             onChange={(e) => saveTitle(e.target.value)}
             placeholder="Untitled Database"
-            className="text-4xl font-bold text-zinc-900 w-full focus:outline-none placeholder:text-zinc-300 placeholder:font-bold"
+            className="text-3xl md:text-[2rem] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 w-full focus:outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-600"
           />
+          <p className="mt-1.5 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 tabular-nums">
+            {processedRows.length}
+            {filterQuery ? ` of ${rows.length}` : ''}{' '}
+            {processedRows.length === 1 ? 'row' : 'rows'}
+            {properties.length > 0
+              ? ` · ${properties.length} ${properties.length === 1 ? 'property' : 'properties'}`
+              : ''}
+          </p>
         </div>
 
-        <div className="min-w-max pb-32">
+        <div className="min-w-max pb-32 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 shadow-sm">
           <table className="text-left border-collapse whitespace-nowrap w-full">
             <thead>
-              <tr className="border-y border-zinc-200">
-                <th className="w-10 py-1.5 bg-white"></th>
+              <tr className="border-b border-zinc-200 dark:border-zinc-800">
+                <th className="w-10 py-1.5 bg-zinc-50/80 dark:bg-zinc-900/80" />
                 {properties.map((prop) => (
                   <th
                     key={prop.id}
-                    className="border-r border-zinc-200 bg-white font-normal text-zinc-500 text-sm hover:bg-zinc-50 group/header transition-colors min-w-[150px] max-w-[300px] relative"
+                    className="border-r border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 font-normal text-zinc-500 text-sm hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 group/header transition-colors min-w-[150px] max-w-[300px] relative"
                   >
-                    <div className="flex items-center justify-between px-2 py-1.5">
-                      <div className="flex items-center gap-1.5 flex-1 w-full">
+                    <div className="flex items-center justify-between px-2.5 py-2">
+                      <div className="flex items-center gap-1.5 flex-1 w-full min-w-0">
                         {getPropertyIcon(prop.type)}
                         <input
                           type="text"
@@ -537,14 +545,14 @@ export default function DatabaseBoard({
                           onChange={(e) =>
                             updatePropertyName(prop.id, e.target.value)
                           }
-                          className="bg-transparent focus:outline-none text-zinc-600 w-full placeholder:text-zinc-300 font-medium"
+                          className="bg-transparent focus:outline-none text-zinc-600 dark:text-zinc-300 w-full placeholder:text-zinc-300 font-medium text-sm tracking-tight"
                           placeholder="Property name"
                         />
                       </div>
                       {properties.length > 1 && (
                         <button
                           onClick={() => handleDeleteProperty(prop.id)}
-                          className="opacity-0 group-hover/header:opacity-100 text-zinc-300 hover:text-red-500 transition-all p-1"
+                          className="opacity-0 group-hover/header:opacity-100 text-zinc-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all p-1 rounded-md"
                           title="Delete Property"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -553,10 +561,11 @@ export default function DatabaseBoard({
                     </div>
                   </th>
                 ))}
-                <th className="border-r border-zinc-200 bg-white font-normal text-zinc-500 text-sm hover:bg-zinc-50 transition-colors w-24 relative">
+                <th className="border-r border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 font-normal text-zinc-500 text-sm hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 transition-colors w-24 relative">
                   <button
                     onClick={() => setIsPropertyMenuOpen(!isPropertyMenuOpen)}
-                    className="flex items-center justify-center gap-1.5 px-2 py-1.5 w-full h-full"
+                    className="flex items-center justify-center gap-1.5 px-2 py-2 w-full h-full text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                    title="Add property"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -565,38 +574,38 @@ export default function DatabaseBoard({
                       <div
                         className="fixed inset-0 z-40"
                         onClick={() => setIsPropertyMenuOpen(false)}
-                      ></div>
-                      <div className="absolute top-full right-0 mt-1 w-56 bg-white border border-zinc-200 shadow-xl rounded-lg py-1.5 z-50">
-                        <div className="px-3 py-1.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                      />
+                      <div className="absolute top-full right-0 mt-1 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl py-1.5 z-50 animate-in fade-in zoom-in-95">
+                        <div className="px-3 py-1.5 text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
                           Property Type
                         </div>
                         <button
                           onClick={() => handleAddProperty('text')}
-                          className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-100 text-sm text-zinc-700 text-left"
+                          className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-sm text-zinc-700 dark:text-zinc-200 text-left rounded-md mx-0"
                         >
                           <Type className="w-4 h-4 text-zinc-400" /> Text
                         </button>
                         <button
                           onClick={() => handleAddProperty('number')}
-                          className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-100 text-sm text-zinc-700 text-left"
+                          className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-sm text-zinc-700 dark:text-zinc-200 text-left"
                         >
                           <Hash className="w-4 h-4 text-zinc-400" /> Number
                         </button>
                         <button
                           onClick={() => handleAddProperty('select')}
-                          className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-100 text-sm text-zinc-700 text-left"
+                          className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-sm text-zinc-700 dark:text-zinc-200 text-left"
                         >
                           <ListIcon className="w-4 h-4 text-zinc-400" /> Select
                         </button>
                         <button
                           onClick={() => handleAddProperty('date')}
-                          className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-100 text-sm text-zinc-700 text-left"
+                          className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-sm text-zinc-700 dark:text-zinc-200 text-left"
                         >
                           <Calendar className="w-4 h-4 text-zinc-400" /> Date
                         </button>
                         <button
                           onClick={() => handleAddProperty('checkbox')}
-                          className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-100 text-sm text-zinc-700 text-left"
+                          className="flex items-center gap-2 w-full px-3 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-sm text-zinc-700 dark:text-zinc-200 text-left"
                         >
                           <CheckSquare className="w-4 h-4 text-zinc-400" />{' '}
                           Checkbox
@@ -605,18 +614,18 @@ export default function DatabaseBoard({
                     </>
                   )}
                 </th>
-                <th className="bg-white w-full"></th>
+                <th className="bg-zinc-50/80 dark:bg-zinc-900/80 w-full" />
               </tr>
             </thead>
             <tbody>
               {processedRows.map((row) => (
                 <tr
                   key={row.id}
-                  className="group/row border-b border-zinc-100 hover:bg-zinc-50/50 transition-colors"
+                  className="group/row border-b border-zinc-100 dark:border-zinc-800/80 hover:bg-zinc-50/70 dark:hover:bg-zinc-800/30 transition-colors"
                 >
                   <td className="w-10 text-center align-middle p-0">
                     <div className="opacity-0 group-hover/row:opacity-100 flex flex-col items-center justify-center gap-0.5 w-full h-full p-1 transition-all">
-                      <button className="text-zinc-300 hover:text-zinc-600 hover:bg-zinc-200 p-0.5 rounded cursor-grab">
+                      <button className="text-zinc-300 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-200/80 dark:hover:bg-zinc-700 p-0.5 rounded-md cursor-grab">
                         <GripVertical className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -624,9 +633,9 @@ export default function DatabaseBoard({
                   {properties.map((prop) => (
                     <td
                       key={`${row.id}-${prop.id}`}
-                      className="border-r border-zinc-100 p-0 align-top relative group/cell"
+                      className="border-r border-zinc-100 dark:border-zinc-800/80 p-0 align-top relative group/cell"
                     >
-                      <div className="min-h-[34px] w-full flex items-center px-2 py-1 focus-within:ring-1 focus-within:ring-blue-400 focus-within:bg-blue-50/10 transition-colors">
+                      <div className="min-h-[36px] w-full flex items-center px-2.5 py-1 focus-within:ring-2 focus-within:ring-inset focus-within:ring-zinc-900/10 focus-within:bg-zinc-50/80 dark:focus-within:bg-zinc-800/40 transition-colors">
                         {prop.type === 'text' && (
                           <input
                             type="text"
@@ -634,7 +643,7 @@ export default function DatabaseBoard({
                             onChange={(e) =>
                               updateCell(row.id, prop.id, e.target.value)
                             }
-                            className="w-full h-full bg-transparent focus:outline-none text-sm text-zinc-900"
+                            className="w-full h-full bg-transparent focus:outline-none text-sm text-zinc-900 dark:text-zinc-100"
                           />
                         )}
                         {prop.type === 'number' && (
@@ -644,7 +653,7 @@ export default function DatabaseBoard({
                             onChange={(e) =>
                               updateCell(row.id, prop.id, e.target.value)
                             }
-                            className="w-full h-full bg-transparent focus:outline-none text-sm text-zinc-900"
+                            className="w-full h-full bg-transparent focus:outline-none text-sm text-zinc-900 dark:text-zinc-100 tabular-nums"
                           />
                         )}
                         {prop.type === 'date' && (
@@ -659,11 +668,11 @@ export default function DatabaseBoard({
                               className="w-full h-full min-h-[26px] bg-transparent focus:outline-none text-sm cursor-pointer flex items-center"
                             >
                               {(row[prop.id] as string) ? (
-                                <span className="text-zinc-900">
+                                <span className="text-zinc-900 dark:text-zinc-100 tabular-nums">
                                   {row[prop.id] as string}
                                 </span>
                               ) : (
-                                <span className="text-transparent group-hover/cell:text-zinc-300">
+                                <span className="text-transparent group-hover/cell:text-zinc-300 dark:group-hover/cell:text-zinc-600">
                                   Empty
                                 </span>
                               )}
@@ -674,8 +683,8 @@ export default function DatabaseBoard({
                                   <div
                                     className="fixed inset-0 z-40"
                                     onClick={() => setActiveDateCell(null)}
-                                  ></div>
-                                  <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-zinc-200 shadow-xl rounded-xl p-1">
+                                  />
+                                  <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-1">
                                     <CustomCalendar
                                       mode="single"
                                       selected={
@@ -715,7 +724,7 @@ export default function DatabaseBoard({
                               onChange={(e) =>
                                 updateCell(row.id, prop.id, e.target.checked)
                               }
-                              className="w-3.5 h-3.5 rounded border-zinc-300 text-blue-500 focus:ring-blue-500 cursor-pointer"
+                              className="w-3.5 h-3.5 rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 focus:ring-zinc-900/20 cursor-pointer"
                             />
                           </div>
                         )}
@@ -727,21 +736,21 @@ export default function DatabaseBoard({
                               updateCell(row.id, prop.id, e.target.value)
                             }
                             placeholder="Empty"
-                            className={`w-full bg-transparent focus:outline-none text-sm transition-all ${row[prop.id] ? 'bg-zinc-100 px-2 py-0.5 rounded text-zinc-700 font-medium w-fit' : 'text-zinc-900 placeholder:text-transparent group-hover/cell:placeholder:text-zinc-300'}`}
+                            className={`w-full bg-transparent focus:outline-none text-sm transition-all ${row[prop.id] ? 'bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md text-zinc-700 dark:text-zinc-200 font-medium w-fit' : 'text-zinc-900 dark:text-zinc-100 placeholder:text-transparent group-hover/cell:placeholder:text-zinc-300'}`}
                           />
                         )}
                       </div>
                     </td>
                   ))}
 
-                  <td className="border-r border-zinc-100 w-12 text-center p-0 align-middle relative">
+                  <td className="border-r border-zinc-100 dark:border-zinc-800/80 w-12 text-center p-0 align-middle relative">
                     <button
                       onMouseDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         setOpenRowMenu(openRowMenu === row.id ? null : row.id);
                       }}
-                      className="row-menu-trigger opacity-0 group-hover/row:opacity-100 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 p-1.5 rounded transition-all mx-auto flex items-center justify-center"
+                      className="row-menu-trigger opacity-0 group-hover/row:opacity-100 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-1.5 rounded-md transition-all mx-auto flex items-center justify-center"
                     >
                       <MoreHorizontal className="w-4 h-4" />
                     </button>
@@ -750,7 +759,7 @@ export default function DatabaseBoard({
                       <div
                         onMouseDown={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}
-                        className="row-dropdown-menu absolute right-full top-1/2 -translate-y-1/2 mr-2 w-36 bg-white shadow-xl border border-zinc-200 rounded-lg p-1 z-70 animate-in fade-in zoom-in-95 cursor-default text-left"
+                        className="row-dropdown-menu absolute right-full top-1/2 -translate-y-1/2 mr-2 w-36 bg-white dark:bg-zinc-900 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] border border-zinc-200 dark:border-zinc-700 rounded-lg p-1 z-70 animate-in fade-in zoom-in-95 cursor-default text-left"
                       >
                         <button
                           onMouseDown={(e) => {
@@ -758,18 +767,18 @@ export default function DatabaseBoard({
                             e.stopPropagation();
                             handleDuplicateRow(row.id);
                           }}
-                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-zinc-700 hover:bg-zinc-100 rounded-md transition-colors"
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
                         >
                           <Copy className="w-3.5 h-3.5" /> Duplicate
                         </button>
-                        <div className="w-full h-px bg-zinc-100 my-0.5"></div>
+                        <div className="w-full h-px bg-zinc-100 dark:bg-zinc-800 my-0.5" />
                         <button
                           onMouseDown={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             handleDeleteRow(row.id);
                           }}
-                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" /> Delete
                         </button>
@@ -777,7 +786,7 @@ export default function DatabaseBoard({
                     )}
                   </td>
 
-                  <td></td>
+                  <td />
                 </tr>
               ))}
 
@@ -785,19 +794,29 @@ export default function DatabaseBoard({
                 <tr>
                   <td
                     colSpan={properties.length + 2}
-                    className="py-8 text-center text-sm font-medium text-zinc-400"
+                    className="py-12 text-center"
                   >
-                    No results found for &quot;{filterQuery}&quot;
+                    <div className="inline-flex flex-col items-center gap-2 px-4">
+                      <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700 flex items-center justify-center">
+                        <Search className="w-4 h-4 text-zinc-400" />
+                      </div>
+                      <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                        No results for &quot;{filterQuery}&quot;
+                      </p>
+                      <p className="text-[11px] font-medium text-zinc-400">
+                        Try a different filter or clear it
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}
 
               <tr>
-                <td className="w-10"></td>
+                <td className="w-10" />
                 <td colSpan={properties.length + 2} className="p-0">
                   <button
                     onClick={handleAddRow}
-                    className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 px-2 py-1.5 w-full text-left transition-colors"
+                    className="flex items-center gap-1.5 text-sm font-medium text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 px-2.5 py-2 w-full text-left transition-colors"
                   >
                     <Plus className="w-4 h-4" /> New
                   </button>

@@ -752,14 +752,17 @@
     "highlighter": "Fosforlu Kalem",
     "eraser": "Silgi (E)",
     "text": "Metin Ekle (T)",
-    "titlePlaceholder": "BEYAZ TAHTA BAŞLIĞI...",
+    "titlePlaceholder": "İsimsiz beyaz tahta",
     "clear": "Temizle",
     "clearConfirm": "Tüm beyaz tahtayı temizlemek istediğinize emin misiniz?",
     "typePlaceholder": "Yaz...",
     "font": "Yazı Tipi",
     "size": "Boyut (PX)",
     "thickness": "Kalınlık",
-    "eraserSize": "Silgi Boyutu"
+    "eraserSize": "Silgi Boyutu",
+    "panHint": "El aracı — metinleri sürükleyin · V / H",
+    "emptyTitle": "Çizmeye başlayın",
+    "emptyHint": "Kalem (P), Fosforlu veya Metin (T) seçin. El (H) metinleri taşır."
   },
   "RetrospectiveBoard": {
     "title": "Sprint Retrospektifi",
@@ -780,7 +783,11 @@
     "typePlaceholder": "Yazın...",
     "addNode": "Bağlı düğüm ekle",
     "exportMap": "Haritayı Dışa Aktar",
-    "dragNode": "Düğümü Taşı"
+    "dragNode": "Düğümü Taşı",
+    "zoomIn": "Yakınlaştır",
+    "zoomOut": "Uzaklaştır",
+    "emptyTitle": "Fikirlerinizi haritalayın",
+    "emptyHint": "Yeniden adlandırmak için düğüme tıklayın · dal eklemek için + · kaydırmak için tuvali sürükleyin"
   },
   "ProjectsPage": {
     "title": "Aktif Çalışma Alanları",

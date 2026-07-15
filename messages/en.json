@@ -752,14 +752,17 @@
     "highlighter": "Highlighter",
     "eraser": "Eraser (E)",
     "text": "Add Text (T)",
-    "titlePlaceholder": "WHITEBOARD TITLE...",
+    "titlePlaceholder": "Untitled whiteboard",
     "clear": "Clear",
     "clearConfirm": "Are you sure you want to clear the entire whiteboard?",
     "typePlaceholder": "Type...",
     "font": "Font",
     "size": "Size (PX)",
     "thickness": "Thickness",
-    "eraserSize": "Eraser Size"
+    "eraserSize": "Eraser Size",
+    "panHint": "Hand tool — drag text nodes · V / H",
+    "emptyTitle": "Start sketching",
+    "emptyHint": "Pick Pen (P), Highlighter, or Text (T) to begin. Hand (H) moves text."
   },
   "RetrospectiveBoard": {
     "title": "Sprint Retrospective",
@@ -780,7 +783,11 @@
     "typePlaceholder": "Type...",
     "addNode": "Add connected node",
     "exportMap": "Export Map",
-    "dragNode": "Drag Node"
+    "dragNode": "Drag Node",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "emptyTitle": "Map your ideas",
+    "emptyHint": "Click a node to rename · hover + to branch · drag the canvas to pan"
   },
   "ProjectsPage": {
     "title": "Active Workspaces",

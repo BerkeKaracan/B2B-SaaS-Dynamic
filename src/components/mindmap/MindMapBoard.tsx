@@ -10,7 +10,7 @@ import React, {
 import { useTranslations } from 'next-intl';
 import {
   Plus,
-  Target,
+  Network,
   ZoomIn,
   ZoomOut,
   Download,
@@ -91,7 +91,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
                 x: window.innerWidth / 2 - 100,
                 y: window.innerHeight / 2 - 100,
                 parentId: null,
-                color: 'bg-indigo-600',
+                color: 'bg-zinc-900',
               },
             ]
       );
@@ -198,39 +198,48 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
 
   if (!isMounted) return null;
 
+  const showEmptyHint = nodes.length <= 1;
+
   return (
     <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden transition-colors duration-300">
-      <div className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-4 flex items-center justify-between z-20">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
-            <Target className="w-5 h-5" />
+      <div className="h-14 shrink-0 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-4 flex items-center justify-between z-20">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 shrink-0">
+            <Network className="w-4 h-4" />
           </div>
-          <span className="text-sm font-bold text-zinc-900 dark:text-white">
+          <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight truncate">
             {typeof metadata.name === 'string' && metadata.name
               ? metadata.name
               : t('title')}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-0.5 bg-zinc-100/80 dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/80 rounded-lg p-0.5">
+            <button
+              type="button"
+              onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))}
+              className="p-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-white dark:hover:bg-zinc-700 rounded-md transition-colors"
+              title={t('zoomOut')}
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <span className="text-[11px] font-semibold tabular-nums text-zinc-600 dark:text-zinc-300 w-11 text-center">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              type="button"
+              onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
+              className="p-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-white dark:hover:bg-zinc-700 rounded-md transition-colors"
+              title={t('zoomIn')}
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
           <button
-            onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))}
-            className="p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-          >
-            <ZoomOut className="w-4 h-4" />
-          </button>
-          <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 w-12 text-center tracking-wider">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
-            className="p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-          >
-            <ZoomIn className="w-4 h-4" />
-          </button>
-          <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800 mx-2"></div>
-          <button
-            className="p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+            type="button"
+            className="p-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
             title={t('exportMap')}
           >
             <Download className="w-4 h-4" />
@@ -248,14 +257,25 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
         style={{ touchAction: 'none' }}
       >
         <div
-          className="absolute inset-0 opacity-20 dark:opacity-10 pointer-events-none"
+          className="absolute inset-0 opacity-[0.18] dark:opacity-[0.12] pointer-events-none"
           style={{
             backgroundImage:
-              'radial-gradient(#64748b 1.5px, transparent 1.5px)',
+              'radial-gradient(#71717a 1.25px, transparent 1.25px)',
             backgroundSize: `${40 * zoom}px ${40 * zoom}px`,
             backgroundPosition: `${pan.x}px ${pan.y}px`,
           }}
         />
+
+        {showEmptyHint && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-5 pointer-events-none text-center px-4">
+            <p className="text-sm font-semibold text-zinc-400 dark:text-zinc-500 tracking-tight">
+              {t('emptyTitle')}
+            </p>
+            <p className="mt-1 text-[11px] font-medium text-zinc-400/90 dark:text-zinc-600 leading-relaxed max-w-xs">
+              {t('emptyHint')}
+            </p>
+          </div>
+        )}
 
         <svg className="absolute inset-0 pointer-events-none w-full h-full z-0">
           <g
@@ -281,8 +301,8 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
                   y1={startY}
                   x2={endX}
                   y2={endY}
-                  className="stroke-zinc-300 dark:stroke-zinc-700"
-                  strokeWidth="3"
+                  className="stroke-zinc-300 dark:stroke-zinc-600"
+                  strokeWidth="2"
                   strokeLinecap="round"
                 />
               );
@@ -304,17 +324,21 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
               style={{ left: node.x, top: node.y }}
             >
               <div
-                className={`relative px-4 py-3 rounded-xl shadow-lg border-2 transition-all w-40 flex items-center justify-center
-                  ${draggingNodeId === node.id ? 'scale-105 shadow-2xl z-50 ring-4 ring-indigo-500/20' : 'hover:border-indigo-400'}
+                className={`relative px-4 py-3 rounded-xl shadow-sm border-2 transition-all w-40 flex items-center justify-center
+                  ${
+                    draggingNodeId === node.id
+                      ? 'scale-105 shadow-md z-50 ring-2 ring-zinc-400/30 dark:ring-zinc-500/30'
+                      : 'hover:border-zinc-400 dark:hover:border-zinc-500'
+                  }
                   ${
                     node.parentId === null
-                      ? 'bg-indigo-600 border-indigo-700 text-white'
+                      ? 'bg-zinc-900 dark:bg-zinc-100 border-zinc-800 dark:border-zinc-200 text-white dark:text-zinc-900'
                       : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100'
                   }`}
               >
                 <div
                   onPointerDown={(e) => handleNodePointerDown(e, node.id)}
-                  className="absolute -top-3 right-2 bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-full p-1 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity shadow-sm text-zinc-400 hover:text-indigo-500"
+                  className="absolute -top-3 right-2 bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-full p-1 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity shadow-sm text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
                   title={t('dragNode')}
                 >
                   <GripHorizontal size={12} />
@@ -329,13 +353,13 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
                     onKeyDown={(e) =>
                       e.key === 'Enter' && setEditingNodeId(null)
                     }
-                    className="w-full bg-transparent text-center font-bold text-sm outline-none"
+                    className="w-full bg-transparent text-center font-semibold text-sm outline-none"
                     placeholder={t('typePlaceholder')}
                   />
                 ) : (
                   <span
                     onClick={() => setEditingNodeId(node.id)}
-                    className="font-bold text-sm text-center truncate w-full cursor-default select-none"
+                    className="font-semibold text-sm text-center truncate w-full cursor-default select-none"
                   >
                     {node.text}
                   </span>
@@ -343,11 +367,12 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
               </div>
 
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   addChildNode(node.id, node.x, node.y);
                 }}
-                className="absolute -left-3 -bottom-3 bg-indigo-50 dark:bg-indigo-900/50 border-2 border-indigo-200 dark:border-indigo-500 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-500 dark:hover:text-white rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md z-20"
+                className="absolute -left-3 -bottom-3 bg-zinc-100 dark:bg-zinc-800 border-2 border-zinc-300 dark:border-zinc-600 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-900 hover:border-zinc-900 hover:text-white dark:hover:bg-zinc-100 dark:hover:border-zinc-100 dark:hover:text-zinc-900 rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-sm z-20"
                 title={t('addNode')}
               >
                 <Plus size={16} strokeWidth={3} />
