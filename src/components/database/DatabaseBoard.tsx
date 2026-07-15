@@ -24,6 +24,7 @@ import {
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { Calendar as CustomCalendar } from '@/components/ui/calendar';
 import toast from 'react-hot-toast';
+import Cookies from 'js-cookie';
 
 interface DatabaseBoardProps {
   projectId: string;
@@ -263,13 +264,22 @@ export default function DatabaseBoard({
     const loadingToast = toast.loading('Creating Notion Database...');
 
     try {
+      const token = Cookies.get('token');
       const res = await fetch('/api/notion-export', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ dbTitle, properties, rows }),
       });
 
       const data = await res.json();
+
+      if (res.status === 401) {
+        toast.error('Please sign in again to export.', { id: loadingToast });
+        return;
+      }
 
       if (res.ok && data.success) {
         toast.success('Successfully exported to Notion!', { id: loadingToast });

@@ -15,6 +15,7 @@ import { useCanvasStore } from '@/store/useCanvasStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Calendar } from '@/components/ui/calendar';
 import toast from 'react-hot-toast';
+import Cookies from 'js-cookie';
 import {
   Loader2,
   Link2,
@@ -590,9 +591,13 @@ export default function StaticKanbanBoard({
 
       if (newTaskAssignee.includes('@')) {
         try {
+          const token = Cookies.get('token');
           fetch('/api/send-email', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
             body: JSON.stringify({
               email: newTaskAssignee,
               taskTitle: newTaskTitle,

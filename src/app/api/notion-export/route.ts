@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireApiAuth } from "@/lib/requireApiAuth";
 
 interface PropInfo {
   name: string;
@@ -12,6 +13,9 @@ interface NotionDatabaseResponse {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireApiAuth(request);
+  if (auth.error) return auth.error;
+
   try {
     const body = await request.json();
     const dbTitle = String(body.dbTitle || "B2B Exported DB");
