@@ -132,7 +132,7 @@ export default function LandingNavbar() {
                     </div>
 
                     <Link
-                      href="/docs?sec=canvas"
+                      href="/platform/canvas"
                       className="group/feature relative flex overflow-hidden rounded-2xl border border-zinc-200/80 bg-white hover:border-sky-200 hover:shadow-md transition-all"
                     >
                       <div
@@ -165,7 +165,7 @@ export default function LandingNavbar() {
                     </Link>
 
                     <Link
-                      href="/docs?sec=autosave"
+                      href="/platform/sync"
                       className="group/feature relative flex overflow-hidden rounded-2xl border border-zinc-200/80 bg-white hover:border-emerald-200 hover:shadow-md transition-all"
                     >
                       <div className="w-[88px] shrink-0 bg-gradient-to-br from-emerald-100 to-emerald-50 border-r border-emerald-100/80 relative">
@@ -200,7 +200,7 @@ export default function LandingNavbar() {
                     </span>
 
                     <Link
-                      href="/docs?sec=rbac"
+                      href="/platform/rbac"
                       className="relative group/item rounded-2xl border border-zinc-200/70 bg-white/90 p-3.5 hover:border-teal-200 hover:shadow-sm transition-all"
                     >
                       <div className="flex items-center gap-2.5 mb-1.5">
@@ -217,7 +217,7 @@ export default function LandingNavbar() {
                     </Link>
 
                     <Link
-                      href="/docs?sec=assets"
+                      href="/platform/storage"
                       className="relative group/item rounded-2xl border border-zinc-200/70 bg-white/90 p-3.5 hover:border-amber-200 hover:shadow-sm transition-all"
                     >
                       <div className="flex items-center gap-2.5 mb-1.5">
@@ -481,7 +481,7 @@ export default function LandingNavbar() {
                   {t('nav.platform')}
                 </p>
                 <Link
-                  href="/docs?sec=canvas"
+                  href="/platform/canvas"
                   onClick={closeMobile}
                   className="flex items-center gap-3 px-3.5 py-3 hover:bg-sky-50 border-t border-zinc-100"
                 >
@@ -498,7 +498,7 @@ export default function LandingNavbar() {
                   </div>
                 </Link>
                 <Link
-                  href="/docs?sec=autosave"
+                  href="/platform/sync"
                   onClick={closeMobile}
                   className="flex items-center gap-3 px-3.5 py-3 hover:bg-emerald-50 border-t border-zinc-100"
                 >
@@ -511,6 +511,40 @@ export default function LandingNavbar() {
                     </p>
                     <p className="text-[11px] text-zinc-500 truncate">
                       {t('nav.realTimeSyncDesc')}
+                    </p>
+                  </div>
+                </Link>
+                <Link
+                  href="/platform/rbac"
+                  onClick={closeMobile}
+                  className="flex items-center gap-3 px-3.5 py-3 hover:bg-teal-50 border-t border-zinc-100"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-100 text-teal-600 flex items-center justify-center">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-zinc-900 truncate">
+                      {t('nav.enterpriseRbac')}
+                    </p>
+                    <p className="text-[11px] text-zinc-500 truncate">
+                      {t('nav.enterpriseRbacDesc')}
+                    </p>
+                  </div>
+                </Link>
+                <Link
+                  href="/platform/storage"
+                  onClick={closeMobile}
+                  className="flex items-center gap-3 px-3.5 py-3 hover:bg-amber-50 border-t border-zinc-100"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center">
+                    <Cloud className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-zinc-900 truncate">
+                      {t('nav.cloudStorage')}
+                    </p>
+                    <p className="text-[11px] text-zinc-500 truncate">
+                      {t('nav.cloudStorageDesc')}
                     </p>
                   </div>
                 </Link>

@@ -176,6 +176,107 @@
       "terms": "Terms of Service"
     }
   },
+  "PlatformPage": {
+    "notFound": {
+      "title": "Capability not found",
+      "desc": "This platform capability is not in the registry.",
+      "cta": "Browse all features"
+    },
+    "cta": {
+      "primary": "Create workspace",
+      "secondary": "Read docs"
+    },
+    "more": {
+      "title": "Platform",
+      "subtitle": "Explore other capabilities",
+      "all": "All features"
+    },
+    "bottomCta": {
+      "title": "Ready to run on SaaS Engine?",
+      "desc": "Spin up a workspace in under a minute and put canvas, sync, RBAC, and storage to work together.",
+      "button": "Start free"
+    },
+    "canvas": {
+      "badge": "Spatial Canvas",
+      "title": "An infinite canvas built for real company work.",
+      "subtitle": "Orchestrate blocks, workflows, and living documents on a vector grid — not another linear doc.",
+      "body": "Spatial Canvas replaces rigid pages with a freeform workspace. Drop text, databases, kanban, timelines, and assets onto one surface, then connect them so context stays visible while teams move.",
+      "features": {
+        "0": {
+          "title": "Dynamic block orchestration",
+          "desc": "Compose text, forms, boards, and data blocks on an infinite vector plane."
+        },
+        "1": {
+          "title": "Visual workflow mapping",
+          "desc": "Link related work so dependencies and ownership stay obvious at a glance."
+        },
+        "2": {
+          "title": "Project-ready layouts",
+          "desc": "Start blank or from templates — scale from a single board to a full ops map."
+        }
+      }
+    },
+    "sync": {
+      "badge": "Real-Time Sync",
+      "title": "Zero-latency sync on PostgreSQL JSONB.",
+      "subtitle": "Every edit streams in the background so your team always shares one live source of truth.",
+      "body": "Real-Time Sync keeps canvas state durable and shared without blocking the UI. JSONB persistence plus live streaming means structure, content, and presence stay aligned across sessions and devices.",
+      "features": {
+        "0": {
+          "title": "Background autosave",
+          "desc": "Structural and content changes persist continuously — no manual save rituals."
+        },
+        "1": {
+          "title": "Live collaboration stream",
+          "desc": "Teammates see updates as they happen without refresh or merge conflicts."
+        },
+        "2": {
+          "title": "JSONB-native storage",
+          "desc": "Flexible schemas for custom blocks without sacrificing query speed."
+        }
+      }
+    },
+    "rbac": {
+      "badge": "Enterprise RBAC",
+      "title": "Granular access down to the row.",
+      "subtitle": "Owners, admins, and members see exactly what their role allows — nothing more.",
+      "body": "Enterprise RBAC pairs workspace roles with project-level permissions and row-level security. Invite people confidently: sensitive modules stay locked while collaborators still move fast where they should.",
+      "features": {
+        "0": {
+          "title": "Role-based workspace control",
+          "desc": "Define who can manage billing, team, settings, and modules."
+        },
+        "1": {
+          "title": "Project-level invites",
+          "desc": "Grant view or edit on specific projects without opening the whole tenant."
+        },
+        "2": {
+          "title": "Row-level security",
+          "desc": "Database policies enforce boundaries even when the UI is bypassed."
+        }
+      }
+    },
+    "storage": {
+      "badge": "Cloud Storage",
+      "title": "Protected asset buckets for every workspace.",
+      "subtitle": "Store files, previews, and canvas assets in secured cloud storage tied to your tenant.",
+      "body": "Cloud Storage keeps uploads close to the work that needs them. Assets attach to canvas blocks and projects, with bucket isolation and access rules that match your RBAC model.",
+      "features": {
+        "0": {
+          "title": "Tenant-isolated buckets",
+          "desc": "Each workspace keeps assets behind its own protected storage boundary."
+        },
+        "1": {
+          "title": "Canvas-native attachments",
+          "desc": "Drop files onto blocks and keep them discoverable inside the project."
+        },
+        "2": {
+          "title": "Secure delivery",
+          "desc": "Signed access patterns so previews and downloads stay permission-aware."
+        }
+      }
+    }
+  },
   "FeaturesPage": {
     "back": "Go Back",
     "badge": "Platform Features",
@@ -192,6 +293,10 @@
     "security": {
       "title": "Enterprise-Grade RBAC",
       "desc": "Granular role-based access control. Define exactly who can view, edit, or manage specific projects and workspace settings."
+    },
+    "storage": {
+      "title": "Protected Cloud Storage",
+      "desc": "Keep canvas assets and project files in tenant-isolated buckets with permission-aware delivery."
     },
     "ai": {
       "title": "Context-Aware AI",

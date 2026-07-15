@@ -176,6 +176,107 @@
       "terms": "Hizmet Şartları"
     }
   },
+  "PlatformPage": {
+    "notFound": {
+      "title": "Yetenek bulunamadı",
+      "desc": "Bu platform yeteneği kayıtlı değil.",
+      "cta": "Tüm özellikleri gör"
+    },
+    "cta": {
+      "primary": "Workspace oluştur",
+      "secondary": "Dokümantasyonu oku"
+    },
+    "more": {
+      "title": "Platform",
+      "subtitle": "Diğer yetenekleri keşfet",
+      "all": "Tüm özellikler"
+    },
+    "bottomCta": {
+      "title": "SaaS Engine ile çalışmaya hazır mısın?",
+      "desc": "Bir dakikadan kısa sürede workspace aç; canvas, sync, RBAC ve storage’ı birlikte kullan.",
+      "button": "Ücretsiz başla"
+    },
+    "canvas": {
+      "badge": "Uzamsal Canvas",
+      "title": "Gerçek şirket işi için sonsuz bir canvas.",
+      "subtitle": "Blokları, iş akışlarını ve canlı dokümanları vektör ızgarasında yönet — bir doğrusal doküman daha değil.",
+      "body": "Spatial Canvas, katı sayfaların yerine serbest bir çalışma alanı koyar. Metin, veritabanı, kanban, timeline ve asset’leri tek yüzeye bırak; bağlam görünür kalsın, ekipler hareket etsin.",
+      "features": {
+        "0": {
+          "title": "Dinamik blok orkestrasyonu",
+          "desc": "Metin, form, pano ve veri bloklarını sonsuz bir vektör düzleminde birleştir."
+        },
+        "1": {
+          "title": "Görsel iş akışı haritalama",
+          "desc": "Bağımlılıkları ve sahipliği tek bakışta netleştirecek şekilde bağla."
+        },
+        "2": {
+          "title": "Projeye hazır düzenler",
+          "desc": "Boş başla veya şablondan aç — tek panodan tam operasyon haritasına ölçekle."
+        }
+      }
+    },
+    "sync": {
+      "badge": "Gerçek Zamanlı Sync",
+      "title": "PostgreSQL JSONB üzerinde sıfır gecikmeli sync.",
+      "subtitle": "Her düzenleme arka planda akar; ekibin tek canlı kaynağı her zaman aynı kalır.",
+      "body": "Real-Time Sync, canvas durumunu UI’yi bloklamadan kalıcı ve paylaşımlı tutar. JSONB kalıcılığı ve canlı yayın, yapı, içerik ve presence’ı oturumlar ve cihazlar arasında hizalı bırakır.",
+      "features": {
+        "0": {
+          "title": "Arka plan autosave",
+          "desc": "Yapısal ve içerik değişiklikleri sürekli kaydolur — manuel kaydet ritüeli yok."
+        },
+        "1": {
+          "title": "Canlı işbirliği akışı",
+          "desc": "Ekip arkadaşları yenilemeden, çakışmadan güncellemeleri anında görür."
+        },
+        "2": {
+          "title": "JSONB-native depolama",
+          "desc": "Özel bloklar için esnek şemalar; sorgu hızından ödün vermeden."
+        }
+      }
+    },
+    "rbac": {
+      "badge": "Kurumsal RBAC",
+      "title": "Satır seviyesine inen granüler erişim.",
+      "subtitle": "Owner, admin ve member yalnızca rollerinin izin verdiğini görür — fazlasını değil.",
+      "body": "Enterprise RBAC, workspace rollerini proje izinleri ve row-level security ile birleştirir. Hassas modüller kilitliyken işbirlikçiler olması gereken yerde hızlı ilerler.",
+      "features": {
+        "0": {
+          "title": "Rol tabanlı workspace kontrolü",
+          "desc": "Billing, ekip, ayarlar ve modülleri kimin yöneteceğini netleştir."
+        },
+        "1": {
+          "title": "Proje seviyesinde davet",
+          "desc": "Tüm tenant’ı açmadan belirli projelerde görüntüleme veya düzenleme ver."
+        },
+        "2": {
+          "title": "Row-level security",
+          "desc": "UI atlatılsa bile veritabanı politikaları sınırları uygular."
+        }
+      }
+    },
+    "storage": {
+      "badge": "Bulut Depolama",
+      "title": "Her workspace için korumalı asset bucket’ları.",
+      "subtitle": "Dosyaları, önizlemeleri ve canvas asset’lerini tenant’ına bağlı güvenli bulut depolamada tut.",
+      "body": "Cloud Storage, yüklemeleri ihtiyaç duyulan işin yanında tutar. Asset’ler canvas bloklarına ve projelere bağlanır; bucket izolasyonu ve erişim kuralları RBAC modelinle uyumludur.",
+      "features": {
+        "0": {
+          "title": "Tenant-isolated bucket’lar",
+          "desc": "Her workspace asset’lerini kendi korumalı depolama sınırında tutar."
+        },
+        "1": {
+          "title": "Canvas-native ekler",
+          "desc": "Dosyaları bloklara bırak; proje içinde keşfedilebilir kalsın."
+        },
+        "2": {
+          "title": "Güvenli teslimat",
+          "desc": "Önizleme ve indirmeler izin-aware signed erişimle kalır."
+        }
+      }
+    }
+  },
   "FeaturesPage": {
     "back": "Geri Dön",
     "badge": "Platform Özellikleri",
@@ -192,6 +293,10 @@
     "security": {
       "title": "Kurumsal Düzey Yetkilendirme",
       "desc": "Ayrıntılı rol tabanlı erişim kontrolü (RBAC). Belirli projeleri kimin görüntüleyebileceğini veya yönetebileceğini tam olarak belirleyin."
+    },
+    "storage": {
+      "title": "Korumalı Bulut Depolama",
+      "desc": "Canvas asset’lerini ve proje dosyalarını tenant-isolated bucket’larda, izin-aware teslimatla saklayın."
     },
     "ai": {
       "title": "Bağlam Farkındalıklı AI",
