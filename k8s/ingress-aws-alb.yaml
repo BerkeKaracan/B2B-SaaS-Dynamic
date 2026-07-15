@@ -1,4 +1,6 @@
-# k8s/ingress-aws-alb.yaml
+# Optional AWS EKS + ALB Ingress sample.
+# Not the active deploy path — see k8s/README.md and the root README "Deployment model" section.
+# Replace placeholders before applying.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

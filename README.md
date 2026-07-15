@@ -24,9 +24,10 @@ The system relies on a strict separation of concerns. The Next.js frontend handl
 
 **Infrastructure & CI/CD:**
 
-- Containerization: Docker & Docker Compose
-- Orchestration: Kubernetes (AWS ALB Ingress manifests provided)
-- Pipeline: GitHub Actions (Automated testing and build verification)
+- Primary path: Docker & Docker Compose (frontend + backend images)
+- CI: GitHub Actions (`ci.yml` — lint, build, pytest, Playwright)
+- Optional backup demo: `db-backup.yml` (secrets-driven `pg_dump` → GitHub artifact; not production DR)
+- Optional reference: `k8s/` manifests (AWS ALB Ingress samples — not the active deploy path)
 
 ## Key Features
 
@@ -61,7 +62,17 @@ The system relies on a strict separation of concerns. The Next.js frontend handl
    docker compose up -d --build
 
 4. Monitor Backend Logs:
-   docker logs b2b-backend-dev -f
+   docker logs b2b-backend -f
+
+## Deployment model
+
+**Supported / primary:** Docker Compose (and the two service Dockerfiles). This is what local and portfolio demos should use.
+
+**CI:** `.github/workflows/ci.yml` verifies frontend and backend on every push/PR to `main`.
+
+**Optional:**
+- Database backup workflow — configure `SUPABASE_DB_HOST`, `SUPABASE_DB_USER`, and `SUPABASE_DB_PASSWORD` (plus optional port/name) as repository secrets. Uploads a nightly dump artifact; use Supabase PITR for real recovery.
+- `k8s/` — reference manifests only; see [k8s/README.md](k8s/README.md).
 
 ## Project Directory Structure
 
@@ -78,6 +89,6 @@ The system relies on a strict separation of concerns. The Next.js frontend handl
 │ ├── store/ # Zustand global state management
 │ ├── types/ # TypeScript type definitions (including generated Supabase types)
 │ └── middleware.ts # Multi-tenant edge domain interceptor
-├── k8s/ # Kubernetes deployment and Ingress manifests
-└── .github/ # CI/CD pipeline configurations ```
+├── k8s/ # Optional Kubernetes reference manifests (not active deploy path)
+└── .github/ # CI and optional backup workflows
 ````

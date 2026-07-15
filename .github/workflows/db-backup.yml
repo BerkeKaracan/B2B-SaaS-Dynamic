@@ -1,3 +1,14 @@
+# Demo / portfolio backup job — not a production DR strategy.
+# Artifacts live in GitHub for 30 days; use Supabase PITR / offsite storage for real recovery.
+#
+# Required repository secrets:
+#   SUPABASE_DB_HOST
+#   SUPABASE_DB_USER
+#   SUPABASE_DB_PASSWORD
+# Optional:
+#   SUPABASE_DB_PORT (default 5432)
+#   SUPABASE_DB_NAME (default postgres)
+
 name: Supabase Database Backup
 
 on:
@@ -7,23 +18,38 @@ on:
 
 jobs:
   backup:
+    name: Nightly pg_dump (artifact)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Backup Database via Docker
+      - name: Verify backup secrets
         env:
-          PGHOST: aws-1-eu-central-1.pooler.supabase.com
-          PGUSER: postgres.vdfqqlyrrzcscaaizrac
+          PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
+          PGUSER: ${{ secrets.SUPABASE_DB_USER }}
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
+          missing=0
+          [ -n "$PGHOST" ] || { echo "::error::Missing secret SUPABASE_DB_HOST"; missing=1; }
+          [ -n "$PGUSER" ] || { echo "::error::Missing secret SUPABASE_DB_USER"; missing=1; }
+          [ -n "$PGPASSWORD" ] || { echo "::error::Missing secret SUPABASE_DB_PASSWORD"; missing=1; }
+          exit $missing
+
+      - name: Backup database via Docker
+        env:
+          PGHOST: ${{ secrets.SUPABASE_DB_HOST }}
+          PGUSER: ${{ secrets.SUPABASE_DB_USER }}
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGPORT: ${{ secrets.SUPABASE_DB_PORT }}
+          PGDATABASE: ${{ secrets.SUPABASE_DB_NAME }}
+        run: |
+          PORT="${PGPORT:-5432}"
+          DB="${PGDATABASE:-postgres}"
           docker run --rm \
             -e PGPASSWORD="$PGPASSWORD" \
             postgres:17 \
-            pg_dump -h $PGHOST -p 5432 -U $PGUSER -d postgres -x -O > backup.sql
+            pg_dump -h "$PGHOST" -p "$PORT" -U "$PGUSER" -d "$DB" -x -O > backup.sql
+          test -s backup.sql
 
-      - name: Upload Backup as Artifact
+      - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
           name: supabase-db-backup
