@@ -1,5 +1,11 @@
 'use client';
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+} from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { WORKSPACE_MODULE } from '@/lib/workspace';
@@ -109,8 +115,53 @@ export default function ProjectCardsGrid({
   const [newProjectVisibility, setNewProjectVisibility] = useState('public');
   const [selectedTemplate, setSelectedTemplate] = useState('blank');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
+
+  const closeProjectMenu = useCallback(() => {
+    setOpenMenuId(null);
+    setMenuPosition(null);
+  }, []);
+
+  const openProjectMenu = useCallback((projectId: string, button: HTMLButtonElement) => {
+    const rect = button.getBoundingClientRect();
+    const menuWidth = 224;
+    const gap = 4;
+    const left = Math.min(
+      Math.max(8, rect.right - menuWidth),
+      window.innerWidth - menuWidth - 8
+    );
+    const preferredTop = rect.bottom + gap;
+    const maxHeight = Math.min(320, window.innerHeight - preferredTop - 8);
+    // If almost no room below, flip above the button
+    if (maxHeight < 160) {
+      const top = Math.max(8, rect.top - Math.min(320, rect.top - 8) - gap);
+      setMenuPosition({ top, left });
+    } else {
+      setMenuPosition({ top: preferredTop, left });
+    }
+    setOpenMenuId(projectId);
+  }, []);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    const onScrollOrResize = () => closeProjectMenu();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeProjectMenu();
+    };
+    window.addEventListener('scroll', onScrollOrResize, true);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [openMenuId, closeProjectMenu]);
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -360,7 +411,7 @@ export default function ProjectCardsGrid({
   ) => {
     e.preventDefault();
     e.stopPropagation();
-    setOpenMenuId(null);
+    closeProjectMenu();
     setProjects((prev) =>
       prev.map((p) =>
         p.id === projectId
@@ -396,7 +447,7 @@ export default function ProjectCardsGrid({
   ) => {
     e.preventDefault();
     e.stopPropagation();
-    setOpenMenuId(null);
+    closeProjectMenu();
     const newStatus = currentData.is_locked === 'true' ? 'false' : 'true';
     setProjects((prev) =>
       prev.map((p) =>
@@ -430,7 +481,7 @@ export default function ProjectCardsGrid({
   ) => {
     e.preventDefault();
     e.stopPropagation();
-    setOpenMenuId(null);
+    closeProjectMenu();
     const isCurrentlyGlobal = currentData.is_global_shared === 'true';
     const newStatus = isCurrentlyGlobal ? 'false' : 'true';
 
@@ -484,7 +535,7 @@ export default function ProjectCardsGrid({
   ) => {
     e.preventDefault();
     e.stopPropagation();
-    setOpenMenuId(null);
+    closeProjectMenu();
     setConfirmDialog({
       isOpen: true,
       title: 'Archive Project',
@@ -527,7 +578,7 @@ export default function ProjectCardsGrid({
   ) => {
     e.preventDefault();
     e.stopPropagation();
-    setOpenMenuId(null);
+    closeProjectMenu();
     setConfirmDialog({
       isOpen: true,
       title: 'Move to Trash',
@@ -570,7 +621,7 @@ export default function ProjectCardsGrid({
   ) => {
     e.preventDefault();
     e.stopPropagation();
-    setOpenMenuId(null);
+    closeProjectMenu();
     setProjects((prev) =>
       prev.map((p) =>
         p.id === projectId
@@ -603,7 +654,7 @@ export default function ProjectCardsGrid({
   ) => {
     e.preventDefault();
     e.stopPropagation();
-    setOpenMenuId(null);
+    closeProjectMenu();
     setConfirmDialog({
       isOpen: true,
       title: 'Delete Permanently',
@@ -991,8 +1042,6 @@ export default function ProjectCardsGrid({
             const status = project.record_data?.status || 'active';
             const isJustAdmin =
               project.record_data?.visibility === 'just_admin';
-            const isGlobalShared =
-              project.record_data?.is_global_shared === 'true';
             const isLocked = project.record_data?.is_locked === 'true';
             const isFavorite = !!project.record_data?.favorite_at;
             const displayName = getProjectDisplayName(
@@ -1007,18 +1056,23 @@ export default function ProjectCardsGrid({
               TEMPLATES.find((temp) => temp.id === templateType) ||
               TEMPLATES[0];
             const baseClasses =
-              'group relative rounded-xl bg-white dark:bg-zinc-900 flex flex-col transition-all duration-200 transform-gpu will-change-transform border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-md overflow-hidden';
+              'group relative rounded-xl bg-white dark:bg-zinc-900 flex flex-col transition-all duration-200 border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-md';
             const hoverClasses =
-              status === 'active'
+              status === 'active' && !isOpen
                 ? 'hover:-translate-y-0.5 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer'
-                : 'opacity-90 cursor-default';
+                : status === 'active'
+                  ? 'hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer'
+                  : 'opacity-90 cursor-default';
             const storageAccent =
               status === 'trashed'
-                ? 'before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-rose-400'
+                ? 'before:absolute before:inset-x-0 before:top-0 before:h-1 before:rounded-t-xl before:bg-rose-400'
                 : status === 'archived'
-                  ? 'before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-amber-400'
+                  ? 'before:absolute before:inset-x-0 before:top-0 before:h-1 before:rounded-t-xl before:bg-amber-400'
                   : '';
-            const cardClasses = `${baseClasses} ${hoverClasses} ${storageAccent} ${isOpen ? 'z-50' : 'z-10'}`;
+            // overflow-hidden clips the "..." menu; keep visible and raise stacking when open
+            const cardClasses = `${baseClasses} ${hoverClasses} ${storageAccent} ${
+              isOpen ? 'z-50 overflow-visible' : 'z-10'
+            }`;
 
             const cardContent = (
               <>
@@ -1058,170 +1112,16 @@ export default function ProjectCardsGrid({
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            setOpenMenuId(
-                              openMenuId === project.id ? null : project.id
-                            );
+                            if (openMenuId === project.id) {
+                              closeProjectMenu();
+                            } else {
+                              openProjectMenu(project.id, e.currentTarget);
+                            }
                           }}
                           className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                         >
                           <MoreVertical className="w-4 h-4" />
                         </button>
-                        {isOpen && (
-                          <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-lg rounded-lg py-1.5 z-[100] transform-gpu">
-                            {status === 'active' && (
-                              <>
-                                <button
-                                  onClick={(e) =>
-                                    changeVisibility(
-                                      e,
-                                      project.id,
-                                      project.record_data,
-                                      'public'
-                                    )
-                                  }
-                                  className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                                >
-                                  Make Public
-                                </button>
-                                <button
-                                  onClick={(e) =>
-                                    changeVisibility(
-                                      e,
-                                      project.id,
-                                      project.record_data,
-                                      'just_admin'
-                                    )
-                                  }
-                                  className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                                >
-                                  Make Admin Only
-                                </button>
-                                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-                                <button
-                                  onClick={(e) =>
-                                    toggleGlobalShare(
-                                      e,
-                                      project.id,
-                                      project.record_data
-                                    )
-                                  }
-                                  className={`w-full px-4 py-2 text-xs font-medium flex items-center justify-between ${isGlobalShared ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20' : 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'}`}
-                                >
-                                  {isGlobalShared
-                                    ? 'Remove from Hub'
-                                    : 'Publish to Hub'}
-                                  <Globe className="w-3.5 h-3.5" />
-                                </button>
-                                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-                                <button
-                                  onClick={(e) =>
-                                    toggleProjectLock(
-                                      e,
-                                      project.id,
-                                      project.record_data
-                                    )
-                                  }
-                                  className={`w-full px-4 py-2 text-xs font-medium flex items-center justify-between ${isLocked ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
-                                >
-                                  {isLocked
-                                    ? 'Unlock Project'
-                                    : 'Lock (Read-Only)'}
-                                  {isLocked ? (
-                                    <Unlock className="w-3.5 h-3.5" />
-                                  ) : (
-                                    <Lock className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-                                <button
-                                  onClick={(e) =>
-                                    archiveProject(
-                                      e,
-                                      project.id,
-                                      project.record_data
-                                    )
-                                  }
-                                  className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-between"
-                                >
-                                  Archive Project{' '}
-                                  <Archive className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={(e) =>
-                                    moveToTrash(
-                                      e,
-                                      project.id,
-                                      project.record_data
-                                    )
-                                  }
-                                  className="w-full px-4 py-2 text-xs font-medium flex items-center justify-between text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 mt-1"
-                                >
-                                  Move to Trash{' '}
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </>
-                            )}
-                            {status === 'archived' && (
-                              <>
-                                <button
-                                  onClick={(e) =>
-                                    restoreProject(
-                                      e,
-                                      project.id,
-                                      project.record_data
-                                    )
-                                  }
-                                  className="w-full text-left px-4 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                                >
-                                  Restore
-                                </button>
-                                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-                                <button
-                                  onClick={(e) =>
-                                    moveToTrash(
-                                      e,
-                                      project.id,
-                                      project.record_data
-                                    )
-                                  }
-                                  className="w-full px-4 py-2 text-xs font-medium flex items-center justify-between text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                >
-                                  Move to Trash{' '}
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </>
-                            )}
-                            {status === 'trashed' && (
-                              <>
-                                <button
-                                  onClick={(e) =>
-                                    restoreProject(
-                                      e,
-                                      project.id,
-                                      project.record_data
-                                    )
-                                  }
-                                  className="w-full text-left px-4 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                                >
-                                  Restore
-                                </button>
-                                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-                                <button
-                                  onClick={(e) =>
-                                    deletePermanently(
-                                      e,
-                                      project.id,
-                                      project.record_data
-                                    )
-                                  }
-                                  className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                >
-                                  Delete Permanently
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
@@ -1278,6 +1178,161 @@ export default function ProjectCardsGrid({
           })}
         </div>
       )}
+
+      {openMenuId &&
+        menuPosition &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-[90]"
+              onClick={closeProjectMenu}
+              aria-hidden
+            />
+            {(() => {
+              const project = projects.find((p) => p.id === openMenuId);
+              if (!project) return null;
+              const status = project.record_data?.status || 'active';
+              const isGlobalShared =
+                project.record_data?.is_global_shared === 'true';
+              const isLocked = project.record_data?.is_locked === 'true';
+              return (
+                <div
+                  className="fixed w-56 max-h-[min(320px,calc(100vh-16px))] overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-lg py-1.5 z-[100]"
+                  style={{ top: menuPosition.top, left: menuPosition.left }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {status === 'active' && (
+                    <>
+                      <button
+                        onClick={(e) =>
+                          changeVisibility(
+                            e,
+                            project.id,
+                            project.record_data,
+                            'public'
+                          )
+                        }
+                        className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                      >
+                        Make Public
+                      </button>
+                      <button
+                        onClick={(e) =>
+                          changeVisibility(
+                            e,
+                            project.id,
+                            project.record_data,
+                            'just_admin'
+                          )
+                        }
+                        className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                      >
+                        Make Admin Only
+                      </button>
+                      <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+                      <button
+                        onClick={(e) =>
+                          toggleGlobalShare(
+                            e,
+                            project.id,
+                            project.record_data
+                          )
+                        }
+                        className={`w-full px-4 py-2 text-xs font-medium flex items-center justify-between ${isGlobalShared ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20' : 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'}`}
+                      >
+                        {isGlobalShared ? 'Remove from Hub' : 'Publish to Hub'}
+                        <Globe className="w-3.5 h-3.5" />
+                      </button>
+                      <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+                      <button
+                        onClick={(e) =>
+                          toggleProjectLock(
+                            e,
+                            project.id,
+                            project.record_data
+                          )
+                        }
+                        className={`w-full px-4 py-2 text-xs font-medium flex items-center justify-between ${isLocked ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                      >
+                        {isLocked ? 'Unlock Project' : 'Lock (Read-Only)'}
+                        {isLocked ? (
+                          <Unlock className="w-3.5 h-3.5" />
+                        ) : (
+                          <Lock className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+                      <button
+                        onClick={(e) =>
+                          archiveProject(e, project.id, project.record_data)
+                        }
+                        className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex items-center justify-between"
+                      >
+                        Archive Project <Archive className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={(e) =>
+                          moveToTrash(e, project.id, project.record_data)
+                        }
+                        className="w-full px-4 py-2 text-xs font-medium flex items-center justify-between text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 mt-1"
+                      >
+                        Move to Trash <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
+                  {status === 'archived' && (
+                    <>
+                      <button
+                        onClick={(e) =>
+                          restoreProject(e, project.id, project.record_data)
+                        }
+                        className="w-full text-left px-4 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                      >
+                        Restore
+                      </button>
+                      <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+                      <button
+                        onClick={(e) =>
+                          moveToTrash(e, project.id, project.record_data)
+                        }
+                        className="w-full px-4 py-2 text-xs font-medium flex items-center justify-between text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        Move to Trash <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
+                  {status === 'trashed' && (
+                    <>
+                      <button
+                        onClick={(e) =>
+                          restoreProject(e, project.id, project.record_data)
+                        }
+                        className="w-full text-left px-4 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                      >
+                        Restore
+                      </button>
+                      <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
+                      <button
+                        onClick={(e) =>
+                          deletePermanently(
+                            e,
+                            project.id,
+                            project.record_data
+                          )
+                        }
+                        className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        Delete Permanently
+                      </button>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+          </>,
+          document.body
+        )}
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
