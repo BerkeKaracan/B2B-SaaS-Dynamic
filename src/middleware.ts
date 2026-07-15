@@ -45,8 +45,13 @@ export async function middleware(request: NextRequest) {
     '/contact',
     '/privacy',
     '/terms',
-    '/auth/callback', 
+    '/auth/callback',
     '/auth',
+    // SEO / social preview assets (must stay public for crawlers)
+    '/opengraph-image',
+    '/twitter-image',
+    '/icon',
+    '/apple-icon',
   ];
 
   const isPublicPath = publicPaths.some(
