@@ -20,9 +20,12 @@ import {
   Loader2,
   CheckCircle2,
   SlidersHorizontal,
+  MessageSquareHeart,
+  ExternalLink,
 } from 'lucide-react';
 import AiChatbot from '@/components/chat/AiChatbot';
 import TeamChat from '@/components/chat/TeamChat';
+import { FEEDBACK_PORTAL_URL } from '@/lib/feedbackPortal';
 
 export default function Navbar({
   tenantId,
@@ -290,6 +293,20 @@ export default function Navbar({
                     <Shield className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-white" />
                     Security & Password
                   </Link>
+
+                  <a
+                    href={FEEDBACK_PORTAL_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center justify-between gap-3 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors group"
+                  >
+                    <span className="flex items-center gap-3">
+                      <MessageSquareHeart className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-white" />
+                      Feedback & Support
+                    </span>
+                    <ExternalLink className="w-3.5 h-3.5 text-zinc-300 group-hover:text-zinc-500" />
+                  </a>
                 </div>
 
                 <div className="p-2 border-t border-zinc-100 dark:border-zinc-800 mt-2">

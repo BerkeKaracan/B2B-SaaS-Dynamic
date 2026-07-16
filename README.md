@@ -98,6 +98,14 @@ Backend still needs `backend/.env` and a running API (`uvicorn` or the Compose b
 
 ---
 
+## Feedback & support
+
+Product feedback lives on a shared multi-tenant portal (this app’s tenant space):
+
+[https://feedback-portal-lyart.vercel.app/?tenant=b2-b-saa-s-dynamic](https://feedback-portal-lyart.vercel.app/?tenant=b2-b-saa-s-dynamic)
+
+Linked from Contact, Community, Footer, dashboard sidebar, and the account menu.
+
 ## Demo caveats (honest v1)
 
 - **Forgot password** — UI demo only (not a real reset flow).

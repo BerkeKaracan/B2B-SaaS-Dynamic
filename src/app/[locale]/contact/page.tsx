@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import Footer from '@/components/layout/Footer';
 import BrandLogo from '@/components/brand/BrandLogo';
-import { ArrowLeft, Mail, MessageCircle, MapPin, Send } from 'lucide-react';
+import { ArrowLeft, Mail, MessageCircle, MapPin, Send, MessageSquareHeart, ExternalLink } from 'lucide-react';
+import { FEEDBACK_PORTAL_URL } from '@/lib/feedbackPortal';
 
 export default function ContactPage() {
   const t = useTranslations('ContactPage');
@@ -95,6 +96,31 @@ export default function ContactPage() {
                   <span className="text-zinc-900 font-bold">
                     {t('info.location.value')}
                   </span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50/80 p-5">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-zinc-900 text-white shadow-sm rounded-2xl flex items-center justify-center shrink-0">
+                    <MessageSquareHeart className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg font-bold text-zinc-900 mb-1">
+                      {t('info.feedback.title')}
+                    </h3>
+                    <p className="text-sm text-zinc-500 font-medium mb-4 leading-relaxed">
+                      {t('info.feedback.desc')}
+                    </p>
+                    <a
+                      href={FEEDBACK_PORTAL_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-bold hover:bg-zinc-800 transition-colors"
+                    >
+                      {t('info.feedback.cta')}
+                      <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>

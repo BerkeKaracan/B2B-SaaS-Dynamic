@@ -3,6 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import BrandLogo from "@/components/brand/BrandLogo";
+import { FEEDBACK_PORTAL_URL } from "@/lib/feedbackPortal";
 
 export default function Footer() {
   const t = useTranslations("Footer");
@@ -128,6 +129,16 @@ export default function Footer() {
                 >
                   {t("company.contact")}
                 </Link>
+              </li>
+              <li>
+                <a
+                  href={FEEDBACK_PORTAL_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-zinc-950 transition-colors"
+                >
+                  {t("company.feedback")}
+                </a>
               </li>
             </ul>
           </div>

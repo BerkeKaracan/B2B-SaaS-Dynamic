@@ -5,7 +5,14 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import Footer from '@/components/layout/Footer';
 import BrandLogo from '@/components/brand/BrandLogo';
-import { ArrowLeft, Users, MessageSquare, LayoutTemplate } from 'lucide-react';
+import { FEEDBACK_PORTAL_URL } from '@/lib/feedbackPortal';
+import {
+  ArrowLeft,
+  Users,
+  MessageSquareHeart,
+  LayoutTemplate,
+  ExternalLink,
+} from 'lucide-react';
 
 const GITHUB_REPO = 'https://github.com/BerkeKaracan/B2B-SaaS-Dynamic';
 
@@ -31,7 +38,7 @@ export default function CommunityPage() {
       <main className="flex-1 pt-32 pb-20 px-6 max-w-6xl mx-auto w-full">
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-100 border border-zinc-200 text-xs font-bold text-zinc-600 mb-6">
-            <Users className="w-3.5 h-3.5 text-indigo-500" />
+            <Users className="w-3.5 h-3.5 text-zinc-500" />
             {t('badge')}
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-zinc-900 tracking-tight mb-6 leading-[1.1]">
@@ -44,26 +51,29 @@ export default function CommunityPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
           <div className="bg-white p-8 rounded-4xl border border-zinc-200/80 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#5865F2]/5 rounded-full blur-3xl -z-10 group-hover:bg-[#5865F2]/10 transition-colors"></div>
-            <div className="w-12 h-12 bg-[#5865F2]/10 border border-[#5865F2]/20 text-[#5865F2] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
-              <MessageSquare className="w-6 h-6" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-900/5 rounded-full blur-3xl -z-10 group-hover:bg-zinc-900/10 transition-colors" />
+            <div className="w-12 h-12 bg-zinc-900 text-white rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
+              <MessageSquareHeart className="w-6 h-6" />
             </div>
             <h3 className="text-xl font-bold text-zinc-900 mb-3">
-              {t('cards.discord.title')}
+              {t('cards.feedback.title')}
             </h3>
             <p className="text-zinc-500 leading-relaxed font-medium mb-8 flex-1">
-              {t('cards.discord.desc')}
+              {t('cards.feedback.desc')}
             </p>
-            <Link
-              href="/contact"
-              className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl font-bold transition-colors"
+            <a
+              href={FEEDBACK_PORTAL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-bold transition-colors"
             >
-              {t('cards.discord.btn')}
-            </Link>
+              {t('cards.feedback.btn')}
+              <ExternalLink className="w-4 h-4 opacity-70" />
+            </a>
           </div>
 
           <div className="bg-white p-8 rounded-4xl border border-zinc-200/80 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-900/5 rounded-full blur-3xl -z-10 group-hover:bg-zinc-900/10 transition-colors"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-zinc-900/5 rounded-full blur-3xl -z-10 group-hover:bg-zinc-900/10 transition-colors" />
             <div className="w-12 h-12 bg-zinc-100 border border-zinc-200 text-zinc-900 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -94,11 +104,12 @@ export default function CommunityPage() {
               className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-bold transition-colors"
             >
               {t('cards.github.btn')}
+              <ExternalLink className="w-4 h-4 opacity-70" />
             </a>
           </div>
 
           <div className="bg-white p-8 rounded-4xl border border-zinc-200/80 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -z-10 group-hover:bg-rose-500/10 transition-colors"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -z-10 group-hover:bg-rose-500/10 transition-colors" />
             <div className="w-12 h-12 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-inner">
               <LayoutTemplate className="w-6 h-6" />
             </div>

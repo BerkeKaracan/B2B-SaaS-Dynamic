@@ -17,7 +17,9 @@ import {
   Users,
   Sparkles,
   ExternalLink,
+  MessageSquareHeart,
 } from 'lucide-react';
+import { FEEDBACK_PORTAL_URL } from '@/lib/feedbackPortal';
 
 type PublicRecord = {
   id: string;
@@ -208,6 +210,30 @@ export default function CommunityHubPage() {
             </div>
           </div>
         </div>
+
+        <a
+          href={FEEDBACK_PORTAL_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mb-6 group flex flex-col sm:flex-row sm:items-center gap-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md p-4 md:px-5 md:py-4 shadow-sm hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all"
+        >
+          <div className="w-11 h-11 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center shrink-0">
+            <MessageSquareHeart className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-zinc-900 dark:text-white tracking-tight">
+              Feedback & Support
+            </p>
+            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+              Share bugs, feature ideas, and votes in our feedback portal for
+              this product.
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-700 dark:text-zinc-200 shrink-0 group-hover:gap-2 transition-all">
+            Open portal
+            <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+          </span>
+        </a>
 
         {/* Toolbar */}
         <div className="mb-8 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-3 md:p-4 shadow-sm flex flex-col sm:flex-row gap-3">

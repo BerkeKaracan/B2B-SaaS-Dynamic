@@ -28,9 +28,12 @@ import {
   Star,
   Activity,
   Key,
+  MessageSquareHeart,
+  ExternalLink,
 } from 'lucide-react';
 import { fetchAPI } from '@/services/api';
 import { useTenantStore } from '@/store/useTenantStore';
+import { FEEDBACK_PORTAL_URL } from '@/lib/feedbackPortal';
 
 type CustomModule = {
   name: string;
@@ -542,6 +545,24 @@ export default function WorkspaceSidebar() {
           className="p-2.5 shrink-0 flex flex-col gap-1 relative border-t border-zinc-200/70 dark:border-white/6"
           ref={settingsRef}
         >
+          <a
+            href={FEEDBACK_PORTAL_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${getLinkStyle(false)} justify-between`}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <MessageSquareHeart
+                className="w-4 h-4 shrink-0"
+                strokeWidth={1.75}
+              />
+              <span className="truncate">{t('feedback')}</span>
+            </div>
+            <ExternalLink
+              className="w-3.5 h-3.5 shrink-0 opacity-40"
+              strokeWidth={1.75}
+            />
+          </a>
           {isAdmin && (
             <div className="relative">
               {isSettingsOpen && (

@@ -168,7 +168,8 @@
       "title": "Company",
       "aboutUs": "About Us",
       "careers": "Careers",
-      "contact": "Contact"
+      "contact": "Contact",
+      "feedback": "Feedback & Support"
     },
     "bottom": {
       "rights": "All rights reserved.",
@@ -378,10 +379,10 @@
     "title": "Join the SaaS Engine Developer Network",
     "subtitle": "Connect with thousands of developers, share your workflows, and help us build the future of work.",
     "cards": {
-      "discord": {
-        "title": "Discord Server",
-        "desc": "Public Discord is coming soon. Until then, reach us by email for questions and feedback.",
-        "btn": "Contact us"
+      "feedback": {
+        "title": "Feedback Portal",
+        "desc": "Share bugs, ideas, and votes in our public feedback space — the dedicated support channel for this product.",
+        "btn": "Open feedback"
       },
       "github": {
         "title": "GitHub Repository",
@@ -537,6 +538,11 @@
         "title": "Global HQ",
         "desc": "We are a 100% remote company.",
         "value": "Earth, Milky Way"
+      },
+      "feedback": {
+        "title": "Feedback & support",
+        "desc": "Report issues, request features, and vote on ideas in our feedback portal.",
+        "cta": "Open Feedback Portal"
       }
     },
     "form": {
@@ -911,6 +917,7 @@
     },
     "settings": "Settings",
     "settingsAdv": "Advanced",
+    "feedback": "Feedback & Support",
     "modal": {
       "title": "Create Workspace Module",
       "moduleName": "Module Name",

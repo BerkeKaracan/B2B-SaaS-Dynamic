@@ -168,7 +168,8 @@
       "title": "Şirket",
       "aboutUs": "Hakkımızda",
       "careers": "Kariyer",
-      "contact": "İletişim"
+      "contact": "İletişim",
+      "feedback": "Geri Bildirim & Destek"
     },
     "bottom": {
       "rights": "Tüm hakları saklıdır.",
@@ -378,10 +379,10 @@
     "title": "SaaS Engine Geliştirici Ağına Katılın",
     "subtitle": "Binlerce geliştiriciyle bağlantı kurun, iş akışlarınızı paylaşın ve işin geleceğini inşa etmemize yardımcı olun.",
     "cards": {
-      "discord": {
-        "title": "Discord Sunucusu",
-        "desc": "Herkese açık Discord yakında. Şimdilik soru ve geri bildirim için e-posta ile ulaşın.",
-        "btn": "Bize yazın"
+      "feedback": {
+        "title": "Geri Bildirim Portalı",
+        "desc": "Hata, fikir ve oyları herkese açık geri bildirim alanında paylaşın — bu ürün için destek kanalı.",
+        "btn": "Geri bildirimi aç"
       },
       "github": {
         "title": "GitHub Deposu",
@@ -537,6 +538,11 @@
         "title": "Küresel Merkez",
         "desc": "%100 uzaktan çalışan bir şirketiz.",
         "value": "Dünya, Samanyolu"
+      },
+      "feedback": {
+        "title": "Geri bildirim & destek",
+        "desc": "Hata bildirin, özellik isteyin ve fikirleri geri bildirim portalında oylayın.",
+        "cta": "Geri Bildirim Portalını Aç"
       }
     },
     "form": {
@@ -911,6 +917,7 @@
     },
     "settings": "Ayarlar",
     "settingsAdv": "Gelişmiş ayarlar",
+    "feedback": "Geri Bildirim & Destek",
     "modal": {
       "title": "Çalışma Alanı Modülü Oluştur",
       "moduleName": "Modül Adı",
