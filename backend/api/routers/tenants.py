@@ -1,7 +1,6 @@
-from fastapi import APIRouter, HTTPException, Header, Depends, UploadFile, File
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter, HTTPException, Header, Depends
+from pydantic import BaseModel, EmailStr, Field
 from uuid import UUID
-import uuid
 from typing import Optional, List, Tuple, Dict
 from datetime import datetime, timezone
 from collections import defaultdict
@@ -21,6 +20,9 @@ class SetPasswordRequest(BaseModel):
 
 class UpdateTierRequest(BaseModel):
     tier: str
+
+class WorkspaceLogoUpdate(BaseModel):
+    logo_url: str = Field(..., min_length=1)
 
 class InviteUserRequest(BaseModel):
     email: EmailStr
@@ -105,33 +107,25 @@ def update_tenant_tier(tenant_id: UUID, request: UpdateTierRequest, user: dict =
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{tenant_id}/logo")
-async def upload_workspace_logo(tenant_id: UUID, file: UploadFile = File(...), user: dict = Depends(get_user_role)):
+def upload_workspace_logo(
+    tenant_id: UUID,
+    request_data: WorkspaceLogoUpdate,
+    user: dict = Depends(get_user_role),
+):
     try:
         current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
         if current_role not in ["admin", "owner"]:
             raise HTTPException(status_code=403, detail="Unauthorized to upload logo")
-        
-        valid_content_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
-        if file.content_type not in valid_content_types:
-            raise HTTPException(status_code=400, detail="Invalid file format. Only JPG, PNG, WEBP and GIF are allowed.")
 
-        file_bytes = await file.read()
-        if len(file_bytes) > 5 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB.")
-            
-        file_ext = file.filename.split(".")[-1].lower() if "." in file.filename else "png"
-        file_name = f"{tenant_id}_{uuid.uuid4().hex}.{file_ext}"
-        
-        supabase_admin.storage.from_("workspace_assets").upload(
-            path=file_name,
-            file=file_bytes,
-            file_options={"content-type": file.content_type}
-        )
-        
-        public_url = supabase_admin.storage.from_("workspace_assets").get_public_url(file_name)
-        supabase_admin.table("tenants").update({"logo_url": public_url}).eq("id", str(tenant_id)).execute()
-        
-        return {"logo_url": public_url}
+        logo_url = (request_data.logo_url or "").strip()
+        if not logo_url:
+            raise HTTPException(status_code=400, detail="logo_url is required")
+
+        supabase_admin.table("tenants").update({"logo_url": logo_url}).eq(
+            "id", str(tenant_id)
+        ).execute()
+
+        return {"logo_url": logo_url}
     except HTTPException:
         raise
     except Exception as e:

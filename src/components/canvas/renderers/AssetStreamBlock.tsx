@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { BlockContent } from "@/types/record";
-import { createClient } from "@supabase/supabase-js";
 import {
   Loader2,
   Settings2,
@@ -25,6 +24,7 @@ import {
   blockSettingsFieldLabel,
   blockSettingsInput,
 } from "./blockStyles";
+import { uploadImageViaPresignedUrl } from "@/lib/s3Upload";
 
 interface AssetStreamBlockProps {
   block: BlockContent;
@@ -57,40 +57,15 @@ export default function AssetStreamBlock({
     setIsUploading(true);
 
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-      if (!supabaseUrl || !supabaseKey) {
-        alert("Supabase Error: URL or Key is missing in .env files.");
-        setIsUploading(false);
-        return;
-      }
-
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      const fileExtension = file.name.split(".").pop();
-      const randomText = Math.random().toString(36).substring(2, 10);
-      const safeFileName = `${Date.now()}_${randomText}.${fileExtension}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("assets")
-        .upload(safeFileName, file);
-
-      if (uploadError) {
-        console.error("Supabase upload error:", uploadError);
-        alert(`Upload failed: ${uploadError.message}`);
-        setIsUploading(false);
-        return;
-      }
-
-      const { data } = supabase.storage
-        .from("assets")
-        .getPublicUrl(safeFileName);
-
-      onUpdate(data.publicUrl);
+      const fileUrl = await uploadImageViaPresignedUrl(file, "assets");
+      onUpdate(fileUrl);
     } catch (error) {
       console.error("Upload exception:", error);
-      alert("An unexpected error occurred during upload.");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred during upload."
+      );
     } finally {
       setIsUploading(false);
     }
@@ -258,6 +233,7 @@ export default function AssetStreamBlock({
             <>
               <input
                 type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 onChange={handleFileChange}
                 onPointerDown={(e) => e.stopPropagation()}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
@@ -274,7 +250,7 @@ export default function AssetStreamBlock({
                     Click or drop file
                   </span>
                   <span className="text-[10px] text-zinc-400 max-w-[150px]">
-                    Supabase Storage Ready
+                    JPEG, PNG, WEBP, GIF
                   </span>
                 </div>
               </div>

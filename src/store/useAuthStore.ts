@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import Cookies from 'js-cookie';
 import { fetchAPI } from '@/services/api';
+import { uploadImageViaPresignedUrl } from '@/lib/s3Upload';
 
 export interface User {
   id?: string;
@@ -116,40 +117,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error('Invalid file type. Only JPEG, PNG and WEBP are supported.');
-    }
-
-    const urlRes = await fetchAPI('/api/storage/generate-upload-url', {
-      method: 'POST',
-      body: JSON.stringify({
-        fileName: file.name,
-        contentType: file.type,
-      }),
-    });
-
-    if (!urlRes.ok) {
-      throw new Error('Failed to generate upload URL');
-    }
-
-    const { presignedUrl, fileUrl } = (await urlRes.json()) as {
-      presignedUrl: string;
-      fileUrl: string;
-      fileKey: string;
-    };
-
-    const s3Res = await fetch(presignedUrl, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': file.type,
-      },
-    });
-
-    if (!s3Res.ok) {
-      throw new Error('Failed to upload file to storage');
-    }
+    const fileUrl = await uploadImageViaPresignedUrl(file, 'avatars');
 
     const persistRes = await fetchAPI('/api/auth/avatar', {
       method: 'POST',

@@ -17,7 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useTenantStore } from '@/store/useTenantStore';
-import { getApiBaseUrl } from '@/lib/apiBase';
+import { uploadImageViaPresignedUrl } from '@/lib/s3Upload';
 
 type Notification = {
   type: 'error' | 'success';
@@ -93,25 +93,19 @@ export default function AdvancedSettingsPage({
       if (!res.ok) throw new Error('Failed to update workspace details.');
 
       if (logoFile) {
-        const formData = new FormData();
-        formData.append('file', logoFile);
-
-        const token = Cookies.get('token') || localStorage.getItem('token');
-
-        const logoRes = await fetch(
-          `${getApiBaseUrl()}/api/tenants/${tenantId}/logo`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            body: formData,
-          }
+        const fileUrl = await uploadImageViaPresignedUrl(
+          logoFile,
+          'workspace-logos'
         );
+
+        const logoRes = await fetchAPI(`/api/tenants/${tenantId}/logo`, {
+          method: 'POST',
+          body: JSON.stringify({ logo_url: fileUrl }),
+        });
 
         if (!logoRes.ok) throw new Error('Failed to upload logo.');
 
-        const logoData = await logoRes.json();
+        const logoData = (await logoRes.json()) as { logo_url: string };
         setLogoUrl(logoData.logo_url);
         setLogoFile(null);
         updateTenantState({ logo_url: logoData.logo_url });

@@ -1,13 +1,14 @@
 import re
 import uuid
+from typing import Literal
 from urllib.parse import quote
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
-from botocore.config import Config
 
 from core.config import settings
 from core.database import supabase
@@ -19,12 +20,14 @@ router = APIRouter(
 
 security = HTTPBearer()
 
-ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+ALLOWED_FOLDERS = {"avatars", "workspace-logos", "assets"}
 
 
 class GenerateUploadUrlRequest(BaseModel):
     fileName: str = Field(..., min_length=1)
     contentType: str = Field(..., min_length=1)
+    folder: Literal["avatars", "workspace-logos", "assets"] = "avatars"
 
 
 class GenerateUploadUrlResponse(BaseModel):
@@ -52,8 +55,11 @@ def generate_upload_url(
     if request_data.contentType not in ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=400,
-            detail="Invalid file type. Only JPEG, PNG, and WEBP are supported.",
+            detail="Invalid file type. Only JPEG, PNG, WEBP, and GIF are supported.",
         )
+
+    if request_data.folder not in ALLOWED_FOLDERS:
+        raise HTTPException(status_code=400, detail="Invalid upload folder")
 
     if not all(
         [
@@ -69,7 +75,7 @@ def generate_upload_url(
         )
 
     safe_name = _safe_filename(request_data.fileName)
-    file_key = f"avatars/{uuid.uuid4()}-{safe_name}"
+    file_key = f"{request_data.folder}/{uuid.uuid4()}-{safe_name}"
     aws_region = settings.AWS_REGION
 
     try:
