@@ -10,10 +10,10 @@ class Settings(BaseSettings):
     
     SENTRY_DSN: str | None = None
 
-    AWS_REGION: str
-    AWS_ACCESS_KEY_ID: str
-    AWS_SECRET_ACCESS_KEY: str
-    AWS_S3_BUCKET_NAME: str
+    AWS_REGION: str | None = None
+    AWS_ACCESS_KEY_ID: str | None = None
+    AWS_SECRET_ACCESS_KEY: str | None = None
+    AWS_S3_BUCKET_NAME: str | None = None
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

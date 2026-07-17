@@ -2,7 +2,6 @@ import re
 import uuid
 from urllib.parse import quote
 
-import os
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, Depends, HTTPException
@@ -56,14 +55,30 @@ def generate_upload_url(
             detail="Invalid file type. Only JPEG, PNG, and WEBP are supported.",
         )
 
+    if not all(
+        [
+            settings.AWS_REGION,
+            settings.AWS_ACCESS_KEY_ID,
+            settings.AWS_SECRET_ACCESS_KEY,
+            settings.AWS_S3_BUCKET_NAME,
+        ]
+    ):
+        raise HTTPException(
+            status_code=503,
+            detail="AWS S3 storage is not configured",
+        )
+
     safe_name = _safe_filename(request_data.fileName)
     file_key = f"avatars/{uuid.uuid4()}-{safe_name}"
+    aws_region = settings.AWS_REGION
 
     try:
         s3_client = boto3.client(
             "s3",
-            region_name=os.getenv("AWS_REGION"),
-            endpoint_url=f"https://s3.{os.getenv('AWS_REGION')}.amazonaws.com",
+            region_name=aws_region,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            endpoint_url=f"https://s3.{aws_region}.amazonaws.com",
             config=Config(signature_version="s3v4"),
         )
         presigned_url = s3_client.generate_presigned_url(
@@ -83,7 +98,7 @@ def generate_upload_url(
 
     encoded_key = quote(file_key, safe="/")
     file_url = (
-        f"https://{settings.AWS_S3_BUCKET_NAME}.s3.{settings.AWS_REGION}"
+        f"https://{settings.AWS_S3_BUCKET_NAME}.s3.{aws_region}"
         f".amazonaws.com/{encoded_key}"
     )
 
