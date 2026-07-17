@@ -18,13 +18,16 @@ def test_root_endpoint():
 
 def test_health_check_endpoint():
     """
-    Test the /health endpoint. 
+    Test the /health endpoint.
     This endpoint is typically used by Kubernetes, Docker, or Load Balancers to verify container health.
     """
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
-    assert "service" in response.json()
+    assert response.json() == {"status": "ok"}
+
+    api_response = client.get("/api/health")
+    assert api_response.status_code == 200
+    assert api_response.json() == {"status": "ok"}
 
 def test_unauthorized_access_to_records():
     """

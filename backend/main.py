@@ -92,8 +92,9 @@ async def root():
     return {"status": "alive", "message": "SaaS Engine API is running"}
 
 @app.get("/health")
+@app.get("/api/health")
 async def health_check():
-    return {"status": "healthy", "service": "SaaS Engine API"}
+    return {"status": "ok"}
 
 app.include_router(records.router)
 app.include_router(auth.router)
