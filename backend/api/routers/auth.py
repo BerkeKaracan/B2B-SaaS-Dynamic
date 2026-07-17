@@ -1,9 +1,9 @@
 import re
 import uuid
-from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Depends
+from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from core.database import supabase, supabase_admin
-from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, OnboardingRequest, OnboardingResponse, UserProfileUpdate, UserPasswordUpdate
+from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, OnboardingRequest, OnboardingResponse, UserProfileUpdate, UserPasswordUpdate, AvatarUrlUpdate
 from core.limiter import limiter
 
 router = APIRouter(
@@ -298,48 +298,32 @@ def update_profile(request: Request, request_data: UserProfileUpdate, creds: HTT
 
 
 @router.post("/avatar")
-async def upload_avatar(file: UploadFile = File(...), creds: HTTPAuthorizationCredentials = Depends(security)):
+def upload_avatar(
+    request_data: AvatarUrlUpdate,
+    creds: HTTPAuthorizationCredentials = Depends(security),
+):
     try:
-        allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
-        if file.content_type not in allowed_mime_types:
-            raise HTTPException(status_code=400, detail="Geçersiz dosya türü. Sadece JPEG, PNG ve WEBP formatları desteklenir.")
-
-        file.file.seek(0, 2)
-        file_size = file.file.tell()  
-        file.file.seek(0)  
-
-        max_file_size = 5 * 1024 * 1024  
-        if file_size > max_file_size:
-            raise HTTPException(status_code=400, detail="Dosya çok büyük. Lütfen en fazla 5MB boyutunda bir resim yükleyin.")
+        avatar_url = (request_data.avatar_url or "").strip()
+        if not avatar_url:
+            raise HTTPException(status_code=400, detail="avatar_url is required")
 
         token = creds.credentials
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="Invalid session")
-            
+
         user_id = user_res.user.id
-        file_ext = file.filename.split(".")[-1]
-        file_name = f"{user_id}/{uuid.uuid4()}.{file_ext}"
-        
-        file_bytes = await file.read()
-        
-        supabase_admin.storage.from_("avatars").upload(
-            file_name,
-            file_bytes,
-            file_options={"content-type": file.content_type, "upsert": "true"}
-        )
-        
-        public_url = supabase_admin.storage.from_("avatars").get_public_url(file_name)
-        
         current_metadata = user_res.user.user_metadata or {}
-        current_metadata["avatar_url"] = public_url
+        current_metadata["avatar_url"] = avatar_url
 
         supabase_admin.auth.admin.update_user_by_id(
             user_id,
-            {"user_metadata": current_metadata}
+            {"user_metadata": current_metadata},
         )
-        
-        return {"success": True, "avatar_url": public_url}
+
+        return {"success": True, "avatar_url": avatar_url}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     

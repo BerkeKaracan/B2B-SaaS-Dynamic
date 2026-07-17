@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import Cookies from 'js-cookie';
 import { fetchAPI } from '@/services/api';
-import { getApiBaseUrl } from '@/lib/apiBase';
 
 export interface User {
   id?: string;
@@ -117,20 +116,51 @@ export const useAuthStore = create<AuthState>((set) => ({
     const token = Cookies.get('token');
     if (!token) throw new Error('No token found');
 
-    const formData = new FormData();
-    formData.append('file', file);
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Invalid file type. Only JPEG, PNG and WEBP are supported.');
+    }
 
-    const res = await fetch(`${getApiBaseUrl()}/api/auth/avatar`, {
+    const urlRes = await fetchAPI('/api/storage/generate-upload-url', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type,
+      }),
     });
 
-    if (!res.ok) throw new Error('Failed to upload avatar');
+    if (!urlRes.ok) {
+      throw new Error('Failed to generate upload URL');
+    }
 
-    const data = await res.json();
+    const { presignedUrl, fileUrl } = (await urlRes.json()) as {
+      presignedUrl: string;
+      fileUrl: string;
+      fileKey: string;
+    };
+
+    const s3Res = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    if (!s3Res.ok) {
+      throw new Error('Failed to upload file to storage');
+    }
+
+    const persistRes = await fetchAPI('/api/auth/avatar', {
+      method: 'POST',
+      body: JSON.stringify({ avatar_url: fileUrl }),
+    });
+
+    if (!persistRes.ok) {
+      throw new Error('Failed to save avatar URL');
+    }
+
+    const data = (await persistRes.json()) as { avatar_url: string };
 
     set((state) => ({
       user: state.user ? { ...state.user, avatar_url: data.avatar_url } : null,

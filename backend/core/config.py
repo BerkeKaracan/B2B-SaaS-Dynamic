@@ -8,7 +8,12 @@ class Settings(BaseSettings):
 
     REDIS_URL: str
     
-    SENTRY_DSN: str | None = None 
+    SENTRY_DSN: str | None = None
+
+    AWS_REGION: str
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    AWS_S3_BUCKET_NAME: str
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

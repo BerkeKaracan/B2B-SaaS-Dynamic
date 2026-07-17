@@ -36,3 +36,6 @@ class UserProfileUpdate(BaseModel):
 
 class UserPasswordUpdate(BaseModel):
     password: str
+
+class AvatarUrlUpdate(BaseModel):
+    avatar_url: str

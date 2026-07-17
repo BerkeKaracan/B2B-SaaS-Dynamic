@@ -38,6 +38,7 @@ const BACKEND_API_PREFIXES = [
   'chat',
   'tasks',
   'fx',
+  'storage',
 ] as const;
 
 function getBackendOrigin(): string {
@@ -76,6 +77,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: '*.supabase.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.amazonaws.com',
         port: '',
         pathname: '/**',
       },
