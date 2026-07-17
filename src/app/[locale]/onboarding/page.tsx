@@ -1,11 +1,8 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { authService, fetchAPI } from '@/services/api';
-import Link from 'next/link';
 import BrandLogo from '@/components/brand/BrandLogo';
 import Cookies from 'js-cookie';
-import { getApiBaseUrl } from '@/lib/apiBase';
 
 interface OnboardingResponseData {
   tenant_id?: string;
@@ -13,7 +10,6 @@ interface OnboardingResponseData {
 }
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const [usageType, setUsageType] = useState<'individual' | 'team' | null>(
     null
   );
@@ -31,10 +27,13 @@ export default function OnboardingPage() {
         return;
       }
 
+      // Keep cookie in sync if token only lived in localStorage
+      if (!Cookies.get('token')) {
+        Cookies.set('token', token, { expires: 7 });
+      }
+
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetchAPI('/api/auth/me');
 
         if (!res.ok) {
           Cookies.remove('token');
@@ -58,7 +57,7 @@ export default function OnboardingPage() {
           // eslint-disable-next-line react-hooks/set-state-in-effect
           setIsChecking(false);
         }
-      } catch (error) {
+      } catch {
         Cookies.remove('token');
         localStorage.removeItem('token');
         window.location.href = '/login';
@@ -128,7 +127,7 @@ export default function OnboardingPage() {
         <div className="flex flex-col items-center">
           <span className="w-10 h-10 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"></span>
           <span className="mt-4 text-sm text-zinc-500 font-mono uppercase tracking-widest">
-            Verifying Token...
+            Verifying session...
           </span>
         </div>
       </div>
@@ -139,7 +138,12 @@ export default function OnboardingPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafafb] font-sans text-zinc-900 px-4">
       <div className="w-full max-w-lg">
         <div className="flex justify-center mb-8">
-          <BrandLogo showWordmark={false} size="md" markClassName="group-hover:scale-105 transition-transform" />
+          <BrandLogo
+            href={false}
+            showWordmark={false}
+            size="md"
+            markClassName="group-hover:scale-105 transition-transform"
+          />
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl border border-zinc-200/60 p-8 sm:p-10 relative overflow-hidden">
@@ -329,7 +333,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="mt-8 text-center text-[11px] text-zinc-400 font-mono tracking-wider uppercase">
-          SaaS Engine Architecture
+          B2 SaaS Engine · Portfolio demo
         </div>
       </div>
     </div>

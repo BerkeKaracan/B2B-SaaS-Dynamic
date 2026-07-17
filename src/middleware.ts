@@ -27,6 +27,7 @@ export async function middleware(request: NextRequest) {
     '/login',
     '/register',
     '/forgot',
+    '/onboarding',
     '/accept-invite',
     '/demo',
     '/share',

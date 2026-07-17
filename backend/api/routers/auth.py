@@ -234,31 +234,13 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
                         department_name = dp_res.data[0]["name"]
 
             if not resolved_tenant_id:
-                short_id = str(uuid.uuid4())[:6]
-                workspace_name = f"{full_name}'s Workspace {short_id}"
-                
-                tenant_res = supabase_admin.table("tenants").insert({
-                    "name": workspace_name,
-                    "usage_type": "individual"
-                }).execute()
-                
-                if tenant_res.data:
-                    new_tenant_id = tenant_res.data[0]["id"]
-                    
-                    safe_email = email.lower().strip() if email else f"{user_res.user.id}@no-email.com"
-
-                    supabase_admin.table("tenant_users").insert({
-                        "tenant_id": new_tenant_id,
-                        "user_id": user_res.user.id,
-                        "role": "owner",
-                        "email": safe_email
-                    }).execute()
-                    
-                    resolved_tenant_id = new_tenant_id
-                    role = "owner"
+                # Do not auto-create a workspace here — that skips the
+                # frontend /onboarding flow. Users without a tenant_users
+                # row must complete onboarding explicitly.
+                pass
 
         except Exception as ex:
-            print("Role fetch / Auto-provision error:", ex)
+            print("Role fetch error:", ex)
             pass 
         
         return {
