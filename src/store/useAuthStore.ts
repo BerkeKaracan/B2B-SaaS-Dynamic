@@ -42,11 +42,19 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   fetchUser: async (tenantId?: string) => {
     try {
-      const token = Cookies.get('token');
+      const token =
+        Cookies.get('token') ||
+        (typeof window !== 'undefined'
+          ? localStorage.getItem('token')
+          : null);
 
       if (!token) {
         set({ user: null, isAuthenticated: false, isCheckingAuth: false });
         return;
+      }
+
+      if (!Cookies.get('token')) {
+        Cookies.set('token', token, { expires: 7 });
       }
 
       const options: RequestInit = {};
@@ -69,6 +77,12 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ user: userData, isAuthenticated: true, isCheckingAuth: false });
       } else {
         Cookies.remove('token');
+        Cookies.remove('tenant_id');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('tenant_id');
+          localStorage.removeItem('refresh_token');
+        }
         set({ user: null, isAuthenticated: false, isCheckingAuth: false });
       }
     } catch (error) {
@@ -81,11 +95,25 @@ export const useAuthStore = create<AuthState>((set) => ({
     Cookies.remove('token');
     Cookies.remove('tenant_id');
     if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
       localStorage.removeItem('tenant_id');
+      localStorage.removeItem('refresh_token');
+      try {
+        sessionStorage.clear();
+      } catch {
+        /* ignore */
+      }
+      // Drop any Supabase browser session so OAuth/MFA clients cannot revive auth
+      void import('@/lib/supabaseClient')
+        .then(({ supabase }) => supabase.auth.signOut({ scope: 'local' }))
+        .catch(() => undefined);
     }
 
     set({ user: null, isAuthenticated: false, isCheckingAuth: false });
-    if (typeof window !== 'undefined') window.location.href = '/';
+    if (typeof window !== 'undefined') {
+      // Hard navigate to login so auto-auth effects cannot rehydrate stale state
+      window.location.href = '/login';
+    }
   },
 
   updateProfile: async (data: UpdateProfilePayload) => {
@@ -114,8 +142,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   uploadAvatar: async (file) => {
-    const token = Cookies.get('token');
+    const token =
+      Cookies.get('token') ||
+      (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
     if (!token) throw new Error('No token found');
+    if (!Cookies.get('token')) {
+      Cookies.set('token', token, { expires: 7 });
+    }
 
     const fileUrl = await uploadImageViaPresignedUrl(file, 'avatars');
 

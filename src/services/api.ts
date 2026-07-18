@@ -14,7 +14,11 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   let token: string | undefined;
 
   if (typeof window !== 'undefined') {
-    token = Cookies.get('token');
+    token = Cookies.get('token') || localStorage.getItem('token') || undefined;
+    // Keep cookie in sync when token only lives in localStorage
+    if (token && !Cookies.get('token')) {
+      Cookies.set('token', token, { expires: 7 });
+    }
   } else {
     try {
       const { cookies } = await import('next/headers');
@@ -25,7 +29,8 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     }
   }
 
-  if (token) {
+  // Do not let callers accidentally wipe Authorization
+  if (token && !headers['Authorization'] && !headers['authorization']) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 

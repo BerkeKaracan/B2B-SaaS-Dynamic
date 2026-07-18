@@ -1,9 +1,30 @@
 import re
 import uuid
+from typing import Optional, List, Tuple
+
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from core.database import supabase, supabase_admin
-from models.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse, OnboardingRequest, OnboardingResponse, UserProfileUpdate, UserPasswordUpdate, AvatarUrlUpdate
+from supabase import create_client
+from core.config import settings
+from core.database import supabase, supabase_admin, get_auth_client
+from models.auth import (
+    RegisterRequest,
+    RegisterResponse,
+    LoginRequest,
+    LoginResponse,
+    OnboardingRequest,
+    OnboardingResponse,
+    UserProfileUpdate,
+    UserPasswordUpdate,
+    AvatarUrlUpdate,
+    MfaEnrollResponse,
+    MfaCodeRequest,
+    MfaLoginVerifyRequest,
+    MfaVerifyResponse,
+    MfaFactorSummary,
+    MfaStatusResponse,
+    MfaUnenrollRequest,
+)
 from core.limiter import limiter
 
 router = APIRouter(
@@ -12,6 +33,63 @@ router = APIRouter(
 )
 
 security = HTTPBearer()
+
+
+def _session_client(access_token: str, refresh_token: str = ""):
+    """Build a Supabase client authenticated as the end user for MFA APIs."""
+    # Fresh client + set_session so auth.mfa.* uses the user JWT (header-only
+    # clients often fail MFA enroll/list in supabase-py).
+    client = create_client(settings.supabase_url, settings.supabase_key)
+    try:
+        client.auth.set_session(access_token, refresh_token or access_token)
+    except Exception as exc:
+        print("MFA set_session fallback:", exc)
+        return get_auth_client(access_token)
+    return client
+
+
+def _extract_mfa_tokens(verified) -> Tuple[str, str]:
+    """AuthMFAVerifyResponse exposes tokens at the top level (not .session)."""
+    access = getattr(verified, "access_token", None)
+    refresh = getattr(verified, "refresh_token", None) or ""
+    if access:
+        return str(access), str(refresh)
+
+    session = getattr(verified, "session", None)
+    if session and getattr(session, "access_token", None):
+        return (
+            str(session.access_token),
+            str(getattr(session, "refresh_token", "") or ""),
+        )
+
+    raise HTTPException(status_code=400, detail="MFA verification failed")
+
+
+def _verified_totp_factors(client) -> List:
+    factors = client.auth.mfa.list_factors()
+    totp = getattr(factors, "totp", None)
+    if totp:
+        return list(totp)
+    all_factors = getattr(factors, "all", None) or []
+    return [
+        f
+        for f in all_factors
+        if getattr(f, "factor_type", None) == "totp"
+        and getattr(f, "status", None) == "verified"
+    ]
+
+
+def _resolve_tenant_id(user_id: str) -> str:
+    tenant_user_res = (
+        supabase_admin.table("tenant_users")
+        .select("tenant_id, role")
+        .eq("user_id", user_id)
+        .order("created_at")
+        .execute()
+    )
+    if tenant_user_res.data:
+        return str(tenant_user_res.data[0]["tenant_id"])
+    return ""
 
 @router.post("/register", response_model=RegisterResponse)
 @limiter.limit("3/minute")
@@ -117,26 +195,33 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
         
         if not user_id or not session:
             raise HTTPException(status_code=400, detail="Invalid email or password.")
-            
-        tenant_user_res = supabase_admin.table("tenant_users")\
-            .select("tenant_id, role")\
-            .eq("user_id", user_id)\
-            .order("created_at")\
-            .execute()
-            
-        target_tenant_id = ""
-        
-        if tenant_user_res.data:
-            if tenant_user_res.data and len(tenant_user_res.data) > 0:
-                target_tenant_id = tenant_user_res.data[0]["tenant_id"]
-        
+
+        target_tenant_id = _resolve_tenant_id(str(user_id))
+        refresh_token = getattr(session, "refresh_token", "") or ""
+
+        mfa_required = False
+        factor_id: Optional[str] = None
+        try:
+            user_client = _session_client(session.access_token, refresh_token)
+            verified = _verified_totp_factors(user_client)
+            if verified:
+                mfa_required = True
+                factor_id = str(verified[0].id)
+        except Exception as mfa_err:
+            print("MFA factor check error:", mfa_err)
+
         return LoginResponse(
-            message="Login successful.",
+            message="MFA required." if mfa_required else "Login successful.",
             access_token=session.access_token,
-            tenant_id=str(target_tenant_id),
-            user_id=str(user_id)
+            refresh_token=refresh_token,
+            tenant_id=target_tenant_id,
+            user_id=str(user_id),
+            mfa_required=mfa_required,
+            factor_id=factor_id,
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         error_msg = str(e)
         if "invalid" in error_msg.lower() or "credentials" in error_msg.lower():
@@ -345,3 +430,191 @@ def update_password(request_data: UserPasswordUpdate, creds: HTTPAuthorizationCr
         return {"success": True, "message": "Password updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/mfa/status", response_model=MfaStatusResponse)
+def mfa_status(creds: HTTPAuthorizationCredentials = Depends(security)) -> MfaStatusResponse:
+    try:
+        token = creds.credentials
+        client = _session_client(token)
+        factors = client.auth.mfa.list_factors()
+        summaries: List[MfaFactorSummary] = []
+
+        for f in getattr(factors, "totp", None) or []:
+            summaries.append(
+                MfaFactorSummary(
+                    id=str(f.id),
+                    friendly_name=getattr(f, "friendly_name", None),
+                    status=getattr(f, "status", "verified"),
+                    factor_type=getattr(f, "factor_type", "totp"),
+                )
+            )
+
+        if not summaries:
+            for f in getattr(factors, "all", None) or []:
+                if getattr(f, "factor_type", None) != "totp":
+                    continue
+                summaries.append(
+                    MfaFactorSummary(
+                        id=str(f.id),
+                        friendly_name=getattr(f, "friendly_name", None),
+                        status=getattr(f, "status", None),
+                        factor_type="totp",
+                    )
+                )
+
+        enabled = False
+        if getattr(factors, "totp", None):
+            enabled = len(list(factors.totp)) > 0
+        else:
+            enabled = any((s.status or "").lower() == "verified" for s in summaries)
+
+        return MfaStatusResponse(enabled=enabled, factors=summaries)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/mfa/enroll", response_model=MfaEnrollResponse)
+def mfa_enroll(creds: HTTPAuthorizationCredentials = Depends(security)) -> MfaEnrollResponse:
+    try:
+        token = creds.credentials
+        # Ensure JWT is valid before MFA enroll
+        user_res = supabase.auth.get_user(token)
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="Invalid session")
+
+        client = _session_client(token)
+        enrolled = client.auth.mfa.enroll(
+            {"factor_type": "totp", "friendly_name": "Authenticator"}
+        )
+        totp = getattr(enrolled, "totp", None)
+        if not totp:
+            raise HTTPException(status_code=400, detail="Failed to enroll TOTP factor")
+
+        return MfaEnrollResponse(
+            factor_id=str(enrolled.id),
+            qr_code=getattr(totp, "qr_code", "") or "",
+            secret=getattr(totp, "secret", "") or "",
+            uri=getattr(totp, "uri", "") or "",
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/mfa/verify-enrollment", response_model=MfaVerifyResponse)
+def mfa_verify_enrollment(
+    request_data: MfaCodeRequest,
+    creds: HTTPAuthorizationCredentials = Depends(security),
+) -> MfaVerifyResponse:
+    try:
+        token = creds.credentials
+        client = _session_client(token)
+        verified = client.auth.mfa.challenge_and_verify(
+            {
+                "factor_id": request_data.factor_id,
+                "code": request_data.code.strip(),
+            }
+        )
+        access, refresh = _extract_mfa_tokens(verified)
+        if not access:
+            access = token
+
+        user_res = supabase.auth.get_user(access)
+        user_id = user_res.user.id if user_res and user_res.user else ""
+
+        return MfaVerifyResponse(
+            message="Two-factor authentication enabled.",
+            access_token=access,
+            refresh_token=refresh,
+            tenant_id=_resolve_tenant_id(str(user_id)) if user_id else "",
+            user_id=str(user_id) if user_id else "",
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("MFA verify-enrollment error:", e)
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid authenticator code. Please try again.",
+        ) from e
+
+
+@router.post("/mfa/verify", response_model=MfaVerifyResponse)
+@limiter.limit("10/minute")
+def mfa_verify_login(
+    request: Request,
+    request_data: MfaLoginVerifyRequest,
+) -> MfaVerifyResponse:
+    try:
+        if not request_data.access_token:
+            raise HTTPException(status_code=400, detail="Missing access token for MFA")
+
+        client = _session_client(
+            request_data.access_token, request_data.refresh_token
+        )
+        # Ensure GoTrue has an active session before challenge/verify
+        if not client.auth.get_session():
+            client.auth.set_session(
+                request_data.access_token,
+                request_data.refresh_token or request_data.access_token,
+            )
+
+        verified = client.auth.mfa.challenge_and_verify(
+            {
+                "factor_id": request_data.factor_id,
+                "code": request_data.code.strip(),
+            }
+        )
+        access, refresh = _extract_mfa_tokens(verified)
+
+        user_res = supabase.auth.get_user(access)
+        if not user_res or not user_res.user:
+            raise HTTPException(status_code=401, detail="Invalid session after MFA")
+
+        user_id = str(user_res.user.id)
+        return MfaVerifyResponse(
+            message="Login successful.",
+            access_token=access,
+            refresh_token=refresh,
+            tenant_id=_resolve_tenant_id(user_id),
+            user_id=user_id,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("MFA login verify error:", e)
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid authenticator code. Please try again.",
+        ) from e
+
+
+@router.delete("/mfa/factors/{factor_id}", response_model=MfaStatusResponse)
+def mfa_unenroll(
+    factor_id: str,
+    request_data: MfaUnenrollRequest,
+    creds: HTTPAuthorizationCredentials = Depends(security),
+) -> MfaStatusResponse:
+    try:
+        token = creds.credentials
+        client = _session_client(token)
+
+        client.auth.mfa.challenge_and_verify(
+            {
+                "factor_id": factor_id,
+                "code": request_data.code.strip(),
+            }
+        )
+        client.auth.mfa.unenroll({"factor_id": factor_id})
+        return mfa_status(creds)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not disable 2FA. Check the authenticator code.",
+        ) from e
