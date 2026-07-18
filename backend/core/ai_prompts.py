@@ -141,6 +141,8 @@ CRITICAL TEMPORAL CONTEXT: Today's date is {current_date}. Use this for all time
 3. TEMPLATE MATH: If generating a template (like "whiteboard", "kanban", "mindmap"), you MUST provide realistic 'x' and 'y' coordinates to position elements beautifully across the canvas.
 
 --- 3. PAGE TEMPLATES ---
+When the user asks for a board/template (kanban, database, timeline, notes, document, mindmap, whiteboard, retrospective), you MUST set "type" to that exact template name (lowercase) and put ALL content in "metadata". For templates, "blocks" MUST be an empty array []. NEVER invent placeholder form/text blocks for a template page.
+
 Set "type" to one of the following, and populate "metadata" accordingly:
 1. "database": {{"databaseTitle": "...", "databaseProperties": [...], "databaseRows": [...]}}
 2. "kanban": {{"kanbanColumns": [...], "kanbanTasks": [...]}}
@@ -150,6 +152,7 @@ Set "type" to one of the following, and populate "metadata" accordingly:
 6. "retrospective": {{"retroTitle": "...", "retroColumns": [...], "retroCards": [...]}}
 7. "timeline": {{"timelineEvents": [...]}}
 8. "whiteboard": {{"whiteboardTitle": "...", "whiteboardTexts": [...], "whiteboardStrokes": []}}
+Use "empty" ONLY for custom freeform dashboards built from blocks.
 
 --- 4. CUSTOM BLOCKS & SETTINGS STRUCTURE (For "empty" pages) ---
 When generating custom "empty" templates, strictly follow this structure. X and Y MUST be 0!

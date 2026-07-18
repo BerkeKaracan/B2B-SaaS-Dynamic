@@ -89,37 +89,44 @@ export default function ItemSidebar() {
         body: JSON.stringify({ prompt: aiPrompt, x: cx, y: cy }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        console.log('AI Output:', data);
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        const detail =
+          (errBody && (errBody.detail as string)) ||
+          `AI request failed (${res.status})`;
+        alert(detail);
+        return;
+      }
 
-        const finalData = data.page || data;
+      const data = await res.json();
+      console.log('AI Output:', data);
 
-        if (finalData && finalData.type) {
-          const store = useCanvasStore.getState();
+      const finalData = data.page || data;
 
-          if (store.addGeneratedPage) {
-            store.addGeneratedPage({
-              ...finalData,
-              x: cx,
-              y: cy,
-            });
+      if (finalData && finalData.type) {
+        const store = useCanvasStore.getState();
 
-            setTimeout(() => {
-              const ns = useCanvasStore.getState();
-              if (ns.pages.length > 0) {
-                ns.setActivePage(ns.pages[ns.pages.length - 1].id);
-              }
-            }, 50);
+        if (store.addGeneratedPage) {
+          store.addGeneratedPage({
+            ...finalData,
+            x: cx,
+            y: cy,
+          });
 
-            setIsAiModalOpen(false);
-            setAiPrompt('');
-          }
-        } else {
-          alert(
-            'The AI ​​was unable to generate a valid template. Please rephrase your request using different words.'
-          );
+          setTimeout(() => {
+            const ns = useCanvasStore.getState();
+            if (ns.pages.length > 0) {
+              ns.setActivePage(ns.pages[ns.pages.length - 1].id);
+            }
+          }, 50);
+
+          setIsAiModalOpen(false);
+          setAiPrompt('');
         }
+      } else {
+        alert(
+          'The AI was unable to generate a valid template. Please rephrase your request using different words.'
+        );
       }
     } catch (e: unknown) {
       console.error('AI Canvas Generation Error:', e);

@@ -26,6 +26,35 @@ export interface Connection {
 const getEstimatedHeight = (type: string, height?: number | null) =>
   resolveBlockHeight(type, height);
 
+/** Board templates that render via dedicated components, not freeform blocks. */
+const TEMPLATE_PAGE_TYPES = new Set<PageContent['type']>([
+  'kanban',
+  'notes',
+  'document',
+  'timeline',
+  'database',
+  'whiteboard',
+  'mindmap',
+  'retrospective',
+]);
+
+const normalizeGeneratedPageType = (
+  raw: unknown
+): PageContent['type'] => {
+  const value = String(raw || 'empty').toLowerCase().trim();
+  if (value === 'empty') return 'empty';
+  if (TEMPLATE_PAGE_TYPES.has(value as PageContent['type'])) {
+    return value as PageContent['type'];
+  }
+  // Common model aliases
+  if (value === 'note' || value === 'notepad') return 'notes';
+  if (value === 'board' || value === 'kanban_board') return 'kanban';
+  if (value === 'table' || value === 'db') return 'database';
+  if (value === 'retro') return 'retrospective';
+  if (value === 'flow' || value === 'flowchart') return 'mindmap';
+  return 'empty';
+};
+
 /** Pack AI blocks into a tight vertical stack; ignore AI x/y/height noise. */
 const layoutBlocksVertically = (
   blocks: Partial<BlockContent>[],
@@ -441,49 +470,32 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     get().saveHistory();
     set((state) => {
       const pageId = crypto.randomUUID();
+      const pageType = normalizeGeneratedPageType(pageData.type);
+      const isTemplate = TEMPLATE_PAGE_TYPES.has(pageType);
+      // Only freeform "empty" pages use vertical block stacking.
+      // Templates (kanban, database, notes, …) must keep their type + metadata.
+      const isAutoLayout = !isTemplate;
 
-      const isAutoLayout = !['whiteboard', 'mindmap', 'kanban'].includes(
-        pageData.type || ''
-      );
-
-      let finalHeight = 800;
+      let finalHeight = pageData.height || 800;
       let processedBlocks: BlockContent[] = [];
 
-      if (pageData.blocks && pageData.blocks.length > 0) {
-        if (isAutoLayout) {
-          const laidOut = layoutBlocksVertically(
-            pageData.blocks,
-            BLOCK_STACK_ORIGIN_Y
-          );
-          processedBlocks = laidOut.positioned;
-          // Prefer packed height — AI often returns height: 1000+ with huge empty space.
-          finalHeight = Math.max(
-            480,
-            laidOut.nextY + BLOCK_STACK_PAGE_PAD
-          );
-        } else {
-          processedBlocks = pageData.blocks.map((b) => ({
-            ...b,
-            id: crypto.randomUUID(),
-          })) as BlockContent[];
-
-          const maxBottom = Math.max(
-            ...processedBlocks.map(
-              (b) => (b.y || 0) + getEstimatedHeight(b.type, b.height)
-            )
-          );
-          finalHeight = Math.max(
-            pageData.height || 800,
-            maxBottom + BLOCK_STACK_PAGE_PAD
-          );
-        }
-      } else if (!isAutoLayout && pageData.height) {
-        finalHeight = pageData.height;
+      if (isAutoLayout && pageData.blocks && pageData.blocks.length > 0) {
+        const laidOut = layoutBlocksVertically(
+          pageData.blocks,
+          BLOCK_STACK_ORIGIN_Y
+        );
+        processedBlocks = laidOut.positioned;
+        // Prefer packed height — AI often returns height: 1000+ with huge empty space.
+        finalHeight = Math.max(480, laidOut.nextY + BLOCK_STACK_PAGE_PAD);
+      } else if (isTemplate) {
+        // Board components read from settings/metadata; drop junk blocks the model often emits.
+        processedBlocks = [];
+        finalHeight = Math.max(pageData.height || 800, 720);
       }
 
       const newPage: PageWithSettings = {
         id: pageId,
-        type: isAutoLayout ? 'empty' : (pageData.type as PageContent['type']),
+        type: pageType,
         title: pageData.title || 'AI Generated Workspace',
         x: pageData.x || 100,
         y: pageData.y || 100,
