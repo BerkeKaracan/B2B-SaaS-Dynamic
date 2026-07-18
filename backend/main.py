@@ -19,8 +19,9 @@ from api.routers import tasks
 if settings.SENTRY_DSN:
     sentry_sdk.init(
         dsn=settings.SENTRY_DSN,
-        traces_sample_rate=1.0,
-        profiles_sample_rate=1.0,
+        # Keep production overhead low (100% tracing/profiling was blowing small instances).
+        traces_sample_rate=0.1,
+        profiles_sample_rate=0.0,
     )
     logging.info("Sentry started and watching system.")
 

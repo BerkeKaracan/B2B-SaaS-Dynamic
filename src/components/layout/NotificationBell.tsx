@@ -49,25 +49,60 @@ export default function NotificationBell() {
   useEffect(() => {
     if (!user || !tenant) return;
 
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
     const loadNotifications = async (showLoader = false) => {
       if (showLoader) setIsLoading(true);
       try {
         const res = await fetchAPI(`/api/notifications?tenant_id=${tenant.id}`);
-        if (res.ok) {
-          const data: NotificationItem[] = await res.json();
-          setNotifications(data);
-        }
+        if (!res.ok || cancelled) return;
+        const data: NotificationItem[] = await res.json();
+        if (!cancelled) setNotifications(data);
       } catch (error) {
         console.error('Failed to load notifications:', error);
       } finally {
-        if (showLoader) setIsLoading(false);
+        if (showLoader && !cancelled) setIsLoading(false);
+      }
+    };
+
+    const stopPolling = () => {
+      if (intervalId !== null) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const startPolling = () => {
+      stopPolling();
+      // Soft poll only while the tab is visible — RealtimeNotifier covers push toasts.
+      intervalId = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          loadNotifications(false);
+        }
+      }, 75_000);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadNotifications(false);
+        startPolling();
+      } else {
+        stopPolling();
       }
     };
 
     loadNotifications(true);
-    const intervalId = setInterval(() => loadNotifications(false), 30000);
+    if (document.visibilityState === 'visible') {
+      startPolling();
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
-    return () => clearInterval(intervalId);
+    return () => {
+      cancelled = true;
+      stopPolling();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [user, tenant]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;

@@ -148,21 +148,28 @@ def get_records(
             response = query.range(offset, offset + limit - 1).order('created_at', desc=True).execute()
             return response.data
 
-        response = query.limit(1000).order('created_at', desc=True).execute()
-        records = response.data
+        # Visibility/collaborators live in JSONB, so we filter in Python — but never
+        # materialize up to 1000 full canvas payloads into memory (OOM on small hosts).
+        scan_limit = min(max(offset + limit * 3, limit), 250)
+        response = query.limit(scan_limit).order('created_at', desc=True).execute()
+        records = response.data or []
 
         filtered_records = []
         for record in records:
-            record_data = record.get("record_data", {})
+            record_data = record.get("record_data", {}) or {}
             visibility = record_data.get("visibility", "public")
             owner_email = str(record_data.get("owner_email", "")).lower().strip()
-            
-            collaborators = record_data.get("collaborators", [])
-            is_collab = any(isinstance(c, dict) and str(c.get("email", "")).lower().strip() == user["email"] for c in collaborators)
+
+            collaborators = record_data.get("collaborators", []) or []
+            is_collab = any(
+                isinstance(c, dict)
+                and str(c.get("email", "")).lower().strip() == user["email"]
+                for c in collaborators
+            )
 
             if owner_email == user["email"] or is_collab or visibility == "public":
                 filtered_records.append(record)
-                
+
         return filtered_records[offset : offset + limit]
     except HTTPException:
         raise
