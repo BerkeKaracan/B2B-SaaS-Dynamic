@@ -152,11 +152,19 @@ export default function Navbar({
         </div>
 
         <div className="flex items-center gap-1 sm:gap-1.5">
-          {currentTier === 'pro' || currentTier === 'advanced' ? (
-            <span className="hidden lg:inline-flex items-center px-2 py-1 mr-1 rounded-md text-[10px] font-bold uppercase tracking-[0.14em] border border-sky-200/80 dark:border-sky-500/30 bg-sky-50 dark:bg-sky-500/10 text-sky-800 dark:text-sky-300">
-              {currentTier === 'pro' ? 'Pro' : 'Advanced'}
-            </span>
-          ) : null}
+          {(currentTier === 'pro' || currentTier === 'advanced') && (
+            <div className="hidden sm:flex items-center mr-2 select-none cursor-default">
+              <span
+                className={`uppercase ${
+                  currentTier === 'pro'
+                    ? 'text-base font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400'
+                    : 'text-[15px] font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-violet-500 to-indigo-500 dark:from-violet-400 dark:to-indigo-400'
+                }`}
+              >
+                {currentTier === 'pro' ? 'Pro' : 'Advanced'}
+              </span>
+            </div>
+          )}
 
           <button
             type="button"
