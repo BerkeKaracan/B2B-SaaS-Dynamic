@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, type ReactNode } from 'react';
+import React, { useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 export const PROJECT_TOOLBAR_SLOT_ID = 'project-template-toolbar-slot';
@@ -19,29 +19,27 @@ export function ProjectToolbarSlot({
   );
 }
 
+const subscribeNoop = () => () => {};
+
+function getToolbarSlot(): HTMLElement | null {
+  return document.getElementById(PROJECT_TOOLBAR_SLOT_ID);
+}
+
 /**
  * When the project toolbar slot exists, portal children into it.
  * Returns null when no slot (caller should render an in-board fallback).
  */
 export function useProjectToolbarPortal(children: ReactNode): ReactNode {
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    const el = document.getElementById(PROJECT_TOOLBAR_SLOT_ID);
-    setSlot(el);
-  }, []);
-
-  if (!slot || typeof document === 'undefined') return null;
+  const slot = useSyncExternalStore(subscribeNoop, getToolbarSlot, () => null);
+  if (!slot) return null;
   return createPortal(children, slot);
 }
 
 /** True when project page exposes the toolbar slot (standalone template view). */
 export function useHasProjectToolbarSlot(): boolean {
-  const [hasSlot, setHasSlot] = useState(false);
-
-  useEffect(() => {
-    setHasSlot(!!document.getElementById(PROJECT_TOOLBAR_SLOT_ID));
-  }, []);
-
-  return hasSlot;
+  return useSyncExternalStore(
+    subscribeNoop,
+    () => !!getToolbarSlot(),
+    () => false
+  );
 }
