@@ -57,10 +57,21 @@ type Collaborator = {
 type RecordDataProps = {
   name?: string;
   is_global_public?: boolean | string;
+  is_global_shared?: boolean | string;
   collaborators?: Collaborator[];
   template?: string;
   is_locked?: string;
   [key: string]: unknown;
+};
+
+const isHubPublished = (data: RecordDataProps | null | undefined) => {
+  if (!data) return false;
+  return (
+    String(data.is_global_shared) === 'true' ||
+    data.is_global_shared === true ||
+    String(data.is_global_public) === 'true' ||
+    data.is_global_public === true
+  );
 };
 
 export default function ProjectDesignPage() {
@@ -179,11 +190,18 @@ export default function ProjectDesignPage() {
     if (!recordData) return;
     setIsUpdating(true);
 
-    const isCurrentlyGlobal = String(recordData.is_global_public) === 'true';
-    const nextGlobalState = !isCurrentlyGlobal;
+    const isCurrentlyGlobal = isHubPublished(recordData);
+    const nextShared = isCurrentlyGlobal ? 'false' : 'true';
+    const nextPublic = !isCurrentlyGlobal;
 
     try {
-      const updatedData = { ...recordData, is_global_public: nextGlobalState };
+      // Keep both flags in sync: hub API/cards use is_global_shared;
+      // older Share modal code used is_global_public.
+      const updatedData = {
+        ...recordData,
+        is_global_shared: nextShared,
+        is_global_public: nextPublic,
+      };
       const res = await fetchAPI(`/api/records/${projectId}`, {
         method: 'PATCH',
         body: JSON.stringify({ record_data: updatedData }),
@@ -191,7 +209,10 @@ export default function ProjectDesignPage() {
 
       if (res.ok) {
         setRecordData(updatedData);
-        updateMetadata({ is_global_public: nextGlobalState });
+        updateMetadata({
+          is_global_shared: nextShared,
+          is_global_public: nextPublic,
+        });
       }
     } catch (err) {
       console.error(err);
@@ -267,7 +288,7 @@ export default function ProjectDesignPage() {
     }
   };
 
-  const isGlobal = String(recordData?.is_global_public) === 'true';
+  const isGlobal = isHubPublished(recordData);
   const collaborators = recordData?.collaborators || [];
   const projectTemplate = recordData?.template || 'blank';
   const templateMeta =

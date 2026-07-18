@@ -30,19 +30,44 @@ def sanitize_public_record(record: dict) -> dict:
     record["record_data"] = safe_data
     return record
 
+
+def is_publicly_shared(record_data: dict) -> bool:
+    """Hub publish uses is_global_shared; older Share UI used is_global_public."""
+    shared = str(record_data.get("is_global_shared", "false")).lower()
+    public = str(record_data.get("is_global_public", "false")).lower()
+    return shared in ("true", "1") or public in ("true", "1")
+
+
 @router.get("/records")
 def get_public_records(limit: int = Query(8, ge=1, le=20)):
     try:
+        # Fetch a wider window then filter — supports both legacy and current flags.
         response = supabase_admin.table("custom_records")\
             .select("id, tenant_id, module_name, record_data")\
-            .eq("record_data->>is_global_shared", "true")\
-            .limit(limit)\
+            .or_(
+                "record_data->>is_global_shared.eq.true,"
+                "record_data->>is_global_public.eq.true"
+            )\
+            .limit(max(limit * 3, 24))\
             .execute()
             
         if not response.data:
             return []
-            
-        return [sanitize_public_record(record) for record in response.data]
+
+        shared = []
+        for record in response.data:
+            raw = record.get("record_data", {})
+            if isinstance(raw, str):
+                try:
+                    raw = json.loads(raw)
+                except Exception:
+                    raw = {}
+            if isinstance(raw, dict) and is_publicly_shared(raw):
+                shared.append(sanitize_public_record(record))
+            if len(shared) >= limit:
+                break
+
+        return shared
         
     except Exception as e:
         print(f"Public Records List Error: {str(e)}")
@@ -70,9 +95,7 @@ def get_public_record_by_id(record_id: UUID):
         elif not isinstance(record_data, dict):
             record_data = {}
         
-        is_global = str(record_data.get("is_global_shared", "false")).lower()
-        
-        if is_global != "true":
+        if not is_publicly_shared(record_data):
             raise HTTPException(status_code=403, detail="This framework is not publicly shared.")
             
         return sanitize_public_record(record)

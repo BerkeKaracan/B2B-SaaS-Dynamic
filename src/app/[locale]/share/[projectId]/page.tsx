@@ -1,234 +1,144 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState, useRef } from "react";
-import { BrandMark } from "@/components/brand/BrandLogo";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { fetchAPI } from "@/services/api";
-import { useCanvasStore } from "@/store/useCanvasStore";
-
-import StaticKanbanBoard from "@/components/kanban/StaticKanbanBoard";
-import NotepadBoard from "@/components/notepad/NotepadBoard";
-import TimelineBoard from "@/components/timeline/TimelineBoard";
-import Cookies from "js-cookie";
-import {
-  Globe,
-  ShieldAlert,
-  ArrowLeft,
-  Layers,
-  Copy,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
-
-type BlockContent = {
-  id: string;
-  type: string;
-  value: string | boolean;
-  x: number;
-  y: number;
-  width?: number;
-  height?: number;
-  settings?: Record<string, unknown>;
-};
-
-type PageContent = {
-  id: string;
-  title: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  blocks: BlockContent[];
-  settings?: { backgroundColor?: string };
-};
-
-type ProjectMetadata = {
-  name: string;
-  updated_at?: string;
-  updated_by?: string;
-};
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
+import { BrandMark } from '@/components/brand/BrandLogo';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import CanvasArea from '@/components/canvas/renderers/CanvasArea';
+import StaticKanbanBoard from '@/components/kanban/StaticKanbanBoard';
+import NotepadBoard from '@/components/notepad/NotepadBoard';
+import TimelineBoard from '@/components/timeline/TimelineBoard';
+import DatabaseBoard from '@/components/database/DatabaseBoard';
+import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
+import MindMapBoard from '@/components/mindmap/MindMapBoard';
+import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
+import { fetchAPI } from '@/services/api';
+import { useCanvasStore } from '@/store/useCanvasStore';
+import { useProjectEditMode } from '@/hooks/useProjectEditMode';
+import { ArrowLeft, Copy, ShieldAlert } from 'lucide-react';
 
 type CustomModule = {
   name: string;
   slug: string;
 };
 
+const TEMPLATE_BOARD_TYPES = new Set([
+  'kanban',
+  'notepad',
+  'document',
+  'whiteboard',
+  'timeline',
+  'database',
+  'mindmap',
+  'retrospective',
+]);
+
 export default function PublicSharePage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.projectId as string;
 
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-  const [meta, setMeta] = useState<ProjectMetadata | null>(null);
-  const [pages, setPages] = useState<PageContent[]>([]);
-  const [template, setTemplate] = useState<string>("blank");
+  const loadPublicProjectById = useCanvasStore((s) => s.loadPublicProjectById);
+  const clearCanvas = useCanvasStore((s) => s.clearCanvas);
+  const setMode = useCanvasStore((s) => s.setMode);
+  const isLoading = useCanvasStore((s) => s.isLoading);
+  const metadata = useCanvasStore((s) => s.metadata);
+  const { isReadonly } = useProjectEditMode();
 
+  const [error, setError] = useState<string>('');
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [rawRecordData, setRawRecordData] = useState<Record<
     string,
     unknown
   > | null>(null);
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [myTenantId, setMyTenantId] = useState<string | null>(null);
   const [myModules, setMyModules] = useState<CustomModule[]>([]);
 
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
-  const [cloneName, setCloneName] = useState("");
-  const [targetModule, setTargetModule] = useState("projects");
+  const [cloneName, setCloneName] = useState('');
+  const [targetModule, setTargetModule] = useState('projects');
   const [isCloning, setIsCloning] = useState(false);
 
-  const updateMetadata = useCanvasStore((state) => state.updateMetadata);
-
-  const [zoom, setZoom] = useState<number>(100);
-  const [panX, setPanX] = useState<number>(0);
-  const [panY, setPanY] = useState<number>(0);
-  const [isPanning, setIsPanning] = useState<boolean>(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  const [isSpacePressed, setIsSpacePressed] = useState<boolean>(false);
-
-  const panRef = useRef({ x: 0, y: 0 });
-  const gridRef = useRef<HTMLDivElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !e.repeat) {
-        const activeEl = document.activeElement;
-        const isInput =
-          activeEl && ["INPUT", "TEXTAREA"].includes(activeEl.tagName);
-        if (!isInput) {
-          e.preventDefault();
-          setIsSpacePressed(true);
+    let cancelled = false;
+
+    const load = async () => {
+      setError('');
+      setHasLoaded(false);
+      try {
+        await loadPublicProjectById(projectId);
+        if (cancelled) return;
+        setMode('readonly');
+        const meta = useCanvasStore.getState().metadata;
+        setRawRecordData(meta);
+        setCloneName(
+          `Copy of ${(meta.name as string) || (meta.title as string) || 'Framework'}`
+        );
+        setHasLoaded(true);
+      } catch (err: unknown) {
+        if (cancelled) return;
+        const status = (err as { status?: number })?.status;
+        if (status === 403) {
+          setError(
+            'This secure workspace is flagged as private or restricted.'
+          );
+        } else if (status === 404) {
+          setError(
+            'The requested workspace does not exist in the public cluster.'
+          );
+        } else {
+          setError('Failed to communicate with the core engine.');
         }
+        setHasLoaded(true);
       }
     };
 
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === "Space") {
-        setIsSpacePressed(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
+    if (projectId) void load();
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
+      cancelled = true;
+      clearCanvas();
     };
-  }, []);
-
-  useEffect(() => {
-    panRef.current = { x: panX, y: panY };
-    if (gridRef.current)
-      gridRef.current.style.backgroundPosition = `${panX}px ${panY}px`;
-    if (wrapperRef.current)
-      wrapperRef.current.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom / 100})`;
-  }, [panX, panY, zoom]);
+  }, [projectId, loadPublicProjectById, clearCanvas, setMode]);
 
   useEffect(() => {
     const checkAuthAndModules = async () => {
-      if (typeof window === "undefined") return;
-      const token = Cookies.get("token") || localStorage.getItem("token");
+      if (typeof window === 'undefined') return;
+      const token = Cookies.get('token') || localStorage.getItem('token');
       if (!token) return;
 
       try {
-        const meRes = await fetchAPI("/api/auth/me");
-        if (meRes.ok) {
-          const userData = await meRes.json();
-          const tenantId =
-            userData.tenant_id ||
-            Cookies.get("tenant_id") ||
-            localStorage.getItem("tenant_id");
+        const meRes = await fetchAPI('/api/auth/me');
+        if (!meRes.ok) return;
+        const userData = await meRes.json();
+        const tenantId =
+          userData.tenant_id ||
+          Cookies.get('tenant_id') ||
+          localStorage.getItem('tenant_id');
 
-          if (tenantId) {
-            setIsLoggedIn(true);
-            setMyTenantId(tenantId);
+        if (!tenantId) return;
+        setIsLoggedIn(true);
+        setMyTenantId(tenantId);
 
-            const modRes = await fetchAPI(
-              `/api/records?tenant_id=${tenantId}&module_name=workspace_modules`,
-            );
-            if (modRes.ok) {
-              const modData = await modRes.json();
-              setMyModules(
-                modData.map(
-                  (m: { record_data: CustomModule }) => m.record_data,
-                ),
-              );
-            }
-          }
+        const modRes = await fetchAPI(
+          `/api/records?tenant_id=${tenantId}&module_name=workspace_modules`
+        );
+        if (modRes.ok) {
+          const modData = await modRes.json();
+          setMyModules(
+            modData.map((m: { record_data: CustomModule }) => m.record_data)
+          );
         }
       } catch (e) {
-        console.warn(
-          "User is not logged in, but that's okay for public share:",
-          e,
-        );
+        console.warn('User is not logged in for public share:', e);
       }
     };
-    checkAuthAndModules();
+    void checkAuthAndModules();
   }, []);
-
-  useEffect(() => {
-    const fetchSharedWorkspace = async () => {
-      try {
-        const res = await fetchAPI(
-          `/api/public/records/${projectId}?t=${new Date().getTime()}`,
-          {
-            cache: "no-store",
-            headers: {
-              "Cache-Control": "no-cache",
-              Pragma: "no-cache",
-            },
-          },
-        );
-
-        if (!res.ok) {
-          if (res.status === 403)
-            throw new Error(
-              "This secure workspace is flagged as private or restricted.",
-            );
-          if (res.status === 404)
-            throw new Error(
-              "The requested workspace does not exist in the public cluster.",
-            );
-          throw new Error("Failed to communicate with the core engine.");
-        }
-
-        const data = await res.json();
-        const rootData = data.record_data || data || {};
-
-        setMeta({
-          name: rootData.name || rootData.title || "Shared Workspace",
-          updated_at: data.updated_at || rootData.updated_at,
-          updated_by: data.updated_by || rootData.updated_by || "System",
-        });
-
-        const currentTemplate = rootData.template || "blank";
-        setTemplate(currentTemplate);
-
-        setRawRecordData(rootData);
-        setCloneName(
-          `Copy of ${rootData.name || rootData.title || "Framework"}`,
-        );
-
-        updateMetadata(rootData);
-
-        const fetchedPages = rootData.pages || data.pages || [];
-        setPages(fetchedPages);
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("An unexpected architecture failure occurred.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (projectId) fetchSharedWorkspace();
-  }, [projectId, updateMetadata]);
 
   const handleCloneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,12 +149,14 @@ export default function PublicSharePage() {
       const payloadData = {
         ...rawRecordData,
         name: cloneName,
-        visibility: "just_admin",
-        status: "active",
+        visibility: 'just_admin',
+        status: 'active',
+        is_global_shared: 'false',
+        is_global_public: false,
       };
 
-      const res = await fetchAPI("/api/records/", {
-        method: "POST",
+      const res = await fetchAPI('/api/records/', {
+        method: 'POST',
         body: JSON.stringify({
           tenant_id: myTenantId,
           module_name: targetModule,
@@ -257,80 +169,30 @@ export default function PublicSharePage() {
         setIsCloneModalOpen(false);
         router.push(`/dashboard/${myTenantId}/projects/${newRecord.id}`);
       } else {
-        const errorData = await res.json();
-        alert(`Failed to clone: ${errorData.detail}`);
+        const errorData = await res.json().catch(() => null);
+        alert(`Failed to clone: ${errorData?.detail || res.status}`);
       }
-    } catch (error) {
-      console.error("Cloning error:", error);
-      alert("An error occurred while cloning the framework.");
+    } catch (cloneError) {
+      console.error('Cloning error:', cloneError);
+      alert('An error occurred while cloning the framework.');
     } finally {
       setIsCloning(false);
     }
   };
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    const isBackground =
-      e.target === e.currentTarget ||
-      e.target === gridRef.current ||
-      e.target === wrapperRef.current;
+  const projectName =
+    (metadata.name as string) ||
+    (metadata.title as string) ||
+    'Shared Workspace';
+  const template = String(metadata.template || 'blank').toLowerCase();
+  const showBoard = TEMPLATE_BOARD_TYPES.has(template);
 
-    if (
-      e.button === 1 ||
-      (e.button === 0 && isSpacePressed) ||
-      (e.button === 0 && isBackground)
-    ) {
-      e.preventDefault();
-      setIsPanning(true);
-      setPanStart({ x: e.clientX, y: e.clientY });
-      e.currentTarget.setPointerCapture(e.pointerId);
-    }
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isPanning) return;
-    const dx = e.clientX - panStart.x;
-    const dy = e.clientY - panStart.y;
-
-    panRef.current.x += dx;
-    panRef.current.y += dy;
-    setPanStart({ x: e.clientX, y: e.clientY });
-
-    requestAnimationFrame(() => {
-      if (gridRef.current)
-        gridRef.current.style.backgroundPosition = `${panRef.current.x}px ${panRef.current.y}px`;
-      if (wrapperRef.current)
-        wrapperRef.current.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoom / 100})`;
-    });
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (isPanning) {
-      setIsPanning(false);
-      e.currentTarget.releasePointerCapture(e.pointerId);
-      setPanX(panRef.current.x);
-      setPanY(panRef.current.y);
-    }
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const zoomDelta = e.deltaY < 0 ? 10 : -10;
-      setZoom((prev) => Math.min(Math.max(prev + zoomDelta, 20), 300));
-    } else {
-      setPanX((prev) => prev - e.deltaX);
-      setPanY((prev) => prev - e.deltaY);
-      panRef.current.x -= e.deltaX;
-      panRef.current.y -= e.deltaY;
-    }
-  };
-
-  if (loading) {
+  if (!hasLoaded || isLoading) {
     return (
       <div className="min-h-screen bg-[#fafafb] flex flex-col items-center justify-center gap-3">
-        <div className="w-5 h-5 border-2 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
+        <div className="w-5 h-5 border-2 border-zinc-200 border-t-zinc-950 rounded-full animate-spin" />
         <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-          Streaming Framework Data
+          Loading workspace
         </span>
       </div>
     );
@@ -350,6 +212,7 @@ export default function PublicSharePage() {
             {error}
           </p>
           <button
+            type="button"
             onClick={() => window.history.back()}
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-zinc-950 text-white text-xs font-semibold rounded-lg hover:bg-zinc-800 transition-colors shadow-sm"
           >
@@ -360,149 +223,40 @@ export default function PublicSharePage() {
     );
   }
 
-  const renderWorkspaceContent = () => {
-    if (template === "kanban")
-      return (
-        <div className="relative flex-1 w-full h-full bg-[#fafafb]">
-          <StaticKanbanBoard projectId={projectId} />
-        </div>
-      );
-    if (template === "notepad")
-      return (
-        <div className="relative flex-1 w-full h-full bg-[#fafafb]">
-          <NotepadBoard projectId={projectId} />
-        </div>
-      );
-    if (template === "timeline")
-      return (
-        <div className="relative flex-1 w-full h-full bg-[#fafafb]">
-          <TimelineBoard projectId={projectId} />
-        </div>
-      );
-
-    return (
-      <main
-        className={`flex-1 relative z-10 w-full h-full overflow-hidden transform-gpu will-change-transform ${
-          isSpacePressed || isPanning ? "cursor-grab" : "cursor-default"
-        } ${isPanning ? "active:cursor-grabbing" : ""}`}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onWheel={handleWheel}
-      >
-        <div
-          ref={gridRef}
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundSize: `${40 * (zoom / 100)}px ${40 * (zoom / 100)}px`,
-            backgroundImage:
-              "radial-gradient(circle, #e4e4e7 1px, transparent 1px)",
-          }}
-        ></div>
-
-        <div
-          ref={wrapperRef}
-          className="absolute inset-0 pointer-events-none transform-gpu will-change-transform"
-          style={{ transformOrigin: "0 0" }}
-        >
-          {pages.length === 0 ? (
-            <div className="absolute top-[200px] left-[200px] bg-white border border-zinc-200 p-6 rounded-xl max-w-xs shadow-sm pointer-events-auto">
-              <h3 className="text-xs font-semibold text-zinc-900 mb-1">
-                Empty Infrastructure
-              </h3>
-              <p className="text-[11px] font-medium text-zinc-400 leading-relaxed">
-                This public snapshot currently has no active frames or
-                configuration blocks detected.
-              </p>
-            </div>
-          ) : (
-            pages.map((page) => (
-              <section
-                key={page.id}
-                className="absolute shadow-sm rounded-xl border border-zinc-200 pointer-events-auto overflow-hidden"
-                style={{
-                  left: `${page.x}px`,
-                  top: `${page.y}px`,
-                  width: `${page.width}px`,
-                  minHeight: `${page.height}px`,
-                  backgroundColor: page.settings?.backgroundColor || "#ffffff",
-                }}
-              >
-                <div className="flex items-center text-zinc-400 font-semibold text-[10px] uppercase tracking-wider px-4 py-2.5 bg-zinc-50 border-b border-zinc-100 select-none">
-                  <Layers className="w-3 h-3 mr-1.5 text-zinc-400" />
-                  <span>{page.title || "Frame"}</span>
-                </div>
-
-                <div className="p-4 relative min-h-[inherit]">
-                  {page.blocks &&
-                    page.blocks.map((block) => (
-                      <div
-                        key={block.id}
-                        className="absolute bg-white border border-zinc-200/80 rounded-lg p-3.5 shadow-xs hover:border-zinc-300 transition-colors"
-                        style={{
-                          left: `${block.x}px`,
-                          top: `${block.y}px`,
-                          width: `${block.width || 320}px`,
-                          minHeight: `${block.height || 100}px`,
-                        }}
-                      >
-                        <div className="flex items-center mb-2">
-                          <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider bg-zinc-50 border border-zinc-200/60 px-1.5 py-0.5 rounded">
-                            {block.type}
-                          </span>
-                        </div>
-                        <div className="text-xs font-medium text-zinc-600 Richmond whitespace-pre-wrap leading-relaxed select-text">
-                          {String(block.value)}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </section>
-            ))
+  return (
+    <div className="min-h-screen bg-[#f7f9fb] text-zinc-900 font-sans selection:bg-sky-200/50 flex flex-col overflow-hidden relative antialiased">
+      <header className="relative z-50 h-14 border-b border-zinc-200 bg-white/95 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shadow-xs shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <BrandMark size="sm" />
+          <div className="h-4 w-px bg-zinc-200 shrink-0" />
+          <div className="flex flex-col min-w-0">
+            <h1 className="text-xs font-semibold text-zinc-950 truncate max-w-[160px] sm:max-w-xs leading-none">
+              {projectName}
+            </h1>
+            <span className="text-[9px] font-medium text-zinc-400 mt-1">
+              Public share
+            </span>
+          </div>
+          <span className="px-2 py-0.5 bg-sky-50 text-sky-700 text-[9px] font-bold uppercase tracking-wider rounded border border-sky-100 select-none shrink-0">
+            View Only
+          </span>
+          {template !== 'blank' && (
+            <span className="hidden sm:inline px-2 py-0.5 bg-zinc-100 text-zinc-600 text-[9px] font-bold uppercase tracking-wider rounded border border-zinc-200 select-none">
+              {template}
+            </span>
           )}
         </div>
-      </main>
-    );
-  };
 
-  return (
-    <div className="min-h-screen bg-[#fafafb] text-zinc-900 font-sans selection:bg-zinc-100 flex flex-col overflow-hidden relative antialiased">
-      <header className="relative z-50 h-14 border-b border-zinc-200 bg-white px-6 flex items-center justify-between shadow-xs shrink-0">
-        <div className="flex items-center gap-3">
-          <BrandMark size="sm" />
-          <div className="h-4 w-px bg-zinc-200"></div>
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-xs font-semibold text-zinc-950 truncate max-w-[180px] sm:max-w-xs leading-none">
-              {meta?.name}
-            </h1>
-            {meta?.updated_at && (
-              <span className="text-[9px] font-medium text-zinc-400 mt-1">
-                Shared Framework •{" "}
-                {new Date(meta.updated_at).toLocaleDateString()}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 ml-2">
-            <span className="px-2 py-0.5 bg-zinc-100 text-zinc-500 text-[9px] font-bold uppercase tracking-wider rounded border border-zinc-200 select-none">
-              View Only
-            </span>
-            {template !== "blank" && (
-              <span className="px-2 py-0.5 bg-zinc-100 text-zinc-600 text-[9px] font-bold uppercase tracking-wider rounded border border-zinc-200 select-none">
-                {template}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {isLoggedIn ? (
             <button
+              type="button"
               onClick={() => setIsCloneModalOpen(true)}
-              className="px-3.5 py-1.5 bg-zinc-950 text-white rounded-lg text-xs font-semibold hover:bg-zinc-800 transition-colors shadow-sm flex items-center gap-1.5 transform-gpu active:scale-95"
+              className="px-3.5 py-1.5 bg-zinc-950 text-white rounded-lg text-xs font-semibold hover:bg-zinc-800 transition-colors shadow-sm flex items-center gap-1.5 active:scale-95"
             >
               <Copy className="w-3.5 h-3.5" />
-              Clone to Workspace
+              <span className="hidden sm:inline">Clone to Workspace</span>
+              <span className="sm:hidden">Clone</span>
             </button>
           ) : (
             <Link
@@ -515,28 +269,50 @@ export default function PublicSharePage() {
         </div>
       </header>
 
-      {!['kanban', 'notepad', 'timeline'].includes(template) && (
-        <div className="relative z-40 shrink-0 border-b border-amber-200/80 bg-amber-50 px-6 py-2.5 text-amber-900">
-          <p className="text-xs font-medium leading-relaxed">
-            <span className="font-bold">Limited share preview</span>
-            {template === 'blank'
-              ? ' — public share shows frames and blocks only. Full typed boards (whiteboard, mindmap, database, retrospective) render inside the app.'
-              : ` — “${template}” is not fully rendered on public share yet. Open the project in the app for the complete board.`}
-          </p>
-        </div>
-      )}
-
-      {renderWorkspaceContent()}
+      <div className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden relative z-0">
+        <ErrorBoundary moduleName="Public Share">
+          {!showBoard ? (
+            <CanvasArea />
+          ) : (
+            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden">
+              {isReadonly && (
+                <div
+                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  title="View mode — editing disabled"
+                  aria-hidden
+                />
+              )}
+              {template === 'kanban' ? (
+                <StaticKanbanBoard projectId={projectId} />
+              ) : template === 'notepad' || template === 'document' ? (
+                <NotepadBoard projectId={projectId} />
+              ) : template === 'whiteboard' ? (
+                <WhiteboardBoard projectId={projectId} />
+              ) : template === 'mindmap' ? (
+                <MindMapBoard projectId={projectId} />
+              ) : template === 'timeline' ? (
+                <TimelineBoard projectId={projectId} />
+              ) : template === 'database' ? (
+                <DatabaseBoard projectId={projectId} />
+              ) : template === 'retrospective' ? (
+                <RetrospectiveBoard projectId={projectId} />
+              ) : (
+                <CanvasArea />
+              )}
+            </div>
+          )}
+        </ErrorBoundary>
+      </div>
 
       {isCloneModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/20 backdrop-blur-sm px-4 transform-gpu">
-          <div className="bg-white rounded-xl border border-zinc-200 shadow-xl w-full max-w-md overflow-hidden transform-gpu butch will-change-transform animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/20 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="px-6 py-4 border-b border-zinc-100 bg-zinc-50/50">
               <h2 className="text-base font-bold text-zinc-900">
                 Clone Framework
               </h2>
               <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                Duplicate this ecosystem into your active infrastructure.
+                Duplicate this workspace into your account.
               </p>
             </div>
 
@@ -577,40 +353,20 @@ export default function PublicSharePage() {
                 <button
                   type="button"
                   onClick={() => setIsCloneModalOpen(false)}
-                  className="px-4 py-2 text-sm font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-lg transition-colors active:scale-95 transform-gpu"
+                  className="px-4 py-2 text-sm font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCloning}
-                  className="bg-zinc-950 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-zinc-800 shadow-sm transition-all flex items-center gap-2 disabled:opacity-50 active:scale-95 transform-gpu"
+                  className="bg-zinc-950 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-zinc-800 shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
                 >
-                  {isCloning ? "Cloning Engine..." : "Confirm Clone"}
+                  {isCloning ? 'Cloning…' : 'Confirm Clone'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
-      )}
-
-      {template === "blank" && (
-        <div className="absolute bottom-6 right-6 z-50 flex items-center bg-white border border-zinc-200 shadow-sm rounded-lg p-1 gap-0.5 pointer-events-auto">
-          <button
-            onClick={() => setZoom(Math.max(20, zoom - 10))}
-            className="w-7 h-7 flex items-center justify-center text-zinc-400 hover:text-zinc-950 hover:bg-zinc-50 rounded-md transition-colors"
-          >
-            <ZoomOut className="w-3.5 h-3.5" />
-          </button>
-          <span className="text-[10px] font-bold text-zinc-500 px-1.5 w-11 text-center select-none font-mono">
-            {Math.round(zoom)}%
-          </span>
-          <button
-            onClick={() => setZoom(Math.min(300, zoom + 10))}
-            className="w-7 h-7 flex items-center justify-center text-zinc-400 hover:text-zinc-950 hover:bg-zinc-50 rounded-md transition-colors"
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-          </button>
         </div>
       )}
     </div>

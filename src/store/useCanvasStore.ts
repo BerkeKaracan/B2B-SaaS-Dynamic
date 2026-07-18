@@ -146,6 +146,7 @@ interface CanvasState {
   setPan: (panX: number, panY: number) => void;
   clearCanvas: () => void;
   loadProjectById: (tenantId: string, recordId: string) => Promise<void>;
+  loadPublicProjectById: (recordId: string) => Promise<void>;
   createProject: (
     tenantId: string,
     name?: string,
@@ -910,6 +911,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       activePageId: null,
       activeBlockId: null,
       metadata: {},
+      mode: 'design',
     }),
 
   loadProjectById: async (tenantId, recordId) => {
@@ -920,18 +922,70 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       const record = await response.json();
 
       if (record?.record_data) {
+        const pages = record.record_data.pages || [];
         set({
           recordId: record.id,
           title: record.record_data.title || '',
           description: record.record_data.description || '',
           date: record.record_data.date || '',
-          pages: record.record_data.pages || [],
+          pages,
           connections: record.record_data.connections || [],
           metadata: record.record_data,
+          activePageId: pages[0]?.id || null,
         });
       }
     } catch (e) {
       console.error('Failed to load project:', e);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  loadPublicProjectById: async (recordId) => {
+    set({ isLoading: true });
+    try {
+      const response = await fetchAPI(
+        `/api/public/records/${recordId}?t=${Date.now()}`,
+        {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            Pragma: 'no-cache',
+          },
+        }
+      );
+      if (!response.ok) {
+        const err = new Error(
+          response.status === 403
+            ? 'private'
+            : response.status === 404
+              ? 'not_found'
+              : 'fetch_failed'
+        ) as Error & { status?: number };
+        err.status = response.status;
+        throw err;
+      }
+
+      const record = await response.json();
+      const rootData = record.record_data || record || {};
+      const pages = rootData.pages || record.pages || [];
+
+      set({
+        recordId: record.id || recordId,
+        title: rootData.title || rootData.name || '',
+        description: rootData.description || '',
+        date: rootData.date || '',
+        pages,
+        connections: rootData.connections || [],
+        metadata: rootData,
+        activePageId: pages[0]?.id || null,
+        mode: 'readonly',
+        selectedBlocks: [],
+        activeBlockId: null,
+      });
+    } catch (e) {
+      console.error('Failed to load public project:', e);
+      throw e;
     } finally {
       set({ isLoading: false });
     }
