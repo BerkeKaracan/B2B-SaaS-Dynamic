@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useCanvasStore } from '@/store/useCanvasStore';
+import { useProjectEditMode } from '@/hooks/useProjectEditMode';
 import {
   Image as ImageIcon,
   Smile,
@@ -20,6 +21,7 @@ interface CustomStyle extends React.CSSProperties {
 
 export default function NotepadBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('NotepadBoard');
+  const { isReadonly } = useProjectEditMode();
 
   const { updatePageTitle, pages, updatePageSettings, metadata, updateMetadata } =
     useCanvasStore();
@@ -77,6 +79,7 @@ export default function NotepadBoard({ projectId }: { projectId: string }) {
   ]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isReadonly) return;
     const newTitle = e.target.value;
     setTitle(newTitle);
     if (currentPage) {
@@ -87,6 +90,7 @@ export default function NotepadBoard({ projectId }: { projectId: string }) {
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (isReadonly) return;
     const newContent = e.target.value;
     setContent(newContent);
     if (currentPage) {
@@ -191,19 +195,21 @@ export default function NotepadBoard({ projectId }: { projectId: string }) {
               type="text"
               value={title}
               onChange={handleTitleChange}
+              readOnly={isReadonly}
               onFocus={() => setIsEditorFocused(true)}
               onBlur={() => setIsEditorFocused(false)}
               placeholder={t('titlePlaceholder')}
-              className="w-full text-4xl sm:text-5xl font-bold bg-transparent text-zinc-900 dark:text-zinc-100 border-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-600 mb-4 resize-none leading-tight tracking-tight px-0.5"
+              className={`w-full text-4xl sm:text-5xl font-bold bg-transparent text-zinc-900 dark:text-zinc-100 border-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-600 mb-4 resize-none leading-tight tracking-tight px-0.5 ${isReadonly ? 'cursor-default' : ''}`}
             />
 
             <textarea
               value={content}
               onChange={handleContentChange}
+              readOnly={isReadonly}
               onFocus={() => setIsEditorFocused(true)}
               onBlur={() => setIsEditorFocused(false)}
               placeholder={t('contentPlaceholder')}
-              className="w-full min-h-[500px] text-base sm:text-lg bg-transparent text-zinc-800 dark:text-zinc-300 border-none outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-600 resize-none leading-relaxed px-0.5"
+              className={`w-full min-h-[500px] text-base sm:text-lg bg-transparent text-zinc-800 dark:text-zinc-300 border-none outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-600 resize-none leading-relaxed px-0.5 ${isReadonly ? 'cursor-default' : ''}`}
               style={{ fieldSizing: 'content' } as CustomStyle}
             />
           </div>

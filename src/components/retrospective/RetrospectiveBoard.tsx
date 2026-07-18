@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useProjectEditMode } from "@/hooks/useProjectEditMode";
 import { ThumbsUp, Plus, Trash2, MessageSquareHeart } from "lucide-react";
 
 type RetroCard = {
@@ -21,6 +22,7 @@ export default function RetrospectiveBoard({
   projectId: string;
 }) {
   const t = useTranslations("RetrospectiveBoard");
+  const { isReadonly } = useProjectEditMode();
   const { metadata, updateMetadata, pages, updatePageSettings } =
     useCanvasStore();
   const { user } = useAuthStore();
@@ -41,13 +43,14 @@ export default function RetrospectiveBoard({
 
   const persistCards = useCallback(
     (newCards: RetroCard[]) => {
+      if (isReadonly) return;
       if (isPageScoped) {
         updatePageSettings(projectId, { retrospectiveCards: newCards });
       } else {
         updateMetadata({ retrospectiveCards: newCards });
       }
     },
-    [isPageScoped, projectId, updatePageSettings, updateMetadata],
+    [isReadonly, isPageScoped, projectId, updatePageSettings, updateMetadata],
   );
 
   const cards = useMemo(
@@ -96,6 +99,7 @@ export default function RetrospectiveBoard({
   };
 
   const addCard = (columnId: "glad" | "sad" | "mad") => {
+    if (isReadonly) return;
     const content = newCardContent[columnId]?.trim();
     if (!content) return;
 
@@ -115,10 +119,12 @@ export default function RetrospectiveBoard({
   };
 
   const deleteCard = (id: string) => {
+    if (isReadonly) return;
     saveCards(cards.filter((c) => c.id !== id));
   };
 
   const toggleVote = (id: string) => {
+    if (isReadonly) return;
     saveCards(
       cards.map((card) => {
         if (card.id === id) {
@@ -288,7 +294,7 @@ export default function RetrospectiveBoard({
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
-                            {isOwnCard && (
+                            {isOwnCard && !isReadonly && (
                               <button
                                 onClick={() => deleteCard(card.id)}
                                 className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md transition-all"
@@ -300,7 +306,8 @@ export default function RetrospectiveBoard({
 
                             <button
                               onClick={() => toggleVote(card.id)}
-                              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold transition-colors active:scale-95 ${
+                              disabled={isReadonly}
+                              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold transition-colors active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${
                                 hasVoted
                                   ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border border-zinc-900 dark:border-zinc-100"
                                   : "bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700 hover:border-zinc-300"
@@ -318,40 +325,42 @@ export default function RetrospectiveBoard({
                   })}
                 </div>
 
-                <div className="p-3 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-                  <div className="relative">
-                    <textarea
-                      value={newCardContent[col.id] || ""}
-                      onChange={(e) =>
-                        setNewCardContent({
-                          ...newCardContent,
-                          [col.id]: e.target.value,
-                        })
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          addCard(col.id);
+                {!isReadonly && (
+                  <div className="p-3 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                    <div className="relative">
+                      <textarea
+                        value={newCardContent[col.id] || ""}
+                        onChange={(e) =>
+                          setNewCardContent({
+                            ...newCardContent,
+                            [col.id]: e.target.value,
+                          })
                         }
-                      }}
-                      placeholder={t("addCard")}
-                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2.5 pr-20 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 resize-none outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors"
-                      rows={2}
-                    />
-                    <div className="absolute bottom-2 right-2 flex items-center gap-2">
-                      <span className="text-[9px] font-medium text-zinc-400 hidden lg:block pointer-events-none">
-                        {t("typeAndEnter")}
-                      </span>
-                      <button
-                        onClick={() => addCard(col.id)}
-                        disabled={!newCardContent[col.id]?.trim()}
-                        className="p-1.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white disabled:opacity-40 disabled:hover:bg-zinc-900 dark:disabled:hover:bg-zinc-100 text-white dark:text-zinc-900 rounded-md transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            addCard(col.id);
+                          }
+                        }}
+                        placeholder={t("addCard")}
+                        className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-3 py-2.5 pr-20 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 resize-none outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors"
+                        rows={2}
+                      />
+                      <div className="absolute bottom-2 right-2 flex items-center gap-2">
+                        <span className="text-[9px] font-medium text-zinc-400 hidden lg:block pointer-events-none">
+                          {t("typeAndEnter")}
+                        </span>
+                        <button
+                          onClick={() => addCard(col.id)}
+                          disabled={!newCardContent[col.id]?.trim()}
+                          className="p-1.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white disabled:opacity-40 disabled:hover:bg-zinc-900 dark:disabled:hover:bg-zinc-100 text-white dark:text-zinc-900 rounded-md transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             );
           })}

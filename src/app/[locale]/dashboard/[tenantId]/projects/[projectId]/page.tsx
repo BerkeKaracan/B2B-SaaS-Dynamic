@@ -16,6 +16,7 @@ import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
 import MindMapBoard from '@/components/mindmap/MindMapBoard';
 import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
 import { useAutoSave } from '@/hooks/useAutoSave';
+import { useProjectEditMode } from '@/hooks/useProjectEditMode';
 import {
   Check,
   Clock,
@@ -90,16 +91,11 @@ export default function ProjectDesignPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('viewer');
 
-  const mode = useCanvasStore((state) =>
-    'mode' in state ? (state as { mode: string }).mode : 'design'
-  );
-  const setMode = useCanvasStore((state) =>
-    'setMode' in state
-      ? (state as { setMode: (m: string) => void }).setMode
-      : () => {}
-  );
+  const mode = useCanvasStore((state) => state.mode);
+  const setMode = useCanvasStore((state) => state.setMode);
 
   const isLocked = String(recordData?.is_locked) === 'true';
+  const { isReadonly } = useProjectEditMode();
 
   useEffect(() => {
     if (mode === 'readonly') {
@@ -357,23 +353,36 @@ export default function ProjectDesignPage() {
             <div className="flex items-center justify-center h-full">
               <div className="w-8 h-8 border-4 border-zinc-200 dark:border-zinc-800 border-t-zinc-950 dark:border-t-white rounded-full animate-spin" />
             </div>
-          ) : projectTemplate === 'kanban' ? (
-            <StaticKanbanBoard projectId={projectId} />
-          ) : projectTemplate === 'notepad' ||
-            projectTemplate === 'document' ? (
-            <NotepadBoard projectId={projectId} />
-          ) : projectTemplate === 'whiteboard' ? (
-            <WhiteboardBoard projectId={projectId} />
-          ) : projectTemplate === 'mindmap' ? (
-            <MindMapBoard projectId={projectId} />
-          ) : projectTemplate === 'timeline' ? (
-            <TimelineBoard projectId={projectId} />
-          ) : projectTemplate === 'database' ? (
-            <DatabaseBoard projectId={projectId} />
-          ) : projectTemplate === 'retrospective' ? (
-            <RetrospectiveBoard projectId={projectId} />
-          ) : (
+          ) : projectTemplate === 'blank' || !TEMPLATE_META[projectTemplate] ? (
             <CanvasArea />
+          ) : (
+            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden">
+              {isReadonly && (
+                <div
+                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  title="View mode — editing disabled"
+                  aria-hidden
+                />
+              )}
+              {projectTemplate === 'kanban' ? (
+                <StaticKanbanBoard projectId={projectId} />
+              ) : projectTemplate === 'notepad' ||
+                projectTemplate === 'document' ? (
+                <NotepadBoard projectId={projectId} />
+              ) : projectTemplate === 'whiteboard' ? (
+                <WhiteboardBoard projectId={projectId} />
+              ) : projectTemplate === 'mindmap' ? (
+                <MindMapBoard projectId={projectId} />
+              ) : projectTemplate === 'timeline' ? (
+                <TimelineBoard projectId={projectId} />
+              ) : projectTemplate === 'database' ? (
+                <DatabaseBoard projectId={projectId} />
+              ) : projectTemplate === 'retrospective' ? (
+                <RetrospectiveBoard projectId={projectId} />
+              ) : (
+                <CanvasArea />
+              )}
+            </div>
           )}
         </ErrorBoundary>
       </div>

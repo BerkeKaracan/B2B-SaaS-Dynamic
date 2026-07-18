@@ -22,6 +22,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useCanvasStore } from '@/store/useCanvasStore';
+import { useProjectEditMode } from '@/hooks/useProjectEditMode';
 import { Calendar as CustomCalendar } from '@/components/ui/calendar';
 import toast from 'react-hot-toast';
 import Cookies from 'js-cookie';
@@ -66,6 +67,7 @@ const generateId = (prefix: string) => {
 };
 
 export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
+  const { isReadonly } = useProjectEditMode();
   const { metadata, updateMetadata, pages, updatePageSettings } =
     useCanvasStore();
 
@@ -86,13 +88,14 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
 
   const persistDatabase = useCallback(
     (partial: Record<string, unknown>) => {
+      if (isReadonly) return;
       if (isPageScoped) {
         updatePageSettings(projectId, partial);
       } else {
         updateMetadata(partial);
       }
     },
-    [isPageScoped, projectId, updatePageSettings, updateMetadata]
+    [isReadonly, isPageScoped, projectId, updatePageSettings, updateMetadata]
   );
 
   const properties = useMemo(
@@ -216,6 +219,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   } | null>(null);
 
   const handleAddProperty = (type: PropertyType) => {
+    if (isReadonly) return;
     const newPropId = generateId('prop');
     const newProps = [
       ...properties,
@@ -231,6 +235,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   };
 
   const handleDeleteProperty = (propId: string) => {
+    if (isReadonly) return;
     if (properties.length === 1) return;
     const newProps = properties.filter((p) => p.id !== propId);
     const newRows = rows.map((row) => {
@@ -244,6 +249,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   };
 
   const handleAddRow = () => {
+    if (isReadonly) return;
     const newRow: RowRecord = { id: generateId('row') };
     properties.forEach((prop) => {
       newRow[prop.id] = prop.type === 'checkbox' ? false : '';
@@ -252,11 +258,13 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   };
 
   const handleDeleteRow = (rowId: string) => {
+    if (isReadonly) return;
     saveRows(rows.filter((r) => r.id !== rowId));
     setOpenRowMenu(null);
   };
 
   const handleDuplicateRow = (rowId: string) => {
+    if (isReadonly) return;
     const rowToDuplicate = rows.find((r) => r.id === rowId);
     if (!rowToDuplicate) return;
 
@@ -275,18 +283,21 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   };
 
   const updateCell = (rowId: string, propId: string, value: CellValue) => {
+    if (isReadonly) return;
     saveRows(
       rows.map((row) => (row.id === rowId ? { ...row, [propId]: value } : row))
     );
   };
 
   const updatePropertyName = (propId: string, name: string) => {
+    if (isReadonly) return;
     saveProperties(
       properties.map((prop) => (prop.id === propId ? { ...prop, name } : prop))
     );
   };
 
   const handleSaveView = () => {
+    if (isReadonly) return;
     const viewName = prompt('Enter a name for this database view:');
     if (!viewName?.trim()) return;
 
@@ -319,6 +330,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
 
   const handleDeleteView = (e: React.MouseEvent, viewId: string) => {
     e.stopPropagation();
+    if (isReadonly) return;
     if (window.confirm('Delete this view?')) {
       const updatedViews = savedViews.filter((v) => v.id !== viewId);
       persistDatabase({ databaseSavedViews: updatedViews });
@@ -566,12 +578,14 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
             Export
           </button>
 
-          <button
-            onClick={handleAddRow}
-            className="flex items-center gap-1 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-sm ml-0.5"
-          >
-            <Plus className="w-3.5 h-3.5" /> New
-          </button>
+          {!isReadonly && (
+            <button
+              onClick={handleAddRow}
+              className="flex items-center gap-1 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-sm ml-0.5"
+            >
+              <Plus className="w-3.5 h-3.5" /> New
+            </button>
+          )}
         </div>
       </div>
 
@@ -581,8 +595,9 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
             type="text"
             value={dbTitle}
             onChange={(e) => saveTitle(e.target.value)}
+            readOnly={isReadonly}
             placeholder="Untitled Database"
-            className="text-3xl md:text-[2rem] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 w-full focus:outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-600"
+            className={`text-3xl md:text-[2rem] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 w-full focus:outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-600 ${isReadonly ? 'cursor-default' : ''}`}
           />
           <p className="mt-1.5 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 tabular-nums">
             {processedRows.length}

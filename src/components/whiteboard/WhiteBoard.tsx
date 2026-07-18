@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useCanvasStore } from '@/store/useCanvasStore';
+import { useProjectEditMode } from '@/hooks/useProjectEditMode';
 import toast from 'react-hot-toast';
 import {
   Hand,
@@ -51,6 +52,7 @@ const SIZES = [14, 18, 24, 32, 48, 64];
 
 export default function WhiteboardBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('WhiteboardBoard');
+  const { isReadonly } = useProjectEditMode();
 
   const pages = useCanvasStore((state) => state.pages);
   const metadata = useCanvasStore((state) => state.metadata);
@@ -128,6 +130,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
   }, [strokes]);
 
   const saveStrokes = (newStrokes: Stroke[]) => {
+    if (isReadonly) return;
     setStrokes(newStrokes);
     if (currentPage) {
       updatePageSettings(pageKey, { whiteboardStrokes: newStrokes });
@@ -136,6 +139,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
   };
 
   const saveTexts = (newTexts: FloatingText[]) => {
+    if (isReadonly) return;
     setTexts(newTexts);
     if (currentPage) {
       updatePageSettings(pageKey, { whiteboardTexts: newTexts });
@@ -144,6 +148,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
   };
 
   const saveTitle = (newTitle: string) => {
+    if (isReadonly) return;
     setTitle(newTitle);
     if (currentPage) {
       updatePageSettings(pageKey, { whiteboardTitle: newTitle });
@@ -278,6 +283,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
   const startTextDrag = (e: React.PointerEvent, textItem: FloatingText) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isReadonly) return;
 
     if (!e.isPrimary) return;
 
@@ -334,8 +340,8 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!e.isPrimary) return;
+    if (isReadonly) return;
     if (activeTool === 'hand') return;
-
     try {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     } catch (err) {}
@@ -753,8 +759,9 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
             type="text"
             value={title}
             onChange={(e) => saveTitle(e.target.value)}
+            readOnly={isReadonly}
             placeholder={t('titlePlaceholder')}
-            className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 bg-transparent border-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-600 w-[min(500px,70vw)]"
+            className={`text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 bg-transparent border-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-600 w-[min(500px,70vw)] ${isReadonly ? 'cursor-default' : ''}`}
             style={{ pointerEvents: 'auto' }}
           />
         </div>

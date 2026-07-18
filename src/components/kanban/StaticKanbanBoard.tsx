@@ -13,6 +13,7 @@ import { useTranslations } from 'next-intl';
 import { fetchAPI } from '@/services/api';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useProjectEditMode } from '@/hooks/useProjectEditMode';
 import { Calendar } from '@/components/ui/calendar';
 import toast from 'react-hot-toast';
 import Cookies from 'js-cookie';
@@ -150,6 +151,7 @@ export default function StaticKanbanBoard({
   const t = useTranslations('KanbanBoard');
   const params = useParams();
   const tenantId = params?.tenantId as string;
+  const { isReadonly } = useProjectEditMode();
 
   const { metadata, updateMetadata, pages, updatePageSettings } =
     useCanvasStore();
@@ -168,13 +170,14 @@ export default function StaticKanbanBoard({
 
   const persistTasks = useCallback(
     (next: Task[]) => {
+      if (isReadonly) return;
       if (isPageScoped) {
         updatePageSettings(projectId, { tasks: next, kanbanTasks: next });
       } else {
         updateMetadata({ tasks: next, kanbanTasks: next });
       }
     },
-    [isPageScoped, projectId, updatePageSettings, updateMetadata]
+    [isReadonly, isPageScoped, projectId, updatePageSettings, updateMetadata]
   );
 
   const columns = useMemo(() => {
@@ -338,6 +341,7 @@ export default function StaticKanbanBoard({
   }, [linkedRepo]);
 
   const handleConnectRepo = () => {
+    if (isReadonly) return;
     if (!repoInput.includes('/'))
       return toast.error('Format must be: owner/repo');
     updateMetadata({ githubRepo: repoInput });
@@ -347,6 +351,7 @@ export default function StaticKanbanBoard({
   };
 
   const handleUnlinkRepo = () => {
+    if (isReadonly) return;
     if (window.confirm('Are you sure you want to unlink this repository?')) {
       updateMetadata({ githubRepo: '' });
       logActivity('unlinked GitHub repository', linkedRepo);
@@ -477,6 +482,7 @@ export default function StaticKanbanBoard({
   }, [projectId, columns, persistTasks, isPageScoped, params?.projectId]);
 
   const handleOpenAddModal = (status: TaskStatus) => {
+    if (isReadonly) return;
     setEditingTaskId(null);
     setNewTaskStatus(status);
     setNewTaskTitle('');
@@ -490,6 +496,7 @@ export default function StaticKanbanBoard({
   };
 
   const handleEditTask = (task: Task) => {
+    if (isReadonly) return;
     setEditingTaskId(task.id);
     setNewTaskStatus(task.status);
     setNewTaskTitle(task.title);
@@ -513,6 +520,7 @@ export default function StaticKanbanBoard({
   };
 
   const handleDuplicateTask = (taskToDuplicate: Task) => {
+    if (isReadonly) return;
     const duplicatedTask: Task = {
       ...taskToDuplicate,
       id: 't-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
@@ -527,6 +535,7 @@ export default function StaticKanbanBoard({
   };
 
   const handleDeleteTask = (taskId: string, taskTitle: string) => {
+    if (isReadonly) return;
     if (window.confirm(`Are you sure you want to delete "${taskTitle}"?`)) {
       updateTasks(tasks.filter((t) => t.id !== taskId));
       logActivity('deleted task', taskTitle);
@@ -537,6 +546,7 @@ export default function StaticKanbanBoard({
 
   const handleTaskSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadonly) return;
     if (!newTaskTitle.trim()) return;
 
     const formattedStart = startDateObj
@@ -617,9 +627,9 @@ export default function StaticKanbanBoard({
   };
 
   const handleDragEnd = (result: DropResult) => {
+    if (isReadonly) return;
     const { destination, source, draggableId } = result;
-    if (!destination) return;
-    if (
+    if (!destination) return;    if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
     )
@@ -682,6 +692,7 @@ export default function StaticKanbanBoard({
   };
 
   const handleSaveView = () => {
+    if (isReadonly) return;
     const viewName = prompt(
       'Enter a name for this view (e.g. My Urgent Tasks):'
     );
@@ -719,6 +730,7 @@ export default function StaticKanbanBoard({
 
   const handleDeleteView = (e: React.MouseEvent, viewId: string) => {
     e.stopPropagation();
+    if (isReadonly) return;
     if (window.confirm('Are you sure you want to delete this custom view?')) {
       updateMetadata({ savedViews: savedViews.filter((v) => v.id !== viewId) });
       if (activeViewId === viewId) applyView(null);
@@ -1024,6 +1036,7 @@ export default function StaticKanbanBoard({
                                 key={task.id}
                                 draggableId={task.id}
                                 index={index}
+                                isDragDisabled={isReadonly}
                               >
                                 {(provided, snapshot) => (
                                   <div
@@ -1173,12 +1186,14 @@ export default function StaticKanbanBoard({
                             );
                           })}
                           {provided.placeholder}
-                          <button
-                            onClick={() => handleOpenAddModal(col.id)}
-                            className="mt-0.5 w-full flex items-center justify-center gap-2 py-2 md:py-2.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 transition-colors border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
-                          >
-                            {t('addTask')}
-                          </button>
+                          {!isReadonly && (
+                            <button
+                              onClick={() => handleOpenAddModal(col.id)}
+                              className="mt-0.5 w-full flex items-center justify-center gap-2 py-2 md:py-2.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 transition-colors border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
+                            >
+                              {t('addTask')}
+                            </button>
+                          )}
                         </div>
                       )}
                     </Droppable>

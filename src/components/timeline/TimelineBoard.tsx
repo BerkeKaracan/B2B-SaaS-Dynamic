@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { fetchAPI } from '@/services/api';
 // EKLENDİ: Mağazayı sadece gerekli parçalarla çekmek için import
 import { useCanvasStore } from '@/store/useCanvasStore';
+import { useProjectEditMode } from '@/hooks/useProjectEditMode';
 import {
   DragDropContext,
   Droppable,
@@ -103,10 +104,10 @@ const generateNextDays = (daysCount = 30) => {
 export default function TimelineBoard({ projectId }: { projectId: string }) {
   const params = useParams();
   const tenantId = params.tenantId as string;
+  const { isReadonly } = useProjectEditMode();
 
   const updateMetadata = useCanvasStore((state) => state.updateMetadata);
-  const updatePageSettings = useCanvasStore((state) => state.updatePageSettings);
-  const pages = useCanvasStore((state) => state.pages);
+  const updatePageSettings = useCanvasStore((state) => state.updatePageSettings);  const pages = useCanvasStore((state) => state.pages);
   const metadataEvents = useCanvasStore(
     (state) => state.metadata.timelineEvents as TimelineEvent[] | undefined
   );
@@ -277,6 +278,7 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   }, []);
 
   const updateEvents = (newEvents: TimelineEvent[]) => {
+    if (isReadonly) return;
     setEvents(newEvents);
     isInternalUpdate.current = true;
     if (isPageScoped) {
@@ -288,11 +290,13 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   };
 
   const updateSavedViews = (newViews: TimelineSavedView[]) => {
+    if (isReadonly) return;
     setSavedViews(newViews);
     syncDataToDB(events, newViews);
   };
 
   const handleDragEnd = (result: DropResult) => {
+    if (isReadonly) return;
     const { destination, source, draggableId } = result;
     if (!destination) return;
     if (
@@ -329,6 +333,7 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   };
 
   const openModal = (monthKey: string, eventToEdit?: TimelineEvent) => {
+    if (isReadonly) return;
     setActiveMonthKey(monthKey);
     if (eventToEdit) {
       setEditingEventId(eventToEdit.id);
@@ -350,6 +355,7 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   };
 
   const handleDuplicateEvent = (eventToDuplicate: TimelineEvent) => {
+    if (isReadonly) return;
     const duplicatedEvent: TimelineEvent = {
       ...eventToDuplicate,
       id: 'evt-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
@@ -362,6 +368,7 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   };
 
   const handleDeleteEvent = (eventId: string, eventTitle: string) => {
+    if (isReadonly) return;
     if (window.confirm(`Are you sure you want to delete "${eventTitle}"?`)) {
       const updatedEvents = events.filter((e) => e.id !== eventId);
       updateEvents(updatedEvents);
@@ -371,6 +378,7 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   };
 
   const processSubmit = (addAnother: boolean = false) => {
+    if (isReadonly) return;
     if (!formData.title?.trim()) {
       toast.error('Event title is required!');
       return;
@@ -416,6 +424,7 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   };
 
   const handleSaveView = () => {
+    if (isReadonly) return;
     const viewName = prompt('Enter a name for this timeline view:');
     if (!viewName?.trim()) return;
 
@@ -450,6 +459,7 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   };
 
   const handleDeleteView = (e: React.MouseEvent, viewId: string) => {
+    if (isReadonly) return;
     e.stopPropagation();
     if (window.confirm('Delete this view?')) {
       const updatedViews = savedViews.filter((v) => v.id !== viewId);
@@ -746,6 +756,7 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
                                 key={event.id}
                                 draggableId={event.id}
                                 index={index}
+                                isDragDisabled={isReadonly}
                               >
                                 {(provided, snapshot) => (
                                   <div
