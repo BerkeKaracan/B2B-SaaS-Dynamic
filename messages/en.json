@@ -396,6 +396,34 @@
       }
     }
   },
+  "ChangelogPage": {
+    "back": "Go Back",
+    "badge": "Live from GitHub",
+    "title": "What shipped recently",
+    "subtitle": "Product updates synced from repository commits — features, fixes, and polish as they land.",
+    "viewOnGithub": "Open repository",
+    "refresh": "Refresh",
+    "retry": "Try again",
+    "loading": "Fetching updates…",
+    "waking": "Waking the API…",
+    "wakingHint": "The server may be cold-starting. Waiting up to 60 seconds before showing an error.",
+    "empty": "No commits match this filter.",
+    "emptyHint": "Try another category or refresh the feed.",
+    "errorTitle": "Couldn’t load the changelog",
+    "errorDesc": "The API stayed unavailable after waiting for a cold start. GitHub config may also be missing — try again shortly.",
+    "commitCount": "{count} recent commits",
+    "byAuthor": "by {author}",
+    "viewCommit": "View commit",
+    "unknownMonth": "Earlier",
+    "filters": {
+      "all": "All",
+      "feature": "Feature",
+      "bugFix": "Bug fix",
+      "improvement": "Improvement",
+      "design": "Design",
+      "system": "System"
+    }
+  },
   "IntegrationsPage": {
     "back": "Go Back",
     "badge": "Integrations",

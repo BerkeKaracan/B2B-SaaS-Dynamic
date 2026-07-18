@@ -396,6 +396,35 @@
       }
     }
   },
+  "ChangelogPage": {
+    "back": "Geri Dön",
+    "badge": "GitHub’dan canlı",
+    "title": "Son çıkanlar",
+    "subtitle": "Depo commit’lerinden senkronize ürün güncellemeleri — özellikler, düzeltmeler ve iyileştirmeler.",
+    "viewOnGithub": "Depoyu aç",
+    "refresh": "Yenile",
+    "retry": "Tekrar dene",
+    "loading": "Güncellemeler alınıyor…",
+    "waking": "API uyandırılıyor…",
+    "wakingHint": "Sunucu cold start yapıyor olabilir. Hata göstermeden önce 60 saniyeye kadar bekleniyor.",
+    "empty": "Bu filtreyle eşleşen commit yok.",
+    "emptyHint": "Başka bir kategori deneyin veya feed’i yenileyin.",
+    "errorTitle": "Changelog yüklenemedi",
+    "errorDesc": "API cold start sonrası da yanıt vermedi. GitHub yapılandırması da eksik olabilir — biraz sonra tekrar deneyin.",
+    "commitCount": "{count} son commit",
+    "byAuthor": "{author} tarafından",
+    "viewCommit": "Commit’i gör",
+    "unknownMonth": "Daha önce",
+    "filters": {
+      "all": "Tümü",
+      "feature": "Özellik",
+      "bugFix": "Hata düzeltme",
+      "improvement": "İyileştirme",
+      "design": "Tasarım",
+      "system": "Sistem"
+    }
+  },
+
   "IntegrationsPage": {
     "back": "Geri Dön",
     "badge": "Entegrasyonlar",
