@@ -5,6 +5,20 @@ import { routing } from './i18n/routing';
 
 const handleI18nRouting = createIntlMiddleware(routing);
 
+/** next-intl supports `secure` via localeCookie; harden with HttpOnly for scanners. */
+function hardenLocaleCookie(response: NextResponse) {
+  const locale = response.cookies.get('NEXT_LOCALE')?.value;
+  if (!locale) return response;
+
+  response.cookies.set('NEXT_LOCALE', locale, {
+    path: '/',
+    sameSite: 'lax',
+    secure: true,
+    httpOnly: true,
+  });
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const hostname = request.headers.get('host') || '';
@@ -86,7 +100,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return handleI18nRouting(request);
+  return hardenLocaleCookie(handleI18nRouting(request));
 }
 
 export const config = {

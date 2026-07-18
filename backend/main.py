@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from core.limiter import limiter
 
 import time
@@ -22,12 +23,18 @@ if settings.SENTRY_DSN:
     )
     logging.info("Sentry started and watching system.")
 
+_env = (os.getenv("ENVIRONMENT") or os.getenv("APP_ENV") or "development").strip().lower()
+_is_production = _env in {"production", "prod"}
+
 app = FastAPI(
     title="SaaS Engine API",
     description="B2B Multi-tenant SaaS API with flexible JSONB architecture",
     version="1.0.0",
     # Behind Next.js reverse proxy — never 307 to internal Docker hostnames.
     redirect_slashes=False,
+    docs_url=None if _is_production else "/docs",
+    redoc_url=None if _is_production else "/redoc",
+    openapi_url=None if _is_production else "/openapi.json",
 )
 
 # --- LOGGING SETUP ---
@@ -86,6 +93,7 @@ app.add_middleware(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 @app.get("/")
 async def root():

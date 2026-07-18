@@ -88,6 +88,13 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    // Block common env-file probe paths (scanners / false-positive noise).
+    return [
+      { source: '/.env', destination: '/404', permanent: false },
+      { source: '/.env.:path*', destination: '/404', permanent: false },
+    ];
+  },
   async rewrites() {
     return buildBackendRewrites();
   },
