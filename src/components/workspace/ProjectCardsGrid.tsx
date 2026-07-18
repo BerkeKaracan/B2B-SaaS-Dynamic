@@ -54,8 +54,8 @@ type ProjectRecord = {
     updated_at?: string;
     updated_by?: string;
     template?: string;
-    is_global_shared?: string;
-    is_locked?: string;
+    is_global_shared?: string | boolean;
+    is_locked?: string | boolean;
     folder?: string;
     favorite_at?: string | null;
   };
@@ -447,7 +447,10 @@ export default function ProjectCardsGrid({
     e.preventDefault();
     e.stopPropagation();
     closeProjectMenu();
-    const newStatus = currentData.is_locked === 'true' ? 'false' : 'true';
+    const newStatus =
+      currentData.is_locked === 'true' || currentData.is_locked === true
+        ? 'false'
+        : 'true';
     setProjects((prev) =>
       prev.map((p) =>
         p.id === projectId
@@ -481,7 +484,9 @@ export default function ProjectCardsGrid({
     e.preventDefault();
     e.stopPropagation();
     closeProjectMenu();
-    const isCurrentlyGlobal = currentData.is_global_shared === 'true';
+    const isCurrentlyGlobal =
+      currentData.is_global_shared === 'true' ||
+      currentData.is_global_shared === true;
     const newStatus = isCurrentlyGlobal ? 'false' : 'true';
 
     setConfirmDialog({
@@ -1030,7 +1035,12 @@ export default function ProjectCardsGrid({
             const status = project.record_data?.status || 'active';
             const isJustAdmin =
               project.record_data?.visibility === 'just_admin';
-            const isLocked = project.record_data?.is_locked === 'true';
+            const isLocked =
+              project.record_data?.is_locked === 'true' ||
+              project.record_data?.is_locked === true;
+            const isGlobalShared =
+              project.record_data?.is_global_shared === 'true' ||
+              project.record_data?.is_global_shared === true;
             const isFavorite = !!project.record_data?.favorite_at;
             const displayName = getProjectDisplayName(
               project.record_data ?? {},
@@ -1147,6 +1157,12 @@ export default function ProjectCardsGrid({
                         Archived
                       </span>
                     )}
+                    {isGlobalShared && status === 'active' && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-100/80 dark:border-emerald-500/20">
+                        <Globe className="w-3 h-3" />
+                        {t('tags.hub')}
+                      </span>
+                    )}
                     {isLocked && status === 'active' && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-md border border-amber-100 dark:border-amber-800">
                         <Lock className="w-3 h-3" />
@@ -1159,7 +1175,10 @@ export default function ProjectCardsGrid({
                         {t('tags.private')}
                       </span>
                     )}
-                    {status === 'active' && !isLocked && !isJustAdmin && (
+                    {status === 'active' &&
+                      !isLocked &&
+                      !isJustAdmin &&
+                      !isGlobalShared && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 px-1.5 py-0.5 rounded-md border border-sky-100/80 dark:border-sky-500/20">
                         Open canvas
                       </span>
@@ -1202,8 +1221,11 @@ export default function ProjectCardsGrid({
               if (!project) return null;
               const status = project.record_data?.status || 'active';
               const isGlobalShared =
-                project.record_data?.is_global_shared === 'true';
-              const isLocked = project.record_data?.is_locked === 'true';
+                project.record_data?.is_global_shared === 'true' ||
+                project.record_data?.is_global_shared === true;
+              const isLocked =
+                project.record_data?.is_locked === 'true' ||
+                project.record_data?.is_locked === true;
               return (
                 <div
                   className="fixed w-56 max-h-[min(320px,calc(100vh-16px))] overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.5)] rounded-xl py-1.5 z-[100]"
