@@ -16,6 +16,11 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+# Backup is uploaded as a workflow artifact (not committed to the repo).
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   backup:
     name: Nightly pg_dump (artifact)
