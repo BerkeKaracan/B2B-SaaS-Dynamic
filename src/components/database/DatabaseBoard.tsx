@@ -23,6 +23,10 @@ import {
 } from 'lucide-react';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectEditMode } from '@/hooks/useProjectEditMode';
+import {
+  useHasProjectToolbarSlot,
+  useProjectToolbarPortal,
+} from '@/components/workspace/ProjectToolbarSlot';
 import { Calendar as CustomCalendar } from '@/components/ui/calendar';
 import toast from 'react-hot-toast';
 import Cookies from 'js-cookie';
@@ -412,182 +416,212 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
       return 0;
     });
 
+  const hasToolbarSlot = useHasProjectToolbarSlot();
+
+  const toolbarActions = (
+    <div className="flex items-center gap-1.5 shrink-0 min-w-0 overflow-visible">
+      <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar hide-scrollbar-y max-w-[40vw] md:max-w-none">
+        <button
+          type="button"
+          onClick={() => applyView(null)}
+          className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap ${activeViewId === null ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+        >
+          <ListIcon className="w-3.5 h-3.5" /> Default View
+        </button>
+        {savedViews.length > 0 && (
+          <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 mx-1 shrink-0" />
+        )}
+        {savedViews.map((view) => (
+          <div
+            key={view.id}
+            className="flex items-center group relative shrink-0"
+          >
+            <button
+              type="button"
+              onClick={() => applyView(view.id)}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 pr-6 rounded-lg transition-colors whitespace-nowrap ${activeViewId === view.id ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" /> {view.name}
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleDeleteView(e, view.id)}
+              className={`absolute right-1 w-4 h-4 rounded-md flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300' : 'hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500'}`}
+            >
+              <X className="w-2.5 h-2.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="hidden sm:block w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-0.5" />
+      <div className="relative overflow-visible" ref={filterRef}>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsSortOpen(false);
+            setIsFilterOpen((open) => !open);
+          }}
+          className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${isFilterOpen || filterQuery ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+        >
+          <Search className="w-3.5 h-3.5" /> Filter
+          {filterQuery && (
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 ml-0.5" />
+          )}
+        </button>
+        {isFilterOpen && (
+          <div
+            className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-3 z-[120] animate-in fade-in slide-in-from-top-2"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <label className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
+              Search Database
+            </label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-zinc-400" />
+              <input
+                type="text"
+                value={filterQuery}
+                onChange={(e) => {
+                  setFilterQuery(e.target.value);
+                  setActiveViewId(null);
+                }}
+                placeholder="Type to search..."
+                className="w-full pl-8 pr-3 py-1.5 text-xs font-medium bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors placeholder:text-zinc-400"
+              />
+            </div>
+            <div className="pt-2 mt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-1.5">
+              <button
+                type="button"
+                onClick={handleSaveView}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-semibold text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200/80 dark:hover:bg-zinc-700 transition-colors"
+              >
+                <BookmarkPlus className="w-3 h-3" /> Save as Custom View
+              </button>
+              {filterQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterQuery('');
+                    setActiveViewId(null);
+                  }}
+                  className="w-full py-1.5 text-[10px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors"
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="relative overflow-visible" ref={sortRef}>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsFilterOpen(false);
+            setIsSortOpen((open) => !open);
+          }}
+          className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${isSortOpen || sortConfig ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+        >
+          <ArrowUpDown className="w-3.5 h-3.5" /> Sort
+          {sortConfig && (
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 ml-0.5" />
+          )}
+        </button>
+        {isSortOpen && (
+          <div
+            className="absolute top-full mt-2 right-0 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-2 z-[120] animate-in fade-in slide-in-from-top-2"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <label className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-2 block">
+              Sort By Column
+            </label>
+            <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar">
+              <button
+                type="button"
+                onClick={() => {
+                  setSortConfig(null);
+                  setActiveViewId(null);
+                  setIsSortOpen(false);
+                }}
+                className={`px-2 py-1.5 text-xs font-semibold rounded-lg text-left transition-colors ${!sortConfig ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
+              >
+                None (Default)
+              </button>
+              {properties.map((prop) => (
+                <div
+                  key={prop.id}
+                  className="flex flex-col mt-1 pt-1 border-t border-zinc-100 dark:border-zinc-800"
+                >
+                  <span className="text-[10px] font-semibold text-zinc-400 px-2 mb-1 truncate">
+                    {prop.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSortConfig({ propId: prop.id, dir: 'asc' });
+                      setActiveViewId(null);
+                      setIsSortOpen(false);
+                    }}
+                    className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === 'asc' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
+                  >
+                    Ascending (A-Z)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSortConfig({ propId: prop.id, dir: 'desc' });
+                      setActiveViewId(null);
+                      setIsSortOpen(false);
+                    }}
+                    className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === 'desc' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
+                  >
+                    Descending (Z-A)
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={handleNotionExport}
+        disabled={isExporting}
+        className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors border border-zinc-200 dark:border-zinc-700 shadow-sm disabled:opacity-70"
+      >
+        {isExporting ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <CloudUpload className="w-3.5 h-3.5" />
+        )}
+        Export
+      </button>
+      {!isReadonly && (
+        <button
+          type="button"
+          onClick={handleAddRow}
+          className="flex items-center gap-1 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-sm ml-0.5"
+        >
+          <Plus className="w-3.5 h-3.5" /> New
+        </button>
+      )}
+    </div>
+  );
+
+  const portaledToolbar = useProjectToolbarPortal(toolbarActions);
+
   if (!isClient) return null;
 
   return (
     <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden font-sans z-10">
-      <div className="h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md select-none shrink-0 relative z-50">
-        <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar hide-scrollbar-y pr-4 flex-1 min-w-0">
-          <button
-            onClick={() => applyView(null)}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap ${activeViewId === null ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
-          >
-            <ListIcon className="w-3.5 h-3.5" /> Default View
-          </button>
-
-          {savedViews.length > 0 && (
-            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 mx-1 shrink-0" />
-          )}
-
-          {savedViews.map((view) => (
-            <div
-              key={view.id}
-              className="flex items-center group relative shrink-0"
-            >
-              <button
-                onClick={() => applyView(view.id)}
-                className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 pr-6 rounded-lg transition-colors whitespace-nowrap ${activeViewId === view.id ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" /> {view.name}
-              </button>
-              <button
-                onClick={(e) => handleDeleteView(e, view.id)}
-                className={`absolute right-1 w-4 h-4 rounded-md flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300' : 'hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500'}`}
-              >
-                <X className="w-2.5 h-2.5" />
-              </button>
-            </div>
-          ))}
+      {portaledToolbar}
+      {!hasToolbarSlot && (
+        <div className="h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-end bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md select-none shrink-0 relative z-50">
+          {toolbarActions}
         </div>
-
-        <div className="flex items-center gap-1.5 pl-4 border-l border-zinc-100 dark:border-zinc-800 shrink-0">
-          <div className="relative" ref={filterRef}>
-            <button
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${isFilterOpen || filterQuery ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-            >
-              <Search className="w-3.5 h-3.5" /> Filter
-              {filterQuery && (
-                <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 ml-0.5" />
-              )}
-            </button>
-
-            {isFilterOpen && (
-              <div className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
-                <label className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
-                  Search Database
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-zinc-400" />
-                  <input
-                    type="text"
-                    value={filterQuery}
-                    onChange={(e) => {
-                      setFilterQuery(e.target.value);
-                      setActiveViewId(null);
-                    }}
-                    placeholder="Type to search..."
-                    className="w-full pl-8 pr-3 py-1.5 text-xs font-medium bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors placeholder:text-zinc-400"
-                  />
-                </div>
-                <div className="pt-2 mt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-1.5">
-                  <button
-                    onClick={handleSaveView}
-                    className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-semibold text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200/80 dark:hover:bg-zinc-700 transition-colors"
-                  >
-                    <BookmarkPlus className="w-3 h-3" /> Save as Custom View
-                  </button>
-                  {filterQuery && (
-                    <button
-                      onClick={() => {
-                        setFilterQuery('');
-                        setActiveViewId(null);
-                      }}
-                      className="w-full py-1.5 text-[10px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors"
-                    >
-                      Clear Filter
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="relative" ref={sortRef}>
-            <button
-              onClick={() => setIsSortOpen(!isSortOpen)}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${isSortOpen || sortConfig ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-            >
-              <ArrowUpDown className="w-3.5 h-3.5" /> Sort
-              {sortConfig && (
-                <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 ml-0.5" />
-              )}
-            </button>
-
-            {isSortOpen && (
-              <div className="absolute top-full mt-2 right-0 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-2 z-50 animate-in fade-in slide-in-from-top-2">
-                <label className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-2 block">
-                  Sort By Column
-                </label>
-                <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar">
-                  <button
-                    onClick={() => {
-                      setSortConfig(null);
-                      setActiveViewId(null);
-                      setIsSortOpen(false);
-                    }}
-                    className={`px-2 py-1.5 text-xs font-semibold rounded-lg text-left transition-colors ${!sortConfig ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
-                  >
-                    None (Default)
-                  </button>
-                  {properties.map((prop) => (
-                    <div
-                      key={prop.id}
-                      className="flex flex-col mt-1 pt-1 border-t border-zinc-100 dark:border-zinc-800"
-                    >
-                      <span className="text-[10px] font-semibold text-zinc-400 px-2 mb-1 truncate">
-                        {prop.name}
-                      </span>
-                      <button
-                        onClick={() => {
-                          setSortConfig({ propId: prop.id, dir: 'asc' });
-                          setActiveViewId(null);
-                          setIsSortOpen(false);
-                        }}
-                        className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === 'asc' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
-                      >
-                        Ascending (A-Z)
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSortConfig({ propId: prop.id, dir: 'desc' });
-                          setActiveViewId(null);
-                          setIsSortOpen(false);
-                        }}
-                        className={`px-2 py-1.5 text-xs font-medium rounded-lg text-left transition-colors ${sortConfig?.propId === prop.id && sortConfig.dir === 'desc' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
-                      >
-                        Descending (Z-A)
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={handleNotionExport}
-            disabled={isExporting}
-            className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors border border-zinc-200 dark:border-zinc-700 shadow-sm disabled:opacity-70"
-          >
-            {isExporting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <CloudUpload className="w-3.5 h-3.5" />
-            )}
-            Export
-          </button>
-
-          {!isReadonly && (
-            <button
-              onClick={handleAddRow}
-              className="flex items-center gap-1 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors shadow-sm ml-0.5"
-            >
-              <Plus className="w-3.5 h-3.5" /> New
-            </button>
-          )}
-        </div>
-      </div>
+      )}
 
       <div className="flex-1 overflow-auto bg-transparent px-6 py-6 md:px-8 md:py-8 relative custom-scrollbar z-10">
         <div className="mb-6 max-w-3xl">

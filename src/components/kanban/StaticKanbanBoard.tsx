@@ -14,6 +14,10 @@ import { fetchAPI } from '@/services/api';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useProjectEditMode } from '@/hooks/useProjectEditMode';
+import {
+  useHasProjectToolbarSlot,
+  useProjectToolbarPortal,
+} from '@/components/workspace/ProjectToolbarSlot';
 import { Calendar } from '@/components/ui/calendar';
 import toast from 'react-hot-toast';
 import Cookies from 'js-cookie';
@@ -738,197 +742,240 @@ export default function StaticKanbanBoard({
     }
   };
 
+  const hasToolbarSlot = useHasProjectToolbarSlot();
+
+  const filterControl = (
+    <div className="relative overflow-visible" ref={filterRef}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsSortOpen(false);
+          setIsFilterOpen((open) => !open);
+        }}
+        className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${isFilterOpen || filterQuery || filterPriority !== 'ALL' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+      >
+        <Filter className="w-3.5 h-3.5" /> {t('filter')}
+        {(filterQuery || filterPriority !== 'ALL') && (
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 ml-0.5" />
+        )}
+      </button>
+      {isFilterOpen && (
+        <div
+          className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-3 z-[120] animate-in fade-in slide-in-from-top-2"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="space-y-3">
+            <div>
+              <label className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
+                Search Content
+              </label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-zinc-400" />
+                <input
+                  type="text"
+                  value={filterQuery}
+                  onChange={(e) => {
+                    setFilterQuery(e.target.value);
+                    setActiveViewId(null);
+                  }}
+                  placeholder={t('searchPlaceholder')}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs font-medium bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors placeholder:text-zinc-400"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
+                {t('priorityFilter')}
+              </label>
+              <select
+                value={filterPriority}
+                onChange={(e) => {
+                  setFilterPriority(e.target.value as TaskPriority | 'ALL');
+                  setActiveViewId(null);
+                }}
+                className="w-full px-2 py-1.5 text-xs font-semibold border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200"
+              >
+                <option value="ALL">{t('allPriorities')}</option>
+                {Object.keys(PRIORITIES).map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-1.5">
+              <button
+                type="button"
+                onClick={handleSaveView}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-semibold text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200/80 dark:hover:bg-zinc-700 transition-colors"
+              >
+                <BookmarkPlus className="w-3 h-3" /> {t('saveView')}
+              </button>
+              {(filterQuery || filterPriority !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={() => applyView(null)}
+                  className="w-full py-1.5 text-[10px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors"
+                >
+                  {t('clearFilters')}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const sortControl = (
+    <div className="relative overflow-visible" ref={sortRef}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsFilterOpen(false);
+          setIsSortOpen((open) => !open);
+        }}
+        className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${isSortOpen || sortBy !== 'manual' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+      >
+        <ArrowUpDown className="w-3.5 h-3.5" /> {t('sort')}
+        {sortBy !== 'manual' && (
+          <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 ml-0.5" />
+        )}
+      </button>
+      {isSortOpen && (
+        <div
+          className="absolute top-full mt-2 right-0 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-1.5 z-[120] animate-in fade-in slide-in-from-top-2"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="flex flex-col">
+            <button
+              type="button"
+              onClick={() => {
+                setSortBy('manual');
+                setActiveViewId(null);
+                setIsSortOpen(false);
+              }}
+              className={`px-3 py-2 text-xs font-semibold rounded-lg text-left transition-colors ${sortBy === 'manual' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
+            >
+              {t('sortManual')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSortBy('priority');
+                setActiveViewId(null);
+                setIsSortOpen(false);
+              }}
+              className={`px-3 py-2 text-xs font-semibold rounded-lg text-left transition-colors ${sortBy === 'priority' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
+            >
+              {t('sortPriority')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSortBy('deadline');
+                setActiveViewId(null);
+                setIsSortOpen(false);
+              }}
+              className={`px-3 py-2 text-xs font-semibold rounded-lg text-left transition-colors ${sortBy === 'deadline' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
+            >
+              {t('sortDeadline')}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const viewsControl = (
+    <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar hide-scrollbar-y max-w-[40vw] md:max-w-none">
+      <button
+        type="button"
+        onClick={() => applyView(null)}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${activeViewId === null ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+      >
+        <LayoutDashboard className="w-3.5 h-3.5" /> {t('defaultView')}
+      </button>
+      {savedViews.map((view) => (
+        <div key={view.id} className="flex items-center group relative">
+          <button
+            type="button"
+            onClick={() => applyView(view.id)}
+            className={`flex items-center pr-6 pl-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${activeViewId === view.id ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+          >
+            {view.name}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => handleDeleteView(e, view.id)}
+            className={`absolute right-1 w-4 h-4 rounded-md flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300' : 'hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500'}`}
+          >
+            <X className="w-2.5 h-2.5" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+
+  const toolbarActions = (
+    <div className="flex items-center gap-1.5 shrink-0 overflow-visible">
+      {linkedRepo && (
+        <a
+          href={`https://github.com/${linkedRepo}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 rounded-lg text-[10px] font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors shrink-0"
+        >
+          <CustomGithubIcon className="w-3 h-3" />
+          {linkedRepo.split('/')[1]}
+        </a>
+      )}
+      {viewsControl}
+      <div className="hidden sm:block w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-0.5" />
+      {filterControl}
+      {sortControl}
+      <div className="hidden sm:block w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-0.5" />
+      <button
+        type="button"
+        onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors font-semibold text-xs ${isDrawerOpen ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+      >
+        <Activity className="w-3.5 h-3.5" /> {t('history')}
+      </button>
+    </div>
+  );
+
+  const portaledToolbar = useProjectToolbarPortal(toolbarActions);
+
   if (!isClient) return null;
 
   return (
     <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden select-none transition-colors duration-300">
-      <div className="flex flex-col bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 shrink-0 z-10">
-        <div className="flex items-center justify-between px-4 md:px-5 h-14">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 shrink-0">
-              <Columns3 className="w-4 h-4" />
+      {portaledToolbar}
+      {!hasToolbarSlot && (
+        <div className="flex flex-col bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 shrink-0 z-10">
+          <div className="flex items-center justify-between px-4 md:px-5 h-14 gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 shrink-0">
+                <Columns3 className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight truncate">
+                  {typeof metadata.name === 'string' && metadata.name
+                    ? metadata.name
+                    : t('title')}
+                </h2>
+                <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 tracking-wide">
+                  Columns · Tasks
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight truncate">
-                {typeof metadata.name === 'string' && metadata.name
-                  ? metadata.name
-                  : t('title')}
-              </h2>
-              <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 tracking-wide">
-                Columns · Tasks
-              </p>
-            </div>
-            {linkedRepo && (
-              <a
-                href={`https://github.com/${linkedRepo}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden md:flex items-center gap-1.5 px-2 py-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 rounded-lg text-[10px] font-semibold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors shrink-0"
-              >
-                <CustomGithubIcon className="w-3 h-3" />
-                {linkedRepo.split('/')[1]}
-              </a>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div className="relative" ref={filterRef}>
-              <button
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${isFilterOpen || filterQuery || filterPriority !== 'ALL' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-              >
-                <Filter className="w-3.5 h-3.5" /> {t('filter')}
-                {(filterQuery || filterPriority !== 'ALL') && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 ml-0.5" />
-                )}
-              </button>
-              {isFilterOpen && (
-                <div className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-3 z-50 animate-in fade-in slide-in-from-top-2">
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
-                        Search Content
-                      </label>
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-zinc-400" />
-                        <input
-                          type="text"
-                          value={filterQuery}
-                          onChange={(e) => {
-                            setFilterQuery(e.target.value);
-                            setActiveViewId(null);
-                          }}
-                          placeholder={t('searchPlaceholder')}
-                          className="w-full pl-8 pr-3 py-1.5 text-xs font-medium bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-700 rounded-lg text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors placeholder:text-zinc-400"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
-                        {t('priorityFilter')}
-                      </label>
-                      <select
-                        value={filterPriority}
-                        onChange={(e) => {
-                          setFilterPriority(
-                            e.target.value as TaskPriority | 'ALL'
-                          );
-                          setActiveViewId(null);
-                        }}
-                        className="w-full px-2 py-1.5 text-xs font-semibold border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200"
-                      >
-                        <option value="ALL">{t('allPriorities')}</option>
-                        {Object.keys(PRIORITIES).map((p) => (
-                          <option key={p} value={p}>
-                            {p}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex flex-col gap-1.5">
-                      <button
-                        onClick={handleSaveView}
-                        className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-semibold text-zinc-700 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200/80 dark:hover:bg-zinc-700 transition-colors"
-                      >
-                        <BookmarkPlus className="w-3 h-3" /> {t('saveView')}
-                      </button>
-                      {(filterQuery || filterPriority !== 'ALL') && (
-                        <button
-                          onClick={() => applyView(null)}
-                          className="w-full py-1.5 text-[10px] font-semibold text-rose-600 bg-rose-50 dark:bg-rose-950/40 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 transition-colors"
-                        >
-                          {t('clearFilters')}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="relative" ref={sortRef}>
-              <button
-                onClick={() => setIsSortOpen(!isSortOpen)}
-                className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${isSortOpen || sortBy !== 'manual' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-              >
-                <ArrowUpDown className="w-3.5 h-3.5" /> {t('sort')}
-                {sortBy !== 'manual' && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-900 dark:bg-zinc-100 ml-0.5" />
-                )}
-              </button>
-              {isSortOpen && (
-                <div className="absolute top-full mt-2 right-0 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2">
-                  <div className="flex flex-col">
-                    <button
-                      onClick={() => {
-                        setSortBy('manual');
-                        setActiveViewId(null);
-                        setIsSortOpen(false);
-                      }}
-                      className={`px-3 py-2 text-xs font-semibold rounded-lg text-left transition-colors ${sortBy === 'manual' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
-                    >
-                      {t('sortManual')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSortBy('priority');
-                        setActiveViewId(null);
-                        setIsSortOpen(false);
-                      }}
-                      className={`px-3 py-2 text-xs font-semibold rounded-lg text-left transition-colors ${sortBy === 'priority' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
-                    >
-                      {t('sortPriority')}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSortBy('deadline');
-                        setActiveViewId(null);
-                        setIsSortOpen(false);
-                      }}
-                      className={`px-3 py-2 text-xs font-semibold rounded-lg text-left transition-colors ${sortBy === 'deadline' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'}`}
-                    >
-                      {t('sortDeadline')}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="hidden sm:block w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-0.5" />
-            <button
-              onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors font-semibold text-xs ${isDrawerOpen ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
-            >
-              <Activity className="w-3.5 h-3.5" /> {t('history')}
-            </button>
+            {toolbarActions}
           </div>
         </div>
-
-        <div className="flex items-center gap-1 px-4 md:px-5 pb-2.5 overflow-x-auto custom-scrollbar hide-scrollbar-y">
-          <button
-            onClick={() => applyView(null)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${activeViewId === null ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" /> {t('defaultView')}
-          </button>
-          {savedViews.map((view) => (
-            <div key={view.id} className="flex items-center group relative">
-              <button
-                onClick={() => applyView(view.id)}
-                className={`flex items-center pr-6 pl-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${activeViewId === view.id ? 'text-zinc-900 dark:text-zinc-100 bg-zinc-100 dark:bg-zinc-800' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
-              >
-                {view.name}
-              </button>
-              <button
-                onClick={(e) => handleDeleteView(e, view.id)}
-                className={`absolute right-1 w-4 h-4 rounded-md flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 ${activeViewId === view.id ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300' : 'hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500'}`}
-              >
-                <X className="w-2.5 h-2.5" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
 
       <div className="flex-1 flex overflow-hidden relative w-full">
         <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar h-full">

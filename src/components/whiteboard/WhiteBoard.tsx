@@ -1,9 +1,14 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectEditMode } from '@/hooks/useProjectEditMode';
+import {
+  useHasProjectToolbarSlot,
+  useProjectToolbarPortal,
+} from '@/components/workspace/ProjectToolbarSlot';
 import toast from 'react-hot-toast';
 import {
   Hand,
@@ -81,6 +86,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
   const [activeFontSize, setActiveFontSize] = useState<number>(24);
 
   const [draggingTextId, setDraggingTextId] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const draggedPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -131,6 +137,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
 
   const saveStrokes = (newStrokes: Stroke[]) => {
     if (isReadonly) return;
+    strokesRef.current = newStrokes;
     setStrokes(newStrokes);
     if (currentPage) {
       updatePageSettings(pageKey, { whiteboardStrokes: newStrokes });
@@ -261,6 +268,10 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
     resizeObserver.observe(containerRef.current);
     return () => resizeObserver.disconnect();
   }, [redrawCanvas]);
+
+  useEffect(() => {
+    redrawCanvas();
+  }, [strokes, redrawCanvas]);
 
   const getCoordinates = (e: React.PointerEvent): Point => {
     if (!containerRef.current) return { x: 0, y: 0, pressure: 1 };
@@ -477,15 +488,27 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
     saveTexts(updatedTexts);
   };
 
+  const isBoardEmpty = strokes.length === 0 && texts.length === 0;
+
   const handleClearBoard = () => {
-    if (window.confirm(t('clearConfirm'))) {
-      saveStrokes([]);
-      saveTexts([]);
-      redrawCanvas();
+    if (isReadonly) {
+      toast.error('Switch to Edit mode to clear the board.');
+      return;
     }
+    if (isBoardEmpty) return;
+    setShowClearConfirm(true);
   };
 
-  const isBoardEmpty = strokes.length === 0 && texts.length === 0;
+  const confirmClearBoard = () => {
+    if (isReadonly) return;
+    strokesRef.current = [];
+    currentStroke.current = null;
+    isDrawing.current = false;
+    saveStrokes([]);
+    saveTexts([]);
+    redrawCanvas();
+    setShowClearConfirm(false);
+  };
   const toolBtnBase =
     'p-2 rounded-lg transition-colors';
   const toolBtnIdle =
@@ -493,224 +516,289 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
   const toolBtnActive =
     'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900';
 
-  return (
-    <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden select-none transition-colors duration-300">
-      <div className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-3 sm:px-4 shrink-0 flex items-center justify-between relative z-20">
-        <div className="flex items-center gap-0.5 border-r border-zinc-200 dark:border-zinc-800 pr-3 h-full">
-          <button
-            type="button"
-            onClick={() => setActiveTool('hand')}
-            className={`${toolBtnBase} ${
-              activeTool === 'hand' ? toolBtnActive : toolBtnIdle
-            }`}
-            title={t('pan')}
-          >
-            <Hand size={17} strokeWidth={2.25} />
-          </button>
+  const hasToolbarSlot = useHasProjectToolbarSlot();
 
-          <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+  const toolbarActions = (
+    <div className="flex items-center gap-0 min-w-0 w-full justify-end">
+      <div className="flex items-center gap-0.5 border-r border-zinc-200 dark:border-zinc-800 pr-2 shrink-0">
+        <button
+          type="button"
+          onClick={() => setActiveTool('hand')}
+          className={`${toolBtnBase} ${
+            activeTool === 'hand' ? toolBtnActive : toolBtnIdle
+          }`}
+          title={t('pan')}
+        >
+          <Hand size={17} strokeWidth={2.25} />
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTool('pen')}
-            className={`${toolBtnBase} ${
-              activeTool === 'pen' ? toolBtnActive : toolBtnIdle
-            }`}
-            title={t('pen')}
-          >
-            <Pen size={17} strokeWidth={2.25} />
-          </button>
+        <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
 
-          <button
-            type="button"
-            onClick={() => setActiveTool('highlighter')}
-            className={`${toolBtnBase} ${
-              activeTool === 'highlighter'
-                ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-200'
-                : toolBtnIdle
-            }`}
-            title={t('highlighter')}
-          >
-            <Highlighter size={17} strokeWidth={2.25} />
-          </button>
+        <button
+          type="button"
+          onClick={() => setActiveTool('pen')}
+          className={`${toolBtnBase} ${
+            activeTool === 'pen' ? toolBtnActive : toolBtnIdle
+          }`}
+          title={t('pen')}
+        >
+          <Pen size={17} strokeWidth={2.25} />
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTool('eraser')}
-            className={`${toolBtnBase} ${
-              activeTool === 'eraser'
-                ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
-                : toolBtnIdle
-            }`}
-            title={t('eraser')}
-          >
-            <Eraser size={17} strokeWidth={2.25} />
-          </button>
+        <button
+          type="button"
+          onClick={() => setActiveTool('highlighter')}
+          className={`${toolBtnBase} ${
+            activeTool === 'highlighter'
+              ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-200'
+              : toolBtnIdle
+          }`}
+          title={t('highlighter')}
+        >
+          <Highlighter size={17} strokeWidth={2.25} />
+        </button>
 
-          <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1.5" />
+        <button
+          type="button"
+          onClick={() => setActiveTool('eraser')}
+          className={`${toolBtnBase} ${
+            activeTool === 'eraser'
+              ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+              : toolBtnIdle
+          }`}
+          title={t('eraser')}
+        >
+          <Eraser size={17} strokeWidth={2.25} />
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTool('text')}
-            className={`${toolBtnBase} ${
-              activeTool === 'text' ? toolBtnActive : toolBtnIdle
-            }`}
-            title={t('text')}
-          >
-            <Type size={17} strokeWidth={2.25} />
-          </button>
-        </div>
+        <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1.5" />
 
-        <div className="flex-1 px-3 flex items-center justify-start gap-3 min-w-0">
-          {activeTool === 'text' ? (
-            <div className="flex items-center gap-2.5 animate-in fade-in slide-in-from-left-2 duration-200 bg-zinc-50 dark:bg-zinc-800/60 p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700">
-              <div className="flex flex-col px-1.5">
-                <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
-                  {t('font')}
-                </span>
-                <select
-                  value={activeFont}
-                  onChange={(e) => setActiveFont(e.target.value)}
-                  className="bg-transparent text-zinc-800 dark:text-zinc-200 text-xs font-semibold focus:outline-none cursor-pointer"
-                >
-                  {FONTS.map((font) => (
-                    <option
-                      key={font}
-                      value={font}
-                      style={{ fontFamily: font }}
-                      className="dark:bg-zinc-800"
-                    >
-                      {font}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700" />
-              <div className="flex flex-col px-1.5">
-                <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
-                  {t('size')}
-                </span>
-                <select
-                  value={activeFontSize}
-                  onChange={(e) => setActiveFontSize(Number(e.target.value))}
-                  className="bg-transparent text-zinc-800 dark:text-zinc-200 text-xs font-semibold focus:outline-none cursor-pointer"
-                >
-                  {SIZES.map((size) => (
-                    <option
-                      key={size}
-                      value={size}
-                      className="dark:bg-zinc-800"
-                    >
-                      {size}px
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700" />
-              <div className="flex items-center gap-1.5 px-1.5">
-                {COLORS.map((color) => (
-                  <button
-                    type="button"
-                    key={color}
-                    onClick={() => setActiveColor(color)}
-                    className={`w-5 h-5 rounded-full border-2 transition-transform ${
-                      activeColor === color
-                        ? 'scale-110 border-zinc-500 dark:border-zinc-400 shadow-sm'
-                        : 'border-transparent dark:border-zinc-700 hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: color }}
-                  />
+        <button
+          type="button"
+          onClick={() => setActiveTool('text')}
+          className={`${toolBtnBase} ${
+            activeTool === 'text' ? toolBtnActive : toolBtnIdle
+          }`}
+          title={t('text')}
+        >
+          <Type size={17} strokeWidth={2.25} />
+        </button>
+      </div>
+
+      <div className="px-2 flex items-center justify-start gap-3 min-w-0 overflow-x-auto custom-scrollbar">
+        {activeTool === 'text' ? (
+          <div className="flex items-center gap-2.5 animate-in fade-in slide-in-from-left-2 duration-200 bg-zinc-50 dark:bg-zinc-800/60 p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700">
+            <div className="flex flex-col px-1.5">
+              <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
+                {t('font')}
+              </span>
+              <select
+                value={activeFont}
+                onChange={(e) => setActiveFont(e.target.value)}
+                className="bg-transparent text-zinc-800 dark:text-zinc-200 text-xs font-semibold focus:outline-none cursor-pointer"
+              >
+                {FONTS.map((font) => (
+                  <option
+                    key={font}
+                    value={font}
+                    style={{ fontFamily: font }}
+                    className="dark:bg-zinc-800"
+                  >
+                    {font}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
-          ) : activeTool === 'pen' || activeTool === 'highlighter' ? (
-            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-200">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-                  {t('thickness')}
-                </span>
-                <input
-                  type="range"
-                  min="1"
-                  max="20"
-                  value={strokeWidth}
-                  onChange={(e) => setStrokeWidth(Number(e.target.value))}
-                  className="w-24 accent-zinc-900 dark:accent-zinc-100"
+            <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700" />
+            <div className="flex flex-col px-1.5">
+              <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
+                {t('size')}
+              </span>
+              <select
+                value={activeFontSize}
+                onChange={(e) => setActiveFontSize(Number(e.target.value))}
+                className="bg-transparent text-zinc-800 dark:text-zinc-200 text-xs font-semibold focus:outline-none cursor-pointer"
+              >
+                {SIZES.map((size) => (
+                  <option
+                    key={size}
+                    value={size}
+                    className="dark:bg-zinc-800"
+                  >
+                    {size}px
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700" />
+            <div className="flex items-center gap-1.5 px-1.5">
+              {COLORS.map((color) => (
+                <button
+                  type="button"
+                  key={color}
+                  onClick={() => setActiveColor(color)}
+                  className={`w-5 h-5 rounded-full border-2 transition-transform ${
+                    activeColor === color
+                      ? 'scale-110 border-zinc-500 dark:border-zinc-400 shadow-sm'
+                      : 'border-transparent dark:border-zinc-700 hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: color }}
                 />
-              </div>
-              <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700" />
-              <div className="flex items-center gap-1.5">
-                {COLORS.map((color) => (
-                  <button
-                    type="button"
-                    key={color}
-                    onClick={() => setActiveColor(color)}
-                    className={`w-5 h-5 rounded-full border-2 transition-transform ${
-                      activeColor === color
-                        ? 'scale-110 border-zinc-500 dark:border-zinc-400 shadow-sm'
-                        : 'border-transparent dark:border-zinc-700 hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
+              ))}
             </div>
-          ) : activeTool === 'eraser' ? (
-            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
+          </div>
+        ) : activeTool === 'pen' || activeTool === 'highlighter' ? (
+          <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-200">
+            <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-                {t('eraserSize')}
+                {t('thickness')}
               </span>
               <input
                 type="range"
                 min="1"
-                max="50"
+                max="20"
                 value={strokeWidth}
                 onChange={(e) => setStrokeWidth(Number(e.target.value))}
-                className="w-24 accent-zinc-500 dark:accent-zinc-400"
+                className="w-24 accent-zinc-900 dark:accent-zinc-100"
               />
             </div>
-          ) : (
-            <span className="hidden md:inline text-[11px] font-medium text-zinc-400 dark:text-zinc-500 tracking-wide truncate">
-              {t('panHint')}
+            <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700" />
+            <div className="flex items-center gap-1.5">
+              {COLORS.map((color) => (
+                <button
+                  type="button"
+                  key={color}
+                  onClick={() => setActiveColor(color)}
+                  className={`w-5 h-5 rounded-full border-2 transition-transform ${
+                    activeColor === color
+                      ? 'scale-110 border-zinc-500 dark:border-zinc-400 shadow-sm'
+                      : 'border-transparent dark:border-zinc-700 hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : activeTool === 'eraser' ? (
+          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
+            <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+              {t('eraserSize')}
             </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-3 shrink-0">
-          <button
-            type="button"
-            onClick={() => toast.success('Image module ready to implement.')}
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            <ImageIcon size={14} /> Image
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              toast('Widget module ready to implement.', { icon: '🧩' })
-            }
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            <Blocks size={14} /> Widget
-          </button>
-          <button
-            type="button"
-            onClick={() => toast.error('Link module is under construction.')}
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            <Link2 size={14} /> Link
-          </button>
-          <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
-          <button
-            type="button"
-            onClick={handleClearBoard}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
-          >
-            <Trash2 size={14} />
-            <span className="hidden lg:inline">{t('clear')}</span>
-          </button>
-        </div>
+            <input
+              type="range"
+              min="1"
+              max="50"
+              value={strokeWidth}
+              onChange={(e) => setStrokeWidth(Number(e.target.value))}
+              className="w-24 accent-zinc-500 dark:accent-zinc-400"
+            />
+          </div>
+        ) : (
+          <span className="hidden md:inline text-[11px] font-medium text-zinc-400 dark:text-zinc-500 tracking-wide truncate">
+            {t('panHint')}
+          </span>
+        )}
       </div>
+
+      <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-2 shrink-0">
+        <button
+          type="button"
+          onClick={() => toast.success('Image module ready to implement.')}
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <ImageIcon size={14} /> Image
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            toast('Widget module ready to implement.', { icon: '🧩' })
+          }
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <Blocks size={14} /> Widget
+        </button>
+        <button
+          type="button"
+          onClick={() => toast.error('Link module is under construction.')}
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <Link2 size={14} /> Link
+        </button>
+        <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
+        <button
+          type="button"
+          onClick={handleClearBoard}
+          disabled={isReadonly || isBoardEmpty}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+        >
+          <Trash2 size={14} />
+          <span className="hidden lg:inline">{t('clear')}</span>
+        </button>
+      </div>
+    </div>
+  );
+
+  const portaledToolbar = useProjectToolbarPortal(toolbarActions);
+
+  const clearConfirmDialog =
+    showClearConfirm && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm p-4"
+            onMouseDown={() => setShowClearConfirm(false)}
+          >
+            <div
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="whiteboard-clear-title"
+              className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-full max-w-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <h2
+                  id="whiteboard-clear-title"
+                  className="text-lg font-bold text-zinc-900 dark:text-white"
+                >
+                  {t('clear')}
+                </h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 leading-relaxed">
+                  {t('clearConfirm')}
+                </p>
+              </div>
+              <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-950/50 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowClearConfirm(false)}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-zinc-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmClearBoard}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-sm bg-rose-600 hover:bg-rose-700 transition-colors"
+                >
+                  {t('clear')}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
+  return (
+    <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden select-none transition-colors duration-300">
+      {portaledToolbar}
+      {clearConfirmDialog}
+      {!hasToolbarSlot && (
+        <div className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-3 sm:px-4 shrink-0 flex items-center justify-between relative z-20 overflow-visible">
+          {toolbarActions}
+        </div>
+      )}
 
       <div
         ref={containerRef}

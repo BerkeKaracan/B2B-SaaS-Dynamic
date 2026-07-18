@@ -5,6 +5,10 @@ import { useTranslations } from "next-intl";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useProjectEditMode } from "@/hooks/useProjectEditMode";
+import {
+  useHasProjectToolbarSlot,
+  useProjectToolbarPortal,
+} from "@/components/workspace/ProjectToolbarSlot";
 import { ThumbsUp, Plus, Trash2, MessageSquareHeart } from "lucide-react";
 
 type RetroCard = {
@@ -187,28 +191,44 @@ export default function RetrospectiveBoard({
     },
   ];
 
+  const hasToolbarSlot = useHasProjectToolbarSlot();
+  const cardCountChip =
+    cards.length > 0 ? (
+      <span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 tabular-nums px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+        {cards.length} cards
+      </span>
+    ) : null;
+  const toolbarActions = (
+    <div className="flex items-center gap-2 shrink-0">
+      <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 tracking-wide">
+        Glad · Sad · Mad
+      </span>
+      {cardCountChip}
+    </div>
+  );
+  const portaledToolbar = useProjectToolbarPortal(toolbarActions);
+
   return (
     <div className="absolute inset-0 flex flex-col bg-transparent transition-colors duration-300 overflow-hidden">
-      <div className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-5 flex items-center justify-between shrink-0 z-10">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80">
-            <MessageSquareHeart className="w-4 h-4" />
+      {portaledToolbar}
+      {!hasToolbarSlot && (
+        <div className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-5 flex items-center justify-between shrink-0 z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80">
+              <MessageSquareHeart className="w-4 h-4" />
+            </div>
+            <div>
+              <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
+                {t("title")}
+              </h1>
+              <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 tracking-wide">
+                Glad · Sad · Mad
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
-              {t("title")}
-            </h1>
-            <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 tracking-wide">
-              Glad · Sad · Mad
-            </p>
-          </div>
+          {cardCountChip}
         </div>
-        {cards.length > 0 && (
-          <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 tabular-nums">
-            {cards.length}
-          </span>
-        )}
-      </div>
+      )}
 
       <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar p-5">
         <div className="flex gap-4 h-full min-w-[900px] max-w-7xl mx-auto">

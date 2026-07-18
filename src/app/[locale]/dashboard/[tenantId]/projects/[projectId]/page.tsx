@@ -17,6 +17,7 @@ import MindMapBoard from '@/components/mindmap/MindMapBoard';
 import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useProjectEditMode } from '@/hooks/useProjectEditMode';
+import { ProjectToolbarSlot } from '@/components/workspace/ProjectToolbarSlot';
 import {
   Check,
   Clock,
@@ -302,7 +303,7 @@ export default function ProjectDesignPage() {
 
   return (
     <div className="flex flex-col h-full w-full min-w-0 bg-[#f7f9fb] dark:bg-zinc-950 relative selection:bg-sky-200/50 overscroll-none touch-none">
-      <div className="h-12 md:h-14 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl px-3 md:px-5 flex items-center justify-between gap-3 shrink-0 relative z-10">
+      <div className="h-12 md:h-14 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl px-3 md:px-5 flex items-center justify-between gap-3 shrink-0 relative z-30 overflow-visible">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="hidden sm:flex items-center gap-2 min-w-0 pl-0.5">
             <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20 flex items-center justify-center shrink-0">
@@ -357,6 +358,18 @@ export default function ProjectDesignPage() {
             </div>
           )}
         </div>
+
+        {[
+          'kanban',
+          'timeline',
+          'database',
+          'notepad',
+          'document',
+          'whiteboard',
+          'retrospective',
+        ].includes(projectTemplate) && (
+          <ProjectToolbarSlot className="mx-1 md:mx-2" />
+        )}
 
         <button
           type="button"
