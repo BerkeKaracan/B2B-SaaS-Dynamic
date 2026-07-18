@@ -4,7 +4,8 @@ import os
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from core.limiter import limiter
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+from core.limiter import limiter, get_real_ip
 
 import time
 import logging
@@ -23,8 +24,26 @@ if settings.SENTRY_DSN:
     )
     logging.info("Sentry started and watching system.")
 
-_env = (os.getenv("ENVIRONMENT") or os.getenv("APP_ENV") or "development").strip().lower()
-_is_production = _env in {"production", "prod"}
+
+def _resolve_is_production() -> bool:
+    """True when ENVIRONMENT/APP_ENV is production, or when running on Render."""
+    env_raw = os.getenv("ENVIRONMENT")
+    if env_raw is None or not str(env_raw).strip():
+        env_raw = os.getenv("APP_ENV")
+    env = str(env_raw or "").strip().lower()
+    if env in {"production", "prod"}:
+        return True
+    # Render sets RENDER=true; hide docs even if ENVIRONMENT was forgotten.
+    if os.getenv("RENDER", "").strip().lower() in {"true", "1"}:
+        return True
+    return False
+
+
+IS_PRODUCTION = _resolve_is_production()
+# Explicit None in production — all three must stay disabled.
+DOCS_URL = None if IS_PRODUCTION else "/docs"
+REDOC_URL = None if IS_PRODUCTION else "/redoc"
+OPENAPI_URL = None if IS_PRODUCTION else "/openapi.json"
 
 app = FastAPI(
     title="SaaS Engine API",
@@ -32,14 +51,22 @@ app = FastAPI(
     version="1.0.0",
     # Behind Next.js reverse proxy — never 307 to internal Docker hostnames.
     redirect_slashes=False,
-    docs_url=None if _is_production else "/docs",
-    redoc_url=None if _is_production else "/redoc",
-    openapi_url=None if _is_production else "/openapi.json",
+    docs_url=DOCS_URL,
+    redoc_url=REDOC_URL,
+    openapi_url=OPENAPI_URL,
 )
 
 # --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("saas_engine")
+logger.info(
+    "API boot: ENVIRONMENT=%r APP_ENV=%r RENDER=%r is_production=%s docs_url=%s",
+    os.getenv("ENVIRONMENT"),
+    os.getenv("APP_ENV"),
+    os.getenv("RENDER"),
+    IS_PRODUCTION,
+    DOCS_URL,
+)
 
 # --- MONITORING & SECURITY MIDDLEWARE ---
 @app.middleware("http")
@@ -53,7 +80,7 @@ async def monitor_and_secure_requests(request: Request, call_next):
         "url": str(request.url),
         "process_time": f"{process_time:.4f}s",
         "status_code": response.status_code,
-        "client_ip": request.client.host if request.client else "unknown"
+        "client_ip": get_real_ip(request),
     }
     
     if request.url.path.startswith("/api/"):
@@ -94,6 +121,8 @@ app.add_middleware(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+# Outermost: trust X-Forwarded-* from Render so request.client + SlowAPI see real IPs.
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 @app.get("/")
 async def root():
