@@ -43,7 +43,6 @@ import {
   Filter,
   X,
   ArrowUpDown,
-  Sparkles,
 } from 'lucide-react';
 import { logActivity } from '@/lib/activityLogger';
 
@@ -66,7 +65,7 @@ type VisibilityFilter = 'all' | 'public' | 'just_admin';
 type SortOption = 'recent' | 'name_asc' | 'name_desc';
 
 const selectClassName =
-  'appearance-none pl-9 pr-8 py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-zinc-100/10 focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors cursor-pointer min-w-[9.5rem] hover:border-zinc-300 dark:hover:border-zinc-700';
+  'appearance-none h-10 pl-9 pr-8 bg-white/90 dark:bg-zinc-950/80 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-[13px] font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 transition-all cursor-pointer min-w-[9.5rem] hover:border-zinc-300 dark:hover:border-zinc-700';
 
 const formatTimeAgo = (dateStr?: string) => {
   if (!dateStr) return 'Just now';
@@ -262,15 +261,15 @@ export default function ProjectCardsGrid({
         id: 'timeline',
         name: 'Timeline',
         icon: Clock,
-        color: 'text-purple-500',
+        color: 'text-sky-600',
       },
       {
         id: 'database',
         name: 'Database',
         icon: Database,
-        color: 'text-indigo-500',
+        color: 'text-teal-600',
       },
-      { id: 'mindmap', name: 'Mindmap', icon: Network, color: 'text-pink-500' },
+      { id: 'mindmap', name: 'Mindmap', icon: Network, color: 'text-cyan-600' },
       {
         id: 'retrospective',
         name: 'Retrospective',
@@ -753,76 +752,63 @@ export default function ProjectCardsGrid({
   return (
     <div className="flex-1 w-full relative transition-colors duration-300">
       <div
-        className={`relative z-10 mb-6 md:mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500 ${
-          isStorageView ? 'flex flex-col sm:flex-row sm:items-end justify-between gap-6' : ''
+        className={`relative z-10 mb-7 md:mb-9 animate-in fade-in slide-in-from-bottom-2 duration-500 ${
+          isStorageView
+            ? 'flex flex-col sm:flex-row sm:items-end justify-between gap-6'
+            : ''
         }`}
       >
-        {isStorageView && 'Icon' in headerContent && headerContent.Icon ? (
-          <div className="flex items-start gap-4">
-            <div
-              className={`w-12 h-12 bg-white dark:bg-zinc-900 border rounded-2xl flex items-center justify-center shadow-sm shrink-0 ${headerContent.iconBox}`}
-            >
-              {(() => {
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-700 dark:text-sky-400 mb-2">
+            {isStorageView && 'badge' in headerContent && headerContent.badge
+              ? headerContent.badge
+              : view === 'favorites'
+                ? 'Library · Favorites'
+                : currentFolder
+                  ? `Folder · ${currentFolder}`
+                  : 'Library · Projects'}
+          </p>
+          <h1 className="text-[1.75rem] md:text-[2.15rem] font-semibold tracking-tight text-zinc-950 dark:text-white flex items-center gap-2.5">
+            {view === 'favorites' && (
+              <Star className="w-7 h-7 text-amber-500 fill-amber-500" />
+            )}
+            {currentFolder && !isStorageView && (
+              <Folder className="w-7 h-7 text-sky-600" />
+            )}
+            {isStorageView &&
+              'Icon' in headerContent &&
+              headerContent.Icon &&
+              (() => {
                 const HeaderIcon = headerContent.Icon;
                 return (
-                  <HeaderIcon className={`w-5 h-5 ${headerContent.accent}`} />
+                  <HeaderIcon
+                    className={`w-7 h-7 ${headerContent.accent}`}
+                  />
                 );
               })()}
-            </div>
-            <div className="min-w-0 pt-0.5">
-              <div
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest mb-2 ${headerContent.badgeClass}`}
-              >
-                <Sparkles className="w-3 h-3" />
-                {headerContent.badge}
-              </div>
-              <h1 className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
-                {headerContent.title}
-              </h1>
-              <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mt-1.5 max-w-xl leading-relaxed">
-                {headerContent.desc}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <h1 className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tight flex items-center gap-3">
-              {view === 'favorites' && (
-                <Star className="w-8 h-8 text-amber-500 fill-amber-500" />
-              )}
-              {currentFolder && <Folder className="w-8 h-8 text-indigo-500" />}
-              {headerContent.title}
-            </h1>
-            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mt-1.5">
-              {headerContent.desc}
-            </p>
-          </>
-        )}
+            {headerContent.title}
+          </h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 max-w-xl leading-relaxed">
+            {headerContent.desc}
+          </p>
+        </div>
 
         {isStorageView && (
-          <div className="flex items-center gap-3">
-            <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur border border-zinc-200/80 dark:border-zinc-800 rounded-2xl px-4 py-3 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-0.5">
-                Items
-              </p>
-              <p className="text-2xl font-black text-zinc-900 dark:text-white tabular-nums leading-none">
-                {displayedProjects.length}
-              </p>
-            </div>
+          <div className="shrink-0 px-4 py-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/70 backdrop-blur">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400 mb-1">
+              Items
+            </p>
+            <p className="text-2xl font-semibold text-zinc-900 dark:text-white tabular-nums leading-none">
+              {displayedProjects.length}
+            </p>
           </div>
         )}
       </div>
 
-      <div
-        className={`relative z-10 mb-8 rounded-2xl border shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 ${
-          isStorageView
-            ? 'bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-zinc-200/80 dark:border-zinc-800'
-            : 'bg-white dark:bg-zinc-900 border-zinc-200/80 dark:border-zinc-800'
-        }`}
-      >
-        <div className="flex flex-col gap-3 p-3 md:p-4 md:flex-row md:items-center md:gap-3">
+      <div className="relative z-10 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
           <div className="relative group min-w-0 flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none group-focus-within:text-zinc-600 dark:group-focus-within:text-zinc-300 transition-colors" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none group-focus-within:text-sky-600 transition-colors" />
             <input
               type="text"
               placeholder={
@@ -836,13 +822,13 @@ export default function ProjectCardsGrid({
               }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-10 pr-9 text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-zinc-100/10 focus:border-zinc-400 dark:focus:border-zinc-500 transition-colors"
+              className="w-full h-11 bg-white/90 dark:bg-zinc-950/80 border border-zinc-200/90 dark:border-zinc-800 rounded-xl pl-10 pr-9 text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 transition-all"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 aria-label={t('filters.clear')}
               >
                 <X className="w-3.5 h-3.5" />
@@ -904,12 +890,12 @@ export default function ProjectCardsGrid({
 
           <div className="flex items-center gap-2 w-full md:w-auto shrink-0 md:ml-auto">
             {view === 'trash' ? (
-              <div className="h-10 px-3 inline-flex items-center gap-2 rounded-lg bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 text-sm font-semibold border border-rose-100 dark:border-rose-500/20">
+              <div className="h-10 px-3 inline-flex items-center gap-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 text-sm font-semibold border border-rose-100 dark:border-rose-500/20">
                 <Trash2 className="w-4 h-4" />
                 Trash
               </div>
             ) : view === 'archive' ? (
-              <div className="h-10 px-3 inline-flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 text-sm font-semibold border border-amber-100 dark:border-amber-500/20">
+              <div className="h-10 px-3 inline-flex items-center gap-2 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 text-sm font-semibold border border-amber-100 dark:border-amber-500/20">
                 <Archive className="w-4 h-4" />
                 Archive
               </div>
@@ -918,7 +904,7 @@ export default function ProjectCardsGrid({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(true)}
-                  className="h-10 flex-1 md:flex-none px-4 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 text-sm font-bold rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors inline-flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] whitespace-nowrap"
+                  className="h-11 flex-1 md:flex-none px-4 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 text-sm font-semibold rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all inline-flex items-center justify-center gap-2 active:scale-[0.98] whitespace-nowrap"
                 >
                   <FolderPlus className="w-4 h-4" />
                   {t('btnNewProject')}
@@ -929,8 +915,8 @@ export default function ProjectCardsGrid({
         </div>
 
         {hasActiveFilters && (
-          <div className="flex flex-wrap items-center gap-2 px-3 md:px-4 py-2.5 border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-950/40 rounded-b-2xl">
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+          <div className="flex flex-wrap items-center gap-2 mt-3 px-1">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
               <Filter className="w-3 h-3" />
               {t('filters.active')}
             </span>
@@ -938,7 +924,7 @@ export default function ProjectCardsGrid({
               <button
                 type="button"
                 onClick={() => setTemplateFilter('all')}
-                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 transition-colors"
               >
                 {TEMPLATES.find((temp) => temp.id === templateFilter)?.name}
                 <X className="w-3 h-3 text-zinc-400" />
@@ -948,7 +934,7 @@ export default function ProjectCardsGrid({
               <button
                 type="button"
                 onClick={() => setVisibilityFilter('all')}
-                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 transition-colors"
               >
                 {visibilityFilter === 'public'
                   ? t('teamPublic')
@@ -960,7 +946,7 @@ export default function ProjectCardsGrid({
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors max-w-[12rem]"
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 transition-colors max-w-[12rem]"
               >
                 <span className="truncate">“{searchQuery.trim()}”</span>
                 <X className="w-3 h-3 text-zinc-400 shrink-0" />
@@ -972,7 +958,7 @@ export default function ProjectCardsGrid({
             <button
               type="button"
               onClick={clearFilters}
-              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200/70 dark:hover:bg-zinc-800 transition-colors"
+              className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200/70 dark:hover:bg-zinc-800 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
               {t('filters.clear')}
@@ -987,10 +973,10 @@ export default function ProjectCardsGrid({
         </div>
       ) : displayedProjects.length === 0 ? (
         <div
-          className={`relative z-10 py-16 flex flex-col items-center justify-center rounded-3xl border shadow-sm ${
+          className={`relative z-10 py-16 flex flex-col items-center justify-center rounded-2xl border ${
             isStorageView
               ? 'border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 overflow-hidden'
-              : 'border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50'
+              : 'border-dashed border-zinc-300 dark:border-zinc-700 bg-white/50 dark:bg-zinc-900/40'
           }`}
         >
           {isStorageView && (
@@ -1039,8 +1025,8 @@ export default function ProjectCardsGrid({
           </div>
         </div>
       ) : (
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in duration-500">
-          {displayedProjects.map((project) => {
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-in fade-in duration-500">
+          {displayedProjects.map((project, index) => {
             const status = project.record_data?.status || 'active';
             const isJustAdmin =
               project.record_data?.visibility === 'just_admin';
@@ -1057,107 +1043,126 @@ export default function ProjectCardsGrid({
             const currentTemplate =
               TEMPLATES.find((temp) => temp.id === templateType) ||
               TEMPLATES[0];
-            const baseClasses =
-              'group relative rounded-xl bg-white dark:bg-zinc-900 flex flex-col transition-all duration-200 border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-md';
-            const hoverClasses =
-              status === 'active' && !isOpen
-                ? 'hover:-translate-y-0.5 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer'
-                : status === 'active'
-                  ? 'hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer'
-                  : 'opacity-90 cursor-default';
-            const storageAccent =
+            const TemplateIcon = currentTemplate.icon;
+
+            const railAccent =
               status === 'trashed'
-                ? 'before:absolute before:inset-x-0 before:top-0 before:h-1 before:rounded-t-xl before:bg-rose-400'
+                ? 'bg-rose-400'
                 : status === 'archived'
-                  ? 'before:absolute before:inset-x-0 before:top-0 before:h-1 before:rounded-t-xl before:bg-amber-400'
-                  : '';
-            // overflow-hidden clips the "..." menu; keep visible and raise stacking when open
-            const cardClasses = `${baseClasses} ${hoverClasses} ${storageAccent} ${
-              isOpen ? 'z-50 overflow-visible' : 'z-10'
-            }`;
+                  ? 'bg-amber-400'
+                  : 'bg-sky-400/80 group-hover:bg-sky-500';
+
+            const cardClasses = `group relative flex flex-col overflow-hidden rounded-2xl border bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm transition-all duration-300 ${
+              status === 'active'
+                ? 'border-zinc-200/90 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)] cursor-pointer'
+                : 'border-zinc-200/80 dark:border-zinc-800 opacity-90 cursor-default'
+            } ${isOpen ? 'z-50' : 'z-10'}`;
 
             const cardContent = (
               <>
-                <div className="p-5 flex-1 flex flex-col gap-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h3
-                        className={`text-base font-semibold truncate transition-colors flex items-center gap-2 ${status !== 'active' ? 'text-zinc-600 line-through' : 'text-zinc-900 dark:text-zinc-100'}`}
-                      >
-                        {status !== 'active' && (
-                          <Archive className="w-3.5 h-3.5 shrink-0" />
-                        )}
-                        {displayName}
-                      </h3>
-                      <div className="flex items-center gap-1.5 mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                        <currentTemplate.icon className="w-3.5 h-3.5" />
-                        <span className="capitalize">
-                          {currentTemplate.name}
-                        </span>
-                      </div>
+                <div className={`absolute left-0 inset-y-0 w-1 ${railAccent} transition-colors`} />
+                <div className="relative h-28 border-b border-zinc-100 dark:border-zinc-800 bg-[linear-gradient(135deg,#f4f7fa_0%,#eaf3f9_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#0f172a_55%,#09090b_100%)] overflow-hidden">
+                  <div className="absolute inset-0 opacity-40 dark:opacity-25" style={{
+                    backgroundImage:
+                      'radial-gradient(circle at 20% 30%, rgba(56,189,248,0.35), transparent 40%), radial-gradient(circle at 80% 70%, rgba(16,185,129,0.18), transparent 35%)',
+                  }} />
+                  <div className="absolute inset-0 opacity-[0.35] dark:opacity-[0.2]" style={{
+                    backgroundImage:
+                      'linear-gradient(to right, rgba(24,24,27,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(24,24,27,0.06) 1px, transparent 1px)',
+                    backgroundSize: '20px 20px',
+                  }} />
+                  <div className="absolute bottom-3 left-4 flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-white/90 dark:bg-zinc-950/80 border border-zinc-200/80 dark:border-zinc-700 flex items-center justify-center shadow-sm">
+                      <TemplateIcon className={`w-4 h-4 ${currentTemplate.color}`} />
                     </div>
-                    {isAdmin && (
-                      <div className="relative shrink-0 flex items-center gap-1">
-                        {status === 'active' && (
-                          <button
-                            onClick={(e) =>
-                              toggleFavorite(e, project.id, project.record_data)
-                            }
-                            className={`p-1.5 rounded-md transition-colors ${isFavorite ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10' : 'text-zinc-400 hover:text-amber-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-                          >
-                            <Star
-                              className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`}
-                            />
-                          </button>
-                        )}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (openMenuId === project.id) {
-                              closeProjectMenu();
-                            } else {
-                              openProjectMenu(project.id, e.currentTarget);
-                            }
-                          }}
-                          className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+                      {currentTemplate.name}
+                    </span>
                   </div>
+                  {isAdmin && (
+                    <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      {status === 'active' && (
+                        <button
+                          type="button"
+                          onClick={(e) =>
+                            toggleFavorite(e, project.id, project.record_data)
+                          }
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            isFavorite
+                              ? 'text-amber-500 bg-white/90 dark:bg-zinc-950/70'
+                              : 'text-zinc-400 hover:text-amber-500 bg-white/80 dark:bg-zinc-950/60'
+                          }`}
+                        >
+                          <Star
+                            className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`}
+                          />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (openMenuId === project.id) {
+                            closeProjectMenu();
+                          } else {
+                            openProjectMenu(project.id, e.currentTarget);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 bg-white/80 dark:bg-zinc-950/60 transition-colors"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                <div className="px-5 py-3 bg-zinc-50/50 dark:bg-zinc-950/50 border-t border-zinc-100 dark:border-zinc-800 rounded-b-xl flex items-center justify-between text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" />
-                    {timeAgo}
+                <div className="p-4 flex-1 flex flex-col gap-3">
+                  <div className="min-w-0">
+                    <h3
+                      className={`text-[15px] font-semibold truncate tracking-tight ${
+                        status !== 'active'
+                          ? 'text-zinc-500 line-through'
+                          : 'text-zinc-950 dark:text-zinc-50'
+                      }`}
+                    >
+                      {displayName}
+                    </h3>
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      Updated {timeAgo}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
+
+                  <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
                     {status === 'trashed' && (
-                      <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-900/30 px-1.5 py-0.5 rounded border border-rose-100 dark:border-rose-800">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 px-1.5 py-0.5 rounded-md border border-rose-100 dark:border-rose-800">
                         <Trash2 className="w-3 h-3" />
-                        <span>Trash</span>
-                      </div>
+                        Trash
+                      </span>
                     )}
                     {status === 'archived' && (
-                      <div className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400 font-bold bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-md border border-amber-100 dark:border-amber-800">
                         <Archive className="w-3 h-3" />
-                        <span>Archived</span>
-                      </div>
+                        Archived
+                      </span>
                     )}
                     {isLocked && status === 'active' && (
-                      <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-800">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-md border border-amber-100 dark:border-amber-800">
                         <Lock className="w-3 h-3" />
-                        <span>Read-Only</span>
-                      </div>
+                        Read-only
+                      </span>
                     )}
                     {isJustAdmin && status === 'active' && (
-                      <div className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md">
                         <Shield className="w-3 h-3" />
                         {t('tags.private')}
-                      </div>
+                      </span>
+                    )}
+                    {status === 'active' && !isLocked && !isJustAdmin && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 px-1.5 py-0.5 rounded-md border border-sky-100/80 dark:border-sky-500/20">
+                        Open canvas
+                      </span>
                     )}
                   </div>
                 </div>
@@ -1169,6 +1174,7 @@ export default function ProjectCardsGrid({
                 key={project.id}
                 href={`/dashboard/${tenantId}/projects/${project.id}`}
                 className={cardClasses}
+                style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
               >
                 {cardContent}
               </Link>
@@ -1200,7 +1206,7 @@ export default function ProjectCardsGrid({
               const isLocked = project.record_data?.is_locked === 'true';
               return (
                 <div
-                  className="fixed w-56 max-h-[min(320px,calc(100vh-16px))] overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl rounded-lg py-1.5 z-[100]"
+                  className="fixed w-56 max-h-[min(320px,calc(100vh-16px))] overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.5)] rounded-xl py-1.5 z-[100]"
                   style={{ top: menuPosition.top, left: menuPosition.left }}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -1215,7 +1221,7 @@ export default function ProjectCardsGrid({
                             'public'
                           )
                         }
-                        className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                        className="w-full text-left px-3.5 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg mx-0"
                       >
                         Make Public
                       </button>
@@ -1228,7 +1234,7 @@ export default function ProjectCardsGrid({
                             'just_admin'
                           )
                         }
-                        className="w-full text-left px-4 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                        className="w-full text-left px-3.5 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                       >
                         Make Admin Only
                       </button>
@@ -1241,7 +1247,7 @@ export default function ProjectCardsGrid({
                             project.record_data
                           )
                         }
-                        className={`w-full px-4 py-2 text-xs font-medium flex items-center justify-between ${isGlobalShared ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20' : 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'}`}
+                        className={`w-full px-3.5 py-2 text-xs font-medium flex items-center justify-between ${isGlobalShared ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20' : 'text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-900/20'}`}
                       >
                         {isGlobalShared ? 'Remove from Hub' : 'Publish to Hub'}
                         <Globe className="w-3.5 h-3.5" />
@@ -1337,17 +1343,20 @@ export default function ProjectCardsGrid({
         )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md border border-zinc-200 dark:border-zinc-800 transform-gpu will-change-transform">
-            <div className="p-6 border-b border-zinc-100 dark:border-zinc-800">
-              <h2 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                <FolderPlus className="w-5 h-5 text-indigo-500" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/30 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)] w-full max-w-md border border-zinc-200 dark:border-zinc-800">
+            <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 bg-[#f7f9fb]/80 dark:bg-zinc-950/40 rounded-t-2xl">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-400 mb-1.5">
+                New workspace
+              </p>
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-white flex items-center gap-2 tracking-tight">
+                <FolderPlus className="w-5 h-5 text-sky-600" />
                 {t('createProject')}
               </h2>
             </div>
-            <form onSubmit={handleCreateSubmit} className="p-6 space-y-5">
+            <form onSubmit={handleCreateSubmit} className="p-6 space-y-5 overflow-visible">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
                   Project Name
                 </label>
                 <input
@@ -1357,11 +1366,11 @@ export default function ProjectCardsGrid({
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                   placeholder="Enter project name..."
-                  className="w-full px-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-indigo-400"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500 flex items-center gap-1.5">
                   <Folder className="w-3.5 h-3.5 text-zinc-400" /> Folder Name
                   (Optional)
                 </label>
@@ -1370,11 +1379,15 @@ export default function ProjectCardsGrid({
                   value={newProjectFolder}
                   onChange={(e) => setNewProjectFolder(e.target.value)}
                   placeholder="e.g. Marketing, Q3 Goals..."
-                  className="w-full px-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:border-indigo-400"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50"
                 />
               </div>
-              <div className="space-y-1.5 relative">
-                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+              <div
+                className={`space-y-1.5 relative ${
+                  isTemplateDropdownOpen ? 'z-50' : 'z-0'
+                }`}
+              >
+                <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
                   {t('engineTemplate')}
                 </label>
                 <button
@@ -1382,7 +1395,7 @@ export default function ProjectCardsGrid({
                   onClick={() =>
                     setIsTemplateDropdownOpen(!isTemplateDropdownOpen)
                   }
-                  className="w-full flex items-center justify-between px-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-indigo-400 transition-all shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                 >
                   <div className="flex items-center gap-2.5">
                     <selectedTemplateData.icon
@@ -1399,10 +1412,12 @@ export default function ProjectCardsGrid({
                 {isTemplateDropdownOpen && (
                   <>
                     <div
-                      className="fixed inset-0 z-10"
+                      className="fixed inset-0 z-40"
                       onClick={() => setIsTemplateDropdownOpen(false)}
+                      aria-hidden
                     />
-                    <div className="absolute z-20 w-full mt-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl overflow-hidden py-1 max-h-[220px] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                    {/* Open upward so the list is not clipped by the modal footer */}
+                    <div className="absolute left-0 right-0 bottom-full mb-1.5 z-50 w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl py-1 max-h-[240px] overflow-y-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
                       {TEMPLATES.map((template) => (
                         <button
                           key={template.id}
@@ -1411,10 +1426,10 @@ export default function ProjectCardsGrid({
                             setSelectedTemplate(template.id);
                             setIsTemplateDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors ${selectedTemplate === template.id ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors ${selectedTemplate === template.id ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-800 dark:text-sky-300 font-semibold' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
                         >
                           <template.icon
-                            className={`w-4 h-4 ${selectedTemplate === template.id ? 'text-indigo-600 dark:text-indigo-400' : template.color}`}
+                            className={`w-4 h-4 ${selectedTemplate === template.id ? 'text-sky-600 dark:text-sky-400' : template.color}`}
                           />
                           {template.name}
                         </button>
@@ -1424,22 +1439,22 @@ export default function ProjectCardsGrid({
                 )}
               </div>
               {createError && (
-                <p className="text-xs text-red-600 dark:text-red-400 font-medium bg-red-50 dark:bg-red-900/20 p-2.5 rounded-lg border border-red-100 dark:border-red-900/50 flex items-center gap-2">
+                <p className="text-xs text-red-600 dark:text-red-400 font-medium bg-red-50 dark:bg-red-900/20 p-2.5 rounded-xl border border-red-100 dark:border-red-900/50 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0" /> {createError}
                 </p>
               )}
-              <div className="flex gap-3 pt-3">
+              <div className="relative z-0 flex gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold border border-zinc-200 dark:border-zinc-700"
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreating}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700"
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-zinc-950 dark:bg-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-55"
                 >
                   {isCreating ? t('creating') : t('createBtn')}
                 </button>

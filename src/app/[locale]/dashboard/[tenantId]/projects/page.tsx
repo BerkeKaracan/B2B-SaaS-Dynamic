@@ -12,35 +12,29 @@ export default function ProjectsPage() {
   const isStorageView = isTrash || isArchive;
 
   return (
-    <div
-      className={`flex-1 overflow-y-auto h-full w-full transition-colors duration-300 ${
-        isStorageView ? 'relative custom-scrollbar' : 'bg-zinc-50 dark:bg-zinc-950 p-10'
-      }`}
-    >
-      {isStorageView && (
-        <>
-          <div className="pointer-events-none absolute inset-0 bg-[#F4F6F8] dark:bg-black" />
-          <div
-            className={`pointer-events-none absolute inset-0 ${
-              isTrash
-                ? 'bg-[radial-gradient(ellipse_at_top,_rgba(244,63,94,0.12),_transparent_55%),radial-gradient(ellipse_at_bottom_right,_rgba(251,113,133,0.08),_transparent_50%)] dark:bg-[radial-gradient(ellipse_at_top,_rgba(244,63,94,0.07),_transparent_55%),radial-gradient(ellipse_at_bottom_right,_rgba(251,113,133,0.05),_transparent_50%)]'
-                : 'bg-[radial-gradient(ellipse_at_top,_rgba(245,158,11,0.14),_transparent_55%),radial-gradient(ellipse_at_bottom_right,_rgba(161,98,7,0.08),_transparent_50%)] dark:bg-[radial-gradient(ellipse_at_top,_rgba(245,158,11,0.08),_transparent_55%),radial-gradient(ellipse_at_bottom_right,_rgba(161,98,7,0.05),_transparent_50%)]'
-            }`}
-          />
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-[0.15]"
-            style={{
-              backgroundImage:
-                'linear-gradient(to right, rgba(24,24,27,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(24,24,27,0.04) 1px, transparent 1px)',
-              backgroundSize: '48px 48px',
-            }}
-          />
-        </>
-      )}
+    <div className="relative flex-1 overflow-y-auto h-full w-full custom-scrollbar">
+      <div className="pointer-events-none absolute inset-0 bg-[#f7f9fb] dark:bg-zinc-950" />
+      <div
+        className={`pointer-events-none absolute inset-0 ${
+          isTrash
+            ? 'bg-[radial-gradient(ellipse_80%_50%_at_10%_0%,rgba(244,63,94,0.10),transparent_55%)]'
+            : isArchive
+              ? 'bg-[radial-gradient(ellipse_80%_50%_at_10%_0%,rgba(245,158,11,0.12),transparent_55%)]'
+              : 'bg-[radial-gradient(ellipse_70%_45%_at_0%_0%,rgba(56,189,248,0.12),transparent_50%),radial-gradient(ellipse_50%_40%_at_100%_0%,rgba(255,255,255,0.7),transparent_45%)] dark:bg-[radial-gradient(ellipse_70%_45%_at_0%_0%,rgba(56,189,248,0.08),transparent_50%)]'
+        }`}
+      />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.4] dark:opacity-[0.12]"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, rgba(24,24,27,0.035) 1px, transparent 1px), linear-gradient(to bottom, rgba(24,24,27,0.035) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }}
+      />
 
       <div
-        className={`relative mx-auto w-full ${
-          isStorageView ? 'max-w-5xl p-6 md:p-10 pb-32' : 'max-w-5xl'
+        className={`relative mx-auto w-full max-w-6xl px-5 sm:px-8 ${
+          isStorageView ? 'py-8 md:py-10 pb-28' : 'py-8 md:py-10'
         }`}
       >
         <ProjectCardsGrid />

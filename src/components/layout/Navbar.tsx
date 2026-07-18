@@ -1,13 +1,13 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useLayoutStore } from '@/store/useLayoutStore';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useTenantStore } from '@/store/useTenantStore';
 import NotificationBell from '@/components/layout/NotificationBell';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { BrandMark } from '@/components/brand/BrandLogo';
 import {
   User,
   Shield,
@@ -22,6 +22,7 @@ import {
   SlidersHorizontal,
   MessageSquareHeart,
   ExternalLink,
+  Menu,
 } from 'lucide-react';
 import AiChatbot from '@/components/chat/AiChatbot';
 import TeamChat from '@/components/chat/TeamChat';
@@ -36,7 +37,6 @@ export default function Navbar({
   onMenuToggle?: () => void;
   showProjectInfo?: boolean;
 }) {
-  const router = useRouter();
   const { toggleSecondarySidebar, isSecondarySidebarOpen } = useLayoutStore();
   const { isSaving, showSaved } = useCanvasStore();
 
@@ -94,86 +94,78 @@ export default function Navbar({
   };
 
   const currentTier = tenant?.tier || 'basic';
+  const workspaceLabel = tenant?.name || 'Workspace';
 
   return (
     <>
-      <nav className="h-16 w-full border-b border-zinc-200/80 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-lg flex items-center justify-between px-6 shrink-0 z-50 sticky top-0 shadow-sm transition-colors duration-300">
-        <div className="flex items-center gap-4">
+      <nav className="h-14 w-full shrink-0 sticky top-0 z-50 flex items-center justify-between gap-3 px-3 sm:px-5 border-b border-zinc-200/70 dark:border-zinc-800/80 bg-[#f7f9fb]/90 dark:bg-zinc-950/90 backdrop-blur-xl transition-colors">
+        <div className="flex items-center gap-2.5 min-w-0">
           <button
+            type="button"
             onClick={onMenuToggle}
-            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all duration-200 active:scale-90 active:bg-zinc-200 dark:active:bg-zinc-700 focus:outline-none"
+            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors active:scale-95"
+            aria-label="Toggle sidebar"
           >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              className="transition-transform duration-300"
-            >
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
+            <Menu className="w-[18px] h-[18px]" strokeWidth={2.25} />
           </button>
 
           <Link
-            href={`/dashboard/${tenantId}`}
-            className="flex items-center gap-2 hover:opacity-70 transition-opacity active:scale-95 transform-gpu cursor-pointer"
-            title="Go to Dashboard"
+            href={`/dashboard/${tenantId}/projects`}
+            className="flex items-center gap-2.5 min-w-0 group"
+            title="Projects"
           >
-            <span className="font-extrabold text-zinc-900 dark:text-white text-sm tracking-tight uppercase">
-              Engine
+            <BrandMark size="sm" />
+            <span className="hidden sm:block text-sm font-black tracking-tight text-zinc-950 dark:text-white">
+              SaaS Engine
+            </span>
+            <span className="hidden md:flex flex-col min-w-0 leading-none border-l border-zinc-200 dark:border-zinc-800 pl-2.5">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+                Workspace
+              </span>
+              <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 truncate max-w-[160px] group-hover:text-sky-700 dark:group-hover:text-sky-300 transition-colors">
+                {workspaceLabel}
+              </span>
             </span>
           </Link>
 
-          <div className="ml-4 flex items-center h-full">
-            {isSaving ? (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-100/80 dark:bg-zinc-800/80 backdrop-blur-md rounded-full border border-zinc-200/80 dark:border-zinc-700 shadow-sm animate-in fade-in duration-200">
-                <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
-                <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-widest">
-                  Saving...
-                </span>
-              </div>
-            ) : showSaved ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 backdrop-blur-md rounded-full border border-emerald-200/50 dark:border-emerald-500/20 shadow-sm animate-in fade-in zoom-in-95 duration-300">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
-                  Saved
-                </span>
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center mr-4 select-none cursor-default">
-            <span
-              className={`uppercase ${
-                currentTier === 'pro'
-                  ? 'text-base font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400'
-                  : currentTier === 'advanced'
-                    ? 'text-[15px] font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-violet-500 to-indigo-500 dark:from-violet-400 dark:to-indigo-400'
-                    : 'text-xs font-bold tracking-tight text-zinc-400 dark:text-zinc-500'
+          {(isSaving || showSaved) && (
+            <div
+              className={`hidden sm:inline-flex items-center gap-1.5 ml-1 px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase tracking-[0.14em] border animate-in fade-in duration-200 ${
+                isSaving
+                  ? 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300'
+                  : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200/70 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
               }`}
             >
-              {currentTier === 'pro'
-                ? 'Pro'
-                : currentTier === 'advanced'
-                  ? 'Advanced'
-                  : ''}
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Saving
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3 h-3" />
+                  Saved
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          {currentTier === 'pro' || currentTier === 'advanced' ? (
+            <span className="hidden lg:inline-flex items-center px-2 py-1 mr-1 rounded-md text-[10px] font-bold uppercase tracking-[0.14em] border border-sky-200/80 dark:border-sky-500/30 bg-sky-50 dark:bg-sky-500/10 text-sky-800 dark:text-sky-300">
+              {currentTier === 'pro' ? 'Pro' : 'Advanced'}
             </span>
-          </div>
+          ) : null}
 
           <button
+            type="button"
             onClick={() => setIsChatOpen(true)}
-            className="relative p-2 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors focus:outline-none"
+            className="relative p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors"
             title="Team Chat & AI Assistant"
           >
-            <MessageSquare className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-zinc-950"></span>
+            <MessageSquare className="w-[18px] h-[18px]" />
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-sky-500 ring-2 ring-[#f7f9fb] dark:ring-zinc-950" />
           </button>
 
           <ThemeToggle />
@@ -181,41 +173,35 @@ export default function Navbar({
 
           {showProjectInfo && (
             <button
+              type="button"
               onClick={toggleSecondarySidebar}
-              className={`flex items-center gap-2 px-3 sm:px-4 py-2 text-[11px] font-bold rounded-full transition-all duration-200 border shadow-sm active:scale-95 group focus:outline-none ${
+              className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border transition-all active:scale-95 ${
                 isSecondarySidebarOpen
-                  ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400'
-                  : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-900 dark:hover:text-white'
+                  ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-950'
+                  : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600'
               }`}
             >
-              <SlidersHorizontal
-                className={`w-3.5 h-3.5 transition-transform duration-300 ${isSecondarySidebarOpen ? 'rotate-90' : ''}`}
-              />
-              <span className="hidden sm:inline tracking-wider uppercase">
-                Project Info
-              </span>
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span className="tracking-wide">Info</span>
             </button>
           )}
 
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative ml-0.5" ref={dropdownRef}>
             <button
+              type="button"
               onClick={() =>
                 user && !isFetchingRole && setIsDropdownOpen(!isDropdownOpen)
               }
-              className={`flex items-center gap-2.5 pl-1.5 pr-2 py-1.5 rounded-xl transition-all focus:outline-none border border-transparent ${
+              className={`flex items-center gap-2 pl-1 pr-1.5 py-1 rounded-xl border transition-all ${
                 user && !isFetchingRole
-                  ? 'hover:bg-zinc-100/80 dark:hover:bg-zinc-800 hover:border-zinc-200 dark:hover:border-zinc-700 cursor-pointer'
-                  : 'cursor-default'
+                  ? 'border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 hover:bg-white/80 dark:hover:bg-zinc-900 cursor-pointer'
+                  : 'border-transparent cursor-default'
               }`}
             >
               {!user || isFetchingRole ? (
-                <div className="flex items-center gap-2.5 animate-pulse">
-                  <div className="w-9 h-9 rounded-xl bg-zinc-200 dark:bg-zinc-800 shrink-0"></div>
-                  <div className="hidden sm:flex flex-col items-start justify-center gap-2">
-                    <div className="w-24 h-2.5 bg-zinc-200 dark:bg-zinc-800 rounded-full"></div>
-                    <div className="w-16 h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full"></div>
-                  </div>
-                  <ChevronDown className="w-4 h-4 text-zinc-200 dark:text-zinc-700 ml-1" />
+                <div className="flex items-center gap-2 animate-pulse">
+                  <div className="w-8 h-8 rounded-lg bg-zinc-200 dark:bg-zinc-800" />
+                  <div className="hidden sm:block w-20 h-2.5 rounded bg-zinc-200 dark:bg-zinc-800" />
                 </div>
               ) : (
                 <>
@@ -223,26 +209,24 @@ export default function Navbar({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={user.avatar_url}
-                      alt="Profile"
-                      className="w-9 h-9 rounded-xl object-cover border border-zinc-200/80 dark:border-zinc-700 shadow-sm shrink-0"
+                      alt=""
+                      className="w-8 h-8 rounded-lg object-cover border border-zinc-200/80 dark:border-zinc-700"
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 flex items-center justify-center text-sm font-extrabold shadow-sm shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 flex items-center justify-center text-xs font-bold tracking-tight">
                       {initials}
                     </div>
                   )}
-
-                  <div className="hidden sm:flex flex-col items-start justify-center">
-                    <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 leading-none mb-1">
+                  <div className="hidden sm:flex flex-col items-start min-w-0">
+                    <span className="text-[12px] font-semibold text-zinc-900 dark:text-zinc-100 leading-none truncate max-w-[110px]">
                       {fullName}
                     </span>
-                    <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-none truncate max-w-[120px]">
+                    <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-[0.12em] mt-1 truncate max-w-[110px]">
                       {displayRole}
                     </span>
                   </div>
-
                   <ChevronDown
-                    className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ml-1 ${
+                    className={`w-3.5 h-3.5 text-zinc-400 transition-transform ${
                       isDropdownOpen ? 'rotate-180' : ''
                     }`}
                   />
@@ -251,71 +235,66 @@ export default function Navbar({
             </button>
 
             {isDropdownOpen && user && !isFetchingRole && (
-              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30 rounded-t-2xl mb-2">
-                  <p className="text-sm font-extrabold text-zinc-950 dark:text-white truncate">
+              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-zinc-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.45)] py-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-3.5 py-3 border-b border-zinc-100 dark:border-zinc-800 mb-1">
+                  <p className="text-sm font-semibold text-zinc-950 dark:text-white truncate">
                     {fullName}
                   </p>
-                  <div className="flex items-center gap-1.5 mt-1 mb-0.5">
-                    <span className="text-[10px] uppercase font-bold text-zinc-500 dark:text-zinc-400 tracking-wider">
+                  <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                    {user?.email || 'user@company.com'}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <span className="text-[10px] uppercase font-semibold tracking-[0.12em] text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20 px-1.5 py-0.5 rounded">
                       {displayRole}
                     </span>
                     {user?.department_name && (
-                      <span className="px-1.5 py-0.5 bg-zinc-100/80 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 rounded text-[9px] font-semibold truncate max-w-[100px]">
+                      <span className="text-[10px] font-medium text-zinc-500 truncate max-w-[100px]">
                         {user.department_name}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
-                    {user?.email || 'user@company.com'}
-                  </p>
                 </div>
 
-                <div className="p-2 space-y-0.5">
-                  <div className="px-2 py-1.5 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
-                    Account Settings
-                  </div>
-
+                <div className="px-1.5 py-1 space-y-0.5">
                   <Link
                     href={`/dashboard/${tenantId}/account/profile`}
                     onClick={() => setIsDropdownOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors group"
+                    className="flex items-center gap-2.5 px-2.5 py-2 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                   >
-                    <User className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-white" />
+                    <User className="w-4 h-4 text-zinc-400" />
                     Personal Profile
                   </Link>
-
                   <Link
                     href={`/dashboard/${tenantId}/account/security`}
                     onClick={() => setIsDropdownOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors group"
+                    className="flex items-center gap-2.5 px-2.5 py-2 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                   >
-                    <Shield className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-white" />
+                    <Shield className="w-4 h-4 text-zinc-400" />
                     Security & Password
                   </Link>
-
                   <a
                     href={FEEDBACK_PORTAL_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setIsDropdownOpen(false)}
-                    className="flex items-center justify-between gap-3 px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors group"
+                    className="flex items-center justify-between gap-2.5 px-2.5 py-2 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                   >
-                    <span className="flex items-center gap-3">
-                      <MessageSquareHeart className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-white" />
+                    <span className="flex items-center gap-2.5">
+                      <MessageSquareHeart className="w-4 h-4 text-zinc-400" />
                       Feedback & Support
                     </span>
-                    <ExternalLink className="w-3.5 h-3.5 text-zinc-300 group-hover:text-zinc-500" />
+                    <ExternalLink className="w-3.5 h-3.5 text-zinc-300" />
                   </a>
                 </div>
 
-                <div className="p-2 border-t border-zinc-100 dark:border-zinc-800 mt-2">
+                <div className="px-1.5 pt-1 mt-1 border-t border-zinc-100 dark:border-zinc-800">
                   <button
+                    type="button"
                     onClick={handleSignOut}
-                    className="w-full flex items-center justify-between px-3 py-2 text-sm font-bold text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-400 rounded-xl transition-colors group"
+                    className="w-full flex items-center justify-between px-2.5 py-2 text-[13px] font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                   >
                     Sign Out
-                    <LogOut className="w-4 h-4 text-red-400 dark:text-red-500/70 group-hover:text-red-600 dark:group-hover:text-red-400" />
+                    <LogOut className="w-4 h-4 opacity-70" />
                   </button>
                 </div>
               </div>
@@ -327,40 +306,48 @@ export default function Navbar({
       {isChatOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[90]"
+            className="fixed inset-0 bg-zinc-950/25 backdrop-blur-[2px] z-[90]"
             onClick={() => setIsChatOpen(false)}
           />
 
-          <div className="fixed inset-y-0 right-0 w-80 sm:w-[26rem] bg-white dark:bg-[#161616] shadow-2xl border-l border-zinc-200 dark:border-zinc-800 z-[100] flex flex-col animate-in slide-in-from-right duration-300">
-            <div className="shrink-0 flex flex-col px-4 pt-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-                  Workspace Chat
-                </h2>
+          <div className="fixed inset-y-0 right-0 w-80 sm:w-[26rem] bg-white dark:bg-zinc-950 shadow-2xl border-l border-zinc-200 dark:border-zinc-800 z-[100] flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="shrink-0 flex flex-col px-4 pt-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-400 mb-1">
+                    Live
+                  </p>
+                  <h2 className="text-base font-semibold text-zinc-900 dark:text-white tracking-tight">
+                    Workspace Chat
+                  </h2>
+                </div>
                 <button
+                  type="button"
                   onClick={() => setIsChatOpen(false)}
-                  className="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors focus:outline-none"
+                  className="p-1.5 text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="flex bg-zinc-100 dark:bg-[#222222] p-1 rounded-lg">
+              <div className="flex p-1 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800">
                 <button
+                  type="button"
                   onClick={() => setChatTab('team')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-bold rounded-md transition-all focus:outline-none ${
+                  className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     chatTab === 'team'
-                      ? 'bg-white dark:bg-[#333333] text-zinc-900 dark:text-white shadow-sm'
+                      ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
                       : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                   }`}
                 >
                   <Users className="w-3.5 h-3.5" /> Team
                 </button>
                 <button
+                  type="button"
                   onClick={() => setChatTab('ai')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-bold rounded-md transition-all focus:outline-none ${
+                  className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-semibold rounded-md transition-all ${
                     chatTab === 'ai'
-                      ? 'bg-white dark:bg-[#333333] text-indigo-600 dark:text-indigo-400 shadow-sm'
+                      ? 'bg-white dark:bg-zinc-800 text-sky-700 dark:text-sky-300 shadow-sm'
                       : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                   }`}
                 >
@@ -369,7 +356,7 @@ export default function Navbar({
               </div>
             </div>
 
-            <div className="flex-1 overflow-hidden flex flex-col relative bg-zinc-50/50 dark:bg-[#121212]">
+            <div className="flex-1 overflow-hidden flex flex-col relative bg-[#f7f9fb] dark:bg-zinc-950">
               {chatTab === 'team' ? (
                 <TeamChat tenantId={tenantId} />
               ) : (

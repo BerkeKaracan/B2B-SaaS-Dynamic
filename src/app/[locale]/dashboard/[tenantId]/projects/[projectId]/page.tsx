@@ -16,6 +16,37 @@ import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
 import MindMapBoard from '@/components/mindmap/MindMapBoard';
 import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
 import { useAutoSave } from '@/hooks/useAutoSave';
+import {
+  Check,
+  Clock,
+  Copy,
+  Database,
+  FileText,
+  Globe2,
+  KanbanSquare,
+  LayoutTemplate,
+  Lock,
+  MessageSquare,
+  Network,
+  PenTool,
+  Share2,
+  X,
+} from 'lucide-react';
+
+const TEMPLATE_META: Record<
+  string,
+  { label: string; Icon: React.ComponentType<{ className?: string }> }
+> = {
+  blank: { label: 'Canvas', Icon: LayoutTemplate },
+  kanban: { label: 'Kanban', Icon: KanbanSquare },
+  notepad: { label: 'Document', Icon: FileText },
+  document: { label: 'Document', Icon: FileText },
+  whiteboard: { label: 'Whiteboard', Icon: PenTool },
+  timeline: { label: 'Timeline', Icon: Clock },
+  database: { label: 'Database', Icon: Database },
+  mindmap: { label: 'Mindmap', Icon: Network },
+  retrospective: { label: 'Retrospective', Icon: MessageSquare },
+};
 
 type Collaborator = {
   email: string;
@@ -243,99 +274,88 @@ export default function ProjectDesignPage() {
   const isGlobal = String(recordData?.is_global_public) === 'true';
   const collaborators = recordData?.collaborators || [];
   const projectTemplate = recordData?.template || 'blank';
+  const templateMeta =
+    TEMPLATE_META[projectTemplate] || TEMPLATE_META.blank;
+  const TemplateIcon = templateMeta.Icon;
+  const projectTitle = recordData?.name || 'Untitled project';
+  const shareUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/share/${projectId}`
+      : `/share/${projectId}`;
 
   return (
-    <div className="flex flex-col h-full w-full min-w-0 bg-[#fafafb] relative selection:bg-zinc-200 overscroll-none touch-none">
-      <div className="h-12 md:h-14 border-b border-zinc-200/80 bg-white px-3 md:px-6 flex items-center justify-between shrink-0 shadow-xs relative z-10">
-        <div className="flex items-center gap-3">
-          <span className="hidden sm:inline-block text-[9px] md:text-[10px] font-black text-zinc-400 uppercase tracking-widest bg-zinc-50 px-2 md:px-2.5 py-1 rounded-md border border-zinc-200/50">
-            {projectTemplate === 'kanban'
-              ? 'Kanban'
-              : projectTemplate === 'notepad'
-                ? 'NotePad'
-                : projectTemplate === 'timeline'
-                  ? 'Time Schema'
-                  : 'Canvas'}
-          </span>
+    <div className="flex flex-col h-full w-full min-w-0 bg-[#f7f9fb] dark:bg-zinc-950 relative selection:bg-sky-200/50 overscroll-none touch-none">
+      <div className="h-12 md:h-14 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl px-3 md:px-5 flex items-center justify-between gap-3 shrink-0 relative z-10">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="hidden sm:flex items-center gap-2 min-w-0 pl-0.5">
+            <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20 flex items-center justify-center shrink-0">
+              <TemplateIcon className="w-3.5 h-3.5 text-sky-700 dark:text-sky-300" />
+            </div>
+            <div className="min-w-0 leading-tight">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 truncate">
+                {templateMeta.label}
+              </p>
+              <p className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 truncate max-w-[180px] md:max-w-[260px]">
+                {projectTitle}
+              </p>
+            </div>
+          </div>
+
+          <div className="sm:hidden inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600 dark:text-zinc-300">
+            <TemplateIcon className="w-3 h-3 text-sky-600" />
+            {templateMeta.label}
+          </div>
 
           {!isLocked || isAdmin ? (
-            <div className="flex items-center bg-zinc-100/80 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-inner">
+            <div className="flex items-center p-0.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900">
               <button
+                type="button"
                 onClick={() => setMode('design')}
-                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all duration-200 ${
+                className={`px-2.5 md:px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] rounded-md transition-all ${
                   mode === 'design'
-                    ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    ? 'bg-white dark:bg-zinc-800 text-zinc-950 dark:text-white shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                 }`}
               >
-                Design
+                Edit
               </button>
               <button
+                type="button"
                 onClick={() => setMode('readonly')}
-                className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-md transition-all duration-200 ${
+                className={`px-2.5 md:px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] rounded-md transition-all ${
                   mode === 'readonly'
-                    ? 'bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                    ? 'bg-white dark:bg-zinc-800 text-sky-700 dark:text-sky-300 shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                 }`}
               >
-                Read-Only
+                View
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 px-3 py-1 rounded-lg border border-amber-200 dark:border-amber-800 shadow-inner">
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-amber-600 dark:text-amber-400"
-              >
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-              </svg>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">
-                Locked (Read-Only)
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+              <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-400">
+                Locked
               </span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2 md:gap-3">
-          <button
-            onClick={openShareModal}
-            className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 rounded-lg text-[10px] md:text-[11px] font-bold transition-all duration-300 bg-zinc-950 text-white hover:bg-zinc-800 shadow-sm active:scale-95"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="18" cy="5" r="3"></circle>
-              <circle cx="6" cy="12" r="3"></circle>
-              <circle cx="18" cy="19" r="3"></circle>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-            </svg>
-            <span className="hidden sm:inline">Web Share Options</span>
-            <span className="sm:hidden">Share</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={openShareModal}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all active:scale-95 shrink-0"
+        >
+          <Share2 className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Share</span>
+        </button>
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden relative z-0">
         <ErrorBoundary moduleName="Workspace">
           {isLoadingPage ? (
             <div className="flex items-center justify-center h-full">
-              <div className="w-8 h-8 border-4 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-zinc-200 dark:border-zinc-800 border-t-zinc-950 dark:border-t-white rounded-full animate-spin" />
             </div>
           ) : projectTemplate === 'kanban' ? (
             <StaticKanbanBoard projectId={projectId} />
@@ -359,55 +379,53 @@ export default function ProjectDesignPage() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[999] flex items-end sm:items-center justify-center bg-zinc-950/40 backdrop-blur-sm sm:p-4">
-          <div className="bg-white rounded-t-[32px] sm:rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
-            <div className="p-5 md:p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50 shrink-0">
+        <div className="fixed inset-0 z-[999] flex items-end sm:items-center justify-center bg-zinc-950/35 backdrop-blur-sm sm:p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)] w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] border border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            <div className="p-5 md:p-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-[#f7f9fb]/80 dark:bg-zinc-950/40 shrink-0">
               <div>
-                <h3 className="text-base md:text-lg font-black text-zinc-950 tracking-tight">
-                  Access & Sharing
-                </h3>
-                <p className="text-[9px] md:text-[10px] font-bold text-zinc-400 uppercase mt-1">
-                  Manage Workspace Visibility
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-400 mb-1">
+                  Access
                 </p>
+                <h3 className="text-base md:text-lg font-semibold text-zinc-950 dark:text-white tracking-tight">
+                  Share & permissions
+                </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="text-zinc-400 hover:text-zinc-950 bg-white hover:bg-zinc-200 border border-zinc-200 rounded-full transition-colors p-1.5 shadow-sm"
+                className="text-zinc-400 hover:text-zinc-950 dark:hover:text-white bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 rounded-lg transition-colors p-1.5"
               >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {isLoadingRecord ? (
               <div className="p-10 flex justify-center shrink-0">
-                <div className="w-6 h-6 border-2 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></div>
+                <div className="w-6 h-6 border-2 border-zinc-200 border-t-zinc-950 dark:border-zinc-700 dark:border-t-white rounded-full animate-spin" />
               </div>
             ) : (
-              <div className="p-4 md:p-6 space-y-6 md:space-y-8 bg-white flex-1 overflow-y-auto custom-scrollbar pb-8">
-                <div className="space-y-4">
+              <div className="p-4 md:p-6 space-y-6 bg-white dark:bg-zinc-900 flex-1 overflow-y-auto custom-scrollbar pb-8">
+                <div className="space-y-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-[#f7f9fb]/70 dark:bg-zinc-950/40 p-4">
                   <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h4 className="text-xs md:text-sm font-bold text-zinc-950 mb-1">
-                        Publish to Global Gallery
-                      </h4>
-                      <p className="text-[10px] md:text-[11px] font-medium text-zinc-500 leading-relaxed max-w-[250px]">
-                        Feature your workspace in the SaaS Engine community.
-                      </p>
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-lg bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20 flex items-center justify-center shrink-0">
+                        <Globe2 className="w-4 h-4 text-sky-700 dark:text-sky-300" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-sm font-semibold text-zinc-950 dark:text-white">
+                          Publish to gallery
+                        </h4>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                          Show this project in the community hub with a public
+                          link.
+                        </p>
+                      </div>
                     </div>
                     <button
+                      type="button"
                       onClick={handleGlobalToggle}
                       disabled={isUpdating}
-                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors mt-1 ${isGlobal ? 'bg-zinc-950' : 'bg-zinc-200'}`}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors mt-1 ${isGlobal ? 'bg-sky-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
                     >
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isGlobal ? 'translate-x-6' : 'translate-x-1'}`}
@@ -415,35 +433,46 @@ export default function ProjectDesignPage() {
                     </button>
                   </div>
 
-                  <div
-                    className={`transition-opacity ${!isGlobal ? 'hidden' : 'block'}`}
-                  >
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3">
+                  {isGlobal && (
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
                       <input
                         type="text"
                         readOnly
-                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${projectId}`}
-                        className="flex-1 px-3 py-3 sm:py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] md:text-xs font-medium text-zinc-600 focus:outline-none"
+                        value={shareUrl}
+                        className="flex-1 px-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium text-zinc-600 dark:text-zinc-300 focus:outline-none"
                       />
                       <button
+                        type="button"
                         onClick={handleCopy}
-                        className={`px-4 py-3 sm:py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${isCopied ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-zinc-950 text-white hover:bg-zinc-800'}`}
+                        className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                          isCopied
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-200'
+                        }`}
                       >
-                        {isCopied ? 'Copied!' : 'Copy Link'}
+                        {isCopied ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            Copy link
+                          </>
+                        )}
                       </button>
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                <div className="h-px bg-zinc-100 w-full"></div>
-
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
-                    <h4 className="text-xs md:text-sm font-bold text-zinc-950 mb-1">
-                      Project-Specific Access
+                    <h4 className="text-sm font-semibold text-zinc-950 dark:text-white">
+                      Invite collaborators
                     </h4>
-                    <p className="text-[10px] md:text-[11px] font-medium text-zinc-500 leading-relaxed">
-                      Invite teammates to view or edit this specific project.
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                      Grant view or edit access for this project only.
                     </p>
                   </div>
 
@@ -457,13 +486,13 @@ export default function ProjectDesignPage() {
                       placeholder="Email address"
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
-                      className="flex-1 px-3 py-3 sm:py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+                      className="flex-1 px-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50"
                     />
                     <div className="flex gap-2">
                       <select
                         value={inviteRole}
                         onChange={(e) => setInviteRole(e.target.value)}
-                        className="flex-1 sm:flex-none px-3 py-3 sm:py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-700 focus:outline-none cursor-pointer"
+                        className="flex-1 sm:flex-none px-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-semibold text-zinc-700 dark:text-zinc-300 focus:outline-none cursor-pointer"
                       >
                         <option value="viewer">Viewer</option>
                         <option value="editor">Editor</option>
@@ -471,7 +500,7 @@ export default function ProjectDesignPage() {
                       <button
                         type="submit"
                         disabled={isUpdating || !inviteEmail}
-                        className="px-6 sm:px-4 py-3 sm:py-2 bg-zinc-900 text-white rounded-xl text-xs font-bold hover:bg-zinc-800 transition-colors disabled:opacity-50 whitespace-nowrap"
+                        className="px-4 py-2.5 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 rounded-xl text-xs font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 whitespace-nowrap"
                       >
                         Invite
                       </button>
@@ -479,44 +508,39 @@ export default function ProjectDesignPage() {
                   </form>
 
                   {collaborators.length > 0 && (
-                    <div className="mt-4 border border-zinc-100 rounded-xl overflow-hidden divide-y divide-zinc-100">
+                    <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800">
                       {collaborators.map((collab, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 bg-zinc-50/50 hover:bg-zinc-50 transition-colors"
+                          className="flex items-center justify-between p-3 bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors"
                         >
-                          <div className="flex items-center gap-3 overflow-hidden">
-                            <div className="w-6 h-6 shrink-0 rounded-md bg-zinc-200 flex items-center justify-center text-[10px] font-bold text-zinc-600 uppercase">
+                          <div className="flex items-center gap-3 overflow-hidden min-w-0">
+                            <div className="w-7 h-7 shrink-0 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-600 dark:text-zinc-300 uppercase">
                               {collab.email.charAt(0)}
                             </div>
-                            <span className="text-[10px] md:text-xs font-semibold text-zinc-900 truncate">
+                            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
                               {collab.email}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                          <div className="flex items-center gap-2 shrink-0">
                             <span
-                              className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${collab.role === 'editor' ? 'bg-indigo-50 text-indigo-600' : 'bg-zinc-100 text-zinc-500'}`}
+                              className={`text-[10px] font-semibold uppercase tracking-[0.12em] px-2 py-0.5 rounded-md ${
+                                collab.role === 'editor'
+                                  ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300'
+                                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
+                              }`}
                             >
                               {collab.role}
                             </span>
                             <button
+                              type="button"
                               onClick={() =>
                                 handleRemoveCollaborator(collab.email)
                               }
                               disabled={isUpdating}
-                              className="text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                              className="p-1 text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-50"
                             >
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.5"
-                              >
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                              </svg>
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
