@@ -60,6 +60,40 @@ const sleep = (ms: number) =>
     setTimeout(resolve, ms);
   });
 
+async function fetchChangelogWithRetry(
+  onRetrying?: () => void
+): Promise<ChangelogUpdate[]> {
+  const startedAt = Date.now();
+
+  while (true) {
+    const elapsedBefore = Date.now() - startedAt;
+    const remainingBudget = RETRY_BUDGET_MS - elapsedBefore;
+    if (remainingBudget <= 0) break;
+
+    try {
+      const res = await fetchAPI('/api/github/changelog?limit=40', {
+        signal: AbortSignal.timeout(
+          Math.min(ATTEMPT_TIMEOUT_MS, remainingBudget)
+        ),
+      });
+      if (res.ok) {
+        return (await res.json()) as ChangelogUpdate[];
+      }
+    } catch {
+      // Render may still be waking — keep trying within the budget.
+    }
+
+    const elapsed = Date.now() - startedAt;
+    const remaining = RETRY_BUDGET_MS - elapsed;
+    if (remaining <= 0) break;
+
+    onRetrying?.();
+    await sleep(Math.min(RETRY_INTERVAL_MS, remaining));
+  }
+
+  throw new Error('changelog_unavailable');
+}
+
 function labelStyle(label: string) {
   switch (label) {
     case 'Feature':
@@ -116,53 +150,50 @@ export default function ChangelogPage() {
   const [hasError, setHasError] = useState(false);
   const [filter, setFilter] = useState<FilterKey>('all');
 
-  const loadChangelog = useCallback(async () => {
-    setIsLoading(true);
-    setIsRetrying(false);
+  const applySuccess = useCallback((data: ChangelogUpdate[]) => {
+    setUpdates(data);
     setHasError(false);
+    setIsRetrying(false);
+    setIsLoading(false);
+  }, []);
 
-    const startedAt = Date.now();
-
-    while (true) {
-      const elapsedBefore = Date.now() - startedAt;
-      const remainingBudget = RETRY_BUDGET_MS - elapsedBefore;
-      if (remainingBudget <= 0) break;
-
-      try {
-        const res = await fetchAPI('/api/github/changelog?limit=40', {
-          signal: AbortSignal.timeout(
-            Math.min(ATTEMPT_TIMEOUT_MS, remainingBudget)
-          ),
-        });
-        if (res.ok) {
-          const data: ChangelogUpdate[] = await res.json();
-          setUpdates(data);
-          setHasError(false);
-          setIsRetrying(false);
-          setIsLoading(false);
-          return;
-        }
-      } catch {
-        // Render may still be waking — keep trying within the budget.
-      }
-
-      const elapsed = Date.now() - startedAt;
-      const remaining = RETRY_BUDGET_MS - elapsed;
-      if (remaining <= 0) break;
-
-      setIsRetrying(true);
-      await sleep(Math.min(RETRY_INTERVAL_MS, remaining));
-    }
-
+  const applyFailure = useCallback(() => {
     setUpdates([]);
     setHasError(true);
     setIsRetrying(false);
     setIsLoading(false);
   }, []);
 
+  const loadChangelog = useCallback(async () => {
+    setIsLoading(true);
+    setIsRetrying(false);
+    setHasError(false);
+    try {
+      const data = await fetchChangelogWithRetry(() => setIsRetrying(true));
+      applySuccess(data);
+    } catch {
+      applyFailure();
+    }
+  }, [applyFailure, applySuccess]);
+
   useEffect(() => {
-    void loadChangelog();
-  }, [loadChangelog]);
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const data = await fetchChangelogWithRetry(() => {
+          if (!cancelled) setIsRetrying(true);
+        });
+        if (!cancelled) applySuccess(data);
+      } catch {
+        if (!cancelled) applyFailure();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applyFailure, applySuccess]);
 
   const formatDate = (dateString: string) => {
     const d = new Date(dateString);
