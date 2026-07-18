@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import re
 import uuid
 from typing import Any, Dict, List, Optional
@@ -10,6 +11,8 @@ from groq import AsyncGroq
 from datetime import datetime
 
 from core.database import supabase, supabase_admin
+
+logger = logging.getLogger("saas_engine")
 from core.ai_prompts import (
     get_magic_wand_prompt,
     get_canvas_system_prompt,
@@ -585,11 +588,11 @@ def execute_create_task(
         }
     except HTTPException:
         raise
-    except Exception as exc:
-        print(f"create_task DB error: {exc}")
+    except Exception:
+        logger.error("create_task DB error", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to create task: {exc}",
+            detail="An internal error occurred while creating the task.",
         )
 
 
@@ -665,11 +668,11 @@ def execute_move_task(
         }
     except HTTPException:
         raise
-    except Exception as exc:
-        print(f"move_task DB error: {exc}")
+    except Exception:
+        logger.error("move_task DB error", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to move task in Supabase: {exc}",
+            detail="An internal error occurred while moving the task.",
         )
 
 
@@ -735,8 +738,12 @@ def execute_add_mindmap_node(
         return {**node, "module_id": module_id, "page_id": page_id}
     except HTTPException:
         raise
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Mindmap update failed: {exc}")
+    except Exception:
+        logger.error("Mindmap update failed", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="An internal error occurred while updating the mindmap.",
+        )
 
 
 def execute_format_notepad(
@@ -809,8 +816,12 @@ def execute_format_notepad(
         }
     except HTTPException:
         raise
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Notepad update failed: {exc}")
+    except Exception:
+        logger.error("Notepad update failed", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="An internal error occurred while updating the notepad.",
+        )
 
 
 def execute_add_whiteboard_note(
@@ -870,8 +881,12 @@ def execute_add_whiteboard_note(
         return {**note, "module_id": module_id, "page_id": (page or {}).get("id") if page else page_id}
     except HTTPException:
         raise
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Whiteboard update failed: {exc}")
+    except Exception:
+        logger.error("Whiteboard update failed", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="An internal error occurred while updating the whiteboard.",
+        )
 
 
 TOOL_ACTION_MAP = {
@@ -1187,13 +1202,19 @@ async def chat_with_canvas(req: ChatRequest, user=Depends(verify_user)):
 
                 tool_result = json.dumps({"ok": True, "action": action, "payload": payload})
             except HTTPException as http_exc:
+                # Intentional API errors (validation / not found) are safe for the model.
                 err = str(http_exc.detail)
                 tool_errors.append(err)
                 tool_result = json.dumps({"ok": False, "error": err})
-            except Exception as exc:
-                err = str(exc)
-                tool_errors.append(err)
-                tool_result = json.dumps({"ok": False, "error": err})
+            except Exception:
+                logger.error(
+                    "Workspace tool execution failed (tool=%s)",
+                    fn_name,
+                    exc_info=True,
+                )
+                safe_err = "An internal error occurred while running that action."
+                tool_errors.append(safe_err)
+                tool_result = json.dumps({"ok": False, "error": safe_err})
 
             groq_messages.append(
                 {
@@ -1214,7 +1235,7 @@ async def chat_with_canvas(req: ChatRequest, user=Depends(verify_user)):
         if not reply and primary_action == "TASK_ADDED" and primary_payload:
             reply = f"Task added! Created **{primary_payload.get('title')}**."
         if not reply and tool_errors:
-            reply = f"I couldn't complete that action: {tool_errors[0]}"
+            reply = "I couldn't complete that action. Please try again."
         if not reply:
             reply = "Done — workspace updated."
 
@@ -1234,8 +1255,8 @@ async def chat_with_canvas(req: ChatRequest, user=Depends(verify_user)):
 
     except HTTPException:
         raise
-    except Exception as e:
-        print(f"Chat Error: {e}")
+    except Exception:
+        logger.error("Chat endpoint error", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="An internal error occurred. Please try again later.",
