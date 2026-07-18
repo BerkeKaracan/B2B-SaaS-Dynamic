@@ -1,25 +1,29 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import BrandLogo, { BrandMark } from '@/components/brand/BrandLogo';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import ColdStartAlert from '@/components/ColdStartAlert';
 import Cookies from 'js-cookie';
-import {
-  User,
-  Mail,
-  Lock,
-  ShieldCheck,
-  Database,
-  ArrowRight,
-} from 'lucide-react';
+import { AlertCircle, ArrowRight, Loader2, Lock, Mail, User } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { getApiBaseUrl } from '@/lib/apiBase';
+import AuthShell, {
+  AuthCheckingScreen,
+  AuthPanelNodes,
+} from '@/components/auth/AuthShell';
+import AuthOAuthRow from '@/components/auth/AuthOAuthRow';
+import {
+  authError,
+  authInputWithIcon,
+  authLabel,
+  authLink,
+  authPrimaryBtn,
+} from '@/components/auth/authStyles';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const fetchUser = useAuthStore((state) => state.fetchUser);
+  useAuthStore((state) => state.fetchUser);
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -33,7 +37,7 @@ export default function RegisterPage() {
   const API_BASE_URL = getApiBaseUrl();
 
   useEffect(() => {
-    const token = Cookies.get('token');
+    const token = Cookies.get('token') || localStorage.getItem('token');
     if (token) {
       const savedTenant = Cookies.get('tenant_id');
       if (savedTenant) {
@@ -124,303 +128,137 @@ export default function RegisterPage() {
   };
 
   if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-        <div className="flex flex-col items-center gap-4">
-          <span className="w-10 h-10 border-4 border-zinc-200 border-t-zinc-950 rounded-full animate-spin"></span>
-          <span className="text-xs font-black text-zinc-400 uppercase tracking-widest animate-pulse">
-            Initializing Engine
-          </span>
-        </div>
-      </div>
-    );
+    return <AuthCheckingScreen label="Initializing" />;
   }
 
   return (
-    <div className="min-h-screen flex bg-zinc-50 font-sans text-zinc-900 selection:bg-indigo-200 overflow-hidden relative">
+    <>
       <ColdStartAlert />
-
-      <div className="hidden lg:flex flex-col justify-between w-[45%] bg-zinc-950 text-white p-12 relative overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-violet-500/10 rounded-full blur-[100px] pointer-events-none"></div>
-
-        <div className="relative z-10">
-          <BrandLogo size="md" inverted showTagline />
-        </div>
-
-        <div className="relative z-10 w-full max-w-lg mx-auto mt-10">
-          <h1 className="text-5xl font-black leading-[1.05] tracking-tighter mb-6 text-transparent bg-clip-text bg-gradient-to-br from-white to-zinc-500">
-            Deploy your infrastructure. <br /> Scale infinitely.
-          </h1>
-          <p className="text-zinc-400 text-lg leading-relaxed mb-12 font-medium">
-            Set up your enterprise-grade workspace in seconds. Join thousands of
-            teams operating on the most advanced node-based database
-            architecture.
+      <AuthShell
+        panelTitle={
+          <>
+            Deploy a workspace
+            <br />
+            in minutes.
+          </>
+        }
+        panelSubtitle="Create your administrator account, then shape projects on a spatial canvas — portfolio demo of a multi-tenant SaaS engine."
+        panelVisual={<AuthPanelNodes />}
+      >
+        <div className="mb-7">
+          <h2
+            className="text-2xl sm:text-[1.75rem] font-semibold tracking-tight text-zinc-950 mb-2"
+            style={{
+              fontFamily: 'var(--font-auth-display), system-ui, sans-serif',
+            }}
+          >
+            Create account
+          </h2>
+          <p className="text-sm text-zinc-500 leading-relaxed">
+            Set up your B2 SaaS Engine profile to continue to onboarding.
           </p>
+        </div>
 
-          <div className="bg-zinc-900/60 backdrop-blur-xl border border-zinc-800 rounded-3xl p-6 shadow-2xl transform rotate-2 hover:rotate-0 transition-all duration-500 group">
-            <div className="flex items-center justify-between mb-5 border-b border-zinc-800/80 pb-4">
-              <div className="flex items-center gap-2">
-                <span className="flex h-2.5 w-2.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"></span>
-                <span className="text-[11px] font-black text-zinc-300 uppercase tracking-widest">
-                  Workspace Initialization
-                </span>
-              </div>
-              <ShieldCheck className="w-4 h-4 text-indigo-400" />
-            </div>
+        <AuthOAuthRow
+          onGoogle={handleGoogleLogin}
+          onGithub={handleGithubLogin}
+          dividerLabel="Or sign up with email"
+        />
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center border border-zinc-700">
-                  <Database className="w-4 h-4 text-zinc-400" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-xs font-bold text-zinc-300">
-                      Provisioning Database
-                    </span>
-                    <span className="text-[10px] font-mono text-emerald-400">
-                      DONE
-                    </span>
-                  </div>
-                  <div className="w-full bg-zinc-800 rounded-full h-1.5">
-                    <div className="bg-emerald-500 h-1.5 rounded-full w-full"></div>
-                  </div>
-                </div>
-              </div>
+        {error && (
+          <div className={authError}>
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
 
-              <div className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center border border-zinc-700">
-                  <Lock className="w-4 h-4 text-zinc-400" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-xs font-bold text-zinc-300">
-                      Configuring Enterprise RBAC
-                    </span>
-                    <span className="text-[10px] font-mono text-indigo-400 animate-pulse">
-                      ACTIVE
-                    </span>
-                  </div>
-                  <div className="w-full bg-zinc-800 rounded-full h-1.5">
-                    <div className="bg-indigo-500 h-1.5 rounded-full w-[65%]"></div>
-                  </div>
-                </div>
-              </div>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <label className={authLabel}>Full name</label>
+            <div className="relative">
+              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Jane Cooper"
+                className={authInputWithIcon}
+                required
+              />
             </div>
           </div>
-        </div>
 
-        <div className="relative z-10 flex items-center justify-between text-[11px] font-black text-zinc-600 uppercase tracking-widest mt-10">
-          <span>
-            © {new Date().getFullYear()} B2 SaaS Engine · Portfolio demo
-          </span>
-          <span>SOC2 Type II Certified</span>
-        </div>
-      </div>
-
-      <div className="w-full lg:w-[55%] flex items-center justify-center p-6 sm:p-12 relative z-10 bg-zinc-50 lg:bg-transparent">
-        <div className="absolute hidden lg:block top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[500px] bg-white/50 blur-[80px] rounded-full pointer-events-none"></div>
-
-        <div className="w-full max-w-[440px] relative z-10">
-          <div className="bg-white p-8 sm:p-10 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-zinc-200/60 relative">
-            <div className="lg:hidden flex flex-col items-center gap-3 mb-10">
-              <BrandMark size="lg" />
+          <div>
+            <label className={authLabel}>Work email</label>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@company.com"
+                className={authInputWithIcon}
+                required
+              />
             </div>
+          </div>
 
-            <div className="mb-8 text-center">
-              <h2 className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight mb-2">
-                Deploy Workspace
-              </h2>
-              <p className="text-sm font-medium text-zinc-500">
-                Set up your administrator account in seconds.
-              </p>
+          <div>
+            <label className={authLabel}>Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className={authInputWithIcon}
+                required
+              />
             </div>
+          </div>
 
-            <div className="flex gap-3 mb-6">
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-zinc-200/80 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-700 transition-all shadow-sm"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
-                Google
-              </button>
-              <button
-                type="button"
-                onClick={handleGithubLogin}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-zinc-200/80 hover:bg-zinc-50 rounded-xl text-sm font-bold text-zinc-700 transition-all shadow-sm"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                  />
-                </svg>
-                GitHub
-              </button>
+          <div>
+            <label className={authLabel}>Confirm password</label>
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className={authInputWithIcon}
+                required
+              />
             </div>
+          </div>
 
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-zinc-200"></div>
-              </div>
-              <div className="relative flex justify-center text-[10px] font-black uppercase tracking-widest">
-                <span className="bg-white px-4 text-zinc-400">
-                  Or sign up with email
-                </span>
-              </div>
-            </div>
-
-            {error && (
-              <div className="mb-6 p-4 bg-red-50/50 border border-red-100 text-red-600 text-sm font-medium rounded-xl flex items-start gap-3">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  className="shrink-0 mt-0.5"
-                >
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="8" x2="12" y2="12"></line>
-                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-                {error}
-              </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className={`${authPrimaryBtn} mt-2`}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Creating account…
+              </>
+            ) : (
+              <>
+                Create account
+                <ArrowRight className="w-4 h-4" />
+              </>
             )}
+          </button>
+        </form>
 
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-extrabold text-zinc-700 ml-1">
-                  Full Name
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <User className="w-4 h-4 text-zinc-400 group-focus-within:text-zinc-950 transition-colors" />
-                  </div>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="John Doe"
-                    className="w-full pl-10 pr-4 py-3 bg-zinc-50/50 border border-zinc-200/80 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950/20 focus:border-zinc-950 focus:bg-white transition-all shadow-sm placeholder:text-zinc-400"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-extrabold text-zinc-700 ml-1">
-                  Work Email
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Mail className="w-4 h-4 text-zinc-400 group-focus-within:text-zinc-950 transition-colors" />
-                  </div>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    className="w-full pl-10 pr-4 py-3 bg-zinc-50/50 border border-zinc-200/80 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950/20 focus:border-zinc-950 focus:bg-white transition-all shadow-sm placeholder:text-zinc-400"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-extrabold text-zinc-700 ml-1">
-                  Password
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Lock className="w-4 h-4 text-zinc-400 group-focus-within:text-zinc-950 transition-colors" />
-                  </div>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 bg-zinc-50/50 border border-zinc-200/80 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950/20 focus:border-zinc-950 focus:bg-white transition-all shadow-sm placeholder:text-zinc-400"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-extrabold text-zinc-700 ml-1">
-                  Confirm Password
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Lock className="w-4 h-4 text-zinc-400 group-focus-within:text-zinc-950 transition-colors" />
-                  </div>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 bg-zinc-50/50 border border-zinc-200/80 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-950/20 focus:border-zinc-950 focus:bg-white transition-all shadow-sm placeholder:text-zinc-400"
-                    required
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-zinc-950 text-white rounded-xl py-3.5 text-sm font-bold mt-6 hover:bg-zinc-800 transition-all shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                    Initializing Engine...
-                  </>
-                ) : (
-                  <>
-                    Deploy Workspace
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-
-            <p className="mt-8 text-center text-sm font-medium text-zinc-500">
-              Already operational?{' '}
-              <Link
-                href="/login"
-                className="font-extrabold text-zinc-950 hover:underline transition-all"
-              >
-                Sign in to console
-              </Link>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+        <p className="mt-7 text-center text-sm text-zinc-500">
+          Already have an account?{' '}
+          <Link href="/login" className={authLink}>
+            Sign in
+          </Link>
+        </p>
+      </AuthShell>
+    </>
   );
 }

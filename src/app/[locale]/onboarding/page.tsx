@@ -1,8 +1,18 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { authService, fetchAPI } from '@/services/api';
-import BrandLogo from '@/components/brand/BrandLogo';
 import Cookies from 'js-cookie';
+import { AlertCircle, ArrowRight, Loader2, User, Users } from 'lucide-react';
+import AuthShell, {
+  AuthCheckingScreen,
+  AuthPanelNodes,
+} from '@/components/auth/AuthShell';
+import {
+  authError,
+  authInput,
+  authLabel,
+  authPrimaryBtn,
+} from '@/components/auth/authStyles';
 
 interface OnboardingResponseData {
   tenant_id?: string;
@@ -27,7 +37,6 @@ export default function OnboardingPage() {
         return;
       }
 
-      // Keep cookie in sync if token only lived in localStorage
       if (!Cookies.get('token')) {
         Cookies.set('token', token, { expires: 7 });
       }
@@ -122,220 +131,143 @@ export default function OnboardingPage() {
   };
 
   if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fafafb]">
-        <div className="flex flex-col items-center">
-          <span className="w-10 h-10 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin"></span>
-          <span className="mt-4 text-sm text-zinc-500 font-mono uppercase tracking-widest">
-            Verifying session...
-          </span>
-        </div>
-      </div>
-    );
+    return <AuthCheckingScreen label="Verifying session" />;
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafafb] font-sans text-zinc-900 px-4">
-      <div className="w-full max-w-lg">
-        <div className="flex justify-center mb-8">
-          <BrandLogo
-            href={false}
-            showWordmark={false}
-            size="md"
-            markClassName="group-hover:scale-105 transition-transform"
-          />
+    <AuthShell
+      formMaxWidthClassName="max-w-[480px]"
+      panelTitle={
+        <>
+          Name your
+          <br />
+          workspace.
+        </>
+      }
+      panelSubtitle="Choose a personal space or a team tenant — then open the spatial canvas."
+      panelVisual={<AuthPanelNodes />}
+    >
+      <div className="mb-7">
+        <p
+          className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-700 mb-3"
+          style={{ fontFamily: 'var(--font-auth-mono), monospace' }}
+        >
+          Step 1 of 1
+        </p>
+        <h2
+          className="text-2xl sm:text-[1.75rem] font-semibold tracking-tight text-zinc-950 mb-2"
+          style={{
+            fontFamily: 'var(--font-auth-display), system-ui, sans-serif',
+          }}
+        >
+          How will you use it?
+        </h2>
+        <p className="text-sm text-zinc-500 leading-relaxed">
+          This creates your first tenant. You can invite teammates later from
+          workspace settings.
+        </p>
+      </div>
+
+      {error && (
+        <div className={authError}>
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>{error}</span>
         </div>
+      )}
 
-        <div className="bg-white rounded-2xl shadow-xl border border-zinc-200/60 p-8 sm:p-10 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-zinc-900"></div>
-
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 mb-2">
-              Welcome aboard!
-            </h1>
-            <p className="text-sm text-zinc-500">
-              How are you planning to use SaaS Engine?
-            </p>
-          </div>
-
-          {error && (
-            <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg flex items-center gap-2">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-              </svg>
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setUsageType('individual')}
-                className={`flex flex-col items-center text-center p-5 rounded-xl border-2 transition-all ${
-                  usageType === 'individual'
-                    ? 'border-zinc-900 bg-zinc-50'
-                    : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
-                }`}
-              >
-                <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
-                    usageType === 'individual'
-                      ? 'bg-zinc-900 text-white'
-                      : 'bg-zinc-100 text-zinc-500'
-                  }`}
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                </div>
-                <h3 className="font-bold text-sm text-zinc-900 mb-1">
-                  Just for me
-                </h3>
-                <p className="text-xs text-zinc-500">
-                  Set up a personal workspace for my own projects.
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setUsageType('team')}
-                className={`flex flex-col items-center text-center p-5 rounded-xl border-2 transition-all ${
-                  usageType === 'team'
-                    ? 'border-zinc-900 bg-zinc-50'
-                    : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
-                }`}
-              >
-                <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
-                    usageType === 'team'
-                      ? 'bg-zinc-900 text-white'
-                      : 'bg-zinc-100 text-zinc-500'
-                  }`}
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                </div>
-                <h3 className="font-bold text-sm text-zinc-900 mb-1">
-                  With my team
-                </h3>
-                <p className="text-xs text-zinc-500">
-                  Create a company workspace and invite others.
-                </p>
-              </button>
-            </div>
-
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setUsageType('individual')}
+            className={`flex flex-col items-start text-left p-4 rounded-xl border transition-all ${
+              usageType === 'individual'
+                ? 'border-zinc-900 bg-zinc-50 ring-2 ring-zinc-900/10'
+                : 'border-zinc-200 bg-white hover:border-zinc-300'
+            }`}
+          >
             <div
-              className={`transition-all duration-300 overflow-hidden ${
-                usageType === 'team'
-                  ? 'max-h-24 opacity-100'
-                  : 'max-h-0 opacity-0'
+              className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${
+                usageType === 'individual'
+                  ? 'bg-zinc-900 text-white'
+                  : 'bg-zinc-100 text-zinc-500'
               }`}
             >
-              <div className="space-y-1.5 group pt-2">
-                <label className="text-xs font-semibold text-zinc-700 pl-1">
-                  Workspace / Company Name
-                </label>
-                <input
-                  type="text"
-                  value={workspaceName}
-                  onChange={(e) => setWorkspaceName(e.target.value)}
-                  placeholder="e.g. Acme Corp."
-                  className="w-full px-4 py-3 bg-white border border-zinc-200/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent transition-all shadow-inner"
-                  required={usageType === 'team'}
-                />
-              </div>
+              <User className="w-4 h-4" />
             </div>
+            <h3 className="font-semibold text-sm text-zinc-900 mb-1">
+              Just for me
+            </h3>
+            <p className="text-xs text-zinc-500 leading-relaxed">
+              Personal workspace for solo projects.
+            </p>
+          </button>
 
-            <button
-              type="submit"
-              disabled={loading || !usageType}
-              className="w-full bg-zinc-900 text-white rounded-xl py-4 text-sm font-bold mt-2 hover:bg-zinc-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          <button
+            type="button"
+            onClick={() => setUsageType('team')}
+            className={`flex flex-col items-start text-left p-4 rounded-xl border transition-all ${
+              usageType === 'team'
+                ? 'border-zinc-900 bg-zinc-50 ring-2 ring-zinc-900/10'
+                : 'border-zinc-200 bg-white hover:border-zinc-300'
+            }`}
+          >
+            <div
+              className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${
+                usageType === 'team'
+                  ? 'bg-zinc-900 text-white'
+                  : 'bg-zinc-100 text-zinc-500'
+              }`}
             >
-              {loading ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : (
-                <>
-                  Continue
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </>
-              )}
-            </button>
-          </form>
+              <Users className="w-4 h-4" />
+            </div>
+            <h3 className="font-semibold text-sm text-zinc-900 mb-1">
+              With my team
+            </h3>
+            <p className="text-xs text-zinc-500 leading-relaxed">
+              Company tenant — invite others next.
+            </p>
+          </button>
         </div>
 
-        <div className="mt-8 text-center text-[11px] text-zinc-400 font-mono tracking-wider uppercase">
-          B2 SaaS Engine · Portfolio demo
+        <div
+          className={`transition-all duration-300 overflow-hidden ${
+            usageType === 'team'
+              ? 'max-h-32 opacity-100'
+              : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div>
+            <label className={authLabel}>Workspace name</label>
+            <input
+              type="text"
+              value={workspaceName}
+              onChange={(e) => setWorkspaceName(e.target.value)}
+              placeholder="e.g. Acme Corp."
+              className={authInput}
+              required={usageType === 'team'}
+            />
+          </div>
         </div>
-      </div>
-    </div>
+
+        <button
+          type="submit"
+          disabled={loading || !usageType}
+          className={authPrimaryBtn}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Creating workspace…
+            </>
+          ) : (
+            <>
+              Continue to canvas
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+        </button>
+      </form>
+    </AuthShell>
   );
 }
