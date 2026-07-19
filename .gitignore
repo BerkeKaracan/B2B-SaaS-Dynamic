@@ -44,3 +44,7 @@ desktop.ini
 supabase/.branches/
 # Sentry Config File
 .env.sentry-build-plugin
+.vercel
+.env*
+!.env.example
+!.env*.example
