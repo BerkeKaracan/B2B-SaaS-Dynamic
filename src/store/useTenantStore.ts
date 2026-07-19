@@ -26,7 +26,16 @@ export const useTenantStore = create<TenantState>()(
 
       fetchTenant: async (tenantId: string) => {
         try {
-          const res = await fetchAPI(`/api/tenants/${tenantId}`);
+          const res = await fetchAPI(
+            `/api/tenants/${tenantId}?t=${Date.now()}`,
+            {
+              cache: "no-store",
+              headers: {
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                Pragma: "no-cache",
+              },
+            },
+          );
           if (res.ok) {
             const data = await res.json();
             set({ tenant: data });
@@ -38,7 +47,11 @@ export const useTenantStore = create<TenantState>()(
 
       updateTenantState: (updates: Partial<Tenant>) => {
         set((state) => ({
-          tenant: state.tenant ? { ...state.tenant, ...updates } : null,
+          tenant: state.tenant
+            ? { ...state.tenant, ...updates }
+            : updates.id
+              ? ({ ...updates } as Tenant)
+              : null,
         }));
       },
     }),

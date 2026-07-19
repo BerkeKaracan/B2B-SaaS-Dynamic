@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useTenantStore } from '@/store/useTenantStore';
-import { isFeatureEnabledLocal } from '@/lib/featureGate';
+import {
+  isFeatureEnabledLocal,
+  normalizeTier,
+} from '@/lib/featureGate';
 
 type FeatureFlagState = {
   enabled: boolean;
@@ -12,6 +15,7 @@ type FeatureFlagState = {
 /**
  * Evaluates a feature via the Next.js server proxy (never exposes Delivery API key).
  * While loading, enabled is false so gated UI stays hidden until we know.
+ * Re-runs whenever the zustand tenant tier changes (e.g. billing demo switch).
  */
 export function useFeatureFlag(
   key: string,
@@ -19,7 +23,7 @@ export function useFeatureFlag(
 ): FeatureFlagState {
   const storeTenant = useTenantStore((s) => s.tenant);
   const resolvedTenantId = tenantId || storeTenant?.id || null;
-  const tier = storeTenant?.tier;
+  const tier = normalizeTier(storeTenant?.tier);
 
   const [enabled, setEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +44,7 @@ export function useFeatureFlag(
         const params = new URLSearchParams({
           key,
           tenant_id: resolvedTenantId,
-          tier: tier || 'basic',
+          tier,
         });
         const res = await fetch(`/api/features/evaluate?${params}`, {
           method: 'GET',

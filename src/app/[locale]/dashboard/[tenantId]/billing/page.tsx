@@ -18,6 +18,7 @@ import {
   type FxRatesMap,
   type SupportedCurrency,
 } from '@/lib/currency';
+import { useTenantStore } from '@/store/useTenantStore';
 
 interface TenantData {
   id: string;
@@ -46,6 +47,7 @@ export default function BillingPage({
 }) {
   const resolvedParams = use(params);
   const tenantId = resolvedParams.tenantId;
+  const updateTenantState = useTenantStore((state) => state.updateTenantState);
 
   const [tenant, setTenant] = useState<TenantData | null>(null);
   const [teamMemberCount, setTeamMemberCount] = useState<number>(0);
@@ -97,6 +99,12 @@ export default function BillingPage({
         if (tenantRes.ok) {
           const tenantData = await tenantRes.json();
           setTenant(tenantData);
+          updateTenantState({
+            id: tenantData.id,
+            name: tenantData.name,
+            tier: tenantData.tier,
+            currency: tenantData.currency,
+          });
         }
 
         if (teamRes.ok) {
@@ -168,6 +176,8 @@ export default function BillingPage({
       }
 
       setTenant({ ...tenant, tier: selectedTier });
+      // Keep zustand in sync so useFeatureFlag re-evaluates immediately.
+      updateTenantState({ tier: selectedTier });
       showNotification(
         'success',
         `Demo tier switched to ${selectedTier.toUpperCase()} (no charge).`
