@@ -1,0 +1,148 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { normalizeTier } from '@/lib/featureGate';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+/**
+ * Safe connection probe for Pulse Flag (no secrets in response).
+ * GET /api/features/diag?key=ai.canvas_generator&tenant_id=...&tier=basic
+ */
+export async function GET(request: NextRequest) {
+  const key =
+    request.nextUrl.searchParams.get('key')?.trim() || 'ai.canvas_generator';
+  const tenantId = request.nextUrl.searchParams.get('tenant_id')?.trim();
+  const tier = normalizeTier(request.nextUrl.searchParams.get('tier'));
+
+  const base = (process.env.FEATURE_FLAGS_URL || '').trim().replace(/\/$/, '');
+  const apiKey = (process.env.FEATURE_FLAGS_API_KEY || '').trim();
+  const keyPrefix = apiKey ? `${apiKey.slice(0, 6)}…` : null;
+
+  const result: Record<string, unknown> = {
+    ok: false,
+    hasUrl: Boolean(base),
+    hasKey: Boolean(apiKey),
+    keyPrefix,
+    urlHost: base ? (() => {
+      try {
+        return new URL(base).host;
+      } catch {
+        return 'invalid_url';
+      }
+    })() : null,
+    key,
+    tenantId: tenantId || null,
+    tier,
+    remoteStatus: null as number | null,
+    remoteEnabled: null as boolean | null,
+    detail: null as string | null,
+  };
+
+  // #region agent log
+  fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Debug-Session-Id': '85388b',
+    },
+    body: JSON.stringify({
+      sessionId: '85388b',
+      hypothesisId: 'A',
+      location: 'api/features/diag/route.ts:entry',
+      message: 'diag start',
+      data: {
+        hasUrl: result.hasUrl,
+        hasKey: result.hasKey,
+        urlHost: result.urlHost,
+        key,
+        tier,
+        tenantPresent: Boolean(tenantId),
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+
+  if (!base) {
+    result.detail = 'FEATURE_FLAGS_URL missing';
+    return NextResponse.json(result);
+  }
+  if (!apiKey) {
+    result.detail = 'FEATURE_FLAGS_API_KEY missing';
+    return NextResponse.json(result);
+  }
+  if (!tenantId) {
+    result.detail = 'tenant_id query param required for probe';
+    return NextResponse.json(result);
+  }
+
+  const qs = new URLSearchParams({ key, tenant_id: tenantId, tier });
+  try {
+    const res = await fetch(`${base}/evaluate?${qs}`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        'User-Agent': 'saas-engine-ff-diag',
+      },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(2500),
+    });
+    result.remoteStatus = res.status;
+    const bodyText = await res.text();
+    let enabled: boolean | null = null;
+    try {
+      const json = JSON.parse(bodyText) as { enabled?: unknown; detail?: unknown };
+      if (typeof json.enabled === 'boolean') enabled = json.enabled;
+      if (typeof json.detail === 'string') result.detail = json.detail;
+    } catch {
+      result.detail = bodyText.slice(0, 120);
+    }
+    result.remoteEnabled = enabled;
+    result.ok = res.ok && enabled === true;
+
+    // #region agent log
+    fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '85388b',
+      },
+      body: JSON.stringify({
+        sessionId: '85388b',
+        hypothesisId: res.ok ? 'C' : 'B',
+        location: 'api/features/diag/route.ts:remote',
+        message: 'diag remote response',
+        data: {
+          remoteStatus: res.status,
+          remoteEnabled: enabled,
+          detail: result.detail,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+
+    return NextResponse.json(result);
+  } catch (err) {
+    result.detail = err instanceof Error ? err.message : 'unreachable';
+    // #region agent log
+    fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Session-Id': '85388b',
+      },
+      body: JSON.stringify({
+        sessionId: '85388b',
+        hypothesisId: 'A',
+        location: 'api/features/diag/route.ts:catch',
+        message: 'diag unreachable',
+        data: { detail: result.detail },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    return NextResponse.json(result);
+  }
+}
