@@ -907,6 +907,7 @@ class GenerateCanvasRequest(BaseModel):
     prompt: str
     x: float
     y: float
+    tenant_id: str
 
 
 class ChatMessage(BaseModel):
@@ -961,6 +962,10 @@ async def magic_wand(req: MagicWandRequest, user=Depends(verify_user)):
 
 @router.post("/generate-canvas")
 async def generate_canvas(req: GenerateCanvasRequest, user=Depends(verify_user)):
+    from core.feature_gate import AI_CANVAS_GENERATOR, require_feature
+
+    require_feature(AI_CANVAS_GENERATOR, req.tenant_id, user.id)
+
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing")

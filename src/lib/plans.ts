@@ -53,6 +53,7 @@ export const PLANS: PlanDefinition[] = [
     features: [
       'Up to 50 team members',
       'Up to 100 custom projects / canvases',
+      'AI canvas generator',
       'Advanced Team Collaboration',
       'Workspace RBAC & Roles management',
       'Priority email support',
@@ -72,6 +73,7 @@ export const PLANS: PlanDefinition[] = [
     features: [
       'Unlimited team members',
       'Unlimited custom projects / canvases',
+      'AI canvas generator',
       'Row-Level Database Security (RLS)',
       'Dedicated account manager',
       '24/7 phone support',

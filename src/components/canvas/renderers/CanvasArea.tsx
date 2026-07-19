@@ -92,6 +92,7 @@ export default function CanvasArea() {
 
   const params = useParams();
   const routeProjectId = params?.projectId as string;
+  const tenantId = params?.tenantId as string | undefined;
   const [hasLoadedPos, setHasLoadedPos] = useState(false);
 
   const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
@@ -252,7 +253,13 @@ export default function CanvasArea() {
   }, [zoom, panX, panY, routeProjectId, hasLoadedPos]);
 
   const handleAiGenerate = async () => {
-    if (!activePageId || !aiMenu || !aiPrompt.trim() || mode === 'readonly')
+    if (
+      !activePageId ||
+      !aiMenu ||
+      !aiPrompt.trim() ||
+      mode === 'readonly' ||
+      !tenantId
+    )
       return;
     setIsAiGenerating(true);
 
@@ -263,6 +270,7 @@ export default function CanvasArea() {
           prompt: aiPrompt,
           x: aiMenu.canvasX,
           y: aiMenu.canvasY,
+          tenant_id: tenantId,
         }),
       });
 

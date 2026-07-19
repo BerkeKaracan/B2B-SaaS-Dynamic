@@ -1,9 +1,12 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { BlockType, PageContent } from '@/types/record';
 import { fetchAPI } from '@/services/api';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { AI_CANVAS_GENERATOR } from '@/lib/featureGate';
 import {
   Search,
   ChevronDown,
@@ -29,6 +32,10 @@ interface TemplateItem {
 
 export default function ItemSidebar() {
   const t = useTranslations('EngineToolkit');
+  const params = useParams();
+  const tenantId = params?.tenantId as string | undefined;
+  const { enabled: canUseAiGenerator, isLoading: isFlagLoading } =
+    useFeatureFlag(AI_CANVAS_GENERATOR, tenantId);
   const {
     addPage,
     addBlockToPage,
@@ -59,16 +66,17 @@ export default function ItemSidebar() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j') {
+        if (!canUseAiGenerator) return;
         e.preventDefault();
         setIsAiModalOpen((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [canUseAiGenerator]);
 
   const handleAiGenerate = async () => {
-    if (!aiPrompt.trim()) return;
+    if (!aiPrompt.trim() || !canUseAiGenerator || !tenantId) return;
     setIsAiGenerating(true);
 
     const state = useCanvasStore.getState();
@@ -86,7 +94,12 @@ export default function ItemSidebar() {
     try {
       const res = await fetchAPI('/api/ai/generate-canvas', {
         method: 'POST',
-        body: JSON.stringify({ prompt: aiPrompt, x: cx, y: cy }),
+        body: JSON.stringify({
+          prompt: aiPrompt,
+          x: cx,
+          y: cy,
+          tenant_id: tenantId,
+        }),
       });
 
       if (!res.ok) {
@@ -701,58 +714,62 @@ export default function ItemSidebar() {
         </div>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2 select-none shrink-0 custom-scrollbar touch-pan-y">
-          {/* AI Generator */}
-          <div className="space-y-1">
-            {!isCollapsed ? (
-              <button
-                type="button"
-                onClick={() => setIsAiOpen(!isAiOpen)}
-                className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
-              >
-                <span className="text-[10px] font-extrabold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3" /> {t('intelligence')}
-                </span>
-                {isAiOpen ? (
-                  <ChevronUp className="w-3 h-3 text-indigo-400 shrink-0" />
+          {!isFlagLoading && canUseAiGenerator && (
+            <>
+              {/* AI Generator — gated by remote Feature Flag (or tier fallback) */}
+              <div className="space-y-1">
+                {!isCollapsed ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsAiOpen(!isAiOpen)}
+                    className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
+                  >
+                    <span className="text-[10px] font-extrabold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="w-3 h-3" /> {t('intelligence')}
+                    </span>
+                    {isAiOpen ? (
+                      <ChevronUp className="w-3 h-3 text-indigo-400 shrink-0" />
+                    ) : (
+                      <ChevronDown className="w-3 h-3 text-indigo-400 shrink-0" />
+                    )}
+                  </button>
                 ) : (
-                  <ChevronDown className="w-3 h-3 text-indigo-400 shrink-0" />
+                  <div className="h-px bg-zinc-200/50 dark:bg-zinc-800 w-6 mx-auto my-2" />
                 )}
-              </button>
-            ) : (
-              <div className="h-px bg-zinc-200/50 dark:bg-zinc-800 w-6 mx-auto my-2" />
-            )}
 
-            {(isAiOpen || isCollapsed) && (
-              <div className="space-y-0.5">
-                <div
-                  onClick={() => setIsAiModalOpen(true)}
-                  className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-start gap-3 p-2'} rounded-xl text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border border-indigo-100/50 dark:border-indigo-900/30 transition-all group shrink-0 cursor-pointer`}
-                >
-                  <div className="p-1.5 bg-indigo-100/50 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-600 dark:group-hover:border-indigo-500 transition-all shrink-0">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  {!isCollapsed && (
-                    <div className="space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap animate-in fade-in duration-200 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[12px] font-bold text-indigo-700 dark:text-indigo-300 tracking-tight group-hover:text-indigo-900 dark:group-hover:text-indigo-100">
-                          {t('aiGenerator')}
-                        </p>
-                        <span className="text-[9px] font-mono font-bold text-indigo-400/70 dark:text-indigo-500/70 bg-indigo-100/50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">
-                          ⌘J
-                        </span>
+                {(isAiOpen || isCollapsed) && (
+                  <div className="space-y-0.5">
+                    <div
+                      onClick={() => setIsAiModalOpen(true)}
+                      className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-start gap-3 p-2'} rounded-xl text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border border-indigo-100/50 dark:border-indigo-900/30 transition-all group shrink-0 cursor-pointer`}
+                    >
+                      <div className="p-1.5 bg-indigo-100/50 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-600 dark:group-hover:border-indigo-500 transition-all shrink-0">
+                        <Sparkles className="w-4 h-4" />
                       </div>
-                      <p className="text-[10px] text-indigo-500/80 dark:text-indigo-400/80 leading-tight truncate">
-                        {t('generatePrompt')}
-                      </p>
+                      {!isCollapsed && (
+                        <div className="space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap animate-in fade-in duration-200 flex-1">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[12px] font-bold text-indigo-700 dark:text-indigo-300 tracking-tight group-hover:text-indigo-900 dark:group-hover:text-indigo-100">
+                              {t('aiGenerator')}
+                            </p>
+                            <span className="text-[9px] font-mono font-bold text-indigo-400/70 dark:text-indigo-500/70 bg-indigo-100/50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">
+                              ⌘J
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-indigo-500/80 dark:text-indigo-400/80 leading-tight truncate">
+                            {t('generatePrompt')}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {!isCollapsed && (
-            <div className="h-px bg-zinc-100/80 dark:bg-zinc-800/80 my-1 mx-2" />
+              {!isCollapsed && (
+                <div className="h-px bg-zinc-100/80 dark:bg-zinc-800/80 my-1 mx-2" />
+              )}
+            </>
           )}
 
           {/* Building Blocks */}
@@ -858,7 +875,7 @@ export default function ItemSidebar() {
       </div>
 
       {/* AI Modal */}
-      {isAiModalOpen && (
+      {canUseAiGenerator && isAiModalOpen && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center pointer-events-auto bg-black/50 dark:bg-black/70 backdrop-blur-sm">
           <div className="bg-white dark:bg-zinc-950 border border-indigo-200 dark:border-indigo-500/30 p-4 rounded-2xl shadow-2xl flex flex-col gap-3 w-96 animate-in zoom-in-95 fade-in">
             <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider px-1">
