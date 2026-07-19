@@ -23,6 +23,11 @@ export async function GET(request: NextRequest) {
   const apiKey = resolveFeatureFlagsApiKey();
   const keyPrefix = apiKey ? `${apiKey.slice(0, 6)}…` : null;
 
+  // Name-only scan — catches typos like FEATURE_FLAG_URL (no secrets).
+  const relatedEnvNames = Object.keys(process.env)
+    .filter((name) => /FEATURE|FLAGS|PULSE/i.test(name))
+    .sort();
+
   const result: Record<string, unknown> = {
     ok: false,
     hasUrl: Boolean(base),
@@ -30,6 +35,9 @@ export async function GET(request: NextRequest) {
     keyPrefix,
     urlFrom,
     urlEnvPresent,
+    relatedEnvNames,
+    vercelEnv: process.env.VERCEL_ENV ?? null,
+    vercelUrl: process.env.VERCEL_URL ?? null,
     urlHost: base
       ? (() => {
           try {
