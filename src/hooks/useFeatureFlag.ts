@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTenantStore } from '@/store/useTenantStore';
-import {
-  isFeatureEnabledLocal,
-  normalizeTier,
-} from '@/lib/featureGate';
+import { normalizeTier } from '@/lib/featureGate';
 
 type FeatureFlagState = {
   enabled: boolean;
@@ -72,12 +69,13 @@ export function useFeatureFlag(
         }
       } catch {
         if (!cancelled && !controller.signal.aborted) {
-          // Client-side last resort if proxy itself fails.
+          // Fail closed — do not apply local advanced/pro matrix here.
+          // That would ignore Pulse Flag rules whenever the proxy errors.
           setRemote({
             key: requestKey,
             tenantId: requestTenantId,
             tier: requestTier,
-            enabled: isFeatureEnabledLocal(requestKey, requestTier),
+            enabled: false,
           });
         }
       }

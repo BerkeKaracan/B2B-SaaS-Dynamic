@@ -1,11 +1,12 @@
 """Feature-flag consumer for SaaS Engine.
 
-Flag management lives in a separate project. This module only evaluates
+Flag management lives in Pulse Flag. This module only evaluates
 whether a feature is enabled for a tenant.
 
 Resolution order:
-1. If FEATURE_FLAGS_URL is set → GET {url}/evaluate?key=&tenant_id=&tier=
-2. Otherwise (or on remote failure) → local tier fallback for known keys
+1. If FEATURE_FLAGS_URL is set → GET {url}/evaluate (Pulse is source of truth)
+2. If URL unset → local tier fallback for known keys (dev only)
+3. If URL set but remote fails → fail closed (False). Never mask with local rules.
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ logger = logging.getLogger("saas_engine.feature_gate")
 
 AI_CANVAS_GENERATOR = "ai.canvas_generator"
 
-# Local fallback when remote FF is unset or unreachable.
+# Local fallback ONLY when FEATURE_FLAGS_URL is unset.
 _LOCAL_TIER_FLAGS: dict[str, set[str]] = {
     AI_CANVAS_GENERATOR: {"advanced", "pro"},
 }
@@ -66,9 +67,17 @@ def assert_tenant_member(tenant_id: str, user_id: str) -> None:
 
 
 def _evaluate_remote(key: str, tenant_id: str, tier: str) -> Optional[bool]:
+    """Returns enabled bool, or None if FEATURE_FLAGS_URL is not configured."""
     base = (os.getenv("FEATURE_FLAGS_URL") or "").strip().rstrip("/")
     if not base:
         return None
+
+    api_key = (os.getenv("FEATURE_FLAGS_API_KEY") or "").strip()
+    if not api_key:
+        logger.error(
+            "FEATURE_FLAGS_URL is set but FEATURE_FLAGS_API_KEY is missing"
+        )
+        return False
 
     query = urlencode(
         {
@@ -80,11 +89,9 @@ def _evaluate_remote(key: str, tenant_id: str, tier: str) -> Optional[bool]:
     url = f"{base}/evaluate?{query}"
     headers = {
         "Accept": "application/json",
+        "Authorization": f"Bearer {api_key}",
         "User-Agent": "saas-engine-feature-gate",
     }
-    api_key = (os.getenv("FEATURE_FLAGS_API_KEY") or "").strip()
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
 
     try:
         req = Request(url, headers=headers, method="GET")
@@ -93,10 +100,23 @@ def _evaluate_remote(key: str, tenant_id: str, tier: str) -> Optional[bool]:
         if isinstance(payload, dict) and "enabled" in payload:
             return bool(payload["enabled"])
         logger.warning("Feature flag remote response missing enabled: %s", payload)
-        return None
-    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+        return False
+    except HTTPError as exc:
+        body = ""
+        try:
+            body = exc.read().decode("utf-8", errors="replace")[:200]
+        except Exception:
+            pass
+        logger.warning(
+            "Feature flag remote evaluate HTTP %s for %s: %s",
+            exc.code,
+            key,
+            body,
+        )
+        return False
+    except (URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
         logger.warning("Feature flag remote evaluate failed for %s: %s", key, exc)
-        return None
+        return False
 
 
 def _evaluate_local(key: str, tier: str) -> bool:
@@ -113,9 +133,11 @@ def is_feature_enabled(
         normalize_tier(tier) if tier is not None else get_tenant_tier(tenant_id)
     )
 
-    remote = _evaluate_remote(key, tenant_id, resolved_tier)
-    if remote is not None:
-        return remote
+    base = (os.getenv("FEATURE_FLAGS_URL") or "").strip()
+    if base:
+        # Pulse is authoritative — never fall back to local advanced/pro matrix.
+        remote = _evaluate_remote(key, tenant_id, resolved_tier)
+        return bool(remote)
 
     return _evaluate_local(key, resolved_tier)
 
@@ -127,5 +149,5 @@ def require_feature(key: str, tenant_id: str, user_id: str) -> None:
     if not is_feature_enabled(key, tenant_id):
         raise HTTPException(
             status_code=403,
-            detail="This feature requires an Advanced or Pro plan.",
+            detail="This feature is not enabled for your workspace.",
         )

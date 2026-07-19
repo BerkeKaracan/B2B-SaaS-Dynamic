@@ -14,7 +14,10 @@ const EVALUATE_TIMEOUT_MS = 2500;
  * Keeps FEATURE_FLAGS_API_KEY on the server only.
  *
  * GET /api/features/evaluate?key=&tenant_id=&tier=
- * → { enabled: boolean, source: "remote" | "fallback" }
+ * → { enabled: boolean, source: "remote" | "fallback" | "error" }
+ *
+ * When FEATURE_FLAGS_URL is set, Pulse Flag is the source of truth.
+ * Local advanced/pro fallback is used ONLY if the URL is unset.
  */
 export async function GET(request: NextRequest) {
   const key = request.nextUrl.searchParams.get('key')?.trim();
@@ -31,46 +34,76 @@ export async function GET(request: NextRequest) {
   const base = (process.env.FEATURE_FLAGS_URL || '').trim().replace(/\/$/, '');
   const apiKey = (process.env.FEATURE_FLAGS_API_KEY || '').trim();
 
-  if (base) {
-    const qs = new URLSearchParams({
-      key,
-      tenant_id: tenantId,
-      tier,
+  // No remote configured → legacy local tier matrix (dev convenience).
+  if (!base) {
+    return NextResponse.json({
+      enabled: isFeatureEnabledLocal(key, tier),
+      source: 'fallback',
     });
-    const remoteUrl = `${base}/evaluate?${qs.toString()}`;
-
-    try {
-      const headers: HeadersInit = {
-        Accept: 'application/json',
-        'User-Agent': 'saas-engine-ff-proxy',
-      };
-      if (apiKey) {
-        headers.Authorization = `Bearer ${apiKey}`;
-      }
-
-      const res = await fetch(remoteUrl, {
-        method: 'GET',
-        headers,
-        cache: 'no-store',
-        signal: AbortSignal.timeout(EVALUATE_TIMEOUT_MS),
-      });
-
-      if (res.ok) {
-        const payload = (await res.json()) as { enabled?: unknown };
-        if (typeof payload?.enabled === 'boolean') {
-          return NextResponse.json({
-            enabled: payload.enabled,
-            source: 'remote',
-          });
-        }
-      }
-    } catch {
-      // Fall through to legacy tier check.
-    }
   }
 
-  return NextResponse.json({
-    enabled: isFeatureEnabledLocal(key, tier),
-    source: 'fallback',
+  if (!apiKey) {
+    console.error(
+      '[features/evaluate] FEATURE_FLAGS_URL is set but FEATURE_FLAGS_API_KEY is missing'
+    );
+    return NextResponse.json({
+      enabled: false,
+      source: 'error',
+      detail: 'FEATURE_FLAGS_API_KEY missing',
+    });
+  }
+
+  const qs = new URLSearchParams({
+    key,
+    tenant_id: tenantId,
+    tier,
   });
+  const remoteUrl = `${base}/evaluate?${qs.toString()}`;
+
+  try {
+    const res = await fetch(remoteUrl, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        'User-Agent': 'saas-engine-ff-proxy',
+      },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(EVALUATE_TIMEOUT_MS),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.error(
+        `[features/evaluate] remote ${res.status} for ${key}: ${body.slice(0, 200)}`
+      );
+      // Fail closed — do NOT fall back to local advanced/pro (that ignores Pulse rules).
+      return NextResponse.json({
+        enabled: false,
+        source: 'error',
+        detail: `remote_${res.status}`,
+      });
+    }
+
+    const payload = (await res.json()) as { enabled?: unknown };
+    if (typeof payload?.enabled !== 'boolean') {
+      return NextResponse.json({
+        enabled: false,
+        source: 'error',
+        detail: 'invalid_payload',
+      });
+    }
+
+    return NextResponse.json({
+      enabled: payload.enabled,
+      source: 'remote',
+    });
+  } catch (err) {
+    console.error('[features/evaluate] remote failed', err);
+    return NextResponse.json({
+      enabled: false,
+      source: 'error',
+      detail: 'unreachable',
+    });
+  }
 }
