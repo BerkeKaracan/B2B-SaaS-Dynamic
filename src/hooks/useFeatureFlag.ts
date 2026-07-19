@@ -12,6 +12,13 @@ type FeatureFlagState = {
   isLoading: boolean;
 };
 
+type RemoteFlag = {
+  key: string;
+  tenantId: string;
+  tier: string;
+  enabled: boolean;
+};
+
 /**
  * Evaluates a feature via the Next.js server proxy (never exposes Delivery API key).
  * While loading, enabled is false so gated UI stays hidden until we know.
@@ -24,27 +31,27 @@ export function useFeatureFlag(
   const storeTenant = useTenantStore((s) => s.tenant);
   const resolvedTenantId = tenantId || storeTenant?.id || null;
   const tier = normalizeTier(storeTenant?.tier);
+  const canEvaluate = Boolean(resolvedTenantId && key);
 
-  const [enabled, setEnabled] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [remote, setRemote] = useState<RemoteFlag | null>(null);
 
   useEffect(() => {
-    if (!resolvedTenantId || !key) {
-      setEnabled(false);
-      setIsLoading(false);
+    if (!canEvaluate || !resolvedTenantId) {
       return;
     }
 
-    let cancelled = false;
+    const requestKey = key;
+    const requestTenantId = resolvedTenantId;
+    const requestTier = tier;
     const controller = new AbortController();
+    let cancelled = false;
 
-    const run = async () => {
-      setIsLoading(true);
+    void (async () => {
       try {
         const params = new URLSearchParams({
-          key,
-          tenant_id: resolvedTenantId,
-          tier,
+          key: requestKey,
+          tenant_id: requestTenantId,
+          tier: requestTier,
         });
         const res = await fetch(`/api/features/evaluate?${params}`, {
           method: 'GET',
@@ -56,25 +63,43 @@ export function useFeatureFlag(
         }
         const data = (await res.json()) as { enabled?: boolean };
         if (!cancelled) {
-          setEnabled(Boolean(data.enabled));
+          setRemote({
+            key: requestKey,
+            tenantId: requestTenantId,
+            tier: requestTier,
+            enabled: Boolean(data.enabled),
+          });
         }
       } catch {
-        if (!cancelled) {
+        if (!cancelled && !controller.signal.aborted) {
           // Client-side last resort if proxy itself fails.
-          setEnabled(isFeatureEnabledLocal(key, tier));
+          setRemote({
+            key: requestKey,
+            tenantId: requestTenantId,
+            tier: requestTier,
+            enabled: isFeatureEnabledLocal(requestKey, requestTier),
+          });
         }
-      } finally {
-        if (!cancelled) setIsLoading(false);
       }
-    };
-
-    void run();
+    })();
 
     return () => {
       cancelled = true;
       controller.abort();
     };
-  }, [key, resolvedTenantId, tier]);
+  }, [canEvaluate, key, resolvedTenantId, tier]);
 
-  return { enabled, isLoading };
+  if (!canEvaluate) {
+    return { enabled: false, isLoading: false };
+  }
+
+  const matches =
+    remote?.key === key &&
+    remote?.tenantId === resolvedTenantId &&
+    remote?.tier === tier;
+
+  return {
+    enabled: matches ? remote.enabled : false,
+    isLoading: !matches,
+  };
 }
