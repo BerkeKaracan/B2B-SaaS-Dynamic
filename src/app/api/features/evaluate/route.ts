@@ -3,6 +3,10 @@ import {
   isFeatureEnabledLocal,
   normalizeTier,
 } from '@/lib/featureGate';
+import {
+  resolveFeatureFlagsApiKey,
+  resolveFeatureFlagsUrl,
+} from '@/lib/featureFlagsEnv';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,8 +35,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const base = (process.env.FEATURE_FLAGS_URL || '').trim().replace(/\/$/, '');
-  const apiKey = (process.env.FEATURE_FLAGS_API_KEY || '').trim();
+  const { url: base, from: urlFrom, present: urlEnvPresent } =
+    resolveFeatureFlagsUrl();
+  const apiKey = resolveFeatureFlagsApiKey();
 
   // #region agent log
   fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
@@ -49,6 +54,8 @@ export async function GET(request: NextRequest) {
       data: {
         hasUrl: Boolean(base),
         hasKey: Boolean(apiKey),
+        urlFrom,
+        urlEnvPresent,
         key,
         tier,
         tenantPrefix: tenantId.slice(0, 8),

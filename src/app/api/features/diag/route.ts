@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { normalizeTier } from '@/lib/featureGate';
+import {
+  resolveFeatureFlagsApiKey,
+  resolveFeatureFlagsUrl,
+} from '@/lib/featureFlagsEnv';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,8 +18,9 @@ export async function GET(request: NextRequest) {
   const tenantId = request.nextUrl.searchParams.get('tenant_id')?.trim();
   const tier = normalizeTier(request.nextUrl.searchParams.get('tier'));
 
-  const base = (process.env.FEATURE_FLAGS_URL || '').trim().replace(/\/$/, '');
-  const apiKey = (process.env.FEATURE_FLAGS_API_KEY || '').trim();
+  const { url: base, from: urlFrom, present: urlEnvPresent } =
+    resolveFeatureFlagsUrl();
+  const apiKey = resolveFeatureFlagsApiKey();
   const keyPrefix = apiKey ? `${apiKey.slice(0, 6)}…` : null;
 
   const result: Record<string, unknown> = {
@@ -23,13 +28,17 @@ export async function GET(request: NextRequest) {
     hasUrl: Boolean(base),
     hasKey: Boolean(apiKey),
     keyPrefix,
-    urlHost: base ? (() => {
-      try {
-        return new URL(base).host;
-      } catch {
-        return 'invalid_url';
-      }
-    })() : null,
+    urlFrom,
+    urlEnvPresent,
+    urlHost: base
+      ? (() => {
+          try {
+            return new URL(base).host;
+          } catch {
+            return 'invalid_url';
+          }
+        })()
+      : null,
     key,
     tenantId: tenantId || null,
     tier,
@@ -53,6 +62,8 @@ export async function GET(request: NextRequest) {
       data: {
         hasUrl: result.hasUrl,
         hasKey: result.hasKey,
+        urlFrom,
+        urlEnvPresent,
         urlHost: result.urlHost,
         key,
         tier,
@@ -64,7 +75,8 @@ export async function GET(request: NextRequest) {
   // #endregion
 
   if (!base) {
-    result.detail = 'FEATURE_FLAGS_URL missing';
+    result.detail =
+      'FEATURE_FLAGS_URL missing on this Vercel deployment (Production). Add it and Redeploy.';
     return NextResponse.json(result);
   }
   if (!apiKey) {
@@ -92,7 +104,10 @@ export async function GET(request: NextRequest) {
     const bodyText = await res.text();
     let enabled: boolean | null = null;
     try {
-      const json = JSON.parse(bodyText) as { enabled?: unknown; detail?: unknown };
+      const json = JSON.parse(bodyText) as {
+        enabled?: unknown;
+        detail?: unknown;
+      };
       if (typeof json.enabled === 'boolean') enabled = json.enabled;
       if (typeof json.detail === 'string') result.detail = json.detail;
     } catch {
@@ -117,6 +132,7 @@ export async function GET(request: NextRequest) {
           remoteStatus: res.status,
           remoteEnabled: enabled,
           detail: result.detail,
+          urlFrom,
         },
         timestamp: Date.now(),
       }),
