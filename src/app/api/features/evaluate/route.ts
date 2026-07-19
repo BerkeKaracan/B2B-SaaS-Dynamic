@@ -58,7 +58,16 @@ export async function GET(request: NextRequest) {
   }).catch(() => {});
   // #endregion
 
-  // No remote configured → legacy local tier matrix (dev convenience).
+  // Key without URL = misconfigured production (do not silently use local matrix).
+  if (!base && apiKey) {
+    return NextResponse.json({
+      enabled: false,
+      source: 'error',
+      detail: 'FEATURE_FLAGS_URL missing',
+    });
+  }
+
+  // No remote configured → legacy local tier matrix (local dev only).
   if (!base) {
     return NextResponse.json({
       enabled: isFeatureEnabledLocal(key, tier),
