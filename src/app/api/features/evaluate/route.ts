@@ -35,35 +35,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const { url: base, from: urlFrom, present: urlEnvPresent } =
-    resolveFeatureFlagsUrl();
+  const { url: base } = resolveFeatureFlagsUrl();
   const apiKey = resolveFeatureFlagsApiKey();
-
-  // #region agent log
-  fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': '85388b',
-    },
-    body: JSON.stringify({
-      sessionId: '85388b',
-      hypothesisId: 'A',
-      location: 'api/features/evaluate/route.ts:config',
-      message: 'evaluate config',
-      data: {
-        hasUrl: Boolean(base),
-        hasKey: Boolean(apiKey),
-        urlFrom,
-        urlEnvPresent,
-        key,
-        tier,
-        tenantPrefix: tenantId.slice(0, 8),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
 
   // Key without URL = misconfigured production (do not silently use local matrix).
   if (!base && apiKey) {
@@ -117,24 +90,6 @@ export async function GET(request: NextRequest) {
       console.error(
         `[features/evaluate] remote ${res.status} for ${key}: ${body.slice(0, 200)}`
       );
-      // #region agent log
-      fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Debug-Session-Id': '85388b',
-        },
-        body: JSON.stringify({
-          sessionId: '85388b',
-          hypothesisId: 'B',
-          location: 'api/features/evaluate/route.ts:remote_error',
-          message: 'remote non-OK',
-          data: { status: res.status, body: body.slice(0, 120), key, tier },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
-      // Fail closed — do NOT fall back to local advanced/pro (that ignores Pulse rules).
       return NextResponse.json({
         enabled: false,
         source: 'error',
@@ -151,51 +106,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '85388b',
-      },
-      body: JSON.stringify({
-        sessionId: '85388b',
-        hypothesisId: 'C',
-        location: 'api/features/evaluate/route.ts:remote_ok',
-        message: 'remote ok',
-        data: { enabled: payload.enabled, key, tier },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-
     return NextResponse.json({
       enabled: payload.enabled,
       source: 'remote',
     });
   } catch (err) {
     console.error('[features/evaluate] remote failed', err);
-    // #region agent log
-    fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '85388b',
-      },
-      body: JSON.stringify({
-        sessionId: '85388b',
-        hypothesisId: 'A',
-        location: 'api/features/evaluate/route.ts:catch',
-        message: 'remote unreachable',
-        data: {
-          err: err instanceof Error ? err.message : 'unknown',
-          key,
-          tier,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     return NextResponse.json({
       enabled: false,
       source: 'error',

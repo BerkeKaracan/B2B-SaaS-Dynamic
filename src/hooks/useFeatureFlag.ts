@@ -58,36 +58,7 @@ export function useFeatureFlag(
         if (!res.ok) {
           throw new Error(`evaluate ${res.status}`);
         }
-        const data = (await res.json()) as {
-          enabled?: boolean;
-          source?: string;
-          detail?: string;
-        };
-        // #region agent log
-        fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Debug-Session-Id': '85388b',
-          },
-          body: JSON.stringify({
-            sessionId: '85388b',
-            hypothesisId: 'E',
-            location: 'useFeatureFlag.ts:response',
-            message: 'client evaluate response',
-            data: {
-              enabled: Boolean(data.enabled),
-              source: data.source ?? null,
-              detail: data.detail ?? null,
-              key: requestKey,
-              tier: requestTier,
-              tenantPrefix: requestTenantId.slice(0, 8),
-              httpStatus: res.status,
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
+        const data = (await res.json()) as { enabled?: boolean };
         if (!cancelled) {
           setRemote({
             key: requestKey,
@@ -96,31 +67,8 @@ export function useFeatureFlag(
             enabled: Boolean(data.enabled),
           });
         }
-      } catch (err) {
-        // #region agent log
-        fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Debug-Session-Id': '85388b',
-          },
-          body: JSON.stringify({
-            sessionId: '85388b',
-            hypothesisId: 'E',
-            location: 'useFeatureFlag.ts:catch',
-            message: 'client evaluate failed',
-            data: {
-              err: err instanceof Error ? err.message : 'unknown',
-              key: requestKey,
-              tier: requestTier,
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
+      } catch {
         if (!cancelled && !controller.signal.aborted) {
-          // Fail closed — do not apply local advanced/pro matrix here.
-          // That would ignore Pulse Flag rules whenever the proxy errors.
           setRemote({
             key: requestKey,
             tenantId: requestTenantId,

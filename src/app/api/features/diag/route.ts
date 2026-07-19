@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
   const apiKey = resolveFeatureFlagsApiKey();
   const keyPrefix = apiKey ? `${apiKey.slice(0, 6)}…` : null;
 
-  // Name-only scan — catches typos like FEATURE_FLAG_URL (no secrets).
   const relatedEnvNames = Object.keys(process.env)
     .filter((name) => /FEATURE|FLAGS|PULSE/i.test(name))
     .sort();
@@ -37,7 +36,6 @@ export async function GET(request: NextRequest) {
     urlEnvPresent,
     relatedEnvNames,
     vercelEnv: process.env.VERCEL_ENV ?? null,
-    vercelUrl: process.env.VERCEL_URL ?? null,
     urlHost: base
       ? (() => {
           try {
@@ -55,36 +53,9 @@ export async function GET(request: NextRequest) {
     detail: null as string | null,
   };
 
-  // #region agent log
-  fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': '85388b',
-    },
-    body: JSON.stringify({
-      sessionId: '85388b',
-      hypothesisId: 'A',
-      location: 'api/features/diag/route.ts:entry',
-      message: 'diag start',
-      data: {
-        hasUrl: result.hasUrl,
-        hasKey: result.hasKey,
-        urlFrom,
-        urlEnvPresent,
-        urlHost: result.urlHost,
-        key,
-        tier,
-        tenantPresent: Boolean(tenantId),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   if (!base) {
     result.detail =
-      'FEATURE_FLAGS_URL missing on this Vercel deployment (Production). Add it and Redeploy.';
+      'FEATURE_FLAGS_URL missing on this Vercel deployment. Add it and Redeploy.';
     return NextResponse.json(result);
   }
   if (!apiKey) {
@@ -123,50 +94,9 @@ export async function GET(request: NextRequest) {
     }
     result.remoteEnabled = enabled;
     result.ok = res.ok && enabled === true;
-
-    // #region agent log
-    fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '85388b',
-      },
-      body: JSON.stringify({
-        sessionId: '85388b',
-        hypothesisId: res.ok ? 'C' : 'B',
-        location: 'api/features/diag/route.ts:remote',
-        message: 'diag remote response',
-        data: {
-          remoteStatus: res.status,
-          remoteEnabled: enabled,
-          detail: result.detail,
-          urlFrom,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-
     return NextResponse.json(result);
   } catch (err) {
     result.detail = err instanceof Error ? err.message : 'unreachable';
-    // #region agent log
-    fetch('http://127.0.0.1:7739/ingest/0fa71273-4aa1-451c-a3ab-36e36806b194', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Debug-Session-Id': '85388b',
-      },
-      body: JSON.stringify({
-        sessionId: '85388b',
-        hypothesisId: 'A',
-        location: 'api/features/diag/route.ts:catch',
-        message: 'diag unreachable',
-        data: { detail: result.detail },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     return NextResponse.json(result);
   }
 }
