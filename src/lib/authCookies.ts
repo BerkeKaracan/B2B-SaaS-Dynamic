@@ -90,6 +90,20 @@ export async function fetchRealtimeAccessToken(): Promise<string | null> {
   }
 }
 
+/** True if HttpOnly session cookie exists (no FastAPI round-trip). */
+export async function hasClientSession(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/session', {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 /** Clear auth + tenant persist keys (logout / account switch). */
 export function clearClientAuthStorage() {
   // Best-effort clear of legacy JS-readable token remnants

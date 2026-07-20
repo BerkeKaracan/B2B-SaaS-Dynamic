@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { getApiBaseUrl } from '@/lib/apiBase';
 import { fetchAPI } from '@/services/api';
 import Cookies from 'js-cookie';
+import { hasClientSession } from '@/lib/authCookies';
 import AuthShell, {
   AuthCheckingScreen,
   AuthPanelNodes,
@@ -40,6 +41,12 @@ export default function RegisterPage() {
   useEffect(() => {
     const check = async () => {
       try {
+        const authed = await hasClientSession();
+        if (!authed) {
+          setIsChecking(false);
+          return;
+        }
+
         const res = await fetchAPI('/api/auth/me');
         if (res.ok) {
           const data = await res.json();

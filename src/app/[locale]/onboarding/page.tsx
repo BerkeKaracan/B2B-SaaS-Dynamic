@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { authService, fetchAPI } from '@/services/api';
 import Cookies from 'js-cookie';
+import { hasClientSession } from '@/lib/authCookies';
 import { AlertCircle, ArrowRight, Loader2, User, Users } from 'lucide-react';
 import AuthShell, {
   AuthCheckingScreen,
@@ -31,6 +32,12 @@ export default function OnboardingPage() {
   useEffect(() => {
     const verifySession = async () => {
       try {
+        const authed = await hasClientSession();
+        if (!authed) {
+          window.location.href = '/login';
+          return;
+        }
+
         const res = await fetchAPI('/api/auth/me');
 
         if (!res.ok) {

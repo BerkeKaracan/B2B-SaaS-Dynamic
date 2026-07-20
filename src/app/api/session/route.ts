@@ -46,6 +46,19 @@ async function verifyAccessToken(token: string): Promise<boolean> {
   }
 }
 
+/** Cookie-only session probe — does not call FastAPI. */
+export async function GET() {
+  const jar = await cookies();
+  const token = jar.get(TOKEN_COOKIE)?.value;
+  if (!token) {
+    return NextResponse.json({ authenticated: false }, { status: 401 });
+  }
+  return NextResponse.json(
+    { authenticated: true },
+    { headers: { 'Cache-Control': 'no-store' } }
+  );
+}
+
 /** Establish HttpOnly session cookie (browser must not store JWT in JS). */
 export async function POST(request: NextRequest) {
   let body: { access_token?: string; domain?: string };

@@ -10,6 +10,7 @@ import { fetchAPI } from '@/services/api';
 import {
   establishClientSession,
   fetchRealtimeAccessToken,
+  hasClientSession,
   setClientTenantId,
 } from '@/lib/authCookies';
 import AuthShell, {
@@ -45,7 +46,12 @@ export default function LoginPage() {
   } | null>(null);
 
   const finishLogin = async (accessToken: string, tenantId?: string) => {
-    await establishClientSession(accessToken);
+    // BFF already Set-Cookie on login response; this is a safe backup.
+    try {
+      await establishClientSession(accessToken);
+    } catch (err) {
+      console.warn('establishClientSession backup failed:', err);
+    }
 
     if (fetchUser) {
       await fetchUser();
@@ -113,6 +119,13 @@ export default function LoginPage() {
       }
 
       try {
+        // Never hit FastAPI /me without a session cookie (causes 401 spam)
+        const authed = await hasClientSession();
+        if (!authed) {
+          setIsChecking(false);
+          return;
+        }
+
         const res = await fetchAPI('/api/auth/me');
 
         if (res.ok) {
