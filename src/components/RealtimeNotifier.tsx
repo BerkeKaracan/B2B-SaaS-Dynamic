@@ -45,19 +45,21 @@ export default function RealtimeNotifier({ userEmail }: { userEmail: string }) {
           (payload: NotificationPayload) => {
             toast(payload.new.title, {
               description: payload.new.message,
-              duration: 5000,
+              duration: 6000,
               position: 'bottom-right',
               icon: '🔔',
               action: {
-                label: 'Kapat',
-                onClick: () => console.log('Notification Closed.'),
+                label: 'Close',
+                onClick: () => undefined,
               },
+              // Explicit colors — var(--background)/--foreground are not defined
+              // in globals.css, which rendered text invisible on the toast.
               style: {
-                background: 'var(--background)',
-                color: 'var(--foreground)',
-                border: '1px solid var(--border)',
+                background: '#18181b',
+                color: '#fafafa',
+                border: '1px solid #3f3f46',
                 borderRadius: '12px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
               },
             });
           }
