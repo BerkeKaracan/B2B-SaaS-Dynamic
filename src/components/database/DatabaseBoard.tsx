@@ -29,7 +29,6 @@ import {
 } from '@/components/workspace/ProjectToolbarSlot';
 import { Calendar as CustomCalendar } from '@/components/ui/calendar';
 import toast from 'react-hot-toast';
-import Cookies from 'js-cookie';
 
 interface DatabaseBoardProps {
   projectId: string;
@@ -348,12 +347,11 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
     const loadingToast = toast.loading('Creating Notion Database...');
 
     try {
-      const token = Cookies.get('token');
       const res = await fetch('/api/notion-export', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ dbTitle, properties, rows }),
       });

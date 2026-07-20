@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { fetchAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Loader2, Send } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
+import { createAuthedSupabaseClient } from '@/lib/supabaseAuthedClient';
+import { fetchRealtimeAccessToken } from '@/lib/authCookies';
 
 interface TeamMessage {
   id: string;
@@ -51,34 +52,44 @@ export default function TeamChat({ tenantId }: { tenantId: string }) {
   useEffect(() => {
     if (!tenantId) return;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-    if (!supabaseUrl || !supabaseKey) return;
+    let cancelled = false;
+    let client: ReturnType<typeof createAuthedSupabaseClient> = null;
+    let channel: { unsubscribe?: () => void } | null = null;
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    void (async () => {
+      const token = await fetchRealtimeAccessToken();
+      if (cancelled || !token) return;
+      client = createAuthedSupabaseClient(token);
+      if (!client) return;
 
-    const channel = supabase
-      .channel(`room_${tenantId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'team_messages',
-          filter: `tenant_id=eq.${tenantId}`,
-        },
-        (payload) => {
-          const newMessage = payload.new as TeamMessage;
-          setMessages((prev) => {
-            if (prev.find((m) => m.id === newMessage.id)) return prev;
-            return [...prev, newMessage];
-          });
-        }
-      )
-      .subscribe();
+      const ch = client
+        .channel(`room_${tenantId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'team_messages',
+            filter: `tenant_id=eq.${tenantId}`,
+          },
+          (payload) => {
+            const newMessage = payload.new as TeamMessage;
+            setMessages((prev) => {
+              if (prev.find((m) => m.id === newMessage.id)) return prev;
+              return [...prev, newMessage];
+            });
+          }
+        )
+        .subscribe();
+
+      channel = ch;
+    })();
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (client && channel) {
+        client.removeChannel(channel as Parameters<typeof client.removeChannel>[0]);
+      }
     };
   }, [tenantId]);
 

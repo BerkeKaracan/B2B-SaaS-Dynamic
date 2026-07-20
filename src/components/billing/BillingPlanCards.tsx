@@ -40,6 +40,9 @@ export type BillingPlanCardsProps = {
   currentTier?: string;
   onSelectPlan?: (planId: PlanId) => void;
   isUpdating?: boolean;
+  /** When true, non-current plan CTAs are disabled (no self-service upgrades). */
+  upgradesDisabled?: boolean;
+  upgradesDisabledReason?: string;
   /** Controlled annual toggle; if omitted, component manages its own state. */
   isAnnual?: boolean;
   onAnnualChange?: (annual: boolean) => void;
@@ -51,6 +54,8 @@ export default function BillingPlanCards({
   currentTier,
   onSelectPlan,
   isUpdating = false,
+  upgradesDisabled = false,
+  upgradesDisabledReason,
   isAnnual: controlledAnnual,
   onAnnualChange,
 }: BillingPlanCardsProps) {
@@ -64,6 +69,11 @@ export default function BillingPlanCards({
 
   return (
     <div>
+      {mode === 'workspace' && upgradesDisabled && upgradesDisabledReason && (
+        <p className="mb-6 text-center text-sm font-medium text-zinc-500">
+          {upgradesDisabledReason}
+        </p>
+      )}
       <div className="flex justify-center mb-8">
         <div className="bg-zinc-100 p-1 rounded-xl flex items-center shadow-inner">
           <button
@@ -175,7 +185,7 @@ export default function BillingPlanCards({
               ) : (
                 <button
                   type="button"
-                  disabled={isCurrent || isUpdating}
+                  disabled={isCurrent || isUpdating || upgradesDisabled}
                   onClick={() => onSelectPlan?.(plan.id)}
                   className={`w-full py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                     isCurrent
@@ -187,7 +197,9 @@ export default function BillingPlanCards({
                           : 'bg-white border border-zinc-200 text-zinc-900 hover:bg-zinc-50'
                   }`}
                 >
-                  {workspaceCtaLabel(plan.id, currentTier)}
+                  {upgradesDisabled && !isCurrent
+                    ? 'Contact administrator'
+                    : workspaceCtaLabel(plan.id, currentTier)}
                 </button>
               )}
             </div>

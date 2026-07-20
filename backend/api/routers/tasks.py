@@ -33,19 +33,38 @@ class SyncRequest(BaseModel):
     tasks: List[TaskData]
 
 @router.get("/me")
-async def get_my_tasks(tenant_id: str, email: str, user = Depends(verify_user)):
-    if user.email.lower() != email.lower():
-        raise HTTPException(status_code=403, detail="You can only view your own tasks.")
-        
+async def get_my_tasks(tenant_id: str, user=Depends(verify_user)):
+    """List tasks assigned to the authenticated user within a tenant they belong to.
+
+    Ignores any client-supplied email — uses JWT email only.
+    Requires tenant_users membership (x-tenant-id / query tenant_id alone is not enough).
+    """
     try:
-        response = supabase.table("records") \
-            .select("*") \
-            .eq("tenant_id", tenant_id) \
-            .eq("module_name", "tasks") \
-            .ilike("record_data->>assigned_to", email) \
+        member_check = (
+            supabase_admin.table("tenant_users")
+            .select("id")
+            .eq("tenant_id", tenant_id)
+            .eq("user_id", user.id)
             .execute()
-        
+        )
+        if not member_check.data:
+            raise HTTPException(status_code=403, detail="Workspace access denied.")
+
+        user_email = str(user.email or "").lower().strip()
+        if not user_email:
+            raise HTTPException(status_code=400, detail="User email missing from session.")
+
+        response = (
+            supabase_admin.table("records")
+            .select("*")
+            .eq("tenant_id", tenant_id)
+            .eq("module_name", "tasks")
+            .ilike("record_data->>assigned_to", user_email)
+            .execute()
+        )
         return response.data
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

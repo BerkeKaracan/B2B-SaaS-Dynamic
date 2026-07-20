@@ -214,9 +214,8 @@ export default function MyTasksPage({
       setIsLoading(true);
 
       try {
-        const encodedEmail = encodeURIComponent(user.email);
         const res = await fetchAPI(
-          `/api/tasks/me?tenant_id=${tenantId}&email=${encodedEmail}`
+          `/api/tasks/me?tenant_id=${tenantId}`
         );
 
         if (res.ok) {

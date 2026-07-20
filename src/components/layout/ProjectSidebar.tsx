@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useLayoutStore } from "@/store/useLayoutStore";
 import { useEffect, useState } from "react";
-import { getApiBaseUrl } from "@/lib/apiBase";
+import { fetchAPI } from "@/services/api";
 
 export default function ProjectSidebar() {
   const { isPrimarySidebarOpen, togglePrimarySidebar } = useLayoutStore();
@@ -35,15 +35,14 @@ export default function ProjectSidebar() {
   useEffect(() => {
     const checkRole = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${getApiBaseUrl()}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetchAPI(`/api/auth/me`);
         if (res.ok) {
           const data = await res.json();
           setIsAdmin(data.role === "admin" || data.role === "owner");
         }
-      } catch (error) {}
+      } catch {
+        /* ignore */
+      }
     };
     checkRole();
   }, []);

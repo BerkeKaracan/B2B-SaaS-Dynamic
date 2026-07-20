@@ -6,8 +6,12 @@ import { useAuthStore } from '@/store/useAuthStore';
 import Cookies from 'js-cookie';
 import { supabase } from '@/lib/supabaseClient';
 import { AlertCircle, Loader2, Mail, Lock } from 'lucide-react';
-import { getApiBaseUrl } from '@/lib/apiBase';
 import { fetchAPI } from '@/services/api';
+import {
+  establishClientSession,
+  fetchRealtimeAccessToken,
+  setClientTenantId,
+} from '@/lib/authCookies';
 import AuthShell, {
   AuthCheckingScreen,
   AuthPanelNodes,
@@ -41,8 +45,7 @@ export default function LoginPage() {
   } | null>(null);
 
   const finishLogin = async (accessToken: string, tenantId?: string) => {
-    Cookies.set('token', accessToken, { expires: 7 });
-    localStorage.setItem('token', accessToken);
+    await establishClientSession(accessToken);
 
     if (fetchUser) {
       await fetchUser();
@@ -55,15 +58,14 @@ export default function LoginPage() {
       return;
     }
 
-    Cookies.set('tenant_id', resolvedTenant, { expires: 7 });
+    setClientTenantId(resolvedTenant);
     await redirectUser(resolvedTenant, accessToken);
   };
 
   const redirectUser = async (tenantId: string, token: string) => {
     try {
-      const res = await fetch(`${getApiBaseUrl()}/api/tenants/${tenantId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Prefer BFF (HttpOnly) once session is set; fall back to explicit bearer for hop
+      const res = await fetchAPI(`/api/tenants/${tenantId}`);
 
       if (res.ok) {
         const data = await res.json();
@@ -82,7 +84,14 @@ export default function LoginPage() {
             const expectedHost = `${data.slug}.${targetDomain}`;
 
             if (host !== expectedHost && host !== `www.${expectedHost}`) {
-              window.location.href = `${protocol}//${expectedHost}${port}/login#access_token=${token}&tenant_id=${tenantId}`;
+              // Cookie hop across subdomain — never put JWT in the URL hash
+              const cookieDomain = isLocal ? undefined : `.${baseDomain}`;
+              const hopToken = token || (await fetchRealtimeAccessToken()) || '';
+              if (hopToken) {
+                await establishClientSession(hopToken, cookieDomain);
+              }
+              setClientTenantId(tenantId, cookieDomain);
+              window.location.href = `${protocol}//${expectedHost}${port}/login`;
               return;
             }
           }
@@ -97,24 +106,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     const verifyToken = async () => {
+      // Strip any legacy hash tokens from history (do not consume as auth)
       const hash = window.location.hash;
       if (hash && hash.includes('access_token=')) {
-        const params = new URLSearchParams(hash.replace('#', '?'));
-        const accessToken = params.get('access_token');
-        const urlTenant = params.get('tenant_id');
-
-        if (accessToken) {
-          Cookies.set('token', accessToken, { expires: 7 });
-          localStorage.setItem('token', accessToken);
-          if (urlTenant) Cookies.set('tenant_id', urlTenant, { expires: 7 });
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-      }
-
-      const token = Cookies.get('token') || localStorage.getItem('token');
-      if (!token) {
-        setIsChecking(false);
-        return;
+        window.history.replaceState(null, '', window.location.pathname);
       }
 
       try {
@@ -126,12 +121,12 @@ export default function LoginPage() {
             data.tenant_id || data.user?.tenant_id || Cookies.get('tenant_id');
 
           if (tenantId && tenantId !== 'undefined' && tenantId !== 'null') {
-            await redirectUser(tenantId, token);
+            await redirectUser(tenantId, '');
           } else {
             router.replace('/onboarding');
           }
         } else {
-          router.replace('/register');
+          setIsChecking(false);
         }
       } catch (error) {
         console.error('Auth verification error:', error);

@@ -108,8 +108,6 @@ export default function PublicSharePage() {
   useEffect(() => {
     const checkAuthAndModules = async () => {
       if (typeof window === 'undefined') return;
-      const token = Cookies.get('token') || localStorage.getItem('token');
-      if (!token) return;
 
       try {
         const meRes = await fetchAPI('/api/auth/me');

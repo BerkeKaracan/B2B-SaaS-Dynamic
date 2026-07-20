@@ -7,6 +7,8 @@ import {
   resolveFeatureFlagsApiKey,
   resolveFeatureFlagsUrl,
 } from '@/lib/featureFlagsEnv';
+import { requireApiAuth } from '@/lib/requireApiAuth';
+import { getApiBaseUrl } from '@/lib/apiBase';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,16 +19,19 @@ const EVALUATE_TIMEOUT_MS = 2500;
  * Browser-safe proxy to the remote Feature Flag Delivery API.
  * Keeps FEATURE_FLAGS_API_KEY on the server only.
  *
- * GET /api/features/evaluate?key=&tenant_id=&tier=
- * → { enabled: boolean, source: "remote" | "fallback" | "error" }
+ * Requires a valid session. Tier is derived server-side from the tenant
+ * membership when possible — client-supplied `tier` is ignored for remote
+ * evaluation and only used as a last-resort local fallback label.
  *
- * When FEATURE_FLAGS_URL is set, Pulse Flag is the source of truth.
- * Local advanced/pro fallback is used ONLY if the URL is unset.
+ * GET /api/features/evaluate?key=&tenant_id=
+ * → { enabled: boolean, source: "remote" | "fallback" | "error" }
  */
 export async function GET(request: NextRequest) {
+  const auth = await requireApiAuth(request);
+  if (auth.error) return auth.error;
+
   const key = request.nextUrl.searchParams.get('key')?.trim();
   const tenantId = request.nextUrl.searchParams.get('tenant_id')?.trim();
-  const tier = normalizeTier(request.nextUrl.searchParams.get('tier'));
 
   if (!key || !tenantId) {
     return NextResponse.json(
@@ -35,10 +40,38 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Prove membership + resolve tier from backend (do not trust client tier)
+  let tier = 'basic';
+  try {
+    const tenantRes = await fetch(
+      `${getApiBaseUrl().replace(/\/$/, '')}/api/tenants/${tenantId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+          Accept: 'application/json',
+        },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(EVALUATE_TIMEOUT_MS),
+      }
+    );
+    if (!tenantRes.ok) {
+      return NextResponse.json(
+        { success: false, error: 'Workspace access denied' },
+        { status: 403 }
+      );
+    }
+    const tenantData = (await tenantRes.json()) as { tier?: string };
+    tier = normalizeTier(tenantData.tier);
+  } catch {
+    return NextResponse.json(
+      { enabled: false, source: 'error', detail: 'tenant_lookup_failed' },
+      { status: 503 }
+    );
+  }
+
   const { url: base } = resolveFeatureFlagsUrl();
   const apiKey = resolveFeatureFlagsApiKey();
 
-  // Key without URL = misconfigured production (do not silently use local matrix).
   if (!base && apiKey) {
     return NextResponse.json({
       enabled: false,
@@ -47,7 +80,6 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // No remote configured → legacy local tier matrix (local dev only).
   if (!base) {
     return NextResponse.json({
       enabled: isFeatureEnabledLocal(key, tier),

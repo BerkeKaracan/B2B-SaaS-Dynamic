@@ -1,9 +1,20 @@
-import Cookies from 'js-cookie';
 import { RecordResponse, RecordBase } from '@/types/record';
 import { getApiBaseUrl } from '@/lib/apiBase';
 
 /** @deprecated Prefer getApiBaseUrl() — kept for existing imports. */
 export const API_BASE_URL = getApiBaseUrl();
+
+/**
+ * Browser → same-origin BFF (`/api/backend/...`) which attaches HttpOnly JWT.
+ * Server → direct FastAPI with cookie token as Authorization.
+ */
+function toBrowserProxyUrl(endpoint: string): string {
+  const clean = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  if (clean.startsWith('/api/')) {
+    return `/api/backend/${clean.slice('/api/'.length)}`;
+  }
+  return `/api/backend${clean}`;
+}
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const headers: Record<string, string> = {
@@ -11,25 +22,43 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     ...(options.headers as Record<string, string>),
   };
 
-  let token: string | undefined;
-
+  // Browser never attaches Authorization — HttpOnly cookie is read by BFF.
   if (typeof window !== 'undefined') {
-    token = Cookies.get('token') || localStorage.getItem('token') || undefined;
-    // Keep cookie in sync when token only lives in localStorage
-    if (token && !Cookies.get('token')) {
-      Cookies.set('token', token, { expires: 7 });
+    delete headers['Authorization'];
+    delete headers['authorization'];
+
+    const url = toBrowserProxyUrl(endpoint);
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'same-origin',
+    });
+
+    if (response.status === 401) {
+      console.warn('Token expired or unauthorized request!');
     }
-  } else {
-    try {
-      const { cookies } = await import('next/headers');
-      const cookieStore = await cookies();
-      token = cookieStore.get('token')?.value;
-    } catch (error) {
-      console.warn('fetchAPI: Could not read cookies in this server context.');
+
+    if (response.status === 429) {
+      console.error(
+        'Too many requests were sent. System crashing was prevented.'
+      );
+      alert("You've tried too many times. Please wait a minute and try again.");
+      throw new Error('Rate limit exceeded');
     }
+
+    return response;
   }
 
-  // Do not let callers accidentally wipe Authorization
+  // Server-side: attach token from HttpOnly cookie when present
+  let token: string | undefined;
+  try {
+    const { cookies } = await import('next/headers');
+    const cookieStore = await cookies();
+    token = cookieStore.get('token')?.value;
+  } catch {
+    console.warn('fetchAPI: Could not read cookies in this server context.');
+  }
+
   if (token && !headers['Authorization'] && !headers['authorization']) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -49,9 +78,6 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     console.error(
       'Too many requests were sent. System crashing was prevented.'
     );
-    if (typeof window !== 'undefined') {
-      alert("You've tried too many times. Please wait a minute and try again.");
-    }
     throw new Error('Rate limit exceeded');
   }
 

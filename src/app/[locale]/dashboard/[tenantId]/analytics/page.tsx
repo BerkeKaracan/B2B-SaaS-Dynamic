@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
 import { fetchAPI } from '@/services/api';
 import {
   Download,
@@ -167,14 +166,6 @@ export default function AnalyticsDashboardPage({
     setLoadError(false);
     setAccessDenied(false);
     try {
-      const token =
-        Cookies.get('token') ||
-        (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-
       const res = await fetchAPI(
         `/api/tenants/${tenantId}/analytics?t=${new Date().getTime()}`,
         {

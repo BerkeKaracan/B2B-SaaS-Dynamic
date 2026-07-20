@@ -1,17 +1,46 @@
-from fastapi import APIRouter, HTTPException, Header, Depends
+from fastapi import APIRouter, HTTPException, Header, Depends, Request
 from pydantic import BaseModel, EmailStr, Field
 from uuid import UUID
 from typing import Optional, List, Tuple, Dict
 from datetime import datetime, timezone
 from collections import defaultdict
 
+import os
+
 from core.database import supabase, supabase_admin, get_auth_client
-from api.routers.records import get_user_role
+from core.limiter import limiter
+from core.internal_auth import require_internal_secret
+from api.routers.records import get_user_role, invalidate_user_role_cache
 
 router = APIRouter(
     prefix="/api/tenants",
     tags=["Tenants"],
 )
+
+# System roles that may be assigned via invite / PATCH (never owner).
+ASSIGNABLE_ROLES = frozenset({"admin", "employee"})
+
+
+def _normalize_assignable_role(raw_role: str, actor_role: str) -> str:
+    role = (raw_role or "").lower().strip()
+    if role == "owner":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot assign 'owner' directly. Use transfer ownership instead.",
+        )
+    if role not in ASSIGNABLE_ROLES:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid role. Allowed: admin, employee",
+        )
+    # Only workspace owners may grant admin (prevents admin→admin privilege loops).
+    if role == "admin" and actor_role != "owner":
+        raise HTTPException(
+            status_code=403,
+            detail="Only the workspace owner can grant the admin role.",
+        )
+    return role
+
 
 class SetPasswordRequest(BaseModel):
     password: str
@@ -79,11 +108,17 @@ def get_tenant(tenant_id: UUID, user: dict = Depends(get_user_role)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/by-slug/{slug}")
-def get_tenant_by_slug(slug: str):
+@limiter.limit("30/minute")
+def get_tenant_by_slug(
+    request: Request,
+    slug: str,
+    _: None = Depends(require_internal_secret),
+):
+    """Middleware-only slug resolve. Requires X-Internal-Secret (opaque 404 otherwise)."""
     try:
         response = supabase_admin.table("tenants").select("id").eq("slug", slug).execute()
         if not response.data:
-            raise HTTPException(status_code=404, detail="Workspace not found for this slug")
+            raise HTTPException(status_code=404, detail="Not found")
         return response.data[0]
     except HTTPException:
         raise
@@ -91,18 +126,49 @@ def get_tenant_by_slug(slug: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/{tenant_id}/tier")
-def update_tenant_tier(tenant_id: UUID, request: UpdateTierRequest, user: dict = Depends(get_user_role)):
+def update_tenant_tier(
+    tenant_id: UUID,
+    request: UpdateTierRequest,
+    user: dict = Depends(get_user_role),
+):
+    """Self-service tier updates are demo-only.
+
+    Production always rejects. Local demos require ENVIRONMENT=development
+    AND ALLOW_DEMO_TIER_SWITCH=true. Ops/tier writes use POST /api/internal/...
+    """
+    allow_demo = os.getenv("ALLOW_DEMO_TIER_SWITCH", "").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    environment = os.getenv("ENVIRONMENT", "development").lower()
+    is_prod = environment == "production" or os.getenv("RENDER", "").lower() == "true"
+    is_dev = environment in ("development", "dev", "local")
+
+    if is_prod or not (is_dev and allow_demo):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Plan changes must go through billing. "
+                "Self-service tier updates are disabled."
+            ),
+        )
+
     try:
         current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
         if current_role not in ["admin", "owner"]:
             raise HTTPException(status_code=403, detail="Unauthorized")
-            
+
         valid_tiers = ["basic", "advanced", "pro"]
         if request.tier not in valid_tiers:
             raise HTTPException(status_code=400, detail="Invalid tier")
-            
-        supabase_admin.table("tenants").update({"tier": request.tier}).eq("id", str(tenant_id)).execute()
-        return {"message": f"Plan upgraded to {request.tier.upper()}"}
+
+        supabase_admin.table("tenants").update({"tier": request.tier}).eq(
+            "id", str(tenant_id)
+        ).execute()
+        return {"message": f"Demo plan set to {request.tier.upper()}"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -200,12 +266,8 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
         limits = {"basic": 3, "advanced": 50, "pro": float('inf')}
         limit = limits.get(current_tier, 3)
 
-        if request.role and request.role.lower() == "owner":
-            raise HTTPException(
-                status_code=400, 
-                detail="Cannot invite a user directly as an 'owner'. Invite them as an admin or employee, then transfer ownership."
-            )
-        
+        assigned_role = _normalize_assignable_role(request.role or "employee", current_role)
+
         request_email = request.email.lower().strip()
         
         if request_email == user["email"]:
@@ -251,9 +313,10 @@ def invite_team_member(tenant_id: UUID, request: InviteUserRequest, user: dict =
             "tenant_id": str(tenant_id),
             "user_id": real_user_id,
             "email": request_email,
-            "role": request.role
+            "role": assigned_role,
         }
         supabase_admin.table("tenant_users").insert(new_member).execute()
+        invalidate_user_role_cache(str(real_user_id) if real_user_id else None)
         
         try:
             notification_payload = {
@@ -317,7 +380,22 @@ def remove_member(tenant_id: UUID, member_id: UUID, user: dict = Depends(get_use
         if target_user.data and target_user.data[0].get("role", "").lower() == "owner":
             raise HTTPException(status_code=403, detail="Cannot remove the workspace owner. Transfer ownership first.")
             
+        target_uid = None
+        try:
+            uid_res = (
+                supabase_admin.table("tenant_users")
+                .select("user_id")
+                .eq("id", str(member_id))
+                .eq("tenant_id", str(tenant_id))
+                .execute()
+            )
+            if uid_res.data:
+                target_uid = uid_res.data[0].get("user_id")
+        except Exception:
+            pass
+
         supabase_admin.table("tenant_users").delete().eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
+        invalidate_user_role_cache(str(target_uid) if target_uid else None)
         return {"message": "Member removed successfully"}
     except HTTPException:
         raise
@@ -330,11 +408,14 @@ def update_team_member(tenant_id: UUID, member_id: UUID, request: UpdateTeamMemb
         current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
         if current_role not in ["admin", "owner"]:
             raise HTTPException(status_code=403, detail="Unauthorized: Only admins and owners can update roles")
-            
-        if request.role and request.role.lower() == "owner":
-            raise HTTPException(status_code=400, detail="Cannot assign 'owner' role directly. Use transfer ownership instead.")
 
-        target_user = supabase_admin.table("tenant_users").select("role").eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
+        target_user = (
+            supabase_admin.table("tenant_users")
+            .select("role, user_id")
+            .eq("id", str(member_id))
+            .eq("tenant_id", str(tenant_id))
+            .execute()
+        )
         if target_user.data and target_user.data[0].get("role", "").lower() == "owner":
             raise HTTPException(status_code=403, detail="Cannot modify the role of the workspace owner.")
             
@@ -345,8 +426,15 @@ def update_team_member(tenant_id: UUID, member_id: UUID, request: UpdateTeamMemb
         update_data = {}
         for key, value in provided_data.items():
             update_data[key] = None if value == "" else value
+
+        if "role" in update_data and update_data["role"] is not None:
+            update_data["role"] = _normalize_assignable_role(
+                str(update_data["role"]), current_role
+            )
             
         supabase_admin.table("tenant_users").update(update_data).eq("id", str(member_id)).eq("tenant_id", str(tenant_id)).execute()
+        if target_user.data:
+            invalidate_user_role_cache(str(target_user.data[0].get("user_id")))
         return {"message": "Member updated successfully"}
         
     except HTTPException:
@@ -384,7 +472,13 @@ def transfer_ownership(tenant_id: UUID, request: TransferOwnershipRequest, user:
         if current_role != "owner":
             raise HTTPException(status_code=403, detail="Unauthorized: Only the current owner can transfer ownership")
             
-        target_member = supabase_admin.table("tenant_users").select("id, role").eq("id", str(request.new_owner_member_id)).eq("tenant_id", str(tenant_id)).execute()
+        target_member = (
+            supabase_admin.table("tenant_users")
+            .select("id, role, user_id")
+            .eq("id", str(request.new_owner_member_id))
+            .eq("tenant_id", str(tenant_id))
+            .execute()
+        )
         
         if not target_member.data:
             raise HTTPException(status_code=404, detail="Target member not found in this workspace")
@@ -392,8 +486,14 @@ def transfer_ownership(tenant_id: UUID, request: TransferOwnershipRequest, user:
         if target_member.data[0].get("role", "").lower() == "owner":
             raise HTTPException(status_code=400, detail="Target user is already the owner")
 
+        previous_owner_id = user.get("user_id")
+        new_owner_uid = target_member.data[0].get("user_id")
+
         supabase_admin.table("tenant_users").update({"role": "admin"}).eq("tenant_id", str(tenant_id)).eq("role", "owner").execute()
         supabase_admin.table("tenant_users").update({"role": "owner"}).eq("id", str(request.new_owner_member_id)).eq("tenant_id", str(tenant_id)).execute()
+
+        invalidate_user_role_cache(str(previous_owner_id) if previous_owner_id else None)
+        invalidate_user_role_cache(str(new_owner_uid) if new_owner_uid else None)
 
         return {"message": "Ownership transferred successfully"}
     except HTTPException:

@@ -20,7 +20,6 @@ import {
 } from '@/components/workspace/ProjectToolbarSlot';
 import { Calendar } from '@/components/ui/calendar';
 import toast from 'react-hot-toast';
-import Cookies from 'js-cookie';
 import {
   Loader2,
   Link2,
@@ -606,12 +605,11 @@ export default function StaticKanbanBoard({
 
       if (newTaskAssignee.includes('@')) {
         try {
-          const token = Cookies.get('token');
           fetch('/api/send-email', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
               'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: JSON.stringify({
               email: newTaskAssignee,

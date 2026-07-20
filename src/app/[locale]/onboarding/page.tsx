@@ -30,23 +30,10 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     const verifySession = async () => {
-      const token = Cookies.get('token') || localStorage.getItem('token');
-
-      if (!token) {
-        window.location.href = '/login';
-        return;
-      }
-
-      if (!Cookies.get('token')) {
-        Cookies.set('token', token, { expires: 7 });
-      }
-
       try {
         const res = await fetchAPI('/api/auth/me');
 
         if (!res.ok) {
-          Cookies.remove('token');
-          localStorage.removeItem('token');
           window.location.href = '/login';
           return;
         }
@@ -67,8 +54,6 @@ export default function OnboardingPage() {
           setIsChecking(false);
         }
       } catch {
-        Cookies.remove('token');
-        localStorage.removeItem('token');
         window.location.href = '/login';
       }
     };

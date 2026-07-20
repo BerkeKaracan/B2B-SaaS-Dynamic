@@ -2,7 +2,6 @@
 import React, { useState, useEffect, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchAPI } from '@/services/api';
-import Cookies from 'js-cookie';
 import {
   Users,
   Building2,
@@ -87,12 +86,6 @@ export default function TeamManagementPage({
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const token = Cookies.get('token') || localStorage.getItem('token');
-        if (!token) {
-          router.push('/login');
-          return;
-        }
-
         const authRes = await fetchAPI(
           `/api/auth/me?t=${new Date().getTime()}`,
           {
@@ -100,6 +93,11 @@ export default function TeamManagementPage({
             cache: 'no-store',
           }
         );
+
+        if (authRes.status === 401) {
+          router.push('/login');
+          return;
+        }
 
         if (!authRes.ok) throw new Error('Not logged in or token expired');
 

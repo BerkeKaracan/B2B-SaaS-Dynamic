@@ -16,58 +16,110 @@ router = APIRouter(
 )
 
 redis_client = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
-CACHE_TTL_SECONDS = 300
+# Role map TTL (keyed by user_id). Token blacklist covers logout within this window.
+CACHE_TTL_SECONDS = 120
+TOKEN_BLACKLIST_TTL_SECONDS = 300
+
+
+def _roles_cache_key(user_id: str) -> str:
+    return f"auth_roles:{user_id}"
+
+
+def _token_blacklist_key(token: str) -> str:
+    return f"auth_blacklist:{token}"
+
+
+def invalidate_user_role_cache(user_id: str | None) -> None:
+    """Call after invite/role/membership changes so RBAC is not stale."""
+    if not user_id:
+        return
+    try:
+        redis_client.delete(_roles_cache_key(str(user_id)))
+    except Exception as e:
+        print(f"Redis invalidate role cache error: {e}")
+
+
+def blacklist_auth_token(token: str | None, ttl: int = TOKEN_BLACKLIST_TTL_SECONDS) -> None:
+    """Invalidate a JWT for API auth cache / get_user_role until natural expiry window."""
+    if not token:
+        return
+    try:
+        redis_client.setex(_token_blacklist_key(token), ttl, "1")
+        # Legacy key from pre-hardening cache (auth_token:{jwt})
+        redis_client.delete(f"auth_token:{token}")
+    except Exception as e:
+        print(f"Redis blacklist error: {e}")
+
 
 def get_user_role(authorization: str = Header(None)) -> dict:
     if not authorization:
         raise HTTPException(status_code=401, detail="Missing Authorization header")
     
     token = authorization.replace("Bearer ", "")
-    
-    try:
-        cached_data_str = redis_client.get(f"auth_token:{token}")
-        if cached_data_str:
-            cached_data = json.loads(cached_data_str)
-            cached_data["client"] = get_auth_client(token) 
-            return cached_data
-    except Exception as e:
-        print(f"Redis Read Error: {str(e)}")
 
     try:
+        if redis_client.get(_token_blacklist_key(token)):
+            raise HTTPException(status_code=401, detail="Session revoked")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Redis blacklist read error: {e}")
+
+    try:
+        # Always validate the JWT with Supabase (signature / expiry).
+        # Cache only tenant_roles by user_id so logout + role changes can invalidate.
         user_res = supabase.auth.get_user(token)
         if not user_res or not user_res.user:
             raise HTTPException(status_code=401, detail="Invalid session")
-            
+
         user_id = user_res.user.id
         email = str(user_res.user.email).lower().strip()
         full_name = email.split("@")[0]
-        
-        role_res = supabase_admin.table("tenant_users").select("role, tenant_id").eq("user_id", user_id).execute()
-        
-        tenant_roles = {}
-        if role_res.data:
-            for row in role_res.data:
-                tenant_roles[str(row.get("tenant_id"))] = str(row.get("role", "employee")).lower()
-            
-        if not tenant_roles:
-            raise HTTPException(status_code=403, detail="User does not belong to any workspace")
-            
-        result = {
-            "user_id": user_id, 
-            "full_name": full_name, 
-            "email": email, 
-            "tenant_roles": tenant_roles,
-        }
-        
+
+        tenant_roles = None
         try:
-            redis_client.setex(f"auth_token:{token}", CACHE_TTL_SECONDS, json.dumps(result))
+            cached_roles = redis_client.get(_roles_cache_key(user_id))
+            if cached_roles:
+                tenant_roles = json.loads(cached_roles)
         except Exception as e:
-            print(f"Redis Write Error: {str(e)}")
-        
-        result_copy = result.copy()
-        result_copy["client"] = get_auth_client(token)
-        return result_copy
-        
+            print(f"Redis Read Error: {str(e)}")
+
+        if tenant_roles is None:
+            role_res = (
+                supabase_admin.table("tenant_users")
+                .select("role, tenant_id")
+                .eq("user_id", user_id)
+                .execute()
+            )
+            tenant_roles = {}
+            if role_res.data:
+                for row in role_res.data:
+                    tenant_roles[str(row.get("tenant_id"))] = str(
+                        row.get("role", "employee")
+                    ).lower()
+            try:
+                redis_client.setex(
+                    _roles_cache_key(user_id),
+                    CACHE_TTL_SECONDS,
+                    json.dumps(tenant_roles),
+                )
+            except Exception as e:
+                print(f"Redis Write Error: {str(e)}")
+
+        if not tenant_roles:
+            raise HTTPException(
+                status_code=403, detail="User does not belong to any workspace"
+            )
+
+        return {
+            "user_id": user_id,
+            "full_name": full_name,
+            "email": email,
+            "tenant_roles": tenant_roles,
+            "client": get_auth_client(token),
+            "token": token,
+        }
+
     except HTTPException:
         raise
     except Exception as e:

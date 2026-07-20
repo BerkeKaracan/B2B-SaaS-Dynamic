@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import ColdStartAlert from '@/components/ColdStartAlert';
-import Cookies from 'js-cookie';
 import { AlertCircle, ArrowRight, Loader2, Lock, Mail, User } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { getApiBaseUrl } from '@/lib/apiBase';
+import { fetchAPI } from '@/services/api';
+import Cookies from 'js-cookie';
 import AuthShell, {
   AuthCheckingScreen,
   AuthPanelNodes,
@@ -37,18 +38,26 @@ export default function RegisterPage() {
   const API_BASE_URL = getApiBaseUrl();
 
   useEffect(() => {
-    const token = Cookies.get('token') || localStorage.getItem('token');
-    if (token) {
-      const savedTenant = Cookies.get('tenant_id');
-      if (savedTenant) {
-        router.replace(`/dashboard/${savedTenant}/projects`);
-      } else {
-        router.replace('/onboarding');
+    const check = async () => {
+      try {
+        const res = await fetchAPI('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          const savedTenant =
+            data.tenant_id || Cookies.get('tenant_id') || null;
+          if (savedTenant) {
+            router.replace(`/dashboard/${savedTenant}/projects`);
+          } else {
+            router.replace('/onboarding');
+          }
+          return;
+        }
+      } catch {
+        /* not signed in */
       }
-    } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsChecking(false);
-    }
+    };
+    void check();
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {

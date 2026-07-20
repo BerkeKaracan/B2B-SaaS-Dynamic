@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchAPI } from '@/services/api';
-import Cookies from 'js-cookie';
 import { useTranslations } from 'next-intl';
 import {
   ShieldAlert,
@@ -128,15 +127,14 @@ export default function AdvancedSettingsPage({
   useEffect(() => {
     const fetchWorkspaceData = async () => {
       try {
-        const token = Cookies.get('token') || localStorage.getItem('token');
-        if (!token) {
-          router.push('/login');
-          return;
-        }
-
         const authRes = await fetchAPI('/api/auth/me', {
           headers: { 'x-tenant-id': tenantId },
         });
+
+        if (authRes.status === 401) {
+          router.push('/login');
+          return;
+        }
 
         if (!authRes.ok) throw new Error('Not logged in');
         const authData = await authRes.json();

@@ -17,6 +17,7 @@ interface TenantState {
   tenant: Tenant | null;
   fetchTenant: (tenantId: string) => Promise<void>;
   updateTenantState: (updates: Partial<Tenant>) => void;
+  clearTenant: () => void;
 }
 
 export const useTenantStore = create<TenantState>()(
@@ -39,6 +40,8 @@ export const useTenantStore = create<TenantState>()(
           if (res.ok) {
             const data = await res.json();
             set({ tenant: data });
+          } else if (res.status === 403 || res.status === 401) {
+            set({ tenant: null });
           }
         } catch (error) {
           console.error("Failed to fetch tenant data:", error);
@@ -54,6 +57,8 @@ export const useTenantStore = create<TenantState>()(
               : null,
         }));
       },
+
+      clearTenant: () => set({ tenant: null }),
     }),
     {
       name: "tenant-storage",

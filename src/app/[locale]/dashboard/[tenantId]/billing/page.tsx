@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect, use, useMemo } from 'react';
 import { fetchAPI } from '@/services/api';
-import Cookies from 'js-cookie';
 import {
   CreditCard,
   CheckCircle2,
@@ -63,6 +62,11 @@ export default function BillingPage({
 
   const currency: SupportedCurrency = normalizeCurrency(tenant?.currency);
 
+  /** Demo self-upgrade only when explicitly enabled for local/dev UI. */
+  const allowDemoTierSwitch =
+    process.env.NEXT_PUBLIC_ALLOW_DEMO_TIER_SWITCH === 'true' ||
+    process.env.NEXT_PUBLIC_ALLOW_DEMO_TIER_SWITCH === '1';
+
   const strictNoCacheHeaders = {
     'x-tenant-id': tenantId,
     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -73,12 +77,6 @@ export default function BillingPage({
   useEffect(() => {
     const loadBillingData = async () => {
       try {
-        const token = Cookies.get('token') || localStorage.getItem('token');
-        if (!token) {
-          window.location.href = '/login';
-          return;
-        }
-
         const fetchOptions = {
           headers: strictNoCacheHeaders,
           cache: 'no-store' as RequestCache,
@@ -95,6 +93,11 @@ export default function BillingPage({
           ),
           fetchAPI(`/api/fx/rates?base=USD&symbols=EUR,GBP,TRY`),
         ]);
+
+        if (tenantRes.status === 401 || teamRes.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
 
         if (tenantRes.ok) {
           const tenantData = await tenantRes.json();
@@ -160,6 +163,13 @@ export default function BillingPage({
   };
 
   const handleUpgradePlan = async (selectedTier: PlanId) => {
+    if (!allowDemoTierSwitch) {
+      showNotification(
+        'error',
+        'Plans are managed by your administrator.'
+      );
+      return;
+    }
     if (!tenant) return;
     if (tenant.tier === selectedTier) return;
 
@@ -172,18 +182,26 @@ export default function BillingPage({
       });
 
       if (!res.ok) {
-        throw new Error('Failed to update subscription plan.');
+        const errBody = await res.json().catch(() => null);
+        const detail =
+          typeof errBody?.detail === 'string'
+            ? errBody.detail
+            : 'Plan changes must go through billing.';
+        throw new Error(detail);
       }
 
       setTenant({ ...tenant, tier: selectedTier });
-      // Keep zustand in sync so useFeatureFlag re-evaluates immediately.
       updateTenantState({ tier: selectedTier });
       showNotification(
         'success',
         `Demo tier switched to ${selectedTier.toUpperCase()} (no charge).`
       );
-    } catch {
-      showNotification('error', 'Error updating plan. Please try again.');
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Error updating plan. Please try again.';
+      showNotification('error', message);
     } finally {
       setIsUpdating(false);
     }
@@ -230,9 +248,9 @@ export default function BillingPage({
           <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-amber-900">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <p className="text-sm font-medium leading-relaxed">
-              <span className="font-bold">Portfolio demo</span> — no real
-              charges, Stripe, or payment methods. Plan buttons only switch a
-              demo tier for this workspace.
+              <span className="font-bold">No self-service billing</span> — plans
+              are managed by your administrator. There are no charges, Stripe,
+              or payment methods on this page.
             </p>
           </div>
           <h1 className="text-3xl font-black text-zinc-900 tracking-tight flex items-center gap-3">
@@ -240,7 +258,8 @@ export default function BillingPage({
             Billing & Plans
           </h1>
           <p className="text-sm text-zinc-500 mt-1 font-medium">
-            Switch demo tiers and explore usage UI. Nothing here is billed.
+            View your current plan and seat usage. Plan changes are
+            administrator-managed.
           </p>
           {fxSource === 'fallback' && (
             <p className="text-xs text-amber-600 mt-2 font-medium flex items-center gap-1.5">
@@ -344,8 +363,14 @@ export default function BillingPage({
           mode="workspace"
           formatPrice={formatUsdPrice}
           currentTier={currentTier}
-          onSelectPlan={handleUpgradePlan}
+          onSelectPlan={allowDemoTierSwitch ? handleUpgradePlan : undefined}
           isUpdating={isUpdating}
+          upgradesDisabled={!allowDemoTierSwitch}
+          upgradesDisabledReason={
+            allowDemoTierSwitch
+              ? undefined
+              : 'Plans are managed by your administrator.'
+          }
           isAnnual={isAnnual}
           onAnnualChange={setIsAnnual}
         />

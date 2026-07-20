@@ -26,6 +26,7 @@ from models.auth import (
     MfaUnenrollRequest,
 )
 from core.limiter import limiter
+from api.routers.records import blacklist_auth_token, invalidate_user_role_cache
 
 router = APIRouter(
     prefix="/api/auth",
@@ -280,10 +281,13 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
         if not initials:
             initials = "US"
 
-        current_tenant_id = request.headers.get("x-tenant-id") or request.headers.get("tenant-id")
+        requested_tenant_id = request.headers.get("x-tenant-id") or request.headers.get("tenant-id")
+        if requested_tenant_id in ("undefined", "null", ""):
+            requested_tenant_id = None
         
-        role = "employee" 
-        resolved_tenant_id = current_tenant_id
+        role = "employee"
+        # Never echo a spoofed x-tenant-id until membership is proven
+        resolved_tenant_id = None
         
         custom_role_name = None
         department_name = None
@@ -291,22 +295,31 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
         timezone = None
 
         try:
-            query = supabase_admin.table("tenant_users").select("tenant_id, role, custom_role_id, department_id, job_title, timezone").eq("user_id", user_res.user.id)
-            if current_tenant_id and current_tenant_id not in ["undefined", "null"]:
-                query = query.eq("tenant_id", current_tenant_id)
+            base_query = (
+                supabase_admin.table("tenant_users")
+                .select(
+                    "tenant_id, role, custom_role_id, department_id, job_title, timezone"
+                )
+                .eq("user_id", user_res.user.id)
+            )
+
+            membership_row = None
+            if requested_tenant_id:
+                role_res = base_query.eq("tenant_id", requested_tenant_id).execute()
+                if role_res.data:
+                    membership_row = role_res.data[0]
             else:
-                query = query.order("created_at", desc=True)
-                
-            role_res = query.execute()
-            if role_res.data:
-                role = role_res.data[0].get("role", "employee")
-                custom_role_id = role_res.data[0].get("custom_role_id")
-                department_id = role_res.data[0].get("department_id")
-                job_title = role_res.data[0].get("job_title")
-                timezone = role_res.data[0].get("timezone")
-                
-                if not resolved_tenant_id:
-                    resolved_tenant_id = role_res.data[0].get("tenant_id")
+                role_res = base_query.order("created_at", desc=True).limit(1).execute()
+                if role_res.data:
+                    membership_row = role_res.data[0]
+
+            if membership_row:
+                role = membership_row.get("role", "employee")
+                resolved_tenant_id = membership_row.get("tenant_id")
+                custom_role_id = membership_row.get("custom_role_id")
+                department_id = membership_row.get("department_id")
+                job_title = membership_row.get("job_title")
+                timezone = membership_row.get("timezone")
 
                 if custom_role_id:
                     cr_res = supabase_admin.table("custom_roles").select("name").eq("id", custom_role_id).execute()
@@ -318,15 +331,8 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
                     if dp_res.data:
                         department_name = dp_res.data[0]["name"]
 
-            if not resolved_tenant_id:
-                # Do not auto-create a workspace here — that skips the
-                # frontend /onboarding flow. Users without a tenant_users
-                # row must complete onboarding explicitly.
-                pass
-
         except Exception as ex:
             print("Role fetch error:", ex)
-            pass 
         
         return {
             "user_id": user_res.user.id,
@@ -341,8 +347,24 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
             "job_title": job_title, 
             "timezone": timezone    
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
+
+
+@router.post("/logout")
+def logout_session(creds: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Revoke the current access token for API auth (Redis blacklist + role cache)."""
+    token = creds.credentials
+    try:
+        user_res = supabase.auth.get_user(token)
+        if user_res and user_res.user:
+            invalidate_user_role_cache(str(user_res.user.id))
+    except Exception:
+        pass
+    blacklist_auth_token(token)
+    return {"message": "Logged out"}
 
 
 @router.put("/me")

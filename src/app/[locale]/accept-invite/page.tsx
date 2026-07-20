@@ -9,6 +9,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/apiBase";
+import { establishClientSession } from "@/lib/authCookies";
 
 function AcceptInviteContent() {
   const router = useRouter();
@@ -97,11 +98,8 @@ function AcceptInviteContent() {
       }
 
       const data = await res.json();
-      if (data.access_token) {
-        localStorage.setItem("token", data.access_token);
-      } else {
-        localStorage.setItem("token", tokenInfo.token);
-      }
+      const nextToken = data.access_token || tokenInfo.token;
+      await establishClientSession(nextToken);
 
       setSuccess(true);
 

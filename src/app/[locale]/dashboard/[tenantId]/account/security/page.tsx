@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { fetchAPI } from '@/services/api';
-import Cookies from 'js-cookie';
+import { establishClientSession } from '@/lib/authCookies';
 import {
   Shield,
   KeyRound,
@@ -30,23 +30,6 @@ type EnrollData = {
   uri: string;
 };
 
-function getSessionToken(): string {
-  const token =
-    Cookies.get('token') ||
-    (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
-  if (!token) {
-    throw new Error('You are not signed in. Please log in again.');
-  }
-  if (!Cookies.get('token')) {
-    Cookies.set('token', token, { expires: 7 });
-  }
-  return token;
-}
-
-function authHeaders(): Record<string, string> {
-  return { Authorization: `Bearer ${getSessionToken()}` };
-}
-
 export default function SecuritySettingsPage() {
   const { updatePassword } = useAuthStore();
 
@@ -72,9 +55,7 @@ export default function SecuritySettingsPage() {
   const loadMfaStatus = useCallback(async () => {
     setMfaLoading(true);
     try {
-      const res = await fetchAPI('/api/auth/mfa/status', {
-        headers: authHeaders(),
-      });
+      const res = await fetchAPI('/api/auth/mfa/status');
       if (!res.ok) throw new Error('Failed to load 2FA status');
       const data = (await res.json()) as MfaStatus;
       setMfaStatus(data);
@@ -135,7 +116,6 @@ export default function SecuritySettingsPage() {
     try {
       const res = await fetchAPI('/api/auth/mfa/enroll', {
         method: 'POST',
-        headers: authHeaders(),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -168,7 +148,6 @@ export default function SecuritySettingsPage() {
     try {
       const res = await fetchAPI('/api/auth/mfa/verify-enrollment', {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify({
           factor_id: enrollData.factor_id,
           code: mfaCode.trim(),
@@ -183,8 +162,7 @@ export default function SecuritySettingsPage() {
         );
       }
       if (data.access_token) {
-        Cookies.set('token', data.access_token, { expires: 7 });
-        localStorage.setItem('token', data.access_token);
+        await establishClientSession(data.access_token);
       }
       setEnrollData(null);
       setMfaCode('');
@@ -216,7 +194,6 @@ export default function SecuritySettingsPage() {
     try {
       const res = await fetchAPI(`/api/auth/mfa/factors/${factorId}`, {
         method: 'DELETE',
-        headers: authHeaders(),
         body: JSON.stringify({ code: mfaCode.trim() }),
       });
       const data = await res.json();

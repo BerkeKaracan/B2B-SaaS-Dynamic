@@ -34,14 +34,20 @@ export default function DashboardClientWrapper({
     useLayoutStore();
 
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+    fetchUser(tenantId);
+  }, [fetchUser, tenantId]);
 
   useEffect(() => {
     if (!isCheckingAuth && !isAuthenticated) {
       router.replace('/login');
+      return;
     }
-  }, [isCheckingAuth, isAuthenticated, router]);
+    if (!isCheckingAuth && isAuthenticated && user) {
+      if (!user.tenant_id || String(user.tenant_id) !== String(tenantId)) {
+        router.replace('/onboarding');
+      }
+    }
+  }, [isCheckingAuth, isAuthenticated, router, user, tenantId]);
 
   useEffect(() => {
     if (isDesignView && projectId) {

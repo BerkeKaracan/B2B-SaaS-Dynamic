@@ -2,6 +2,11 @@ import { create } from 'zustand';
 import Cookies from 'js-cookie';
 import { fetchAPI } from '@/services/api';
 import { uploadImageViaPresignedUrl } from '@/lib/s3Upload';
+import {
+  clearClientAuthStorage,
+  clearClientSession,
+  establishClientSession,
+} from '@/lib/authCookies';
 
 export interface User {
   id?: string;
@@ -42,21 +47,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   fetchUser: async (tenantId?: string) => {
     try {
-      const token =
-        Cookies.get('token') ||
-        (typeof window !== 'undefined'
-          ? localStorage.getItem('token')
-          : null);
-
-      if (!token) {
-        set({ user: null, isAuthenticated: false, isCheckingAuth: false });
-        return;
-      }
-
-      if (!Cookies.get('token')) {
-        Cookies.set('token', token, { expires: 7 });
-      }
-
       const options: RequestInit = {};
 
       const activeTenantId =
@@ -74,15 +64,26 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       if (res.ok) {
         const userData: User = await res.json();
-        set({ user: userData, isAuthenticated: true, isCheckingAuth: false });
-      } else {
-        Cookies.remove('token');
-        Cookies.remove('tenant_id');
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('tenant_id');
-          localStorage.removeItem('refresh_token');
+        if (
+          activeTenantId &&
+          (!userData.tenant_id ||
+            String(userData.tenant_id) !== String(activeTenantId))
+        ) {
+          Cookies.remove('tenant_id');
+          try {
+            localStorage.removeItem('tenant_id');
+          } catch {
+            /* ignore */
+          }
         }
+        set({
+          user: userData,
+          isAuthenticated: true,
+          isCheckingAuth: false,
+        });
+      } else {
+        await clearClientSession();
+        clearClientAuthStorage();
         set({ user: null, isAuthenticated: false, isCheckingAuth: false });
       }
     } catch (error) {
@@ -92,18 +93,27 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
-    Cookies.remove('token');
-    Cookies.remove('tenant_id');
+    // Best-effort server-side token blacklist (do not block UI clear)
+    void fetchAPI('/api/auth/logout', { method: 'POST' }).catch(
+      () => undefined
+    );
+
+    void clearClientSession().finally(() => {
+      clearClientAuthStorage();
+    });
+
+    void import('@/store/useTenantStore')
+      .then(({ useTenantStore }) => {
+        useTenantStore.setState({ tenant: null });
+        try {
+          useTenantStore.persist?.clearStorage?.();
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => undefined);
+
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('tenant_id');
-      localStorage.removeItem('refresh_token');
-      try {
-        sessionStorage.clear();
-      } catch {
-        /* ignore */
-      }
-      // Drop any Supabase browser session so OAuth/MFA clients cannot revive auth
       void import('@/lib/supabaseClient')
         .then(({ supabase }) => supabase.auth.signOut({ scope: 'local' }))
         .catch(() => undefined);
@@ -111,7 +121,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     set({ user: null, isAuthenticated: false, isCheckingAuth: false });
     if (typeof window !== 'undefined') {
-      // Hard navigate to login so auto-auth effects cannot rehydrate stale state
       window.location.href = '/login';
     }
   },
@@ -142,14 +151,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   uploadAvatar: async (file) => {
-    const token =
-      Cookies.get('token') ||
-      (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
-    if (!token) throw new Error('No token found');
-    if (!Cookies.get('token')) {
-      Cookies.set('token', token, { expires: 7 });
-    }
-
     const fileUrl = await uploadImageViaPresignedUrl(file, 'avatars');
 
     const persistRes = await fetchAPI('/api/auth/avatar', {
@@ -182,3 +183,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 }));
+
+// Re-export for callers that need to set session after password/MFA flows
+export { establishClientSession };
