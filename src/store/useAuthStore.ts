@@ -91,8 +91,17 @@ export const useAuthStore = create<AuthState>((set) => ({
           isCheckingAuth: false,
         });
       } else {
-        await clearClientSession();
-        clearClientAuthStorage();
+        // #region agent log
+        // Do NOT clear HttpOnly session here — finishLogin sets the cookie then
+        // calls fetchUser; wiping on a transient /me 401 caused authenticated:false.
+        // Invalid cookies are cleared by middleware on protected routes / logout.
+        agentDebugLog(
+          'D',
+          'useAuthStore.ts:fetchUser',
+          'me failed — skipping clearClientSession',
+          { status: res.status }
+        );
+        // #endregion
         set({ user: null, isAuthenticated: false, isCheckingAuth: false });
       }
     } catch (error) {

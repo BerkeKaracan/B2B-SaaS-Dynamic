@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { agentDebugLog } from '@/lib/agentDebugLog';
+import {
+  agentDebugLog,
+  agentDebugLogServer,
+  cookieNamesFromHeader,
+} from '@/lib/agentDebugLog';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -60,9 +64,34 @@ function maybeAttachSessionCookie(
 ): string {
   if (status < 200 || status >= 300) {
     response.headers.set('X-Debug-Auth', `skip-status:${status}`);
+    // #region agent log
+    if (AUTH_COOKIE_PATHS.has(path) || path.includes('auth/login')) {
+      agentDebugLogServer(
+        'A',
+        'backend/[...path]/route.ts:maybeAttach',
+        'skip cookie — non-2xx',
+        { requestPath: path, status, setCookieAttempted: false }
+      );
+    }
+    // #endregion
     return `skip-status:${status}`;
   }
   if (!AUTH_COOKIE_PATHS.has(path)) {
+    // #region agent log
+    if (path.includes('auth/login') || path.includes('auth/mfa')) {
+      agentDebugLogServer(
+        'E',
+        'backend/[...path]/route.ts:maybeAttach',
+        'skip cookie — path not in AUTH_COOKIE_PATHS',
+        {
+          requestPath: path,
+          status,
+          setCookieAttempted: false,
+          authCookiePaths: [...AUTH_COOKIE_PATHS],
+        }
+      );
+    }
+    // #endregion
     return 'skip-path';
   }
 
@@ -74,19 +103,38 @@ function maybeAttachSessionCookie(
     // MFA challenge returns a temporary token; wait for mfa/verify
     if (data.mfa_required) {
       response.headers.set('X-Debug-Auth', 'skip-mfa');
+      // #region agent log
+      agentDebugLogServer(
+        'A',
+        'backend/[...path]/route.ts:maybeAttach',
+        'skip cookie — mfa_required',
+        { requestPath: path, status, setCookieAttempted: false }
+      );
+      // #endregion
       return 'skip-mfa';
     }
     const accessToken = (data.access_token || '').trim();
     if (!accessToken || accessToken.split('.').length !== 3) {
       response.headers.set('X-Debug-Auth', 'skip-no-jwt');
+      // #region agent log
+      agentDebugLogServer(
+        'A',
+        'backend/[...path]/route.ts:maybeAttach',
+        'skip cookie — no jwt',
+        {
+          requestPath: path,
+          status,
+          setCookieAttempted: false,
+          hasAccessToken: !!accessToken,
+          parts: accessToken ? accessToken.split('.').length : 0,
+        }
+      );
+      // #endregion
       return 'skip-no-jwt';
     }
 
-    response.cookies.set(
-      TOKEN_COOKIE,
-      accessToken,
-      sessionCookieOptions(request)
-    );
+    const opts = sessionCookieOptions(request);
+    response.cookies.set(TOKEN_COOKIE, accessToken, opts);
     response.headers.set('X-Debug-Auth', 'cookie-set');
     // #region agent log
     agentDebugLog(
@@ -96,14 +144,40 @@ function maybeAttachSessionCookie(
       {
         path,
         status,
-        secure: sessionCookieOptions(request).secure,
+        secure: opts.secure,
         https: request.nextUrl.protocol,
+      }
+    );
+    agentDebugLogServer(
+      'A',
+      'backend/[...path]/route.ts:maybeAttach',
+      'Set-Cookie attempted on BFF login/mfa',
+      {
+        setCookieAttempted: true,
+        cookieName: TOKEN_COOKIE,
+        requestPath: path,
+        status,
+        secure: opts.secure,
+        sameSite: opts.sameSite,
+        pathFlag: opts.path,
+        httpOnly: opts.httpOnly,
+        xfProto: request.headers.get('x-forwarded-proto'),
+        urlProtocol: request.nextUrl.protocol,
+        hypothesisIds: ['A', 'B', 'E'],
       }
     );
     // #endregion
     return 'cookie-set';
   } catch {
     response.headers.set('X-Debug-Auth', 'skip-parse');
+    // #region agent log
+    agentDebugLogServer(
+      'A',
+      'backend/[...path]/route.ts:maybeAttach',
+      'cookie attach parse failed',
+      { requestPath: path, status, setCookieAttempted: false }
+    );
+    // #endregion
     return 'skip-parse';
   }
 }
@@ -202,6 +276,9 @@ async function proxy(
     path.includes('auth/me') ||
     path.includes('auth/mfa')
   ) {
+    const inboundNames = cookieNamesFromHeader(
+      request.headers.get('cookie')
+    );
     agentDebugLog(
       'B',
       'backend/[...path]/route.ts:proxy-end',
@@ -211,6 +288,22 @@ async function proxy(
         upstreamStatus: upstream.status,
         attachResult,
         hadInboundCookie: !!token,
+      }
+    );
+    agentDebugLogServer(
+      'E',
+      'backend/[...path]/route.ts:proxy-end',
+      'BFF auth proxy completed',
+      {
+        requestPath: pathSegments.join('/'),
+        upstreamStatus: upstream.status,
+        attachResult,
+        setCookieAttempted: attachResult === 'cookie-set',
+        cookieName: TOKEN_COOKIE,
+        hadInboundCookie: !!token,
+        inboundCookieNames: inboundNames,
+        viaBff: true,
+        hypothesisIds: ['A', 'E'],
       }
     );
   }

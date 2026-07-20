@@ -1,8 +1,9 @@
 import Cookies from 'js-cookie';
+import { agentDebugLog } from '@/lib/agentDebugLog';
 
 /**
  * Non-secret client cookies (tenant_id only).
- * Access tokens are HttpOnly via /api/auth/session — never store JWT in JS.
+ * Access tokens are HttpOnly via /api/session — never store JWT in JS.
  */
 
 export function tenantCookieOptions(domain?: string): Cookies.CookieAttributes {
@@ -37,6 +38,15 @@ export async function establishClientSession(
       ...(domain ? { domain } : {}),
     }),
   });
+  // #region agent log
+  agentDebugLog('A', 'authCookies.ts:establishClientSession', 'POST /api/session', {
+    status: res.status,
+    ok: res.ok,
+    debugSession: res.headers.get('X-Debug-Session'),
+    hasDomain: !!domain,
+    url: '/api/session',
+  });
+  // #endregion
   if (!res.ok) {
     const err = await res.json().catch(() => null);
     throw new Error(
@@ -48,6 +58,9 @@ export async function establishClientSession(
 /** Clear HttpOnly session cookie. */
 export async function clearClientSession(): Promise<void> {
   try {
+    // #region agent log
+    agentDebugLog('D', 'authCookies.ts:clearClientSession', 'DELETE /api/session', {});
+    // #endregion
     await fetch('/api/session', {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -98,6 +111,13 @@ export async function hasClientSession(): Promise<boolean> {
       credentials: 'same-origin',
       cache: 'no-store',
     });
+    // #region agent log
+    agentDebugLog('C', 'authCookies.ts:hasClientSession', 'GET /api/session', {
+      status: res.status,
+      ok: res.ok,
+      debugSession: res.headers.get('X-Debug-Session'),
+    });
+    // #endregion
     return res.ok;
   } catch {
     return false;

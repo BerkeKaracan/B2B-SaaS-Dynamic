@@ -1,5 +1,9 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  agentDebugLogServer,
+  cookieNamesFromHeader,
+} from '@/lib/agentDebugLog';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,15 +51,43 @@ async function verifyAccessToken(token: string): Promise<boolean> {
 }
 
 /** Cookie-only session probe — does not call FastAPI. */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const jar = await cookies();
   const token = jar.get(TOKEN_COOKIE)?.value;
+  const cookieHeader = request.headers.get('cookie');
+  const cookieNamesPresent = cookieNamesFromHeader(cookieHeader);
+  const authenticated = !!token;
+
+  // #region agent log
+  agentDebugLogServer('C', 'session/route.ts:GET', 'session probe', {
+    hasCookieHeader: !!cookieHeader,
+    cookieNamesPresent,
+    hasTokenCookie: !!token,
+    authenticated,
+    hypothesisIds: ['C', 'D'],
+  });
+  // #endregion
+
   if (!token) {
-    return NextResponse.json({ authenticated: false }, { status: 401 });
+    return NextResponse.json(
+      { authenticated: false },
+      {
+        status: 401,
+        headers: {
+          'Cache-Control': 'no-store',
+          'X-Debug-Session': 'no-token-cookie',
+        },
+      }
+    );
   }
   return NextResponse.json(
     { authenticated: true },
-    { headers: { 'Cache-Control': 'no-store' } }
+    {
+      headers: {
+        'Cache-Control': 'no-store',
+        'X-Debug-Session': 'ok',
+      },
+    }
   );
 }
 
@@ -70,6 +102,18 @@ export async function POST(request: NextRequest) {
 
   const accessToken = (body.access_token || '').trim();
   if (!accessToken || accessToken.split('.').length !== 3) {
+    // #region agent log
+    agentDebugLogServer(
+      'A',
+      'session/route.ts:POST',
+      'reject bad access_token shape',
+      {
+        hasToken: !!accessToken,
+        parts: accessToken ? accessToken.split('.').length : 0,
+        setCookieAttempted: false,
+      }
+    );
+    // #endregion
     return NextResponse.json({ detail: 'access_token required' }, { status: 400 });
   }
 
@@ -82,17 +126,49 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const opts = cookieOptions(request, body.domain || undefined);
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(
-    TOKEN_COOKIE,
-    accessToken,
-    cookieOptions(request, body.domain || undefined)
+  response.cookies.set(TOKEN_COOKIE, accessToken, opts);
+
+  // #region agent log
+  agentDebugLogServer(
+    'A',
+    'session/route.ts:POST',
+    'Set-Cookie attempted',
+    {
+      setCookieAttempted: true,
+      cookieName: TOKEN_COOKIE,
+      secure: opts.secure,
+      sameSite: opts.sameSite,
+      path: opts.path,
+      httpOnly: opts.httpOnly,
+      hasDomain: !!body.domain,
+      softVerifyOk: valid,
+      xfProto: request.headers.get('x-forwarded-proto'),
+      urlProtocol: request.nextUrl.protocol,
+      hypothesisIds: ['A', 'B'],
+    }
   );
+  // #endregion
+
+  response.headers.set('X-Debug-Session', 'cookie-set');
   return response;
 }
 
 /** Clear HttpOnly session cookie. */
 export async function DELETE(request: NextRequest) {
+  // #region agent log
+  agentDebugLogServer(
+    'D',
+    'session/route.ts:DELETE',
+    'clear session cookie',
+    {
+      cookieNamesPresent: cookieNamesFromHeader(request.headers.get('cookie')),
+      hypothesisIds: ['D'],
+    }
+  );
+  // #endregion
+
   const response = NextResponse.json({ ok: true });
   response.cookies.set(TOKEN_COOKIE, '', {
     ...cookieOptions(request),

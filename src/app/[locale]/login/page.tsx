@@ -204,10 +204,12 @@ export default function LoginPage() {
         status: res.status,
         ok: res.ok,
         debugAuth,
+        loginUrl: '/api/backend/auth/login',
         hasAccessToken: !!data?.access_token,
         mfa: !!data?.mfa_required,
         hasTenant: !!(data?.tenant_id || data?.user?.tenant_id),
         detail: typeof data?.detail === 'string' ? data.detail : null,
+        hypothesisIds: ['A', 'E'],
       });
       // #endregion
 
