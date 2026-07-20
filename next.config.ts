@@ -51,6 +51,9 @@ function getBackendOrigin(): string {
 
 function buildBackendRewrites() {
   const backend = getBackendOrigin();
+  // NOTE: Do NOT rewrite /api/session or /api/realtime-token — those are
+  // Next.js HttpOnly session handlers (must not hit FastAPI).
+  // /api/backend/* is also a Next BFF route (not listed here).
   return BACKEND_API_PREFIXES.flatMap((prefix) => [
     // Always hit the trailing-slash collection URL so FastAPI does not 307
     // to http://backend:8000/... (unreachable from the browser).

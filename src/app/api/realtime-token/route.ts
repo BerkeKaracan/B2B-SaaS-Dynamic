@@ -1,6 +1,9 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 /**
  * Return the HttpOnly access token for Realtime / Supabase JS only.
  * Caller must keep it in memory — do not persist to localStorage.

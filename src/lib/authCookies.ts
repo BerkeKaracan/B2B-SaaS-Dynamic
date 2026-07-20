@@ -28,7 +28,7 @@ export async function establishClientSession(
   accessToken: string,
   domain?: string
 ): Promise<void> {
-  const res = await fetch('/api/auth/session', {
+  const res = await fetch('/api/session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
@@ -48,7 +48,7 @@ export async function establishClientSession(
 /** Clear HttpOnly session cookie. */
 export async function clearClientSession(): Promise<void> {
   try {
-    await fetch('/api/auth/session', {
+    await fetch('/api/session', {
       method: 'DELETE',
       credentials: 'same-origin',
     });
@@ -77,7 +77,7 @@ export function setClientTenantId(tenantId: string, domain?: string) {
 /** Fetch access token for Realtime only (memory use — do not persist). */
 export async function fetchRealtimeAccessToken(): Promise<string | null> {
   try {
-    const res = await fetch('/api/auth/realtime-token', {
+    const res = await fetch('/api/realtime-token', {
       method: 'GET',
       credentials: 'same-origin',
       cache: 'no-store',

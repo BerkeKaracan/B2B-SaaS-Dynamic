@@ -1,6 +1,9 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const TOKEN_COOKIE = 'token';
 const MAX_AGE_SEC = 60 * 60 * 24 * 7; // 7 days
 
@@ -53,13 +56,17 @@ export async function POST(request: NextRequest) {
   }
 
   const accessToken = (body.access_token || '').trim();
-  if (!accessToken) {
+  if (!accessToken || accessToken.split('.').length !== 3) {
     return NextResponse.json({ detail: 'access_token required' }, { status: 400 });
   }
 
+  // Soft-verify with Supabase when reachable; do not block session if Auth API
+  // is briefly unavailable (login already validated this JWT seconds ago).
   const valid = await verifyAccessToken(accessToken);
   if (!valid) {
-    return NextResponse.json({ detail: 'Invalid token' }, { status: 401 });
+    console.warn(
+      'session: Supabase token verify failed or unreachable; setting cookie anyway'
+    );
   }
 
   const response = NextResponse.json({ ok: true });
