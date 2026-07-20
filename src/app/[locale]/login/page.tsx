@@ -153,7 +153,7 @@ export default function LoginPage() {
 
         // Prefer existing session (Supabase may already have exchanged ?code=).
         // Only exchange once if still needed — double exchange burns the code.
-        let { data: sessionData } = await supabase.auth.getSession();
+        const { data: sessionData } = await supabase.auth.getSession();
         let oauthToken = sessionData.session?.access_token || '';
 
         if (!oauthToken && code) {
