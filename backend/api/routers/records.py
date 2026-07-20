@@ -136,7 +136,15 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
         if req_tenant not in user["tenant_roles"]:
             raise HTTPException(status_code=403, detail="You do not have permission to create records in this workspace.")
 
-        if req_module != "workspace_modules":
+        # System modules never count toward (or get blocked by) the project limit.
+        # Counting activity_logs / timeline autosaves as "projects" froze workspaces
+        # ("Found 32 projects" while only a handful of real projects existed).
+        is_system_module = (
+            req_module in ("workspace_modules", "activity_logs")
+            or req_module.startswith("timeline_data_")
+        )
+
+        if not is_system_module:
             tenant_res = supabase_admin.table("tenants").select("tier").eq("id", req_tenant).execute()
             if not tenant_res.data:
                 raise HTTPException(status_code=404, detail="Workspace not found")
@@ -145,7 +153,15 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
             if current_tier == "free": 
                 current_tier = "basic"
                         
-            count_res = supabase_admin.table("custom_records").select("id", count="exact").eq("tenant_id", req_tenant).neq("module_name", "workspace_modules").execute()
+            count_res = (
+                supabase_admin.table("custom_records")
+                .select("id", count="exact")
+                .eq("tenant_id", req_tenant)
+                .neq("module_name", "workspace_modules")
+                .neq("module_name", "activity_logs")
+                .not_.like("module_name", "timeline_data_%")
+                .execute()
+            )
             
             current_project_count = count_res.count if count_res.count is not None else len(count_res.data)
             
