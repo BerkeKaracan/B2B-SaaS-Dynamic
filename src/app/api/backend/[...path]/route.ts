@@ -182,13 +182,27 @@ function maybeAttachSessionCookie(
   }
 }
 
+/**
+ * FastAPI uses redirect_slashes=False (Docker-safe). Collection routes registered
+ * as `@router.get("/")` only match `/api/records/` — not `/api/records`.
+ * Next rewrites add the slash; the BFF must do the same.
+ */
+function toUpstreamPath(pathSegments: string[]): string {
+  const segments = pathSegments.filter((s) => s.length > 0);
+  let path = segments.map(encodeURIComponent).join('/');
+  if (segments.length === 1 && segments[0] === 'records') {
+    path = `${path}/`;
+  }
+  return path;
+}
+
 async function proxy(
   request: NextRequest,
   pathSegments: string[]
 ): Promise<NextResponse> {
   const token = request.cookies.get('token')?.value;
   const search = request.nextUrl.search || '';
-  const path = pathSegments.map(encodeURIComponent).join('/');
+  const path = toUpstreamPath(pathSegments);
   const targetUrl = `${backendOrigin()}/api/${path}${search}`;
 
   // #region agent log

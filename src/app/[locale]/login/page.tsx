@@ -147,13 +147,40 @@ export default function LoginPage() {
 
   useEffect(() => {
     const verifyToken = async () => {
-      // Strip any legacy hash tokens from history (do not consume as auth)
-      const hash = window.location.hash;
-      if (hash && hash.includes('access_token=')) {
-        window.history.replaceState(null, '', window.location.pathname);
-      }
-
       try {
+        // OAuth (Google/GitHub): bridge Supabase session → HttpOnly cookie.
+        // Without this, hash/code is stripped and password/BFF session never set.
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get('code');
+        if (code) {
+          const { data, error: exchErr } =
+            await supabase.auth.exchangeCodeForSession(code);
+          if (!exchErr && data.session?.access_token) {
+            await establishClientSession(data.session.access_token);
+          }
+          url.searchParams.delete('code');
+          url.searchParams.delete('state');
+          window.history.replaceState(
+            null,
+            '',
+            `${url.pathname}${url.search}${url.hash}`
+          );
+        }
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        const oauthToken = sessionData.session?.access_token;
+        if (oauthToken) {
+          const already = await hasClientSession();
+          if (!already) {
+            await establishClientSession(oauthToken);
+          }
+        }
+
+        // Strip legacy implicit-hash tokens from the URL (already in supabase storage)
+        if (window.location.hash.includes('access_token=')) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+
         // Never hit FastAPI /me without a session cookie (causes 401 spam)
         const authed = await hasClientSession();
         if (!authed) {
@@ -169,7 +196,7 @@ export default function LoginPage() {
             data.tenant_id || data.user?.tenant_id || Cookies.get('tenant_id');
 
           if (tenantId && tenantId !== 'undefined' && tenantId !== 'null') {
-            await redirectUser(tenantId, '');
+            await redirectUser(tenantId, oauthToken || '');
           } else {
             router.replace('/onboarding');
           }
