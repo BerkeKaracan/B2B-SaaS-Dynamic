@@ -56,9 +56,14 @@ function maybeAttachSessionCookie(
   status: number,
   bodyText: string,
   response: NextResponse
-): void {
-  if (status < 200 || status >= 300) return;
-  if (!AUTH_COOKIE_PATHS.has(path)) return;
+): string {
+  if (status < 200 || status >= 300) {
+    response.headers.set('X-Debug-Auth', `skip-status:${status}`);
+    return `skip-status:${status}`;
+  }
+  if (!AUTH_COOKIE_PATHS.has(path)) {
+    return 'skip-path';
+  }
 
   try {
     const data = JSON.parse(bodyText) as {
@@ -66,17 +71,29 @@ function maybeAttachSessionCookie(
       mfa_required?: boolean;
     };
     // MFA challenge returns a temporary token; wait for mfa/verify
-    if (data.mfa_required) return;
+    if (data.mfa_required) {
+      response.headers.set('X-Debug-Auth', 'skip-mfa');
+      return 'skip-mfa';
+    }
     const accessToken = (data.access_token || '').trim();
-    if (!accessToken || accessToken.split('.').length !== 3) return;
+    if (!accessToken || accessToken.split('.').length !== 3) {
+      response.headers.set('X-Debug-Auth', 'skip-no-jwt');
+      return 'skip-no-jwt';
+    }
 
     response.cookies.set(
       TOKEN_COOKIE,
       accessToken,
       sessionCookieOptions(request)
     );
+    response.headers.set('X-Debug-Auth', 'cookie-set');
+    // #region agent log
+    fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'A',location:'backend/[...path]/route.ts:maybeAttach',message:'session cookie attached',data:{path,status,secure:sessionCookieOptions(request).secure,https:request.nextUrl.protocol},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    return 'cookie-set';
   } catch {
-    /* non-JSON body — ignore */
+    response.headers.set('X-Debug-Auth', 'skip-parse');
+    return 'skip-parse';
   }
 }
 
@@ -88,6 +105,12 @@ async function proxy(
   const search = request.nextUrl.search || '';
   const path = pathSegments.map(encodeURIComponent).join('/');
   const targetUrl = `${backendOrigin()}/api/${path}${search}`;
+
+  // #region agent log
+  if (path.includes('auth/me') || path.includes('auth/login')) {
+    fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'C',location:'backend/[...path]/route.ts:proxy',message:'BFF proxy request',data:{path,hasCookie:!!token,method:request.method,originHost:new URL(backendOrigin()).host},timestamp:Date.now()})}).catch(()=>{});
+  }
+  // #endregion
 
   const headers = new Headers();
   request.headers.forEach((value, key) => {
@@ -149,13 +172,19 @@ async function proxy(
   });
 
   // Atomic session: set HttpOnly cookie on successful login / MFA verify
-  maybeAttachSessionCookie(
+  const attachResult = maybeAttachSessionCookie(
     request,
     pathSegments.join('/'),
     upstream.status,
     bodyText,
     response
   );
+
+  // #region agent log
+  if (path.includes('auth/login') || path.includes('auth/me') || path.includes('auth/mfa')) {
+    fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'B',location:'backend/[...path]/route.ts:proxy-end',message:'BFF upstream done',data:{path,upstreamStatus:upstream.status,attachResult,hadInboundCookie:!!token},timestamp:Date.now()})}).catch(()=>{});
+  }
+  // #endregion
 
   return response;
 }

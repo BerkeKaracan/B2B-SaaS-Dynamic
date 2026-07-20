@@ -62,6 +62,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       const res = await fetchAPI('/api/auth/me', options);
 
+      // #region agent log
+      fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'C',location:'useAuthStore.ts:fetchUser',message:'/auth/me result',data:{status:res.status,ok:res.ok,hasTenantHeader:!!activeTenantId},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+
       if (res.ok) {
         const userData: User = await res.json();
         if (
