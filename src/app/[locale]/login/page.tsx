@@ -13,6 +13,7 @@ import {
   hasClientSession,
   setClientTenantId,
 } from '@/lib/authCookies';
+import { agentDebugLog } from '@/lib/agentDebugLog';
 import AuthShell, {
   AuthCheckingScreen,
   AuthPanelNodes,
@@ -47,18 +48,32 @@ export default function LoginPage() {
 
   const finishLogin = async (accessToken: string, tenantId?: string) => {
     // #region agent log
-    fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'A',location:'login/page.tsx:finishLogin',message:'finishLogin start',data:{hasToken:!!accessToken,tokenLen:accessToken?.length||0,hasTenant:!!tenantId},timestamp:Date.now()})}).catch(()=>{});
+    agentDebugLog('A', 'login/page.tsx:finishLogin', 'finishLogin start', {
+      hasToken: !!accessToken,
+      tokenLen: accessToken?.length || 0,
+      hasTenant: !!tenantId,
+    });
     // #endregion
 
     // BFF already Set-Cookie on login response; this is a safe backup.
     try {
       await establishClientSession(accessToken);
       // #region agent log
-      fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'A',location:'login/page.tsx:finishLogin',message:'establishClientSession ok',data:{},timestamp:Date.now()})}).catch(()=>{});
+      agentDebugLog(
+        'A',
+        'login/page.tsx:finishLogin',
+        'establishClientSession ok',
+        {}
+      );
       // #endregion
     } catch (err) {
       // #region agent log
-      fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'A',location:'login/page.tsx:finishLogin',message:'establishClientSession failed',data:{err:err instanceof Error?err.message:String(err)},timestamp:Date.now()})}).catch(()=>{});
+      agentDebugLog(
+        'A',
+        'login/page.tsx:finishLogin',
+        'establishClientSession failed',
+        { err: err instanceof Error ? err.message : String(err) }
+      );
       // #endregion
       console.warn('establishClientSession backup failed:', err);
     }
@@ -69,7 +84,12 @@ export default function LoginPage() {
 
     // #region agent log
     const sess = await hasClientSession();
-    fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'C',location:'login/page.tsx:finishLogin',message:'after fetchUser session check',data:{hasClientSession:sess,tenantId:tenantId||null},timestamp:Date.now()})}).catch(()=>{});
+    agentDebugLog(
+      'C',
+      'login/page.tsx:finishLogin',
+      'after fetchUser session check',
+      { hasClientSession: sess, tenantId: tenantId || null }
+    );
     // #endregion
 
     const resolvedTenant = tenantId || '';
@@ -180,7 +200,15 @@ export default function LoginPage() {
       const data = await res.json();
 
       // #region agent log
-      fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'B',location:'login/page.tsx:handleSubmit',message:'login response',data:{status:res.status,ok:res.ok,debugAuth,hasAccessToken:!!data?.access_token,mfa:!!data?.mfa_required,hasTenant:!!(data?.tenant_id||data?.user?.tenant_id),detail:typeof data?.detail==='string'?data.detail:null},timestamp:Date.now()})}).catch(()=>{});
+      agentDebugLog('B', 'login/page.tsx:handleSubmit', 'login response', {
+        status: res.status,
+        ok: res.ok,
+        debugAuth,
+        hasAccessToken: !!data?.access_token,
+        mfa: !!data?.mfa_required,
+        hasTenant: !!(data?.tenant_id || data?.user?.tenant_id),
+        detail: typeof data?.detail === 'string' ? data.detail : null,
+      });
       // #endregion
 
       if (!res.ok) {
@@ -202,7 +230,9 @@ export default function LoginPage() {
       await finishLogin(data.access_token, data.tenant_id || data.user?.tenant_id);
     } catch (err: unknown) {
       // #region agent log
-      fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'D',location:'login/page.tsx:handleSubmit',message:'login catch',data:{err:err instanceof Error?err.message:String(err)},timestamp:Date.now()})}).catch(()=>{});
+      agentDebugLog('D', 'login/page.tsx:handleSubmit', 'login catch', {
+        err: err instanceof Error ? err.message : String(err),
+      });
       // #endregion
       if (err instanceof Error) {
         setError(err.message);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { agentDebugLog } from '@/lib/agentDebugLog';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -88,7 +89,17 @@ function maybeAttachSessionCookie(
     );
     response.headers.set('X-Debug-Auth', 'cookie-set');
     // #region agent log
-    fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'A',location:'backend/[...path]/route.ts:maybeAttach',message:'session cookie attached',data:{path,status,secure:sessionCookieOptions(request).secure,https:request.nextUrl.protocol},timestamp:Date.now()})}).catch(()=>{});
+    agentDebugLog(
+      'A',
+      'backend/[...path]/route.ts:maybeAttach',
+      'session cookie attached',
+      {
+        path,
+        status,
+        secure: sessionCookieOptions(request).secure,
+        https: request.nextUrl.protocol,
+      }
+    );
     // #endregion
     return 'cookie-set';
   } catch {
@@ -108,7 +119,12 @@ async function proxy(
 
   // #region agent log
   if (path.includes('auth/me') || path.includes('auth/login')) {
-    fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'C',location:'backend/[...path]/route.ts:proxy',message:'BFF proxy request',data:{path,hasCookie:!!token,method:request.method,originHost:new URL(backendOrigin()).host},timestamp:Date.now()})}).catch(()=>{});
+    agentDebugLog('C', 'backend/[...path]/route.ts:proxy', 'BFF proxy request', {
+      path,
+      hasCookie: !!token,
+      method: request.method,
+      originHost: new URL(backendOrigin()).host,
+    });
   }
   // #endregion
 
@@ -181,8 +197,22 @@ async function proxy(
   );
 
   // #region agent log
-  if (path.includes('auth/login') || path.includes('auth/me') || path.includes('auth/mfa')) {
-    fetch('http://127.0.0.1:7725/ingest/f46a9baf-e920-4d62-ad1c-9c4edc6d6c4b',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2f4cc5'},body:JSON.stringify({sessionId:'2f4cc5',hypothesisId:'B',location:'backend/[...path]/route.ts:proxy-end',message:'BFF upstream done',data:{path,upstreamStatus:upstream.status,attachResult,hadInboundCookie:!!token},timestamp:Date.now()})}).catch(()=>{});
+  if (
+    path.includes('auth/login') ||
+    path.includes('auth/me') ||
+    path.includes('auth/mfa')
+  ) {
+    agentDebugLog(
+      'B',
+      'backend/[...path]/route.ts:proxy-end',
+      'BFF upstream done',
+      {
+        path,
+        upstreamStatus: upstream.status,
+        attachResult,
+        hadInboundCookie: !!token,
+      }
+    );
   }
   // #endregion
 

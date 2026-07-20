@@ -57,7 +57,6 @@ export default function OnboardingPage() {
           localStorage.setItem('tenant_id', tenant);
           window.location.href = `/dashboard/${tenant}/projects`;
         } else {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
           setIsChecking(false);
         }
       } catch {
