@@ -148,16 +148,25 @@ export default function LoginPage() {
   useEffect(() => {
     const verifyToken = async () => {
       try {
-        // OAuth (Google/GitHub): bridge Supabase session → HttpOnly cookie.
-        // Without this, hash/code is stripped and password/BFF session never set.
         const url = new URL(window.location.href);
         const code = url.searchParams.get('code');
-        if (code) {
+
+        // Prefer existing session (Supabase may already have exchanged ?code=).
+        // Only exchange once if still needed — double exchange burns the code.
+        let { data: sessionData } = await supabase.auth.getSession();
+        let oauthToken = sessionData.session?.access_token || '';
+
+        if (!oauthToken && code) {
           const { data, error: exchErr } =
             await supabase.auth.exchangeCodeForSession(code);
           if (!exchErr && data.session?.access_token) {
-            await establishClientSession(data.session.access_token);
+            oauthToken = data.session.access_token;
+          } else if (exchErr) {
+            console.warn('OAuth code exchange failed:', exchErr.message);
           }
+        }
+
+        if (code || url.searchParams.has('state')) {
           url.searchParams.delete('code');
           url.searchParams.delete('state');
           window.history.replaceState(
@@ -166,22 +175,14 @@ export default function LoginPage() {
             `${url.pathname}${url.search}${url.hash}`
           );
         }
-
-        const { data: sessionData } = await supabase.auth.getSession();
-        const oauthToken = sessionData.session?.access_token;
-        if (oauthToken) {
-          const already = await hasClientSession();
-          if (!already) {
-            await establishClientSession(oauthToken);
-          }
-        }
-
-        // Strip legacy implicit-hash tokens from the URL (already in supabase storage)
         if (window.location.hash.includes('access_token=')) {
           window.history.replaceState(null, '', window.location.pathname);
         }
 
-        // Never hit FastAPI /me without a session cookie (causes 401 spam)
+        if (oauthToken) {
+          await establishClientSession(oauthToken);
+        }
+
         const authed = await hasClientSession();
         if (!authed) {
           setIsChecking(false);
@@ -319,7 +320,8 @@ export default function LoginPage() {
   };
 
   const getOAuthRedirectUrl = () => {
-    return `${window.location.origin}/login`;
+    // Current locale path (e.g. /login or /tr/login) — must match Supabase redirect allow-list
+    return `${window.location.origin}${window.location.pathname}`;
   };
 
   const handleGoogleLogin = async () => {

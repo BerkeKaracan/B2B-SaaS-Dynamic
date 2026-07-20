@@ -27,7 +27,12 @@ function hardenLocaleCookie(response: NextResponse) {
 function loginRedirect(request: NextRequest, localeMatch?: string) {
   const url = request.nextUrl.clone();
   url.pathname = localeMatch ? `/${localeMatch}/login` : '/login';
+  // Preserve OAuth PKCE callback params — wiping ?code= breaks Google/GitHub return.
+  const code = request.nextUrl.searchParams.get('code');
+  const state = request.nextUrl.searchParams.get('state');
   url.search = '';
+  if (code) url.searchParams.set('code', code);
+  if (state) url.searchParams.set('state', state);
   url.hash = '';
   return NextResponse.redirect(url);
 }

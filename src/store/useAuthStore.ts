@@ -111,36 +111,42 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
-    // Best-effort server-side token blacklist (do not block UI clear)
-    void fetchAPI('/api/auth/logout', { method: 'POST' }).catch(
-      () => undefined
-    );
+    // Await cookie + Supabase clear before navigate — racing left Domain=
+    // cookies / stale PKCE state that broke the next Google login.
+    void (async () => {
+      try {
+        await fetchAPI('/api/auth/logout', { method: 'POST' });
+      } catch {
+        /* ignore */
+      }
 
-    void clearClientSession().finally(() => {
+      try {
+        await clearClientSession();
+      } catch {
+        /* ignore */
+      }
       clearClientAuthStorage();
-    });
 
-    void import('@/store/useTenantStore')
-      .then(({ useTenantStore }) => {
+      try {
+        const { useTenantStore } = await import('@/store/useTenantStore');
         useTenantStore.setState({ tenant: null });
-        try {
-          useTenantStore.persist?.clearStorage?.();
-        } catch {
-          /* ignore */
-        }
-      })
-      .catch(() => undefined);
+        useTenantStore.persist?.clearStorage?.();
+      } catch {
+        /* ignore */
+      }
 
-    if (typeof window !== 'undefined') {
-      void import('@/lib/supabaseClient')
-        .then(({ supabase }) => supabase.auth.signOut({ scope: 'local' }))
-        .catch(() => undefined);
-    }
+      try {
+        const { supabase } = await import('@/lib/supabaseClient');
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        /* ignore */
+      }
 
-    set({ user: null, isAuthenticated: false, isCheckingAuth: false });
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login';
-    }
+      set({ user: null, isAuthenticated: false, isCheckingAuth: false });
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    })();
   },
 
   updateProfile: async (data: UpdateProfilePayload) => {

@@ -112,7 +112,7 @@ export default function RegisterPage() {
   };
 
   const getOAuthRedirectUrl = () => {
-    return `${window.location.origin}/login`;
+    return `${window.location.origin}${window.location.pathname}`;
   };
 
   const handleGoogleLogin = async () => {

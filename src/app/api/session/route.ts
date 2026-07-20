@@ -29,6 +29,20 @@ function cookieOptions(request: NextRequest, domain?: string) {
   };
 }
 
+/** Expire host-only + root-domain `token` cookies (subdomain hop leaves Domain=). */
+function clearTokenCookies(response: NextResponse, request: NextRequest) {
+  const base = { ...cookieOptions(request), maxAge: 0 };
+  response.cookies.set(TOKEN_COOKIE, '', base);
+  response.cookies.delete(TOKEN_COOKIE);
+
+  const root = (process.env.NEXT_PUBLIC_ROOT_DOMAIN || '')
+    .replace(/^www\./, '')
+    .trim();
+  if (root && !root.includes('localhost') && root.includes('.')) {
+    response.cookies.set(TOKEN_COOKIE, '', { ...base, domain: `.${root}` });
+  }
+}
+
 async function verifyAccessToken(token: string): Promise<boolean> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -118,6 +132,8 @@ export async function POST(request: NextRequest) {
 
   const opts = cookieOptions(request, body.domain || undefined);
   const response = NextResponse.json({ ok: true });
+  // Drop host + Domain= copies so a prior subdomain hop cannot leave a stale JWT
+  clearTokenCookies(response, request);
   response.cookies.set(TOKEN_COOKIE, accessToken, opts);
 
   // #region agent log
@@ -160,19 +176,6 @@ export async function DELETE(request: NextRequest) {
   // #endregion
 
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(TOKEN_COOKIE, '', {
-    ...cookieOptions(request),
-    maxAge: 0,
-  });
-
-  try {
-    const jar = await cookies();
-    if (jar.get(TOKEN_COOKIE)) {
-      response.cookies.delete(TOKEN_COOKIE);
-    }
-  } catch {
-    /* ignore */
-  }
-
+  clearTokenCookies(response, request);
   return response;
 }

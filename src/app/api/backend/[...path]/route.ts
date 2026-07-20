@@ -134,6 +134,18 @@ function maybeAttachSessionCookie(
     }
 
     const opts = sessionCookieOptions(request);
+    // Expire host-only + Domain= copies before set (subdomain hop leftovers)
+    response.cookies.set(TOKEN_COOKIE, '', { ...opts, maxAge: 0 });
+    const root = (process.env.NEXT_PUBLIC_ROOT_DOMAIN || '')
+      .replace(/^www\./, '')
+      .trim();
+    if (root && !root.includes('localhost') && root.includes('.')) {
+      response.cookies.set(TOKEN_COOKIE, '', {
+        ...opts,
+        maxAge: 0,
+        domain: `.${root}`,
+      });
+    }
     response.cookies.set(TOKEN_COOKIE, accessToken, opts);
     response.headers.set('X-Debug-Auth', 'cookie-set');
     // #region agent log
