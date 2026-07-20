@@ -11,6 +11,7 @@ function backendOrigin(): string {
   ).replace(/\/$/, '');
 }
 
+/** Headers that must not be forwarded request → upstream or upstream → client. */
 const HOP_BY_HOP = new Set([
   'connection',
   'keep-alive',
@@ -22,6 +23,10 @@ const HOP_BY_HOP = new Set([
   'upgrade',
   'host',
   'content-length',
+  // Node fetch auto-decompresses; forwarding these breaks the browser
+  // (net::ERR_CONTENT_DECODING_FAILED).
+  'content-encoding',
+  'accept-encoding',
 ]);
 
 async function proxy(
@@ -35,11 +40,15 @@ async function proxy(
 
   const headers = new Headers();
   request.headers.forEach((value, key) => {
-    if (HOP_BY_HOP.has(key.toLowerCase())) return;
-    if (key.toLowerCase() === 'cookie') return;
-    if (key.toLowerCase() === 'authorization') return;
+    const lower = key.toLowerCase();
+    if (HOP_BY_HOP.has(lower)) return;
+    if (lower === 'cookie') return;
+    if (lower === 'authorization') return;
     headers.set(key, value);
   });
+
+  // Ask upstream for uncompressed body so we never mismatch encoding
+  headers.set('Accept-Encoding', 'identity');
 
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
@@ -78,7 +87,9 @@ async function proxy(
     responseHeaders.set(key, value);
   });
 
-  return new NextResponse(upstream.body, {
+  // Buffer the (already-decoded) body so Content-Encoding cannot confuse clients
+  const buf = await upstream.arrayBuffer();
+  return new NextResponse(buf, {
     status: upstream.status,
     statusText: upstream.statusText,
     headers: responseHeaders,
