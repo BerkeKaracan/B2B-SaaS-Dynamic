@@ -163,15 +163,40 @@ export default function BillingPage({
   };
 
   const handleUpgradePlan = async (selectedTier: PlanId) => {
-    if (!allowDemoTierSwitch) {
-      showNotification(
-        'error',
-        'Plans are managed by your administrator.'
-      );
-      return;
-    }
     if (!tenant) return;
     if (tenant.tier === selectedTier) return;
+
+    // Production: no self-service switch — send a request to the platform admin.
+    if (!allowDemoTierSwitch) {
+      setIsUpdating(true);
+      try {
+        const res = await fetchAPI(`/api/tenants/${tenantId}/tier-request`, {
+          method: 'POST',
+          headers: strictNoCacheHeaders,
+          body: JSON.stringify({ tier: selectedTier }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(
+            typeof data?.detail === 'string'
+              ? data.detail
+              : 'Could not send the upgrade request.'
+          );
+        }
+        showNotification(
+          'success',
+          `Request for ${selectedTier.toUpperCase()} sent to the administrator.`
+        );
+      } catch (err) {
+        showNotification(
+          'error',
+          err instanceof Error ? err.message : 'Could not send the request.'
+        );
+      } finally {
+        setIsUpdating(false);
+      }
+      return;
+    }
 
     setIsUpdating(true);
     try {
@@ -363,13 +388,13 @@ export default function BillingPage({
           mode="workspace"
           formatPrice={formatUsdPrice}
           currentTier={currentTier}
-          onSelectPlan={allowDemoTierSwitch ? handleUpgradePlan : undefined}
+          onSelectPlan={handleUpgradePlan}
           isUpdating={isUpdating}
-          upgradesDisabled={!allowDemoTierSwitch}
+          requestMode={!allowDemoTierSwitch}
           upgradesDisabledReason={
             allowDemoTierSwitch
               ? undefined
-              : 'Plans are managed by your administrator.'
+              : 'Plan changes are applied by the platform administrator after your request.'
           }
           isAnnual={isAnnual}
           onAnnualChange={setIsAnnual}

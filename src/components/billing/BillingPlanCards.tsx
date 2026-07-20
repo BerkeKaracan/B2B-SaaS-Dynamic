@@ -43,6 +43,8 @@ export type BillingPlanCardsProps = {
   /** When true, non-current plan CTAs are disabled (no self-service upgrades). */
   upgradesDisabled?: boolean;
   upgradesDisabledReason?: string;
+  /** When true, CTAs send an upgrade request to the platform admin instead of switching. */
+  requestMode?: boolean;
   /** Controlled annual toggle; if omitted, component manages its own state. */
   isAnnual?: boolean;
   onAnnualChange?: (annual: boolean) => void;
@@ -56,6 +58,7 @@ export default function BillingPlanCards({
   isUpdating = false,
   upgradesDisabled = false,
   upgradesDisabledReason,
+  requestMode = false,
   isAnnual: controlledAnnual,
   onAnnualChange,
 }: BillingPlanCardsProps) {
@@ -69,7 +72,7 @@ export default function BillingPlanCards({
 
   return (
     <div>
-      {mode === 'workspace' && upgradesDisabled && upgradesDisabledReason && (
+      {mode === 'workspace' && (upgradesDisabled || requestMode) && upgradesDisabledReason && (
         <p className="mb-6 text-center text-sm font-medium text-zinc-500">
           {upgradesDisabledReason}
         </p>
@@ -199,7 +202,9 @@ export default function BillingPlanCards({
                 >
                   {upgradesDisabled && !isCurrent
                     ? 'Contact administrator'
-                    : workspaceCtaLabel(plan.id, currentTier)}
+                    : requestMode && !isCurrent
+                      ? `Request ${plan.name}`
+                      : workspaceCtaLabel(plan.id, currentTier)}
                 </button>
               )}
             </div>

@@ -21,6 +21,26 @@ class InternalTierRequest(BaseModel):
     tier: str
 
 
+@router.get("/tenants")
+@limiter.limit("60/minute")
+def list_tenants_internal(
+    request: Request,
+    _: None = Depends(require_internal_secret),
+):
+    """List all workspaces for the platform admin panel (internal secret only)."""
+    try:
+        response = (
+            supabase_admin.table("tenants")
+            .select("id, name, slug, tier, created_at")
+            .order("created_at", desc=True)
+            .limit(500)
+            .execute()
+        )
+        return response.data or []
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/tenants/{tenant_id}/tier")
 @limiter.limit("60/minute")
 def set_tenant_tier_internal(

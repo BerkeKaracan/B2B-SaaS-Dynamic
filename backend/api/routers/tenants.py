@@ -172,6 +172,81 @@ def update_tenant_tier(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class TierUpgradeRequestBody(BaseModel):
+    tier: str
+    note: Optional[str] = None
+
+
+@router.post("/{tenant_id}/tier-request")
+@limiter.limit("5/minute")
+def request_tier_upgrade(
+    request: Request,
+    tenant_id: UUID,
+    body: TierUpgradeRequestBody,
+    user: dict = Depends(get_user_role),
+):
+    """Workspace owner/admin asks the platform admin for a plan change.
+
+    Self-service tier writes stay disabled; this only notifies the platform
+    admin (PLATFORM_ADMIN_EMAILS) who applies the change via /admin.
+    """
+    current_role = user["tenant_roles"].get(str(tenant_id), "").lower()
+    if current_role not in ("admin", "owner"):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    tier = (body.tier or "").lower().strip()
+    if tier not in ("basic", "advanced", "pro"):
+        raise HTTPException(status_code=400, detail="Invalid tier")
+
+    tenant_res = (
+        supabase_admin.table("tenants")
+        .select("name, tier")
+        .eq("id", str(tenant_id))
+        .execute()
+    )
+    if not tenant_res.data:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    tenant_name = tenant_res.data[0].get("name") or str(tenant_id)
+    current_tier = (tenant_res.data[0].get("tier") or "basic").lower()
+    if current_tier == tier:
+        raise HTTPException(status_code=400, detail="Workspace is already on this plan.")
+
+    admin_emails = [
+        e.strip().lower()
+        for e in os.getenv("PLATFORM_ADMIN_EMAILS", "berkekaracan1113@gmail.com").split(",")
+        if e.strip()
+    ]
+
+    note = (body.note or "").strip()[:500]
+    message = (
+        f"{user['email']} requested {tier.upper()} for workspace "
+        f"'{tenant_name}' (currently {current_tier.upper()})."
+    )
+    if note:
+        message += f" Note: {note}"
+
+    try:
+        supabase_admin.table("notifications").insert(
+            [
+                {
+                    "target_email": admin_email,
+                    "type": "tier_request",
+                    "title": "Plan upgrade request",
+                    "message": message,
+                    "action_url": "/admin",
+                }
+                for admin_email in admin_emails
+            ]
+        ).execute()
+    except Exception as notif_err:
+        print(f"Tier request notification error: {notif_err}")
+        raise HTTPException(
+            status_code=500, detail="Could not deliver the upgrade request."
+        )
+
+    return {"message": "Upgrade request sent to the platform administrator."}
+
+
 @router.post("/{tenant_id}/logo")
 def upload_workspace_logo(
     tenant_id: UUID,
