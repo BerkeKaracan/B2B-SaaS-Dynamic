@@ -68,24 +68,14 @@ export async function GET(request: NextRequest) {
   });
   // #endregion
 
-  if (!token) {
-    return NextResponse.json(
-      { authenticated: false },
-      {
-        status: 401,
-        headers: {
-          'Cache-Control': 'no-store',
-          'X-Debug-Session': 'no-token-cookie',
-        },
-      }
-    );
-  }
+  // Cookie probe: always 200 — missing cookie is unauthenticated, not unauthorized.
   return NextResponse.json(
-    { authenticated: true },
+    { authenticated },
     {
+      status: 200,
       headers: {
         'Cache-Control': 'no-store',
-        'X-Debug-Session': 'ok',
+        'X-Debug-Session': token ? 'ok' : 'no-token-cookie',
       },
     }
   );

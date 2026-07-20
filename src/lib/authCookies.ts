@@ -111,14 +111,18 @@ export async function hasClientSession(): Promise<boolean> {
       credentials: 'same-origin',
       cache: 'no-store',
     });
+    const data = (await res.json().catch(() => null)) as {
+      authenticated?: boolean;
+    } | null;
     // #region agent log
     agentDebugLog('C', 'authCookies.ts:hasClientSession', 'GET /api/session', {
       status: res.status,
       ok: res.ok,
+      authenticated: !!data?.authenticated,
       debugSession: res.headers.get('X-Debug-Session'),
     });
     // #endregion
-    return res.ok;
+    return res.ok && !!data?.authenticated;
   } catch {
     return false;
   }
