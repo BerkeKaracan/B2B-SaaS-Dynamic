@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCanvasStore } from '@/store/useCanvasStore';
@@ -7,6 +7,7 @@ import { BlockType, PageContent } from '@/types/record';
 import { fetchAPI } from '@/services/api';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { AI_CANVAS_GENERATOR } from '@/lib/featureGate';
+import { useLayoutStore } from '@/store/useLayoutStore';
 import {
   Search,
   ChevronDown,
@@ -14,8 +15,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  GripVertical,
 } from 'lucide-react';
 
+/** Default top clears the project toolbar (~3.5rem) + padding. */
+const DEFAULT_PANEL_X = 16;
+const DEFAULT_PANEL_Y = 72;
+const PANEL_MAX_H = 'min(560px, calc(100% - 5.5rem))';
 interface SidebarItem {
   type: BlockType;
   label: string;
@@ -36,6 +42,7 @@ export default function ItemSidebar() {
   const tenantId = params?.tenantId as string | undefined;
   const { enabled: canUseAiGenerator, isLoading: isFlagLoading } =
     useFeatureFlag(AI_CANVAS_GENERATOR, tenantId);
+  const showEngineToolkit = useLayoutStore((s) => s.showEngineToolkit);
   const {
     addPage,
     addBlockToPage,
@@ -49,6 +56,18 @@ export default function ItemSidebar() {
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(true);
   const [isAiOpen, setIsAiOpen] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [panelPos, setPanelPos] = useState({
+    x: DEFAULT_PANEL_X,
+    y: DEFAULT_PANEL_Y,
+  });
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const panelDragRef = useRef<{
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+    moved: boolean;
+  } | null>(null);
 
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
@@ -74,6 +93,27 @@ export default function ItemSidebar() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [canUseAiGenerator]);
+
+  // Keep panel on-screen after collapse width change / window resize.
+  useEffect(() => {
+    const reclamp = () => {
+      const el = panelRef.current;
+      const parent = el?.offsetParent as HTMLElement | null;
+      if (!el || !parent) return;
+      const maxX = Math.max(8, parent.clientWidth - el.offsetWidth - 8);
+      const maxY = Math.max(8, parent.clientHeight - el.offsetHeight - 8);
+      setPanelPos((prev) => ({
+        x: Math.min(Math.max(8, prev.x), maxX),
+        y: Math.min(Math.max(8, prev.y), maxY),
+      }));
+    };
+    const t = window.setTimeout(reclamp, 320);
+    window.addEventListener('resize', reclamp);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener('resize', reclamp);
+    };
+  }, [isCollapsed]);
 
   const handleAiGenerate = async () => {
     if (!aiPrompt.trim() || !canUseAiGenerator || !tenantId) return;
@@ -672,57 +712,129 @@ export default function ItemSidebar() {
       item.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const clampPanelPos = (x: number, y: number) => {
+    const el = panelRef.current;
+    const parent = el?.offsetParent as HTMLElement | null;
+    if (!el || !parent) return { x, y };
+    const maxX = Math.max(8, parent.clientWidth - el.offsetWidth - 8);
+    const maxY = Math.max(8, parent.clientHeight - el.offsetHeight - 8);
+    return {
+      x: Math.min(Math.max(8, x), maxX),
+      y: Math.min(Math.max(8, y), maxY),
+    };
+  };
+
+  const handlePanelDragStart = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    panelDragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: panelPos.x,
+      originY: panelPos.y,
+      moved: false,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+
+    const onMove = (ev: PointerEvent) => {
+      const drag = panelDragRef.current;
+      if (!drag) return;
+      const dx = ev.clientX - drag.startX;
+      const dy = ev.clientY - drag.startY;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) drag.moved = true;
+      setPanelPos(clampPanelPos(drag.originX + dx, drag.originY + dy));
+    };
+    const onUp = () => {
+      panelDragRef.current = null;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
   return (
     <>
+      {/*
+        Floating, draggable toolkit — shorter than full viewport so the
+        project toolbar stays clickable. Outer width clips; inner stays w-72.
+      */}
       <div
+        ref={panelRef}
         id="item-sidebar"
-        className={`h-[calc(100vh-5.5rem)] m-4 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/60 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.04)] flex flex-col overflow-hidden shrink-0 z-20 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-72'}`}
+        style={{
+          left: panelPos.x,
+          top: panelPos.y,
+          height: PANEL_MAX_H,
+          maxHeight: 'calc(100% - 5.5rem)',
+        }}
+        className={`absolute rounded-2xl overflow-hidden bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-600 shadow-[0_0_0_1px_rgba(24,24,27,0.06),0_18px_50px_rgba(15,23,42,0.14)] transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] contain-paint ${
+          showEngineToolkit ? 'pointer-events-auto' : 'pointer-events-none'
+        } ${isCollapsed ? 'w-16' : 'w-72'}`}
       >
-        <div
-          className={`p-4 border-b border-zinc-100 dark:border-zinc-800/50 flex flex-col gap-2 shrink-0 ${isCollapsed ? 'items-center px-2' : ''}`}
-        >
-          <div className="flex items-center justify-between w-full">
-            {!isCollapsed && (
-              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest whitespace-nowrap overflow-hidden">
+        <div className="flex h-full w-72 flex-col">
+          <div className="p-3 border-b border-zinc-200 dark:border-zinc-800 flex flex-col gap-2 shrink-0">
+            <div className="flex items-center gap-1 w-full min-h-[28px]">
+              <button
+                type="button"
+                onPointerDown={handlePanelDragStart}
+                className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-grab active:cursor-grabbing shrink-0 touch-none"
+                aria-label="Drag toolkit"
+                title="Drag"
+              >
+                <GripVertical className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors shrink-0"
+                aria-label={isCollapsed ? 'Expand toolkit' : 'Collapse toolkit'}
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="w-4 h-4" />
+                ) : (
+                  <ChevronLeft className="w-4 h-4" />
+                )}
+              </button>
+              <span
+                className={`text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest whitespace-nowrap overflow-hidden transition-opacity duration-200 ${
+                  isCollapsed ? 'opacity-0' : 'opacity-100'
+                }`}
+              >
                 {t('title')}
               </span>
-            )}
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className={`p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 rounded-md text-zinc-400 dark:text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors ${isCollapsed ? 'mx-auto' : ''}`}
-            >
-              {isCollapsed ? (
-                <ChevronRight className="w-4 h-4" />
-              ) : (
-                <ChevronLeft className="w-4 h-4" />
-              )}
-            </button>
-          </div>
+            </div>
 
-          {!isCollapsed && (
-            <div className="relative flex items-center animate-in fade-in zoom-in duration-200">
+            <div
+              className={`relative flex items-center transition-opacity duration-200 ${
+                isCollapsed
+                  ? 'opacity-0 pointer-events-none h-0 overflow-hidden'
+                  : 'opacity-100'
+              }`}
+            >
               <Search className="w-3.5 h-3.5 absolute left-3 text-zinc-400 dark:text-zinc-500" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('search')}
-                className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl text-xs font-medium placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-950 dark:focus:ring-white focus:bg-white dark:focus:bg-zinc-950 transition-all text-zinc-900 dark:text-zinc-100"
+                tabIndex={isCollapsed ? -1 : 0}
+                className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-950 dark:focus:ring-white focus:bg-white dark:focus:bg-zinc-950 text-zinc-900 dark:text-zinc-100"
               />
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2 select-none shrink-0 custom-scrollbar touch-pan-y">
-          {!isFlagLoading && canUseAiGenerator && (
-            <>
-              {/* AI Generator — gated by remote Feature Flag (or tier fallback) */}
-              <div className="space-y-1">
-                {!isCollapsed ? (
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2 select-none custom-scrollbar touch-pan-y">
+            {!isFlagLoading && canUseAiGenerator && (
+              <>
+                <div className="space-y-1">
                   <button
                     type="button"
                     onClick={() => setIsAiOpen(!isAiOpen)}
-                    className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
+                    className={`w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left transition-opacity duration-200 whitespace-nowrap overflow-hidden ${
+                      isCollapsed ? 'opacity-0 h-0 p-0 pointer-events-none' : ''
+                    }`}
                   >
                     <span className="text-[10px] font-extrabold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
                       <Sparkles className="w-3 h-3" /> {t('intelligence')}
@@ -733,21 +845,24 @@ export default function ItemSidebar() {
                       <ChevronDown className="w-3 h-3 text-indigo-400 shrink-0" />
                     )}
                   </button>
-                ) : (
-                  <div className="h-px bg-zinc-200/50 dark:bg-zinc-800 w-6 mx-auto my-2" />
-                )}
+                  {isCollapsed && (
+                    <div className="h-px bg-zinc-200 dark:bg-zinc-800 w-6 mx-auto my-2" />
+                  )}
 
-                {(isAiOpen || isCollapsed) && (
-                  <div className="space-y-0.5">
-                    <div
-                      onClick={() => setIsAiModalOpen(true)}
-                      className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-start gap-3 p-2'} rounded-xl text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border border-indigo-100/50 dark:border-indigo-900/30 transition-all group shrink-0 cursor-pointer`}
-                    >
-                      <div className="p-1.5 bg-indigo-100/50 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-600 dark:group-hover:border-indigo-500 transition-all shrink-0">
-                        <Sparkles className="w-4 h-4" />
-                      </div>
-                      {!isCollapsed && (
-                        <div className="space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap animate-in fade-in duration-200 flex-1">
+                  {(isAiOpen || isCollapsed) && (
+                    <div className="space-y-0.5">
+                      <div
+                        onClick={() => setIsAiModalOpen(true)}
+                        className="w-full flex items-center justify-start gap-3 p-2 rounded-xl text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/40 group shrink-0 cursor-pointer"
+                      >
+                        <div className="p-1.5 bg-indigo-100/50 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-600 dark:group-hover:border-indigo-500 transition-colors shrink-0">
+                          <Sparkles className="w-4 h-4" />
+                        </div>
+                        <div
+                          className={`space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap flex-1 transition-opacity duration-200 ${
+                            isCollapsed ? 'opacity-0' : 'opacity-100'
+                          }`}
+                        >
                           <div className="flex items-center justify-between">
                             <p className="text-[12px] font-bold text-indigo-700 dark:text-indigo-300 tracking-tight group-hover:text-indigo-900 dark:group-hover:text-indigo-100">
                               {t('aiGenerator')}
@@ -760,25 +875,27 @@ export default function ItemSidebar() {
                             {t('generatePrompt')}
                           </p>
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              {!isCollapsed && (
-                <div className="h-px bg-zinc-100/80 dark:bg-zinc-800/80 my-1 mx-2" />
-              )}
-            </>
-          )}
+                <div
+                  className={`h-px bg-zinc-200 dark:bg-zinc-800 my-1 mx-2 transition-opacity duration-200 ${
+                    isCollapsed ? 'opacity-0' : 'opacity-100'
+                  }`}
+                />
+              </>
+            )}
 
-          {/* Building Blocks */}
-          <div className="space-y-1">
-            {!isCollapsed ? (
+            {/* Building Blocks */}
+            <div className="space-y-1">
               <button
                 type="button"
                 onClick={() => setIsBlocksOpen(!isBlocksOpen)}
-                className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
+                className={`w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left whitespace-nowrap overflow-hidden transition-opacity duration-200 ${
+                  isCollapsed ? 'opacity-0 h-0 p-0 pointer-events-none' : ''
+                }`}
               >
                 <span className="text-[10px] font-extrabold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
                   {t('buildingBlocks')} ({filteredBlocks.length})
@@ -789,23 +906,26 @@ export default function ItemSidebar() {
                   <ChevronDown className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
                 )}
               </button>
-            ) : (
-              <div className="h-px bg-zinc-200/50 dark:bg-zinc-800 w-6 mx-auto my-2" />
-            )}
+              {isCollapsed && (
+                <div className="h-px bg-zinc-200 dark:bg-zinc-800 w-6 mx-auto my-2" />
+              )}
 
-            {(isBlocksOpen || isCollapsed) && (
-              <div className="space-y-0.5">
-                {filteredBlocks.map((item) => (
-                  <div
-                    key={item.type}
-                    onPointerDown={(e) => handlePointerDown(e, item, true)}
-                    className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-start gap-3 p-2'} rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border border-transparent transition-all group shrink-0 cursor-grab active:cursor-grabbing`}
-                  >
-                    <div className="p-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-950 dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-zinc-950 transition-all shrink-0 pointer-events-none">
-                      {item.icon}
-                    </div>
-                    {!isCollapsed && (
-                      <div className="space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap animate-in fade-in duration-200">
+              {(isBlocksOpen || isCollapsed) && (
+                <div className="space-y-0.5">
+                  {filteredBlocks.map((item) => (
+                    <div
+                      key={item.type}
+                      onPointerDown={(e) => handlePointerDown(e, item, true)}
+                      className="w-full flex items-center justify-start gap-3 p-2 rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border border-transparent group shrink-0 cursor-grab active:cursor-grabbing"
+                    >
+                      <div className="p-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-950 dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-zinc-950 transition-colors shrink-0 pointer-events-none">
+                        {item.icon}
+                      </div>
+                      <div
+                        className={`space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap transition-opacity duration-200 ${
+                          isCollapsed ? 'opacity-0' : 'opacity-100'
+                        }`}
+                      >
                         <p className="text-[12px] font-bold text-zinc-800 dark:text-zinc-200 tracking-tight group-hover:text-zinc-950 dark:group-hover:text-white">
                           {item.label}
                         </p>
@@ -813,24 +933,26 @@ export default function ItemSidebar() {
                           {item.description}
                         </p>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          {!isCollapsed && (
-            <div className="h-px bg-zinc-100/80 dark:bg-zinc-800/80 my-1 mx-2" />
-          )}
+            <div
+              className={`h-px bg-zinc-200 dark:bg-zinc-800 my-1 mx-2 transition-opacity duration-200 ${
+                isCollapsed ? 'opacity-0' : 'opacity-100'
+              }`}
+            />
 
-          {/* Page Frames */}
-          <div className="space-y-1">
-            {!isCollapsed ? (
+            {/* Page Frames */}
+            <div className="space-y-1">
               <button
                 type="button"
                 onClick={() => setIsTemplatesOpen(!isTemplatesOpen)}
-                className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left transition-colors whitespace-nowrap overflow-hidden"
+                className={`w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left whitespace-nowrap overflow-hidden transition-opacity duration-200 ${
+                  isCollapsed ? 'opacity-0 h-0 p-0 pointer-events-none' : ''
+                }`}
               >
                 <span className="text-[10px] font-extrabold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
                   {t('pageFrames')} ({filteredTemplates.length})
@@ -841,23 +963,28 @@ export default function ItemSidebar() {
                   <ChevronDown className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
                 )}
               </button>
-            ) : (
-              <div className="h-px bg-zinc-200/50 dark:bg-zinc-800 w-6 mx-auto my-3" />
-            )}
+              {isCollapsed && (
+                <div className="h-px bg-zinc-200 dark:bg-zinc-800 w-6 mx-auto my-3" />
+              )}
 
-            {(isTemplatesOpen || isCollapsed) && (
-              <div className="space-y-0.5">
-                {filteredTemplates.map((template) => (
-                  <div
-                    key={template.type}
-                    onPointerDown={(e) => handlePointerDown(e, template, false)}
-                    className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'justify-start gap-3 p-2'} rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border border-transparent transition-all group shrink-0 cursor-grab active:cursor-grabbing`}
-                  >
-                    <div className="p-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-950 dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-zinc-950 transition-all shrink-0 pointer-events-none">
-                      {template.icon}
-                    </div>
-                    {!isCollapsed && (
-                      <div className="space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap animate-in fade-in duration-200">
+              {(isTemplatesOpen || isCollapsed) && (
+                <div className="space-y-0.5">
+                  {filteredTemplates.map((template) => (
+                    <div
+                      key={template.type}
+                      onPointerDown={(e) =>
+                        handlePointerDown(e, template, false)
+                      }
+                      className="w-full flex items-center justify-start gap-3 p-2 rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border border-transparent group shrink-0 cursor-grab active:cursor-grabbing"
+                    >
+                      <div className="p-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-950 dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-zinc-950 transition-colors shrink-0 pointer-events-none">
+                        {template.icon}
+                      </div>
+                      <div
+                        className={`space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap transition-opacity duration-200 ${
+                          isCollapsed ? 'opacity-0' : 'opacity-100'
+                        }`}
+                      >
                         <p className="text-[12px] font-bold text-zinc-800 dark:text-zinc-200 tracking-tight group-hover:text-zinc-950 dark:group-hover:text-white">
                           {template.label}
                         </p>
@@ -865,18 +992,18 @@ export default function ItemSidebar() {
                           {template.description}
                         </p>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* AI Modal */}
       {canUseAiGenerator && isAiModalOpen && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center pointer-events-auto bg-black/50 dark:bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center pointer-events-auto bg-black/50 dark:bg-black/70">
           <div className="bg-white dark:bg-zinc-950 border border-indigo-200 dark:border-indigo-500/30 p-4 rounded-2xl shadow-2xl flex flex-col gap-3 w-96 animate-in zoom-in-95 fade-in">
             <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider px-1">
               <Sparkles className="w-4 h-4" /> {t('aiGenerator')}
@@ -927,7 +1054,7 @@ export default function ItemSidebar() {
       {/* Drag Indicator */}
       {activeDrag && (
         <div
-          className="fixed z-[99999] pointer-events-none flex items-center gap-3 p-2.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-2 border-blue-500 dark:border-blue-400 rounded-xl shadow-2xl scale-105 transition-colors"
+          className="fixed z-[99999] pointer-events-none flex items-center gap-3 p-2.5 bg-white dark:bg-zinc-900 border-2 border-blue-500 dark:border-blue-400 rounded-xl shadow-2xl scale-105"
           style={{ left: activeDrag.x + 15, top: activeDrag.y + 15 }}
         >
           <div className="p-1.5 bg-zinc-950 dark:bg-white rounded-lg text-white dark:text-zinc-950">

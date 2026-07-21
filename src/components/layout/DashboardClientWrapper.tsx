@@ -98,8 +98,19 @@ export default function DashboardClientWrapper({
           </div>
         </div>
 
-        <div className="flex flex-1 min-w-0 overflow-hidden">
-          {isDesignView && showEngineToolkit && <ItemSidebar />}
+        <div className="relative flex flex-1 min-w-0 overflow-hidden">
+          {isDesignView && (
+            <div
+              className={`absolute inset-0 z-30 pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                showEngineToolkit
+                  ? 'translate-x-0'
+                  : '-translate-x-[calc(100%+1.5rem)]'
+              }`}
+              aria-hidden={!showEngineToolkit}
+            >
+              <ItemSidebar />
+            </div>
+          )}
 
           <main
             className={`flex-1 relative w-full h-full z-0 min-w-0 transition-colors duration-300 ${
