@@ -48,3 +48,5 @@ supabase/.branches/
 .env*
 !.env.example
 !.env*.example
+
+*.tsbuildinfo
