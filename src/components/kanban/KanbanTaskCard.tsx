@@ -1,5 +1,8 @@
 'use client';
 
+/* DnD `provided.innerRef` / `draggableProps` must bind during render (@hello-pangea/dnd). */
+/* eslint-disable react-hooks/refs */
+
 import React from 'react';
 import {
   MoreHorizontal,

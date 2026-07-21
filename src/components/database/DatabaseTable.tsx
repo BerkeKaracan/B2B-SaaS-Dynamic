@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Plus,
@@ -174,13 +174,12 @@ export default function DatabaseTable({
     setPropertyMenuPos(clampPropertyMenuPosition(el.getBoundingClientRect()));
   };
 
-  useLayoutEffect(() => {
+  const handleTogglePropertyMenu = () => {
     if (!isPropertyMenuOpen) {
-      setPropertyMenuPos(null);
-      return;
+      updatePropertyMenuPos();
     }
-    updatePropertyMenuPos();
-  }, [isPropertyMenuOpen]);
+    onTogglePropertyMenu();
+  };
 
   useEffect(() => {
     if (!isPropertyMenuOpen) return;
@@ -250,7 +249,7 @@ export default function DatabaseTable({
                     <button
                       ref={addPropertyBtnRef}
                       type="button"
-                      onClick={onTogglePropertyMenu}
+                      onClick={handleTogglePropertyMenu}
                       className="flex items-center justify-center gap-1 px-1.5 py-1.5 pt-2 w-full h-full text-zinc-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors"
                       title={labels.addProperty}
                     >
@@ -263,7 +262,7 @@ export default function DatabaseTable({
                         <>
                           <div
                             className="fixed inset-0 z-40"
-                            onClick={onTogglePropertyMenu}
+                            onClick={handleTogglePropertyMenu}
                           />
                           <div
                             className={`fixed w-52 ${SURFACE.popover} py-1 z-50 animate-in fade-in zoom-in-95 duration-150`}

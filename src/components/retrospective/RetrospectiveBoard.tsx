@@ -64,13 +64,11 @@ function RetrospectiveBoard({ projectId }: { projectId: string }) {
       if (!content) return;
 
       const newCard: RetroCard = {
-        // eslint-disable-next-line react-hooks/purity
         id: `retro-${Date.now()}`,
         columnId,
         content,
         votedBy: [],
         author: currentUserName,
-        // eslint-disable-next-line react-hooks/purity
         createdAt: Date.now(),
       };
 
