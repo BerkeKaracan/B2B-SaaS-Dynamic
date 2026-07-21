@@ -7,48 +7,17 @@ import { fetchAPI } from '@/services/api';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useLayoutStore } from '@/store/useLayoutStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import StaticKanbanBoard from '@/components/kanban/StaticKanbanBoard';
-import NotepadBoard from '@/components/notepad/NotepadBoard';
-import TimelineBoard from '@/components/timeline/TimelineBoard';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import DatabaseBoard from '@/components/database/DatabaseBoard';
-import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
-import MindMapBoard from '@/components/mindmap/MindMapBoard';
-import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
+import { BoardFromProjectTemplate } from '@/components/workspace/BoardRenderer';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useProjectEditMode } from '@/hooks/useProjectEditMode';
 import { ProjectToolbarSlot } from '@/components/workspace/ProjectToolbarSlot';
 import {
-  Check,
-  Clock,
-  Copy,
-  Database,
-  FileText,
-  Globe2,
-  KanbanSquare,
-  LayoutTemplate,
-  Lock,
-  MessageSquare,
-  Network,
-  PenTool,
-  Share2,
-  X,
-} from 'lucide-react';
-
-const TEMPLATE_META: Record<
-  string,
-  { label: string; Icon: React.ComponentType<{ className?: string }> }
-> = {
-  blank: { label: 'Canvas', Icon: LayoutTemplate },
-  kanban: { label: 'Kanban', Icon: KanbanSquare },
-  notepad: { label: 'Document', Icon: FileText },
-  document: { label: 'Document', Icon: FileText },
-  whiteboard: { label: 'Whiteboard', Icon: PenTool },
-  timeline: { label: 'Timeline', Icon: Clock },
-  database: { label: 'Database', Icon: Database },
-  mindmap: { label: 'Mindmap', Icon: Network },
-  retrospective: { label: 'Retrospective', Icon: MessageSquare },
-};
+  getProjectTemplateMeta,
+  isStandaloneBoardTemplate,
+  normalizeProjectTemplate,
+} from '@/lib/templates';
+import { Check, Copy, Globe2, Lock, Share2, X } from 'lucide-react';
 
 type Collaborator = {
   email: string;
@@ -114,17 +83,7 @@ export default function ProjectDesignPage() {
       setShowEngineToolkit(false);
     } else if (mode === 'design') {
       const template = recordData?.template || 'blank';
-      const isStandardCanvas = ![
-        'kanban',
-        'notepad',
-        'document',
-        'whiteboard',
-        'timeline',
-        'database',
-        'mindmap',
-        'retrospective',
-      ].includes(template);
-      if (isStandardCanvas) {
+      if (!isStandaloneBoardTemplate(template)) {
         setShowEngineToolkit(true);
       } else {
         setShowEngineToolkit(false);
@@ -291,15 +250,21 @@ export default function ProjectDesignPage() {
 
   const isGlobal = isHubPublished(recordData);
   const collaborators = recordData?.collaborators || [];
-  const projectTemplate = recordData?.template || 'blank';
-  const templateMeta =
-    TEMPLATE_META[projectTemplate] || TEMPLATE_META.blank;
-  const TemplateIcon = templateMeta.Icon;
+  const projectTemplate = normalizeProjectTemplate(
+    recordData?.template || 'blank'
+  );
+  const templateMeta = getProjectTemplateMeta(projectTemplate);
+  const TemplateIcon = templateMeta?.icon;
+  const templateLabel =
+    projectTemplate === 'blank'
+      ? 'Canvas'
+      : templateMeta?.label || 'Canvas';
   const projectTitle = recordData?.name || 'Untitled project';
   const shareUrl =
     typeof window !== 'undefined'
       ? `${window.location.origin}/share/${projectId}`
       : `/share/${projectId}`;
+  const showStandaloneBoard = isStandaloneBoardTemplate(projectTemplate);
 
   return (
     <div className="flex flex-col h-full w-full min-w-0 bg-[#f7f9fb] dark:bg-zinc-950 relative selection:bg-sky-200/50 overscroll-none touch-none">
@@ -307,11 +272,13 @@ export default function ProjectDesignPage() {
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="hidden sm:flex items-center gap-2 min-w-0 pl-0.5">
             <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20 flex items-center justify-center shrink-0">
-              <TemplateIcon className="w-3.5 h-3.5 text-sky-700 dark:text-sky-300" />
+              {TemplateIcon ? (
+                <TemplateIcon className="w-3.5 h-3.5 text-sky-700 dark:text-sky-300" />
+              ) : null}
             </div>
             <div className="min-w-0 leading-tight">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 truncate">
-                {templateMeta.label}
+                {templateLabel}
               </p>
               <p className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 truncate max-w-[180px] md:max-w-[260px]">
                 {projectTitle}
@@ -320,8 +287,10 @@ export default function ProjectDesignPage() {
           </div>
 
           <div className="sm:hidden inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600 dark:text-zinc-300">
-            <TemplateIcon className="w-3 h-3 text-sky-600" />
-            {templateMeta.label}
+            {TemplateIcon ? (
+              <TemplateIcon className="w-3 h-3 text-sky-600" />
+            ) : null}
+            {templateLabel}
           </div>
 
           {!isLocked || isAdmin ? (
@@ -359,15 +328,7 @@ export default function ProjectDesignPage() {
           )}
         </div>
 
-        {[
-          'kanban',
-          'timeline',
-          'database',
-          'notepad',
-          'document',
-          'whiteboard',
-          'retrospective',
-        ].includes(projectTemplate) && (
+        {showStandaloneBoard && (
           <ProjectToolbarSlot className="mx-1 md:mx-2" />
         )}
 
@@ -387,7 +348,7 @@ export default function ProjectDesignPage() {
             <div className="flex items-center justify-center h-full">
               <div className="w-8 h-8 border-4 border-zinc-200 dark:border-zinc-800 border-t-zinc-950 dark:border-t-white rounded-full animate-spin" />
             </div>
-          ) : projectTemplate === 'blank' || !TEMPLATE_META[projectTemplate] ? (
+          ) : !showStandaloneBoard ? (
             <CanvasArea />
           ) : (
             <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden">
@@ -398,24 +359,10 @@ export default function ProjectDesignPage() {
                   aria-hidden
                 />
               )}
-              {projectTemplate === 'kanban' ? (
-                <StaticKanbanBoard projectId={projectId} />
-              ) : projectTemplate === 'notepad' ||
-                projectTemplate === 'document' ? (
-                <NotepadBoard projectId={projectId} />
-              ) : projectTemplate === 'whiteboard' ? (
-                <WhiteboardBoard projectId={projectId} />
-              ) : projectTemplate === 'mindmap' ? (
-                <MindMapBoard projectId={projectId} />
-              ) : projectTemplate === 'timeline' ? (
-                <TimelineBoard projectId={projectId} />
-              ) : projectTemplate === 'database' ? (
-                <DatabaseBoard projectId={projectId} />
-              ) : projectTemplate === 'retrospective' ? (
-                <RetrospectiveBoard projectId={projectId} />
-              ) : (
-                <CanvasArea />
-              )}
+              <BoardFromProjectTemplate
+                template={String(projectTemplate)}
+                projectId={projectId}
+              />
             </div>
           )}
         </ErrorBoundary>

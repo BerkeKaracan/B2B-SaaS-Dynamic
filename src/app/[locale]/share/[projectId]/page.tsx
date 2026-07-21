@@ -7,33 +7,17 @@ import Cookies from 'js-cookie';
 import { BrandMark } from '@/components/brand/BrandLogo';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import CanvasArea from '@/components/canvas/renderers/CanvasArea';
-import StaticKanbanBoard from '@/components/kanban/StaticKanbanBoard';
-import NotepadBoard from '@/components/notepad/NotepadBoard';
-import TimelineBoard from '@/components/timeline/TimelineBoard';
-import DatabaseBoard from '@/components/database/DatabaseBoard';
-import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
-import MindMapBoard from '@/components/mindmap/MindMapBoard';
-import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
+import { BoardFromProjectTemplate } from '@/components/workspace/BoardRenderer';
 import { fetchAPI } from '@/services/api';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectEditMode } from '@/hooks/useProjectEditMode';
+import { isStandaloneBoardTemplate } from '@/lib/templates';
 import { ArrowLeft, Copy, ShieldAlert } from 'lucide-react';
 
 type CustomModule = {
   name: string;
   slug: string;
 };
-
-const TEMPLATE_BOARD_TYPES = new Set([
-  'kanban',
-  'notepad',
-  'document',
-  'whiteboard',
-  'timeline',
-  'database',
-  'mindmap',
-  'retrospective',
-]);
 
 export default function PublicSharePage() {
   const params = useParams();
@@ -183,7 +167,7 @@ export default function PublicSharePage() {
     (metadata.title as string) ||
     'Shared Workspace';
   const template = String(metadata.template || 'blank').toLowerCase();
-  const showBoard = TEMPLATE_BOARD_TYPES.has(template);
+  const showBoard = isStandaloneBoardTemplate(template);
 
   if (!hasLoaded || isLoading) {
     return (
@@ -280,23 +264,10 @@ export default function PublicSharePage() {
                   aria-hidden
                 />
               )}
-              {template === 'kanban' ? (
-                <StaticKanbanBoard projectId={projectId} />
-              ) : template === 'notepad' || template === 'document' ? (
-                <NotepadBoard projectId={projectId} />
-              ) : template === 'whiteboard' ? (
-                <WhiteboardBoard projectId={projectId} />
-              ) : template === 'mindmap' ? (
-                <MindMapBoard projectId={projectId} />
-              ) : template === 'timeline' ? (
-                <TimelineBoard projectId={projectId} />
-              ) : template === 'database' ? (
-                <DatabaseBoard projectId={projectId} />
-              ) : template === 'retrospective' ? (
-                <RetrospectiveBoard projectId={projectId} />
-              ) : (
-                <CanvasArea />
-              )}
+              <BoardFromProjectTemplate
+                template={template}
+                projectId={projectId}
+              />
             </div>
           )}
         </ErrorBoundary>

@@ -27,8 +27,7 @@ import {
   CloudUpload,
   Loader2,
 } from 'lucide-react';
-import { useCanvasStore } from '@/store/useCanvasStore';
-import { useProjectEditMode } from '@/hooks/useProjectEditMode';
+import { useBoardPersistence } from '@/hooks/useBoardPersistence';
 import {
   useHasProjectToolbarSlot,
   useProjectToolbarPortal,
@@ -76,39 +75,14 @@ const generateId = (prefix: string) => {
 };
 
 function DatabaseBoard({ projectId }: DatabaseBoardProps) {
-  const { isReadonly } = useProjectEditMode();
-  // Granular selectors — a whole-store subscription re-rendered every mounted
-  // board at 60fps during pan/zoom (setPan/setZoom write to the store per rAF).
-  const metadata = useCanvasStore((s) => s.metadata);
-  const updateMetadata = useCanvasStore((s) => s.updateMetadata);
-  const pages = useCanvasStore((s) => s.pages);
-  const updatePageSettings = useCanvasStore((s) => s.updatePageSettings);
-
-  // Standalone template → top-level metadata; Infinite frame → page.settings
-  const canvasPage = useMemo(
-    () => pages.find((p) => p.id === projectId),
-    [pages, projectId]
-  );
-  const isPageScoped = !!canvasPage;
-  const pageSettings = useMemo(
-    () => (canvasPage?.settings || {}) as Record<string, unknown>,
-    [canvasPage?.settings]
-  );
-
-  const dataSource = useMemo(() => {
-    return isPageScoped ? pageSettings : metadata;
-  }, [isPageScoped, pageSettings, metadata]);
+  const { isReadonly, dataSource, persist, migrateLegacyKeys } =
+    useBoardPersistence(projectId);
 
   const persistDatabase = useCallback(
     (partial: Record<string, unknown>) => {
-      if (isReadonly) return;
-      if (isPageScoped) {
-        updatePageSettings(projectId, partial);
-      } else {
-        updateMetadata(partial);
-      }
+      persist(partial);
     },
-    [isReadonly, isPageScoped, projectId, updatePageSettings, updateMetadata]
+    [persist]
   );
 
   const properties = useMemo(
@@ -151,39 +125,14 @@ function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   const filterRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
 
-  // Migrate legacy global metadata into this frame once (only if no other frame already owns DB data)
   useEffect(() => {
-    if (!isPageScoped) return;
-    if (pageSettings.databaseRows !== undefined) return;
-    if (
-      metadata.databaseRows === undefined &&
-      metadata.databaseProperties === undefined
-    )
-      return;
-    const otherOwns = pages.some(
-      (p) =>
-        p.id !== projectId &&
-        (p.settings as Record<string, unknown> | undefined)?.databaseRows !==
-          undefined
-    );
-    if (otherOwns) return;
-    updatePageSettings(projectId, {
-      databaseProperties: metadata.databaseProperties ?? DEFAULT_PROPERTIES,
-      databaseRows: metadata.databaseRows ?? DEFAULT_ROWS,
-      databaseTitle: metadata.databaseTitle ?? 'Untitled Database',
-      databaseSavedViews: metadata.databaseSavedViews ?? [],
-    });
-  }, [
-    isPageScoped,
-    projectId,
-    pages,
-    pageSettings.databaseRows,
-    metadata.databaseRows,
-    metadata.databaseProperties,
-    metadata.databaseTitle,
-    metadata.databaseSavedViews,
-    updatePageSettings,
-  ]);
+    migrateLegacyKeys([
+      'databaseProperties',
+      'databaseRows',
+      'databaseTitle',
+      'databaseSavedViews',
+    ]);
+  }, [migrateLegacyKeys]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

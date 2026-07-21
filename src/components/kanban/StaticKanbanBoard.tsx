@@ -13,7 +13,7 @@ import { useTranslations } from 'next-intl';
 import { fetchAPI } from '@/services/api';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useProjectEditMode } from '@/hooks/useProjectEditMode';
+import { useBoardPersistence } from '@/hooks/useBoardPersistence';
 import {
   useHasProjectToolbarSlot,
   useProjectToolbarPortal,
@@ -150,44 +150,24 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('KanbanBoard');
   const params = useParams();
   const tenantId = params?.tenantId as string;
-  const { isReadonly } = useProjectEditMode();
 
-  // Granular selectors — a whole-store subscription re-rendered every mounted
-  // board at 60fps during pan/zoom (setPan/setZoom write to the store per rAF).
-  const metadata = useCanvasStore((s) => s.metadata);
-  const updateMetadata = useCanvasStore((s) => s.updateMetadata);
-  const pages = useCanvasStore((s) => s.pages);
-  const updatePageSettings = useCanvasStore((s) => s.updatePageSettings);
-
-  // A Kanban board can render in two ways:
-  //  1) Standalone template project → data lives in the project's top-level
-  //     record_data (== store `metadata`), and `projectId` is the record id.
-  //  2) A frame inside the infinite canvas → data must live on that page's own
-  //     `settings` (keyed by `page.id`), so multiple Kanban frames stay isolated.
-  const canvasPage = useMemo(
-    () => pages.find((p) => p.id === projectId),
-    [pages, projectId]
-  );
-  const isPageScoped = !!canvasPage;
-  const pageSettings = (canvasPage?.settings || {}) as Record<string, unknown>;
+  const {
+    isReadonly,
+    isPageScoped,
+    dataSource,
+    metadata,
+    persist,
+  } = useBoardPersistence(projectId);
 
   const persistTasks = useCallback(
     (next: Task[]) => {
-      if (isReadonly) return;
-      if (isPageScoped) {
-        updatePageSettings(projectId, { tasks: next, kanbanTasks: next });
-      } else {
-        updateMetadata({ tasks: next, kanbanTasks: next });
-      }
+      persist({ tasks: next, kanbanTasks: next });
     },
-    [isReadonly, isPageScoped, projectId, updatePageSettings, updateMetadata]
+    [persist]
   );
 
   const columns = useMemo(() => {
-    const aiCols =
-      (isPageScoped
-        ? (pageSettings.kanbanColumns as AIColumnData[])
-        : (metadata.kanbanColumns as AIColumnData[])) || [];
+    const aiCols = (dataSource.kanbanColumns as AIColumnData[]) || [];
     if (aiCols && aiCols.length > 0) {
       return aiCols.map((c, i) => ({
         id: c.id || c.title || `col-${i}`,
@@ -196,14 +176,12 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
       }));
     }
     return DEFAULT_COLUMNS;
-  }, [isPageScoped, pageSettings.kanbanColumns, metadata.kanbanColumns]);
+  }, [dataSource.kanbanColumns]);
 
   const tasks = useMemo(() => {
-    const rawTasks = (
-      isPageScoped
-        ? pageSettings.tasks || pageSettings.kanbanTasks
-        : metadata.tasks || metadata.kanbanTasks
-    ) as AITaskData[] | undefined;
+    const rawTasks = (dataSource.tasks || dataSource.kanbanTasks) as
+      | AITaskData[]
+      | undefined;
     return (rawTasks || []).map((t, i) => ({
       // eslint-disable-next-line react-hooks/purity
       id: t.id || `ai-task-${i}-${Date.now()}`,
@@ -219,14 +197,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
       deadline: t.deadline || undefined,
       commitCode: t.commitCode || undefined,
     })) as Task[];
-  }, [
-    isPageScoped,
-    pageSettings.tasks,
-    pageSettings.kanbanTasks,
-    metadata.tasks,
-    metadata.kanbanTasks,
-    columns,
-  ]);
+  }, [dataSource.tasks, dataSource.kanbanTasks, columns]);
 
   const tasksRef = useRef<Task[]>(tasks);
   useEffect(() => {
@@ -235,9 +206,9 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
 
   const collaborators =
     (metadata.collaborators as { email: string; role: string }[]) || [];
-  const linkedRepo = (metadata.githubRepo as string) || '';
-  const activityLogs = (metadata.activityLogs as ActivityLog[]) || [];
-  const savedViews = (metadata.savedViews as SavedView[]) || [];
+  const linkedRepo = (dataSource.githubRepo as string) || '';
+  const activityLogs = (dataSource.activityLogs as ActivityLog[]) || [];
+  const savedViews = (dataSource.savedViews as SavedView[]) || [];
 
   const { user } = useAuthStore();
   const currentUserName =
@@ -319,7 +290,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
       date: new Date().toISOString(),
     };
     const updatedLogs = [newLog, ...activityLogs].slice(0, 50);
-    updateMetadata({ activityLogs: updatedLogs });
+    persist({ activityLogs: updatedLogs });
   };
 
   useEffect(() => {
@@ -348,7 +319,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
     if (isReadonly) return;
     if (!repoInput.includes('/'))
       return toast.error('Format must be: owner/repo');
-    updateMetadata({ githubRepo: repoInput });
+    persist({ githubRepo: repoInput });
     logActivity('connected GitHub repository', repoInput);
     toast.success('GitHub repository linked!');
     setRepoInput('');
@@ -357,7 +328,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
   const handleUnlinkRepo = () => {
     if (isReadonly) return;
     if (window.confirm('Are you sure you want to unlink this repository?')) {
-      updateMetadata({ githubRepo: '' });
+      persist({ githubRepo: '' });
       logActivity('unlinked GitHub repository', linkedRepo);
       setCommits([]);
     }
@@ -709,7 +680,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
       filterPriority,
       sortBy,
     };
-    updateMetadata({ savedViews: [...savedViews, newView] });
+    persist({ savedViews: [...savedViews, newView] });
     setActiveViewId(newView.id);
     setIsFilterOpen(false);
     toast.success(`View "${viewName}" saved successfully!`);
@@ -736,7 +707,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
     e.stopPropagation();
     if (isReadonly) return;
     if (window.confirm('Are you sure you want to delete this custom view?')) {
-      updateMetadata({ savedViews: savedViews.filter((v) => v.id !== viewId) });
+      persist({ savedViews: savedViews.filter((v) => v.id !== viewId) });
       if (activeViewId === viewId) applyView(null);
       toast.success('View deleted.');
     }
@@ -968,7 +939,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                     : t('title')}
                 </h2>
                 <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 tracking-wide">
-                  Columns · Tasks
+                  {columns.length} columns · {tasks.length} tasks
                 </p>
               </div>
             </div>

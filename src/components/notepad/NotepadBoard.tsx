@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useCanvasStore } from '@/store/useCanvasStore';
-import { useProjectEditMode } from '@/hooks/useProjectEditMode';
+import { useBoardPersistence } from '@/hooks/useBoardPersistence';
 import {
   useHasProjectToolbarSlot,
   useProjectToolbarPortal,
@@ -18,37 +18,16 @@ import {
 
 function NotepadBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('NotepadBoard');
-  const { isReadonly } = useProjectEditMode();
-
-  // Granular selectors — a whole-store subscription re-rendered every mounted
-  // board at 60fps during pan/zoom (setPan/setZoom write to the store per rAF).
+  const { isReadonly, isPageScoped, dataSource, canvasPage, persist } =
+    useBoardPersistence(projectId);
   const updatePageTitle = useCanvasStore((s) => s.updatePageTitle);
-  const pages = useCanvasStore((s) => s.pages);
-  const updatePageSettings = useCanvasStore((s) => s.updatePageSettings);
-  const metadata = useCanvasStore((s) => s.metadata);
-  const updateMetadata = useCanvasStore((s) => s.updateMetadata);
-
-  const currentPage =
-    pages.find((p) => p.id === projectId) ||
-    pages.find((p) => ['notes', 'document'].includes(p.type)) ||
-    pages[0];
-
-  const settings = currentPage?.settings || {};
-  const pageKey = currentPage?.id || projectId;
-  // Frame on the infinite canvas → persist only into that page's settings.
-  // Writing metadata too doubled every keystroke cascade (2× re-render + Yjs).
-  const isCanvasFrame = pages.some((p) => p.id === projectId);
 
   const [title, setTitle] = useState(
-    (settings.notepadTitle as string) ||
-      (metadata.notepadTitle as string) ||
-      currentPage?.title ||
-      ''
+    (dataSource.notepadTitle as string) || canvasPage?.title || ''
   );
   const [content, setContent] = useState(
-    (settings.notepadContent as string) ||
-      (settings.documentContent as string) ||
-      (metadata.notepadContent as string) ||
+    (dataSource.notepadContent as string) ||
+      (dataSource.documentContent as string) ||
       ''
   );
   const [isClient, setIsClient] = useState(false);
@@ -60,48 +39,42 @@ function NotepadBoard({ projectId }: { projectId: string }) {
   }, []);
 
   useEffect(() => {
-    const nextTitle =
-      (settings.notepadTitle as string | undefined) ??
-      (metadata.notepadTitle as string | undefined);
+    const nextTitle = dataSource.notepadTitle as string | undefined;
     const nextContent =
-      (settings.notepadContent as string | undefined) ??
-      (settings.documentContent as string | undefined) ??
-      (metadata.notepadContent as string | undefined);
+      (dataSource.notepadContent as string | undefined) ??
+      (dataSource.documentContent as string | undefined);
 
     if (nextTitle !== undefined) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTitle(nextTitle);
+    } else if (canvasPage?.title) {
+      setTitle(canvasPage.title);
     }
     if (nextContent !== undefined) {
       setContent(nextContent);
     }
   }, [
-    settings.notepadTitle,
-    settings.notepadContent,
-    settings.documentContent,
-    metadata.notepadTitle,
-    metadata.notepadContent,
+    dataSource.notepadTitle,
+    dataSource.notepadContent,
+    dataSource.documentContent,
+    canvasPage?.title,
   ]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isReadonly) return;
     const newTitle = e.target.value;
     setTitle(newTitle);
-    if (currentPage) {
-      updatePageTitle(pageKey, newTitle || 'Untitled Note');
-      updatePageSettings(pageKey, { notepadTitle: newTitle });
+    if (isPageScoped) {
+      updatePageTitle(projectId, newTitle || 'Untitled Note');
     }
-    if (!isCanvasFrame) updateMetadata({ notepadTitle: newTitle });
+    persist({ notepadTitle: newTitle });
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (isReadonly) return;
     const newContent = e.target.value;
     setContent(newContent);
-    if (currentPage) {
-      updatePageSettings(pageKey, { notepadContent: newContent });
-    }
-    if (!isCanvasFrame) updateMetadata({ notepadContent: newContent });
+    persist({ notepadContent: newContent, documentContent: newContent });
   };
 
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;

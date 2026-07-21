@@ -29,6 +29,7 @@ import {
   Cell,
   Legend,
 } from 'recharts';
+import { TEMPLATE_LABELS } from '@/lib/templates';
 
 type Notification = {
   type: 'error' | 'success';
@@ -97,6 +98,7 @@ interface AnalyticsResponse {
 }
 
 const STATUS_COLORS = ['#6366f1', '#f59e0b', '#10b981'];
+
 const PRIORITY_COLORS = [
   '#E3123B',
   '#7B323D',
@@ -105,17 +107,6 @@ const PRIORITY_COLORS = [
   '#B2BAAE',
   '#6366f1',
 ];
-const TEMPLATE_LABELS: Record<string, string> = {
-  blank: 'Blank',
-  kanban: 'Kanban',
-  document: 'Document',
-  whiteboard: 'Whiteboard',
-  timeline: 'Timeline',
-  database: 'Database',
-  mindmap: 'Mind Map',
-  retrospective: 'Retrospective',
-  notepad: 'Notepad',
-};
 
 const EMPTY_METRICS: AnalyticsMetrics = {
   total_projects: 0,

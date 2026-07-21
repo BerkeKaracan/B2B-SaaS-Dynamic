@@ -13,6 +13,7 @@ import {
   getProjectDisplayName,
   isMeaningfulProjectRecord,
 } from '@/lib/projectRecord';
+import { PROJECT_TEMPLATES } from '@/lib/templates';
 import { RecordData } from '@/types/record';
 import { useAuthStore } from '@/store/useAuthStore';
 import { fetchAPI } from '@/services/api';
@@ -29,13 +30,7 @@ import {
   LayoutTemplate,
   Trash2,
   AlertTriangle,
-  Database,
-  PenTool,
-  FileText,
-  Network,
-  MessageSquare,
   ChevronDown,
-  KanbanSquare,
   Lock,
   Unlock,
   Folder,
@@ -231,54 +226,7 @@ export default function ProjectCardsGrid({
 
   const isStorageView = view === 'trash' || view === 'archive';
 
-  const TEMPLATES = useMemo(
-    () => [
-      {
-        id: 'blank',
-        name: 'Blank',
-        icon: LayoutTemplate,
-        color: 'text-zinc-500 dark:text-zinc-400',
-      },
-      {
-        id: 'kanban',
-        name: 'Kanban',
-        icon: KanbanSquare,
-        color: 'text-blue-500',
-      },
-      {
-        id: 'document',
-        name: 'Document',
-        icon: FileText,
-        color: 'text-amber-500',
-      },
-      {
-        id: 'whiteboard',
-        name: 'Whiteboard',
-        icon: PenTool,
-        color: 'text-emerald-500',
-      },
-      {
-        id: 'timeline',
-        name: 'Timeline',
-        icon: Clock,
-        color: 'text-sky-600',
-      },
-      {
-        id: 'database',
-        name: 'Database',
-        icon: Database,
-        color: 'text-teal-600',
-      },
-      { id: 'mindmap', name: 'Mindmap', icon: Network, color: 'text-cyan-600' },
-      {
-        id: 'retrospective',
-        name: 'Retrospective',
-        icon: MessageSquare,
-        color: 'text-rose-500',
-      },
-    ],
-    []
-  );
+  const TEMPLATES = useMemo(() => PROJECT_TEMPLATES, []);
 
   const selectedTemplateData =
     TEMPLATES.find((temp) => temp.id === selectedTemplate) || TEMPLATES[0];
@@ -853,7 +801,7 @@ export default function ProjectCardsGrid({
                 <option value="all">{t('filters.allTemplates')}</option>
                 {TEMPLATES.map((temp) => (
                   <option key={temp.id} value={temp.id}>
-                    {temp.name}
+                    {temp.label}
                   </option>
                 ))}
               </select>
@@ -931,7 +879,7 @@ export default function ProjectCardsGrid({
                 onClick={() => setTemplateFilter('all')}
                 className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 transition-colors"
               >
-                {TEMPLATES.find((temp) => temp.id === templateFilter)?.name}
+                {TEMPLATES.find((temp) => temp.id === templateFilter)?.label}
                 <X className="w-3 h-3 text-zinc-400" />
               </button>
             )}
@@ -1086,7 +1034,7 @@ export default function ProjectCardsGrid({
                       <TemplateIcon className={`w-4 h-4 ${currentTemplate.color}`} />
                     </div>
                     <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-                      {currentTemplate.name}
+                      {currentTemplate.label}
                     </span>
                   </div>
                   {isAdmin && (
@@ -1424,7 +1372,7 @@ export default function ProjectCardsGrid({
                       className={`w-4 h-4 ${selectedTemplateData.color}`}
                     />
                     <span className="font-medium">
-                      {selectedTemplateData.name}
+                      {selectedTemplateData.label}
                     </span>
                   </div>
                   <ChevronDown
@@ -1453,7 +1401,7 @@ export default function ProjectCardsGrid({
                           <template.icon
                             className={`w-4 h-4 ${selectedTemplate === template.id ? 'text-sky-600 dark:text-sky-400' : template.color}`}
                           />
-                          {template.name}
+                          {template.label}
                         </button>
                       ))}
                     </div>

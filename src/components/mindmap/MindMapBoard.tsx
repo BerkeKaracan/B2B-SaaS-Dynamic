@@ -7,10 +7,9 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
+import { useBoardPersistence } from '@/hooks/useBoardPersistence';
 import { useTranslations } from 'next-intl';
 import { Plus, ZoomIn, ZoomOut, Download, GripHorizontal } from 'lucide-react';
-import { useCanvasStore } from '@/store/useCanvasStore';
-import { useProjectEditMode } from '@/hooks/useProjectEditMode';
 
 type MindNode = {
   id: string;
@@ -24,37 +23,19 @@ type MindNode = {
 
 function MindMapBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('MindMapBoard');
-  const { isReadonly } = useProjectEditMode();
   const containerRef = useRef<HTMLDivElement>(null);
-  const metadata = useCanvasStore((s) => s.metadata);
-  const pages = useCanvasStore((s) => s.pages);
-  const updateMetadata = useCanvasStore((s) => s.updateMetadata);
-  const updatePageSettings = useCanvasStore((s) => s.updatePageSettings);
+  const { isReadonly, isPageScoped, dataSource, metadata, persist } =
+    useBoardPersistence(projectId);
 
-  // Standalone mindmap project → global metadata; frame on the infinite canvas
-  // → that page's own settings (keyed by page.id) so frames stay isolated.
-  const canvasPage = useMemo(
-    () => pages.find((p) => p.id === projectId),
-    [pages, projectId]
-  );
-  const isPageScoped = !!canvasPage;
   const storedNodes = useMemo(() => {
-    const raw = isPageScoped
-      ? ((canvasPage?.settings || {}) as Record<string, unknown>).mindmapNodes
-      : metadata.mindmapNodes;
-    return (raw as MindNode[] | undefined) || undefined;
-  }, [isPageScoped, canvasPage?.settings, metadata.mindmapNodes]);
+    return (dataSource.mindmapNodes as MindNode[] | undefined) || undefined;
+  }, [dataSource.mindmapNodes]);
 
   const persistNodes = useCallback(
     (next: MindNode[]) => {
-      if (isReadonly) return;
-      if (isPageScoped) {
-        updatePageSettings(projectId, { mindmapNodes: next });
-      } else {
-        updateMetadata({ mindmapNodes: next });
-      }
+      persist({ mindmapNodes: next });
     },
-    [isReadonly, isPageScoped, projectId, updatePageSettings, updateMetadata]
+    [persist]
   );
 
   const [isMounted, setIsMounted] = useState(false);

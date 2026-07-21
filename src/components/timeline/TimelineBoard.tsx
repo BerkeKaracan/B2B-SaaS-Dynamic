@@ -10,9 +10,8 @@ import React, {
 import { createPortal } from 'react-dom';
 import { useParams } from 'next/navigation';
 import { fetchAPI } from '@/services/api';
-// EKLENDİ: Mağazayı sadece gerekli parçalarla çekmek için import
 import { useCanvasStore } from '@/store/useCanvasStore';
-import { useProjectEditMode } from '@/hooks/useProjectEditMode';
+import { useBoardPersistence } from '@/hooks/useBoardPersistence';
 import {
   useHasProjectToolbarSlot,
   useProjectToolbarPortal,
@@ -114,29 +113,10 @@ const generateNextDays = (daysCount = 30) => {
 function TimelineBoard({ projectId }: { projectId: string }) {
   const params = useParams();
   const tenantId = params.tenantId as string;
-  const { isReadonly } = useProjectEditMode();
+  const { isReadonly, dataSource, persist } = useBoardPersistence(projectId);
 
-  const updateMetadata = useCanvasStore((state) => state.updateMetadata);
-  const updatePageSettings = useCanvasStore(
-    (state) => state.updatePageSettings
-  );
-  const pages = useCanvasStore((state) => state.pages);
-  const metadataEvents = useCanvasStore(
-    (state) => state.metadata.timelineEvents as TimelineEvent[] | undefined
-  );
   const metadataName = useCanvasStore((state) => state.metadata.name);
-
-  const canvasPage = useMemo(
-    () => pages.find((p) => p.id === projectId),
-    [pages, projectId]
-  );
-  const isPageScoped = !!canvasPage;
-  const pageSettings = (canvasPage?.settings || {}) as Record<string, unknown>;
-  const scopedEvents = (
-    isPageScoped
-      ? (pageSettings.timelineEvents as TimelineEvent[] | undefined)
-      : metadataEvents
-  ) as TimelineEvent[] | undefined;
+  const scopedEvents = dataSource.timelineEvents as TimelineEvent[] | undefined;
 
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [savedViews, setSavedViews] = useState<TimelineSavedView[]>([]);
@@ -340,11 +320,7 @@ function TimelineBoard({ projectId }: { projectId: string }) {
     if (isReadonly) return;
     setEvents(newEvents);
     isInternalUpdate.current = true;
-    if (isPageScoped) {
-      updatePageSettings(projectId, { timelineEvents: newEvents });
-    } else {
-      updateMetadata({ timelineEvents: newEvents });
-    }
+    persist({ timelineEvents: newEvents });
     syncDataToDB(newEvents, savedViews);
   };
 

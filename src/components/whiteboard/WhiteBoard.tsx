@@ -3,8 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
-import { useCanvasStore } from '@/store/useCanvasStore';
-import { useProjectEditMode } from '@/hooks/useProjectEditMode';
+import { useBoardPersistence } from '@/hooks/useBoardPersistence';
 import {
   useHasProjectToolbarSlot,
   useProjectToolbarPortal,
@@ -57,24 +56,7 @@ const SIZES = [14, 18, 24, 32, 48, 64];
 
 function WhiteboardBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('WhiteboardBoard');
-  const { isReadonly } = useProjectEditMode();
-
-  const pages = useCanvasStore((state) => state.pages);
-  const metadata = useCanvasStore((state) => state.metadata);
-  const updatePageSettings = useCanvasStore(
-    (state) => state.updatePageSettings
-  );
-  const updateMetadata = useCanvasStore((state) => state.updateMetadata);
-
-  const currentPage =
-    pages.find((p) => p.id === projectId) ||
-    pages.find((p) => p.type === 'whiteboard') ||
-    pages[0];
-  const settings = currentPage?.settings || {};
-  const pageKey = currentPage?.id || projectId;
-  // Frame on the infinite canvas → persist only into that page's settings.
-  // Writing metadata too doubled every save cascade (2× re-render + Yjs sync).
-  const isCanvasFrame = pages.some((p) => p.id === projectId);
+  const { isReadonly, dataSource, persist } = useBoardPersistence(projectId);
 
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [texts, setTexts] = useState<FloatingText[]>([]);
@@ -100,17 +82,12 @@ function WhiteboardBoard({ projectId }: { projectId: string }) {
   const strokesRef = useRef<Stroke[]>(strokes);
 
   useEffect(() => {
-    if (settings.whiteboardStrokes)
+    if (dataSource.whiteboardStrokes)
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStrokes(settings.whiteboardStrokes as Stroke[]);
+      setStrokes(dataSource.whiteboardStrokes as Stroke[]);
 
     const rawTexts =
-      (settings.whiteboardTexts as
-        | Array<Record<string, unknown>>
-        | undefined) ||
-      (metadata.whiteboardTexts as
-        | Array<Record<string, unknown>>
-        | undefined) ||
+      (dataSource.whiteboardTexts as Array<Record<string, unknown>> | undefined) ||
       [];
     if (rawTexts.length > 0) {
       setTexts(
@@ -125,17 +102,13 @@ function WhiteboardBoard({ projectId }: { projectId: string }) {
         }))
       );
     }
-    if (settings.whiteboardTitle || metadata.whiteboardTitle) {
-      setTitle(
-        String(settings.whiteboardTitle || metadata.whiteboardTitle || '')
-      );
+    if (dataSource.whiteboardTitle) {
+      setTitle(String(dataSource.whiteboardTitle));
     }
   }, [
-    settings.whiteboardStrokes,
-    settings.whiteboardTexts,
-    settings.whiteboardTitle,
-    metadata.whiteboardTexts,
-    metadata.whiteboardTitle,
+    dataSource.whiteboardStrokes,
+    dataSource.whiteboardTexts,
+    dataSource.whiteboardTitle,
   ]);
 
   useEffect(() => {
@@ -146,28 +119,19 @@ function WhiteboardBoard({ projectId }: { projectId: string }) {
     if (isReadonly) return;
     strokesRef.current = newStrokes;
     setStrokes(newStrokes);
-    if (currentPage) {
-      updatePageSettings(pageKey, { whiteboardStrokes: newStrokes });
-    }
-    if (!isCanvasFrame) updateMetadata({ whiteboardStrokes: newStrokes });
+    persist({ whiteboardStrokes: newStrokes });
   };
 
   const saveTexts = (newTexts: FloatingText[]) => {
     if (isReadonly) return;
     setTexts(newTexts);
-    if (currentPage) {
-      updatePageSettings(pageKey, { whiteboardTexts: newTexts });
-    }
-    if (!isCanvasFrame) updateMetadata({ whiteboardTexts: newTexts });
+    persist({ whiteboardTexts: newTexts });
   };
 
   const saveTitle = (newTitle: string) => {
     if (isReadonly) return;
     setTitle(newTitle);
-    if (currentPage) {
-      updatePageSettings(pageKey, { whiteboardTitle: newTitle });
-    }
-    if (!isCanvasFrame) updateMetadata({ whiteboardTitle: newTitle });
+    persist({ whiteboardTitle: newTitle });
   };
 
   useEffect(() => {

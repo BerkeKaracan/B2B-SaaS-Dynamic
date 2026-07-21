@@ -33,15 +33,10 @@ import ToggleSwitchBlock from './ToggleSwitchBlock';
 import BadgeSelectorBlock from './BadgeSelectorBlock';
 import AssetStreamBlock from './AssetStreamBlock';
 import BlockResizer from './BlockResizer';
-import StaticKanbanBoard from '@/components/kanban/StaticKanbanBoard';
 import { Minus, Plus, Maximize, MousePointer2 } from 'lucide-react';
 
-import NotepadBoard from '@/components/notepad/NotepadBoard';
-import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
-import MindMapBoard from '@/components/mindmap/MindMapBoard';
-import TimelineBoard from '@/components/timeline/TimelineBoard';
-import DatabaseBoard from '@/components/database/DatabaseBoard';
-import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
+import { BoardFromPageType } from '@/components/workspace/BoardRenderer';
+import { isBoardPageType } from '@/lib/templates';
 
 import { useCanvasCollaboration } from '@/hooks/useCanvasCollaboration';
 import { useZustandYjsSync } from '@/hooks/useZustandYjsSync';
@@ -54,21 +49,6 @@ import { LiveCursors } from '../LiveCursors';
 
 const MIN_ZOOM = 10;
 const MAX_ZOOM = 400;
-
-/**
- * Board pages own client state / fetched data — never unmount them for
- * culling (remount would refetch). They are hidden with visibility+contain.
- */
-const BOARD_PAGE_TYPES = new Set([
-  'kanban',
-  'notes',
-  'document',
-  'whiteboard',
-  'mindmap',
-  'timeline',
-  'database',
-  'retrospective',
-]);
 
 /** Content can overflow page.height (it is a minHeight) — cull generously. */
 const PAGE_CULL_HEIGHT_FACTOR = 1.5;
@@ -1130,7 +1110,7 @@ export default function CanvasArea() {
         );
       return {
         isCulled,
-        isBoardPage: BOARD_PAGE_TYPES.has(String(page.type ?? '')),
+        isBoardPage: isBoardPageType(String(page.type ?? '')),
       };
     });
     const renderedFrameCount = cullStates.filter((c) => !c.isCulled).length;
@@ -1186,9 +1166,9 @@ export default function CanvasArea() {
             e.dataTransfer.dropEffect = 'copy';
           }}
           onDrop={(e) => handleDropOnPage(e, page)}
-          className={`canvas-bg absolute shadow-[0_8px_24px_-12px_rgba(0,0,0,0.08)] rounded-2xl focus:outline-none flex flex-col ${
+          className={`canvas-bg absolute shadow-[0_8px_24px_-12px_rgba(0,0,0,0.08)] rounded-2xl focus:outline-none flex flex-col overflow-visible ${
             isPageActive
-              ? 'ring-2 ring-indigo-500 shadow-lg z-40'
+              ? 'ring-2 ring-sky-500/80 shadow-lg z-40'
               : 'ring-1 ring-zinc-200/80 dark:ring-zinc-800/80 z-0'
           } ${pageBgColor === '#ffffff' ? 'bg-white dark:bg-zinc-900' : ''} ${
             isSpacePanning ? 'pointer-events-none' : 'pointer-events-auto'
@@ -1403,17 +1383,7 @@ export default function CanvasArea() {
             </>
           )}
 
-          {page.type === 'kanban' ? (
-            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl">
-              {mode === 'readonly' && (
-                <div
-                  className="absolute inset-0 z-60 cursor-not-allowed"
-                  title="Read-Only Mode"
-                />
-              )}
-              <StaticKanbanBoard projectId={page.id} />
-            </div>
-          ) : page.type === 'notes' || page.type === 'document' ? (
+          {isBoardPageType(page.type) ? (
             <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
@@ -1421,57 +1391,7 @@ export default function CanvasArea() {
                   title="Read-Only Mode"
                 />
               )}
-              <NotepadBoard projectId={page.id} />
-            </div>
-          ) : page.type === 'whiteboard' ? (
-            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
-              {mode === 'readonly' && (
-                <div
-                  className="absolute inset-0 z-60 cursor-not-allowed"
-                  title="Read-Only Mode"
-                />
-              )}
-              <WhiteboardBoard projectId={page.id} />
-            </div>
-          ) : page.type === 'mindmap' ? (
-            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
-              {mode === 'readonly' && (
-                <div
-                  className="absolute inset-0 z-60 cursor-not-allowed"
-                  title="Read-Only Mode"
-                />
-              )}
-              <MindMapBoard projectId={page.id} />
-            </div>
-          ) : page.type === 'timeline' ? (
-            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
-              {mode === 'readonly' && (
-                <div
-                  className="absolute inset-0 z-60 cursor-not-allowed"
-                  title="Read-Only Mode"
-                />
-              )}
-              <TimelineBoard projectId={page.id} />
-            </div>
-          ) : page.type === 'database' ? (
-            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
-              {mode === 'readonly' && (
-                <div
-                  className="absolute inset-0 z-60 cursor-not-allowed"
-                  title="Read-Only Mode"
-                />
-              )}
-              <DatabaseBoard projectId={page.id} />
-            </div>
-          ) : page.type === 'retrospective' ? (
-            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
-              {mode === 'readonly' && (
-                <div
-                  className="absolute inset-0 z-60 cursor-not-allowed"
-                  title="Read-Only Mode"
-                />
-              )}
-              <RetrospectiveBoard projectId={page.id} />
+              <BoardFromPageType pageType={page.type} projectId={page.id} />
             </div>
           ) : (
             <div className="canvas-bg relative w-full h-full p-6 flex-1 overflow-visible">
@@ -1658,6 +1578,19 @@ export default function CanvasArea() {
                   </div>
                 );
               })}
+              {page.blocks.length === 0 && mode !== 'readonly' && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-8">
+                  <div className="text-center max-w-xs">
+                    <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+                      Empty frame
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500 leading-relaxed">
+                      Drag blocks from the toolkit, or drop a board template
+                      onto the canvas.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </section>

@@ -10,6 +10,7 @@ import {
   getBlockDefaultWidth,
   resolveBlockHeight,
 } from '@/lib/blockConfig';
+import { getPageFrameDefaults, isBoardPageType, BOARD_PAGE_TYPES } from '@/lib/templates';
 
 export type PageWithSettings = PageContent & {
   settings?: Record<string, unknown>;
@@ -27,23 +28,14 @@ const getEstimatedHeight = (type: string, height?: number | null) =>
   resolveBlockHeight(type, height);
 
 /** Board templates that render via dedicated components, not freeform blocks. */
-const TEMPLATE_PAGE_TYPES = new Set<PageContent['type']>([
-  'kanban',
-  'notes',
-  'document',
-  'timeline',
-  'database',
-  'whiteboard',
-  'mindmap',
-  'retrospective',
-]);
+const TEMPLATE_PAGE_TYPES = BOARD_PAGE_TYPES as Set<PageContent['type']>;
 
 const normalizeGeneratedPageType = (raw: unknown): PageContent['type'] => {
   const value = String(raw || 'empty')
     .toLowerCase()
     .trim();
   if (value === 'empty') return 'empty';
-  if (TEMPLATE_PAGE_TYPES.has(value as PageContent['type'])) {
+  if (isBoardPageType(value)) {
     return value as PageContent['type'];
   }
   // Common model aliases
@@ -600,123 +592,20 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     get().saveHistory();
     set((state) => {
       const pageId = crypto.randomUUID();
-      let width = 800;
-      let height = 1131;
-      let title = 'New Frame';
-      let bgColor = '#ffffff';
-      let initialBlocks: BlockContent[] = [];
-
-      if (type === 'kanban') {
-        width = 1200;
-        height = 800;
-        title = 'Kanban Board';
-        bgColor = '#f4f4f5';
-        initialBlocks = [
-          {
-            id: crypto.randomUUID(),
-            type: 'text',
-            value: 'TO DO\n\n- Task 1',
-            x: 40,
-            y: 40,
-            settings: {},
-          },
-          {
-            id: crypto.randomUUID(),
-            type: 'text',
-            value: 'IN PROGRESS\n\n- Task 2',
-            x: 440,
-            y: 40,
-            settings: {},
-          },
-          {
-            id: crypto.randomUUID(),
-            type: 'text',
-            value: 'DONE\n\n- ',
-            x: 840,
-            y: 40,
-            settings: {},
-          },
-        ];
-      } else if (type === 'notes') {
-        width = 800;
-        height = 1000;
-        title = 'Notes Workspace';
-        bgColor = '#fffdf0';
-        initialBlocks = [
-          {
-            id: crypto.randomUUID(),
-            type: 'text',
-            value: '# Meeting Notes\nDate:',
-            x: 40,
-            y: 40,
-            settings: {},
-          },
-          {
-            id: crypto.randomUUID(),
-            type: 'checkbox',
-            value: false,
-            x: 40,
-            y: 200,
-            settings: {},
-          },
-        ];
-      } else if (type === 'timeline') {
-        width = 1000;
-        height = 600;
-        title = 'Timeline';
-        initialBlocks = [
-          {
-            id: crypto.randomUUID(),
-            type: 'date',
-            value: '',
-            x: 40,
-            y: 40,
-            settings: {},
-          },
-          {
-            id: crypto.randomUUID(),
-            type: 'text',
-            value: 'Phase 1: Kickoff',
-            x: 350,
-            y: 40,
-            settings: {},
-          },
-        ];
-      } else if (type === 'database') {
-        width = 1200;
-        height = 800;
-        title = 'Structured Database';
-        bgColor = '#f8fafc';
-        initialBlocks = [
-          {
-            id: crypto.randomUUID(),
-            type: 'form',
-            value: '',
-            x: 40,
-            y: 40,
-            settings: {},
-          },
-          {
-            id: crypto.randomUUID(),
-            type: 'badge_selector',
-            value: '',
-            x: 350,
-            y: 40,
-            settings: { options: 'Active, Pending, Closed' },
-          },
-        ];
-      }
+      const defaults = getPageFrameDefaults(type);
+      // Board pages render dedicated components — do not seed freeform blocks.
+      const blocks: BlockContent[] = [];
 
       const newPage: PageWithSettings = {
         id: pageId,
         type,
-        title,
+        title: defaults.title,
         x,
         y,
-        width,
-        height,
-        blocks: initialBlocks,
-        settings: { backgroundColor: bgColor },
+        width: defaults.width,
+        height: defaults.height,
+        blocks,
+        settings: { backgroundColor: defaults.backgroundColor },
       };
 
       return {

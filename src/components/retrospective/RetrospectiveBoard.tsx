@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { useCanvasStore } from '@/store/useCanvasStore';
+import { useBoardPersistence } from '@/hooks/useBoardPersistence';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useProjectEditMode } from '@/hooks/useProjectEditMode';
 import {
   useHasProjectToolbarSlot,
   useProjectToolbarPortal,
@@ -22,39 +21,15 @@ type RetroCard = {
 
 function RetrospectiveBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('RetrospectiveBoard');
-  const { isReadonly } = useProjectEditMode();
-  // Granular selectors — a whole-store subscription re-rendered every mounted
-  // board at 60fps during pan/zoom (setPan/setZoom write to the store per rAF).
-  const metadata = useCanvasStore((s) => s.metadata);
-  const updateMetadata = useCanvasStore((s) => s.updateMetadata);
-  const pages = useCanvasStore((s) => s.pages);
-  const updatePageSettings = useCanvasStore((s) => s.updatePageSettings);
   const { user } = useAuthStore();
-
-  const canvasPage = useMemo(
-    () => pages.find((p) => p.id === projectId),
-    [pages, projectId]
-  );
-  const isPageScoped = !!canvasPage;
-  const pageSettings = useMemo(
-    () => (canvasPage?.settings || {}) as Record<string, unknown>,
-    [canvasPage?.settings]
-  );
-
-  const dataSource = useMemo(() => {
-    return isPageScoped ? pageSettings : metadata;
-  }, [isPageScoped, pageSettings, metadata]);
+  const { isReadonly, dataSource, persist, migrateLegacyKeys } =
+    useBoardPersistence(projectId);
 
   const persistCards = useCallback(
     (newCards: RetroCard[]) => {
-      if (isReadonly) return;
-      if (isPageScoped) {
-        updatePageSettings(projectId, { retrospectiveCards: newCards });
-      } else {
-        updateMetadata({ retrospectiveCards: newCards });
-      }
+      persist({ retrospectiveCards: newCards });
     },
-    [isReadonly, isPageScoped, projectId, updatePageSettings, updateMetadata]
+    [persist]
   );
 
   const cards = useMemo(
@@ -71,27 +46,8 @@ function RetrospectiveBoard({ projectId }: { projectId: string }) {
   });
 
   useEffect(() => {
-    if (!isPageScoped) return;
-    if (pageSettings.retrospectiveCards !== undefined) return;
-    if (metadata.retrospectiveCards === undefined) return;
-    const otherOwns = pages.some(
-      (p) =>
-        p.id !== projectId &&
-        (p.settings as Record<string, unknown> | undefined)
-          ?.retrospectiveCards !== undefined
-    );
-    if (otherOwns) return;
-    updatePageSettings(projectId, {
-      retrospectiveCards: metadata.retrospectiveCards,
-    });
-  }, [
-    isPageScoped,
-    projectId,
-    pages,
-    pageSettings.retrospectiveCards,
-    metadata.retrospectiveCards,
-    updatePageSettings,
-  ]);
+    migrateLegacyKeys(['retrospectiveCards']);
+  }, [migrateLegacyKeys]);
 
   const currentUserIdentifier = user?.email || user?.id || 'anonymous';
   const currentUserName = user?.email

@@ -7,6 +7,7 @@ import { BlockType, PageContent } from '@/types/record';
 import { fetchAPI } from '@/services/api';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { AI_CANVAS_GENERATOR } from '@/lib/featureGate';
+import { FRAME_PAGE_TYPES } from '@/lib/templates';
 import { useLayoutStore } from '@/store/useLayoutStore';
 import {
   Search,
@@ -706,8 +707,9 @@ export default function ItemSidebar() {
   );
   const filteredTemplates = templateItems.filter(
     (item) =>
-      item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase())
+      FRAME_PAGE_TYPES.includes(item.type) &&
+      (item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const clampPanelPos = (x: number, y: number) => {
