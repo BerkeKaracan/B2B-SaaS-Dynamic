@@ -175,9 +175,7 @@ export default function SecuritySettingsPage() {
       setMfaMessage({
         type: 'error',
         text:
-          error instanceof Error
-            ? error.message
-            : 'Invalid authenticator code',
+          error instanceof Error ? error.message : 'Invalid authenticator code',
       });
     } finally {
       setMfaBusy(false);
@@ -214,8 +212,7 @@ export default function SecuritySettingsPage() {
     } catch (error: unknown) {
       setMfaMessage({
         type: 'error',
-        text:
-          error instanceof Error ? error.message : 'Could not disable 2FA',
+        text: error instanceof Error ? error.message : 'Could not disable 2FA',
       });
     } finally {
       setMfaBusy(false);

@@ -252,10 +252,7 @@ export default function BillingPage({
       ? rawTier
       : 'basic';
   const seatLimit = getPlan(currentTier).seatLimit;
-  const usagePercentage = Math.min(
-    100,
-    (teamMemberCount / seatLimit) * 100
-  );
+  const usagePercentage = Math.min(100, (teamMemberCount / seatLimit) * 100);
 
   if (isLoading) {
     return (

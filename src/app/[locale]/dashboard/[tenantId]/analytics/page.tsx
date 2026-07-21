@@ -270,9 +270,7 @@ export default function AnalyticsDashboardPage({
             project.id,
             data.name ?? '',
             data.status ?? '',
-            TEMPLATE_LABELS[String(data.template ?? '')] ||
-              data.template ||
-              '',
+            TEMPLATE_LABELS[String(data.template ?? '')] || data.template || '',
             data.visibility ?? '',
             data.folder ?? '',
             project.module_name ?? 'projects',
@@ -322,7 +320,9 @@ export default function AnalyticsDashboardPage({
         <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center mb-4">
           <ShieldAlert className="w-7 h-7 text-amber-600" />
         </div>
-        <h2 className="text-xl font-black text-zinc-900">Analytics is restricted</h2>
+        <h2 className="text-xl font-black text-zinc-900">
+          Analytics is restricted
+        </h2>
         <p className="text-sm text-zinc-500 mt-2 max-w-md font-medium">
           Only workspace owners and admins can view analytics. Ask an admin to
           upgrade your role if you need access.
