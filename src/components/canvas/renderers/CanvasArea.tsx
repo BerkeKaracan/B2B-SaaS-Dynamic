@@ -162,6 +162,7 @@ export default function CanvasArea() {
   const updatePagePosition = useCanvasStore((s) => s.updatePagePosition);
   const updateBlockPosition = useCanvasStore((s) => s.updateBlockPosition);
   const updatePageDimensions = useCanvasStore((s) => s.updatePageDimensions);
+  const updateBlockGeometry = useCanvasStore((s) => s.updateBlockGeometry);
   const updatePageTitle = useCanvasStore((s) => s.updatePageTitle);
   const updatePageSettings = useCanvasStore((s) => s.updatePageSettings);
   const addConnection = useCanvasStore((s) => s.addConnection);
@@ -656,6 +657,13 @@ export default function CanvasArea() {
           if (commit.moved) {
             updatePagePosition(commit.pageId, commit.x, commit.y);
           }
+        } else if (commit.kind === 'blockResize') {
+          updateBlockGeometry(commit.pageId, commit.blockId, {
+            x: commit.x,
+            y: commit.y,
+            width: commit.width,
+            height: commit.height,
+          });
         }
       }
 
@@ -700,7 +708,7 @@ export default function CanvasArea() {
         }
       }
 
-      if (wasDragging) saveHistory();
+      if (wasDragging || commit) saveHistory();
       setDraggedPageId(null);
       setDraggedBlockInfo(null);
       setResizingPageId(null);
@@ -770,6 +778,7 @@ export default function CanvasArea() {
     updatePagePosition,
     updateBlockPosition,
     updatePageDimensions,
+    updateBlockGeometry,
     saveHistory,
     setSelectedBlocks,
     isSpacePanning,
@@ -1251,15 +1260,32 @@ export default function CanvasArea() {
           style={{
             left: `${px}px`,
             top: `${py}px`,
-            width: `${page.width}px`,
-            minHeight: `${page.height}px`,
+            width: `${page.width ?? 800}px`,
+            minHeight: `${Math.max(page.height ?? 500, 300)}px`,
+            ...(isBoardPage
+              ? { height: `${Math.max(page.height ?? 500, 300)}px` }
+              : {}),
             backgroundColor:
               pageBgColor === '#ffffff' ? undefined : pageBgColor,
             ...culledStyle,
           }}
         >
           {isPageActive && !activeBlockId ? (
-            <div className="absolute -top-14 left-0 flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-1.5 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-150 z-50 transition-colors">
+            <div
+              onPointerDown={(e) => {
+                // Don't start drag from the title input or color picker.
+                if (
+                  e.target instanceof Element &&
+                  (e.target.closest('input') || e.target.closest('button'))
+                ) {
+                  return;
+                }
+                startPageDrag(e, page.id, px, py);
+              }}
+              className={`absolute -top-14 left-0 flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-1.5 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-150 z-50 transition-colors ${
+                mode === 'readonly' ? '' : 'cursor-move'
+              }`}
+            >
               <input
                 type="text"
                 readOnly={mode === 'readonly'}
@@ -1268,6 +1294,7 @@ export default function CanvasArea() {
                   if (mode !== 'readonly')
                     updatePageTitle(page.id, e.target.value);
                 }}
+                onPointerDown={(e) => e.stopPropagation()}
                 className={`bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 text-[11px] font-bold px-3 py-1.5 rounded-lg outline-none w-32 sm:w-40 transition-all border ${
                   mode === 'readonly'
                     ? 'border-transparent cursor-default'
@@ -1280,6 +1307,7 @@ export default function CanvasArea() {
               <div
                 tabIndex={0}
                 className="relative group flex items-center justify-center focus:outline-none"
+                onPointerDown={(e) => e.stopPropagation()}
               >
                 <div
                   className={`w-7 h-7 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm transition-transform ${
@@ -1413,10 +1441,11 @@ export default function CanvasArea() {
                       edge,
                       startClientX: e.clientX,
                       startClientY: e.clientY,
-                      startW: page.width,
-                      startH: page.height,
+                      startW: Math.max(300, Number(page.width) || 800),
+                      startH: Math.max(300, Number(page.height) || 500),
                       startPageX: px,
                       startPageY: py,
+                      fixedHeight: isBoardPage,
                     });
                     setResizingPageId(page.id);
                   }}
@@ -1439,7 +1468,7 @@ export default function CanvasArea() {
           )}
 
           {page.type === 'kanban' ? (
-            <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl">
+            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl">
               {mode === 'readonly' && (
                 <div
                   className="absolute inset-0 z-[60] cursor-not-allowed"
@@ -1449,7 +1478,7 @@ export default function CanvasArea() {
               <StaticKanbanBoard projectId={page.id} />
             </div>
           ) : page.type === 'notes' || page.type === 'document' ? (
-            <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
+            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
                   className="absolute inset-0 z-[60] cursor-not-allowed"
@@ -1459,7 +1488,7 @@ export default function CanvasArea() {
               <NotepadBoard projectId={page.id} />
             </div>
           ) : page.type === 'whiteboard' ? (
-            <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
+            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
                   className="absolute inset-0 z-[60] cursor-not-allowed"
@@ -1469,7 +1498,7 @@ export default function CanvasArea() {
               <WhiteboardBoard projectId={page.id} />
             </div>
           ) : page.type === 'mindmap' ? (
-            <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
+            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
                   className="absolute inset-0 z-[60] cursor-not-allowed"
@@ -1479,7 +1508,7 @@ export default function CanvasArea() {
               <MindMapBoard projectId={page.id} />
             </div>
           ) : page.type === 'timeline' ? (
-            <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
+            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
                   className="absolute inset-0 z-[60] cursor-not-allowed"
@@ -1489,7 +1518,7 @@ export default function CanvasArea() {
               <TimelineBoard projectId={page.id} />
             </div>
           ) : page.type === 'database' ? (
-            <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
+            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
                   className="absolute inset-0 z-[60] cursor-not-allowed"
@@ -1499,7 +1528,7 @@ export default function CanvasArea() {
               <DatabaseBoard projectId={page.id} />
             </div>
           ) : page.type === 'retrospective' ? (
-            <div className="relative w-full h-full min-h-[500px] flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
+            <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
                   className="absolute inset-0 z-[60] cursor-not-allowed"

@@ -159,6 +159,12 @@ interface CanvasState {
     width: number,
     height: number
   ) => void;
+  /** Solo geometry write for block resize — never fans out to selectedBlocks. */
+  updateBlockGeometry: (
+    pageId: string,
+    blockId: string,
+    geometry: { x: number; y: number; width: number; height: number }
+  ) => void;
   duplicateBlock: (
     pageId: string,
     blockId: string,
@@ -871,6 +877,28 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
               ...p,
               blocks: p.blocks.map((b) =>
                 b.id === blockId ? { ...b, width, height } : b
+              ),
+            }
+          : p
+      ),
+    })),
+
+  updateBlockGeometry: (pageId, blockId, geometry) =>
+    set((state) => ({
+      pages: state.pages.map((p) =>
+        p.id === pageId
+          ? {
+              ...p,
+              blocks: p.blocks.map((b) =>
+                b.id === blockId
+                  ? {
+                      ...b,
+                      x: geometry.x,
+                      y: geometry.y,
+                      width: geometry.width,
+                      height: geometry.height,
+                    }
+                  : b
               ),
             }
           : p
