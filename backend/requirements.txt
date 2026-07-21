@@ -45,7 +45,7 @@ protobuf==5.29.6
 psycopg2-binary==2.9.11
 pwdlib==0.3.0
 py-serializable==2.1.0
-pyasn1==0.6.3
+pyasn1==0.6.4
 pyasn1_modules==0.4.2
 pycparser==3.0
 pydantic==2.12.5
