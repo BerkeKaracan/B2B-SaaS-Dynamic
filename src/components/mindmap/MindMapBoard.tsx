@@ -9,17 +9,18 @@ import React, {
 } from 'react';
 import { useBoardPersistence } from '@/hooks/useBoardPersistence';
 import { useTranslations } from 'next-intl';
-import { Plus, ZoomIn, ZoomOut, Download, GripHorizontal } from 'lucide-react';
-
-type MindNode = {
-  id: string;
-  text: string;
-  x: number;
-  y: number;
-  parentId: string | null;
-  color?: string;
-  page_id?: string;
-};
+import { GitBranch, Network } from 'lucide-react';
+import type { MindNode } from './types';
+import {
+  SURFACE,
+  LINK,
+  connectionPath,
+  getNodeCenter,
+  getNodeDim,
+  getNodeTier,
+} from './mindmapStyles';
+import MindMapNode from './MindMapNode';
+import MindMapToolbar from './MindMapToolbar';
 
 function MindMapBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('MindMapBoard');
@@ -40,6 +41,7 @@ function MindMapBoard({ projectId }: { projectId: string }) {
 
   const [isMounted, setIsMounted] = useState(false);
   const [nodes, setNodes] = useState<MindNode[]>([]);
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -65,10 +67,10 @@ function MindMapBoard({ projectId }: { projectId: string }) {
               {
                 id: 'root',
                 text: t('centralIdea'),
-                x: window.innerWidth / 2 - 100,
+                x: window.innerWidth / 2 - 98,
                 y: window.innerHeight / 2 - 100,
                 parentId: null,
-                color: 'bg-zinc-900',
+                color: 'bg-sky-600',
               },
             ]
       );
@@ -91,16 +93,29 @@ function MindMapBoard({ projectId }: { projectId: string }) {
         persistNodes(next);
         return next;
       });
+      setJustAddedId(detail.id);
     };
     window.addEventListener('onAiMindmapNodeCreated', handleAiNode);
     return () =>
       window.removeEventListener('onAiMindmapNodeCreated', handleAiNode);
   }, [persistNodes, isPageScoped, projectId]);
 
+  useEffect(() => {
+    if (!justAddedId) return;
+    const timer = window.setTimeout(() => setJustAddedId(null), 400);
+    return () => window.clearTimeout(timer);
+  }, [justAddedId]);
+
   const saveNodes = (newNodes: MindNode[]) => {
     setNodes(newNodes);
     persistNodes(newNodes);
   };
+
+  const nodesById = useMemo(() => {
+    const map = new Map<string, MindNode>();
+    for (const n of nodes) map.set(n.id, n);
+    return map;
+  }, [nodes]);
 
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -145,33 +160,41 @@ function MindMapBoard({ projectId }: { projectId: string }) {
       el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
     }
 
-    // Update SVG lines that touch this node (child lines + lines to children).
     const snap = nodesSnapshotRef.current;
-    const dragged = snap.find((n) => n.id === nodeId);
+    const byId = new Map(snap.map((n) => [n.id, n]));
+    const dragged = byId.get(nodeId);
     if (!dragged) return;
-    const liveX = dragged.x + dx;
-    const liveY = dragged.y + dy;
 
-    // Line belonging to this node (to its parent)
+    const live: MindNode = { ...dragged, x: dragged.x + dx, y: dragged.y + dy };
+    const liveCenter = getNodeCenter(live, byId);
+
     if (dragged.parentId) {
-      const line = document.querySelector(
+      const path = document.querySelector(
         `[data-mind-line-id="${nodeId}"]`
-      ) as SVGLineElement | null;
-      if (line) {
-        line.setAttribute('x2', String(liveX + 80));
-        line.setAttribute('y2', String(liveY + 24));
+      ) as SVGPathElement | null;
+      if (path) {
+        const parent = byId.get(dragged.parentId);
+        if (parent) {
+          const pc = getNodeCenter(parent, byId);
+          path.setAttribute(
+            'd',
+            connectionPath(pc.x, pc.y, liveCenter.x, liveCenter.y)
+          );
+        }
       }
     }
-    // Lines of children that point to this node as parent
+
     for (const child of snap) {
       if (child.parentId !== nodeId) continue;
-      const line = document.querySelector(
+      const path = document.querySelector(
         `[data-mind-line-id="${child.id}"]`
-      ) as SVGLineElement | null;
-      if (line) {
-        line.setAttribute('x1', String(liveX + 80));
-        line.setAttribute('y1', String(liveY + 24));
-      }
+      ) as SVGPathElement | null;
+      if (!path) continue;
+      const childCenter = getNodeCenter(child, byId);
+      path.setAttribute(
+        'd',
+        connectionPath(liveCenter.x, liveCenter.y, childCenter.x, childCenter.y)
+      );
     }
   };
 
@@ -241,6 +264,22 @@ function MindMapBoard({ projectId }: { projectId: string }) {
     setDraggingNodeId(null);
   };
 
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.08 : 0.08;
+        setZoom((z) => Math.min(2, Math.max(0.3, z + delta)));
+        return;
+      }
+      setPan((prev) => ({
+        x: prev.x - e.deltaX,
+        y: prev.y - e.deltaY,
+      }));
+    },
+    []
+  );
+
   const addChildNode = (parentId: string, parentX: number, parentY: number) => {
     if (isReadonly) return;
     const newId = `node-${Date.now()}`;
@@ -259,10 +298,11 @@ function MindMapBoard({ projectId }: { projectId: string }) {
         x: newX,
         y: newY,
         parentId,
-        color: 'bg-white dark:bg-zinc-800',
+        color: 'bg-sky-50',
       },
     ]);
     setEditingNodeId(newId);
+    setJustAddedId(newId);
   };
 
   const updateNodeText = (id: string, newText: string) => {
@@ -273,19 +313,20 @@ function MindMapBoard({ projectId }: { projectId: string }) {
   const exportMindMapPng = useCallback(() => {
     if (nodes.length === 0) return;
 
-    const pad = 48;
-    const nodeW = 160;
-    const nodeH = 48;
+    const pad = 56;
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
 
     for (const node of nodes) {
+      const dim = getNodeDim(node, byId);
       minX = Math.min(minX, node.x);
       minY = Math.min(minY, node.y);
-      maxX = Math.max(maxX, node.x + nodeW);
-      maxY = Math.max(maxY, node.y + nodeH);
+      maxX = Math.max(maxX, node.x + dim.w);
+      maxY = Math.max(maxY, node.y + dim.h);
     }
 
     const width = Math.max(320, maxX - minX + pad * 2);
@@ -298,49 +339,102 @@ function MindMapBoard({ projectId }: { projectId: string }) {
     if (!ctx) return;
 
     ctx.scale(scale, scale);
-    ctx.fillStyle = '#f7f9fb';
+    ctx.fillStyle = LINK.exportBg;
     ctx.fillRect(0, 0, width, height);
+
+    // Soft grid
+    ctx.strokeStyle = 'rgba(113,113,122,0.08)';
+    ctx.lineWidth = 1;
+    for (let gx = 0; gx < width; gx += 32) {
+      ctx.beginPath();
+      ctx.moveTo(gx, 0);
+      ctx.lineTo(gx, height);
+      ctx.stroke();
+    }
+    for (let gy = 0; gy < height; gy += 32) {
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(width, gy);
+      ctx.stroke();
+    }
 
     const ox = pad - minX;
     const oy = pad - minY;
 
-    ctx.strokeStyle = '#d4d4d8';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = LINK.strokeHexLight;
+    ctx.lineWidth = 2.25;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     for (const node of nodes) {
       if (!node.parentId) continue;
-      const parent = nodes.find((n) => n.id === node.parentId);
+      const parent = byId.get(node.parentId);
       if (!parent) continue;
+      const pCenter = getNodeCenter(parent, byId);
+      const cCenter = getNodeCenter(node, byId);
+      const x1 = pCenter.x + ox;
+      const y1 = pCenter.y + oy;
+      const x2 = cCenter.x + ox;
+      const y2 = cCenter.y + oy;
+      const dx = Math.abs(x2 - x1);
+      const tension = Math.max(48, Math.min(160, dx * 0.45));
+      const c1x = x1 + (x2 >= x1 ? tension : -tension);
+      const c2x = x2 - (x2 >= x1 ? tension : -tension);
       ctx.beginPath();
-      ctx.moveTo(parent.x + nodeW / 2 + ox, parent.y + nodeH / 2 + oy);
-      ctx.lineTo(node.x + nodeW / 2 + ox, node.y + nodeH / 2 + oy);
+      ctx.moveTo(x1, y1);
+      ctx.bezierCurveTo(c1x, y1, c2x, y2, x2, y2);
       ctx.stroke();
     }
 
     for (const node of nodes) {
+      const dim = getNodeDim(node, byId);
       const x = node.x + ox;
       const y = node.y + oy;
-      const isRoot = node.parentId === null;
-      const r = 12;
+      const tier = getNodeTier(node, byId);
+      const r = tier === 'root' ? 16 : 14;
+
       ctx.beginPath();
       ctx.moveTo(x + r, y);
-      ctx.arcTo(x + nodeW, y, x + nodeW, y + nodeH, r);
-      ctx.arcTo(x + nodeW, y + nodeH, x, y + nodeH, r);
-      ctx.arcTo(x, y + nodeH, x, y, r);
-      ctx.arcTo(x, y, x + nodeW, y, r);
+      ctx.arcTo(x + dim.w, y, x + dim.w, y + dim.h, r);
+      ctx.arcTo(x + dim.w, y + dim.h, x, y + dim.h, r);
+      ctx.arcTo(x, y + dim.h, x, y, r);
+      ctx.arcTo(x, y, x + dim.w, y, r);
       ctx.closePath();
-      ctx.fillStyle = isRoot ? '#18181b' : '#ffffff';
-      ctx.fill();
-      ctx.strokeStyle = isRoot ? '#27272a' : '#e4e4e7';
+
+      if (tier === 'root') {
+        ctx.fillStyle = LINK.exportRootFill;
+        ctx.fill();
+        ctx.strokeStyle = LINK.exportRootStroke;
+      } else if (tier === 'branch') {
+        ctx.fillStyle = LINK.exportBranchFill;
+        ctx.fill();
+        ctx.strokeStyle = LINK.exportBranchStroke;
+      } else {
+        ctx.fillStyle = LINK.exportLeafFill;
+        ctx.fill();
+        ctx.strokeStyle = LINK.exportLeafStroke;
+      }
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      ctx.fillStyle = isRoot ? '#ffffff' : '#18181b';
-      ctx.font = '600 13px system-ui, sans-serif';
+      // Accent rail
+      ctx.fillStyle =
+        tier === 'root'
+          ? 'rgba(255,255,255,0.35)'
+          : tier === 'branch'
+            ? '#0ea5e9'
+            : '#06b6d4';
+      ctx.fillRect(x, y + 4, 5, dim.h - 8);
+
+      ctx.fillStyle =
+        tier === 'root' ? LINK.exportRootText : LINK.exportBranchText;
+      ctx.font =
+        tier === 'root'
+          ? '600 14px system-ui, sans-serif'
+          : '600 13px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const label = (node.text || 'Untitled').slice(0, 22);
-      ctx.fillText(label, x + nodeW / 2, y + nodeH / 2, nodeW - 16);
+      const label = (node.text || 'Untitled').slice(0, 24);
+      ctx.fillText(label, x + dim.w / 2 + 2, y + dim.h / 2, dim.w - 22);
     }
 
     const fileBase =
@@ -359,179 +453,176 @@ function MindMapBoard({ projectId }: { projectId: string }) {
   if (!isMounted) return null;
 
   const showEmptyHint = nodes.length <= 1;
+  const branchCount = Math.max(0, nodes.length - 1);
+  const gridSize = 28 * zoom;
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden transition-colors duration-300">
-      <div
-        ref={containerRef}
-        className={`flex-1 w-full h-full relative overflow-hidden outline-none ${isDraggingCanvas ? 'cursor-grabbing' : 'cursor-grab'}`}
-        onPointerDown={handleCanvasPointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        style={{ touchAction: 'none' }}
-      >
+    <div
+      className={`absolute inset-0 flex flex-col h-full min-h-0 overflow-hidden transition-colors duration-300 ${SURFACE.stage}`}
+    >
+      <div className="flex-1 relative w-full h-full min-h-0 p-2.5 sm:p-3.5 md:p-4">
         <div
-          className="absolute inset-0 opacity-[0.18] dark:opacity-[0.12] pointer-events-none"
-          style={{
-            backgroundImage:
-              'radial-gradient(#71717a 1.25px, transparent 1.25px)',
-            backgroundSize: `${40 * zoom}px ${40 * zoom}px`,
-            backgroundPosition: `${pan.x}px ${pan.y}px`,
-          }}
-        />
-
-        {showEmptyHint && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-5 pointer-events-none text-center px-4">
-            <p className="text-sm font-semibold text-zinc-400 dark:text-zinc-500 tracking-tight">
-              {t('emptyTitle')}
-            </p>
-            <p className="mt-1 text-[11px] font-medium text-zinc-400/90 dark:text-zinc-600 leading-relaxed max-w-xs">
-              {t('emptyHint')}
-            </p>
-          </div>
-        )}
-
-        <svg className="absolute inset-0 pointer-events-none w-full h-full z-0">
-          <g
-            style={{
-              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-              transformOrigin: '0 0',
-            }}
-          >
-            {nodes.map((node) => {
-              if (!node.parentId) return null;
-              const parent = nodes.find((n) => n.id === node.parentId);
-              if (!parent) return null;
-
-              const startX = parent.x + 80;
-              const startY = parent.y + 24;
-              const endX = node.x + 80;
-              const endY = node.y + 24;
-
-              return (
-                <line
-                  key={`line-${node.id}`}
-                  data-mind-line-id={node.id}
-                  x1={startX}
-                  y1={startY}
-                  x2={endX}
-                  y2={endY}
-                  className="stroke-zinc-300 dark:stroke-zinc-600"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              );
-            })}
-          </g>
-        </svg>
-
-        <div
-          className="absolute inset-0 z-10 pointer-events-none"
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: '0 0',
-          }}
+          className={`absolute inset-2.5 sm:inset-3.5 md:inset-4 rounded-2xl overflow-hidden border border-zinc-300/70 dark:border-zinc-700/80 ${SURFACE.paper}`}
         >
-          {nodes.map((node) => (
-            <div
-              key={node.id}
-              data-mind-node-id={node.id}
-              className="mind-node absolute flex items-center justify-center group pointer-events-auto"
-              style={{ left: node.x, top: node.y }}
-            >
-              <div
-                className={`relative px-4 py-3 rounded-xl shadow-sm border-2 transition-all w-40 flex items-center justify-center
-                  ${
-                    draggingNodeId === node.id
-                      ? 'scale-105 shadow-md z-50 ring-2 ring-zinc-400/30 dark:ring-zinc-500/30'
-                      : 'hover:border-zinc-400 dark:hover:border-zinc-500'
-                  }
-                  ${
-                    node.parentId === null
-                      ? 'bg-zinc-900 dark:bg-zinc-100 border-zinc-800 dark:border-zinc-200 text-white dark:text-zinc-900'
-                      : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100'
-                  }`}
-              >
-                <div
-                  onPointerDown={(e) => handleNodePointerDown(e, node.id)}
-                  className="absolute -top-3 right-2 bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 rounded-full p-1 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity shadow-sm text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                  title={t('dragNode')}
-                >
-                  <GripHorizontal size={12} />
-                </div>
+          {/* Canvas grid — pans/zooms with viewport */}
+          <div
+            className="absolute inset-0 opacity-[0.55] dark:opacity-[0.35] pointer-events-none"
+            style={{
+              backgroundImage: `
+                linear-gradient(rgba(14,165,233,0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14,165,233,0.06) 1px, transparent 1px),
+                radial-gradient(rgba(113,113,122,0.28) 0.9px, transparent 0.9px)
+              `,
+              backgroundSize: `${gridSize * 1.6}px ${gridSize * 1.6}px, ${gridSize * 1.6}px ${gridSize * 1.6}px, ${gridSize}px ${gridSize}px`,
+              backgroundPosition: `${pan.x}px ${pan.y}px`,
+            }}
+          />
+          {/* Soft vignette */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-50 dark:opacity-70"
+            style={{
+              background:
+                'radial-gradient(ellipse at center, transparent 52%, rgba(24,24,27,0.07) 100%)',
+            }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none opacity-0 dark:opacity-100"
+            style={{
+              background:
+                'radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,0.32) 100%)',
+            }}
+          />
 
-                {editingNodeId === node.id && !isReadonly ? (
-                  <input
-                    autoFocus
-                    value={node.text}
-                    onChange={(e) => updateNodeText(node.id, e.target.value)}
-                    onBlur={() => setEditingNodeId(null)}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' && setEditingNodeId(null)
-                    }
-                    className="w-full bg-transparent text-center font-semibold text-sm outline-none"
-                    placeholder={t('typePlaceholder')}
-                  />
-                ) : (
-                  <span
-                    onClick={() => {
-                      if (!isReadonly) setEditingNodeId(node.id);
-                    }}
-                    className="font-semibold text-sm text-center truncate w-full cursor-default select-none"
-                  >
-                    {node.text}
+          <div
+            ref={containerRef}
+            className={`absolute inset-0 outline-none ${
+              isDraggingCanvas ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
+            onPointerDown={handleCanvasPointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+            onWheel={handleWheel}
+            style={{ touchAction: 'none' }}
+          >
+            {showEmptyHint && (
+              <div className="absolute inset-0 z-5 flex items-center justify-center pointer-events-none animate-in fade-in duration-500">
+                <div className="text-center px-6 max-w-sm">
+                  <div className="relative mx-auto mb-3 w-12 h-12">
+                    <div className="absolute inset-0 rounded-2xl bg-sky-400/20 blur-md animate-pulse" />
+                    <div className="relative w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200/70 dark:border-sky-800/50 text-sky-600 dark:text-sky-400 flex items-center justify-center shadow-sm">
+                      <Network className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <p className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 tracking-tight">
+                    {t('emptyTitle')}
+                  </p>
+                  <p className="mt-1.5 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 leading-relaxed">
+                    {t('emptyHint')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <svg className="absolute inset-0 pointer-events-none w-full h-full z-0">
+              <g
+                style={{
+                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                  transformOrigin: '0 0',
+                }}
+              >
+                {nodes.map((node) => {
+                  if (!node.parentId) return null;
+                  const parent = nodesById.get(node.parentId);
+                  if (!parent) return null;
+                  const start = getNodeCenter(parent, nodesById);
+                  const end = getNodeCenter(node, nodesById);
+                  return (
+                    <path
+                      key={`line-${node.id}`}
+                      data-mind-line-id={node.id}
+                      d={connectionPath(start.x, start.y, end.x, end.y)}
+                      className={`fill-none ${LINK.strokeClass}`}
+                      strokeWidth="2.25"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  );
+                })}
+              </g>
+            </svg>
+
+            <div
+              className="absolute inset-0 z-10 pointer-events-none"
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: '0 0',
+              }}
+            >
+              {nodes.map((node) => (
+                <MindMapNode
+                  key={node.id}
+                  node={node}
+                  tier={getNodeTier(node, nodesById)}
+                  isDragging={draggingNodeId === node.id}
+                  isEditing={editingNodeId === node.id}
+                  isJustAdded={justAddedId === node.id}
+                  isReadonly={isReadonly}
+                  labels={{
+                    dragNode: t('dragNode'),
+                    addNode: t('addNode'),
+                    typePlaceholder: t('typePlaceholder'),
+                  }}
+                  onPointerDown={handleNodePointerDown}
+                  onStartEdit={setEditingNodeId}
+                  onEndEdit={() => setEditingNodeId(null)}
+                  onChangeText={updateNodeText}
+                  onAddChild={addChildNode}
+                />
+              ))}
+            </div>
+
+            {/* Status chip */}
+            <div className="absolute bottom-4 left-4 z-30 pointer-events-none animate-in fade-in slide-in-from-bottom-1 duration-300">
+              <div className={SURFACE.chip}>
+                <span className="w-2 h-2 rounded-full bg-sky-500 shadow-[0_0_0_3px_rgba(14,165,233,0.18)]" />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
+                  {t('statusLabel')}
+                </span>
+                <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 tabular-nums">
+                  · {t('nodeCount', { count: nodes.length })}
+                </span>
+                {branchCount > 0 && (
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-sky-700 dark:text-sky-300">
+                    <GitBranch size={10} />
+                    {t('branchCount', { count: branchCount })}
+                  </span>
+                )}
+                {isReadonly && (
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 tracking-wide">
+                    · {t('readonlyBadge')}
                   </span>
                 )}
               </div>
-
-              {!isReadonly && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addChildNode(node.id, node.x, node.y);
-                  }}
-                  className="absolute -left-3 -bottom-3 bg-zinc-100 dark:bg-zinc-800 border-2 border-zinc-300 dark:border-zinc-600 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-900 hover:border-zinc-900 hover:text-white dark:hover:bg-zinc-100 dark:hover:border-zinc-100 dark:hover:text-zinc-900 rounded-full w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-sm z-20"
-                  title={t('addNode')}
-                >
-                  <Plus size={16} strokeWidth={3} />
-                </button>
-              )}
             </div>
-          ))}
-        </div>
 
-        <div className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5 pointer-events-auto">
-          <div className="flex items-center gap-0.5 bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 rounded-xl p-0.5 shadow-sm">
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))}
-              className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-              title={t('zoomOut')}
-            >
-              <ZoomOut className="w-4 h-4" />
-            </button>
-            <span className="text-[11px] font-semibold tabular-nums text-zinc-600 dark:text-zinc-300 w-11 text-center">
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              type="button"
-              onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
-              className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-              title={t('zoomIn')}
-            >
-              <ZoomIn className="w-4 h-4" />
-            </button>
+            <MindMapToolbar
+              zoom={zoom}
+              labels={{
+                zoomIn: t('zoomIn'),
+                zoomOut: t('zoomOut'),
+                resetZoom: t('resetZoom'),
+                exportMap: t('exportMap'),
+              }}
+              onZoomIn={() => setZoom((z) => Math.min(2, z + 0.1))}
+              onZoomOut={() => setZoom((z) => Math.max(0.3, z - 0.1))}
+              onResetZoom={() => {
+                setZoom(1);
+                setPan({ x: 0, y: 0 });
+              }}
+              onExport={exportMindMapPng}
+            />
           </div>
-          <button
-            type="button"
-            onClick={exportMindMapPng}
-            className="p-2.5 bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl shadow-sm transition-colors"
-            title={t('exportMap')}
-          >
-            <Download className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </div>

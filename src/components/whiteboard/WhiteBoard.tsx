@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { useBoardPersistence } from '@/hooks/useBoardPersistence';
 import {
@@ -9,50 +8,13 @@ import {
   useProjectToolbarPortal,
 } from '@/components/workspace/ProjectToolbarSlot';
 import toast from 'react-hot-toast';
-import {
-  Hand,
-  Pen,
-  Highlighter,
-  Eraser,
-  Type,
-  Image as ImageIcon,
-  Link2,
-  Blocks,
-  Trash2,
-  GripHorizontal,
-} from 'lucide-react';
-
-type Point = { x: number; y: number; pressure: number };
-
-type Stroke = {
-  id: string;
-  tool: 'pen' | 'highlighter' | 'eraser';
-  color: string;
-  width: number;
-  points: Point[];
-};
-
-type FloatingText = {
-  id: string;
-  x: number;
-  y: number;
-  content: string;
-  color: string;
-  size: number;
-  font: string;
-};
-
-const COLORS = [
-  '#18181b',
-  '#ffffff',
-  '#ef4444',
-  '#3b82f6',
-  '#22c55e',
-  '#eab308',
-  '#a855f7',
-];
-const FONTS = ['Inter', 'serif', 'monospace', 'Comic Sans MS'];
-const SIZES = [14, 18, 24, 32, 48, 64];
+import { PenLine, Keyboard } from 'lucide-react';
+import type { Point, Stroke, FloatingText, ActiveTool } from './types';
+import { COLORS, FONTS, SIZES } from './types';
+import { SURFACE } from './whiteboardStyles';
+import WhiteboardToolbar from './WhiteboardToolbar';
+import FloatingTextNode from './FloatingTextNode';
+import ClearConfirmDialog from './ClearConfirmDialog';
 
 function WhiteboardBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('WhiteboardBoard');
@@ -62,13 +24,11 @@ function WhiteboardBoard({ projectId }: { projectId: string }) {
   const [texts, setTexts] = useState<FloatingText[]>([]);
   const [title, setTitle] = useState<string>('');
 
-  const [activeTool, setActiveTool] = useState<
-    'hand' | 'pen' | 'highlighter' | 'eraser' | 'text'
-  >('hand');
+  const [activeTool, setActiveTool] = useState<ActiveTool>('hand');
   const [activeColor, setActiveColor] = useState<string>(COLORS[3]);
   const [strokeWidth, setStrokeWidth] = useState<number>(3);
   const [activeFont, setActiveFont] = useState<string>(FONTS[0]);
-  const [activeFontSize, setActiveFontSize] = useState<number>(24);
+  const [activeFontSize, setActiveFontSize] = useState<number>(SIZES[2]);
 
   const [draggingTextId, setDraggingTextId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -278,6 +238,8 @@ function WhiteboardBoard({ projectId }: { projectId: string }) {
 
     const el = document.getElementById(`text-node-${projectId}-${textItem.id}`);
 
+    setDraggingTextId(textItem.id);
+
     const onPointerMove = (moveEvent: PointerEvent) => {
       if (!moveEvent.isPrimary || !containerRef.current) return;
 
@@ -305,8 +267,10 @@ function WhiteboardBoard({ projectId }: { projectId: string }) {
       window.removeEventListener('pointercancel', onPointerUpOrCancel);
 
       if (draggedPosRef.current) {
-        const newTexts = texts.map((t) =>
-          t.id === textItem.id ? { ...t, x: currentX, y: currentY } : t
+        const newTexts = texts.map((item) =>
+          item.id === textItem.id
+            ? { ...item, x: currentX, y: currentY }
+            : item
         );
         saveTexts(newTexts);
       }
@@ -447,14 +411,14 @@ function WhiteboardBoard({ projectId }: { projectId: string }) {
   };
 
   const handleTextChange = (id: string, newContent: string) => {
-    const updatedTexts = texts.map((t) =>
-      t.id === id ? { ...t, content: newContent } : t
+    const updatedTexts = texts.map((item) =>
+      item.id === id ? { ...item, content: newContent } : item
     );
     saveTexts(updatedTexts);
   };
 
   const handleDeleteText = (id: string) => {
-    const updatedTexts = texts.filter((t) => t.id !== id);
+    const updatedTexts = texts.filter((item) => item.id !== id);
     saveTexts(updatedTexts);
   };
 
@@ -462,7 +426,7 @@ function WhiteboardBoard({ projectId }: { projectId: string }) {
 
   const handleClearBoard = () => {
     if (isReadonly) {
-      toast.error('Switch to Edit mode to clear the board.');
+      toast.error(t('readonlyClear'));
       return;
     }
     if (isBoardEmpty) return;
@@ -479,438 +443,221 @@ function WhiteboardBoard({ projectId }: { projectId: string }) {
     redrawCanvas();
     setShowClearConfirm(false);
   };
-  const toolBtnBase = 'p-2 rounded-lg transition-colors';
-  const toolBtnIdle =
-    'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100';
-  const toolBtnActive =
-    'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900';
 
   const hasToolbarSlot = useHasProjectToolbarSlot();
 
+  const toolbarLabels = {
+    pan: t('pan'),
+    pen: t('pen'),
+    highlighter: t('highlighter'),
+    eraser: t('eraser'),
+    text: t('text'),
+    font: t('font'),
+    size: t('size'),
+    thickness: t('thickness'),
+    eraserSize: t('eraserSize'),
+    panHint: t('panHint'),
+    clear: t('clear'),
+    image: t('image'),
+    widget: t('widget'),
+    link: t('link'),
+    tools: t('tools'),
+    ink: t('ink'),
+  };
+
   const toolbarActions = (
-    <div className="flex items-center gap-0 min-w-0 w-full justify-end">
-      <div className="flex items-center gap-0.5 border-r border-zinc-200 dark:border-zinc-800 pr-2 shrink-0">
-        <button
-          type="button"
-          onClick={() => setActiveTool('hand')}
-          className={`${toolBtnBase} ${
-            activeTool === 'hand' ? toolBtnActive : toolBtnIdle
-          }`}
-          title={t('pan')}
-        >
-          <Hand size={17} strokeWidth={2.25} />
-        </button>
-
-        <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
-
-        <button
-          type="button"
-          onClick={() => setActiveTool('pen')}
-          className={`${toolBtnBase} ${
-            activeTool === 'pen' ? toolBtnActive : toolBtnIdle
-          }`}
-          title={t('pen')}
-        >
-          <Pen size={17} strokeWidth={2.25} />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTool('highlighter')}
-          className={`${toolBtnBase} ${
-            activeTool === 'highlighter'
-              ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-200'
-              : toolBtnIdle
-          }`}
-          title={t('highlighter')}
-        >
-          <Highlighter size={17} strokeWidth={2.25} />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTool('eraser')}
-          className={`${toolBtnBase} ${
-            activeTool === 'eraser'
-              ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
-              : toolBtnIdle
-          }`}
-          title={t('eraser')}
-        >
-          <Eraser size={17} strokeWidth={2.25} />
-        </button>
-
-        <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1.5" />
-
-        <button
-          type="button"
-          onClick={() => setActiveTool('text')}
-          className={`${toolBtnBase} ${
-            activeTool === 'text' ? toolBtnActive : toolBtnIdle
-          }`}
-          title={t('text')}
-        >
-          <Type size={17} strokeWidth={2.25} />
-        </button>
-      </div>
-
-      <div className="px-2 flex items-center justify-start gap-3 min-w-0 overflow-x-auto custom-scrollbar">
-        {activeTool === 'text' ? (
-          <div className="flex items-center gap-2.5 animate-in fade-in slide-in-from-left-2 duration-200 bg-zinc-50 dark:bg-zinc-800/60 p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700">
-            <div className="flex flex-col px-1.5">
-              <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
-                {t('font')}
-              </span>
-              <select
-                value={activeFont}
-                onChange={(e) => setActiveFont(e.target.value)}
-                className="bg-transparent text-zinc-800 dark:text-zinc-200 text-xs font-semibold focus:outline-none cursor-pointer"
-              >
-                {FONTS.map((font) => (
-                  <option
-                    key={font}
-                    value={font}
-                    style={{ fontFamily: font }}
-                    className="dark:bg-zinc-800"
-                  >
-                    {font}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700" />
-            <div className="flex flex-col px-1.5">
-              <span className="text-[9px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
-                {t('size')}
-              </span>
-              <select
-                value={activeFontSize}
-                onChange={(e) => setActiveFontSize(Number(e.target.value))}
-                className="bg-transparent text-zinc-800 dark:text-zinc-200 text-xs font-semibold focus:outline-none cursor-pointer"
-              >
-                {SIZES.map((size) => (
-                  <option key={size} value={size} className="dark:bg-zinc-800">
-                    {size}px
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700" />
-            <div className="flex items-center gap-1.5 px-1.5">
-              {COLORS.map((color) => (
-                <button
-                  type="button"
-                  key={color}
-                  onClick={() => setActiveColor(color)}
-                  className={`w-5 h-5 rounded-full border-2 transition-transform ${
-                    activeColor === color
-                      ? 'scale-110 border-zinc-500 dark:border-zinc-400 shadow-sm'
-                      : 'border-transparent dark:border-zinc-700 hover:scale-105'
-                  }`}
-                  style={{ backgroundColor: color }}
-                />
-              ))}
-            </div>
-          </div>
-        ) : activeTool === 'pen' || activeTool === 'highlighter' ? (
-          <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-200">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-                {t('thickness')}
-              </span>
-              <input
-                type="range"
-                min="1"
-                max="20"
-                value={strokeWidth}
-                onChange={(e) => setStrokeWidth(Number(e.target.value))}
-                className="w-24 accent-zinc-900 dark:accent-zinc-100"
-              />
-            </div>
-            <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700" />
-            <div className="flex items-center gap-1.5">
-              {COLORS.map((color) => (
-                <button
-                  type="button"
-                  key={color}
-                  onClick={() => setActiveColor(color)}
-                  className={`w-5 h-5 rounded-full border-2 transition-transform ${
-                    activeColor === color
-                      ? 'scale-110 border-zinc-500 dark:border-zinc-400 shadow-sm'
-                      : 'border-transparent dark:border-zinc-700 hover:scale-105'
-                  }`}
-                  style={{ backgroundColor: color }}
-                />
-              ))}
-            </div>
-          </div>
-        ) : activeTool === 'eraser' ? (
-          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
-            <span className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-              {t('eraserSize')}
-            </span>
-            <input
-              type="range"
-              min="1"
-              max="50"
-              value={strokeWidth}
-              onChange={(e) => setStrokeWidth(Number(e.target.value))}
-              className="w-24 accent-zinc-500 dark:accent-zinc-400"
-            />
-          </div>
-        ) : (
-          <span className="hidden md:inline text-[11px] font-medium text-zinc-400 dark:text-zinc-500 tracking-wide truncate">
-            {t('panHint')}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 pl-2 shrink-0">
-        <button
-          type="button"
-          onClick={() => toast.success('Image module ready to implement.')}
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-        >
-          <ImageIcon size={14} /> Image
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            toast('Widget module ready to implement.', { icon: '🧩' })
-          }
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-        >
-          <Blocks size={14} /> Widget
-        </button>
-        <button
-          type="button"
-          onClick={() => toast.error('Link module is under construction.')}
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-        >
-          <Link2 size={14} /> Link
-        </button>
-        <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
-        <button
-          type="button"
-          onClick={handleClearBoard}
-          disabled={isReadonly || isBoardEmpty}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:text-rose-600 dark:hover:text-rose-400 transition-colors disabled:opacity-40 disabled:pointer-events-none"
-        >
-          <Trash2 size={14} />
-          <span className="hidden lg:inline">{t('clear')}</span>
-        </button>
-      </div>
-    </div>
+    <WhiteboardToolbar
+      activeTool={activeTool}
+      activeColor={activeColor}
+      strokeWidth={strokeWidth}
+      activeFont={activeFont}
+      activeFontSize={activeFontSize}
+      isReadonly={isReadonly}
+      isBoardEmpty={isBoardEmpty}
+      labels={toolbarLabels}
+      onToolChange={setActiveTool}
+      onColorChange={setActiveColor}
+      onStrokeWidthChange={setStrokeWidth}
+      onFontChange={setActiveFont}
+      onFontSizeChange={setActiveFontSize}
+      onClear={handleClearBoard}
+      onImageClick={() => toast.success(t('imageReady'))}
+      onWidgetClick={() => toast(t('widgetReady'), { icon: '🧩' })}
+      onLinkClick={() => toast.error(t('linkSoon'))}
+    />
   );
 
   const portaledToolbar = useProjectToolbarPortal(toolbarActions);
 
-  const clearConfirmDialog =
-    showClearConfirm && typeof document !== 'undefined'
-      ? createPortal(
-          <div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm p-4"
-            onMouseDown={() => setShowClearConfirm(false)}
-          >
-            <div
-              role="alertdialog"
-              aria-modal="true"
-              aria-labelledby="whiteboard-clear-title"
-              className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-full max-w-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
-                  <Trash2 className="w-6 h-6" />
-                </div>
-                <h2
-                  id="whiteboard-clear-title"
-                  className="text-lg font-bold text-zinc-900 dark:text-white"
-                >
-                  {t('clear')}
-                </h2>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 leading-relaxed">
-                  {t('clearConfirm')}
-                </p>
-              </div>
-              <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-950/50 border-t border-zinc-100 dark:border-zinc-800 flex items-center gap-3 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowClearConfirm(false)}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-zinc-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={confirmClearBoard}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-sm bg-rose-600 hover:bg-rose-700 transition-colors"
-                >
-                  {t('clear')}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )
-      : null;
+  const toolCursor =
+    activeTool === 'hand'
+      ? 'cursor-default'
+      : activeTool === 'text'
+        ? 'cursor-text'
+        : 'cursor-crosshair';
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden select-none transition-colors duration-300">
+    <div
+      className={`absolute inset-0 flex flex-col overflow-hidden select-none transition-colors duration-300 ${SURFACE.stage}`}
+    >
       {portaledToolbar}
-      {clearConfirmDialog}
+      <ClearConfirmDialog
+        open={showClearConfirm}
+        title={t('clear')}
+        description={t('clearConfirm')}
+        cancelLabel={t('cancel')}
+        confirmLabel={t('clear')}
+        onCancel={() => setShowClearConfirm(false)}
+        onConfirm={confirmClearBoard}
+      />
       {!hasToolbarSlot && (
-        <div className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 px-3 sm:px-4 shrink-0 flex items-center justify-between relative z-20 overflow-visible">
+        <div className="h-14 border-b border-zinc-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md px-3 sm:px-4 shrink-0 flex items-center justify-between relative z-20 overflow-visible">
+          <div className="hidden sm:flex items-center gap-2.5 min-w-0 mr-3">
+            <div className="p-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200/70 dark:border-sky-800/50 shrink-0">
+              <PenLine className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight truncate">
+                {t('boardLabel')}
+              </p>
+              <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 tracking-wide">
+                {t('boardSub')}
+              </p>
+            </div>
+          </div>
           {toolbarActions}
         </div>
       )}
 
-      <div
-        ref={containerRef}
-        className={`flex-1 relative w-full h-full min-h-0 ${
-          activeTool === 'hand'
-            ? 'cursor-default'
-            : activeTool === 'text'
-              ? 'cursor-text'
-              : 'cursor-crosshair'
-        }`}
-        style={{ touchAction: 'none' }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerCancel}
-      >
+      <div className="flex-1 relative w-full h-full min-h-0 p-2.5 sm:p-3.5 md:p-4">
+        {/* Studio frame */}
         <div
-          className="absolute inset-0 pointer-events-none opacity-40 dark:opacity-25"
-          style={{
-            backgroundImage:
-              'radial-gradient(rgba(113,113,122,0.45) 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-          }}
-        />
+          className={`absolute inset-2.5 sm:inset-3.5 md:inset-4 rounded-2xl overflow-hidden border border-zinc-300/70 dark:border-zinc-700/80 ${SURFACE.paper}`}
+        >
+          {/* Paper grain + grid */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-[0.55] dark:opacity-[0.35]"
+            style={{
+              backgroundImage: `
+                linear-gradient(rgba(113,113,122,0.07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(113,113,122,0.07) 1px, transparent 1px),
+                radial-gradient(rgba(113,113,122,0.22) 0.8px, transparent 0.8px)
+              `,
+              backgroundSize: '48px 48px, 48px 48px, 20px 20px',
+            }}
+          />
+          {/* Soft vignette */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-60 dark:opacity-80"
+            style={{
+              background:
+                'radial-gradient(ellipse at center, transparent 55%, rgba(24,24,27,0.06) 100%)',
+            }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none dark:opacity-100 opacity-0"
+            style={{
+              background:
+                'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.35) 100%)',
+            }}
+          />
 
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 z-10 w-full h-full pointer-events-none"
-        />
+          <div
+            ref={containerRef}
+            className={`absolute inset-0 ${toolCursor}`}
+            style={{ touchAction: 'none' }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+          >
+            <canvas
+              ref={canvasRef}
+              className="absolute inset-0 z-10 w-full h-full pointer-events-none"
+            />
 
-        {isBoardEmpty && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-            <div className="text-center px-6 max-w-sm">
-              <p className="text-sm font-semibold text-zinc-400 dark:text-zinc-500 tracking-tight">
-                {t('emptyTitle')}
-              </p>
-              <p className="mt-1.5 text-[11px] font-medium text-zinc-400/90 dark:text-zinc-600 leading-relaxed">
-                {t('emptyHint')}
-              </p>
+            {isBoardEmpty && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none animate-in fade-in duration-500">
+                <div className="text-center px-6 max-w-sm">
+                  <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200/70 dark:border-sky-800/50 text-sky-600 dark:text-sky-400 flex items-center justify-center shadow-sm">
+                    <PenLine className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 tracking-tight">
+                    {t('emptyTitle')}
+                  </p>
+                  <p className="mt-1.5 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 leading-relaxed">
+                    {t('emptyHint')}
+                  </p>
+                  <div className="mt-3.5 flex items-center justify-center gap-1.5 text-[10px] font-semibold text-zinc-400 dark:text-zinc-500">
+                    <Keyboard size={12} className="opacity-70" />
+                    <span>{t('shortcutsHint')}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="absolute top-5 left-5 sm:top-6 sm:left-6 z-30 max-w-[min(520px,72vw)]">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => saveTitle(e.target.value)}
+                  readOnly={isReadonly}
+                  placeholder={t('titlePlaceholder')}
+                  className={`text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 bg-transparent border-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-600 w-full ${isReadonly ? 'cursor-default' : ''}`}
+                  style={{ pointerEvents: 'auto' }}
+                />
+                <div className="mt-2 h-[3px] w-16 rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 opacity-80" />
+              </div>
+            </div>
+
+            {/* Active tool chip */}
+            <div className="absolute bottom-4 left-4 z-30 pointer-events-none">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-white/90 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-700/80 shadow-sm backdrop-blur-sm animate-in fade-in slide-in-from-bottom-1 duration-300">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    activeTool === 'pen'
+                      ? 'bg-sky-500'
+                      : activeTool === 'highlighter'
+                        ? 'bg-amber-400'
+                        : activeTool === 'eraser'
+                          ? 'bg-emerald-500'
+                          : activeTool === 'text'
+                            ? 'bg-sky-600'
+                            : 'bg-zinc-400'
+                  }`}
+                />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
+                  {t(`toolChip.${activeTool}`)}
+                </span>
+                {isReadonly ? (
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 tracking-wide">
+                    · {t('readonlyBadge')}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="absolute inset-0 z-20 pointer-events-none">
+              {texts.map((text) => (
+                <FloatingTextNode
+                  key={text.id}
+                  projectId={projectId}
+                  text={text}
+                  activeTool={activeTool}
+                  isDragging={draggingTextId === text.id}
+                  isReadonly={isReadonly}
+                  dragTitle={t('dragToMove')}
+                  dragHintTitle={t('switchToHand')}
+                  deleteTitle={t('deleteText')}
+                  placeholder={t('typePlaceholder')}
+                  onStartDrag={startTextDrag}
+                  onChange={handleTextChange}
+                  onDelete={handleDeleteText}
+                />
+              ))}
             </div>
           </div>
-        )}
-
-        <div className="absolute top-5 left-5 sm:top-6 sm:left-6 z-30">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => saveTitle(e.target.value)}
-            readOnly={isReadonly}
-            placeholder={t('titlePlaceholder')}
-            className={`text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 bg-transparent border-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-600 w-[min(500px,70vw)] ${isReadonly ? 'cursor-default' : ''}`}
-            style={{ pointerEvents: 'auto' }}
-          />
-        </div>
-
-        <div className="absolute inset-0 z-20 pointer-events-none">
-          {texts.map((text) => (
-            <div
-              key={text.id}
-              id={`text-node-${projectId}-${text.id}`}
-              tabIndex={0}
-              className="absolute text-block-wrapper flex flex-col group outline-none"
-              style={{
-                left: text.x,
-                top: text.y,
-                pointerEvents: 'auto',
-                zIndex: draggingTextId === text.id ? 50 : 20,
-              }}
-              onKeyDown={(e) => {
-                if (
-                  (e.key === 'Delete' || e.key === 'Backspace') &&
-                  document.activeElement === e.currentTarget
-                ) {
-                  e.preventDefault();
-                  handleDeleteText(text.id);
-                }
-              }}
-            >
-              <div
-                className={`absolute -top-11 left-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border border-zinc-200 dark:border-zinc-700 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.18)] rounded-full flex items-center gap-0.5 px-1 py-0.5 transition-all duration-200 z-50 
-        after:absolute after:content-[''] after:w-full after:h-8 after:-bottom-8 after:left-0
-        ${
-          activeTool === 'hand' || activeTool === 'text'
-            ? 'opacity-0 translate-y-1.5 group-hover:opacity-100 group-hover:translate-y-0 focus-within:opacity-100 focus-within:translate-y-0'
-            : 'opacity-0 pointer-events-none'
-        }`}
-              >
-                <div
-                  onPointerDown={(e) => startTextDrag(e, text)}
-                  className={`p-1.5 rounded-full cursor-grab active:cursor-grabbing hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 transition-colors ${
-                    activeTool !== 'hand' ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                  title={
-                    activeTool === 'hand'
-                      ? 'Drag to move'
-                      : 'Switch to Hand (H) to move'
-                  }
-                >
-                  <GripHorizontal size={14} />
-                </div>
-
-                <div className="w-px h-3.5 bg-zinc-200 dark:bg-zinc-700" />
-
-                <button
-                  type="button"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => handleDeleteText(text.id)}
-                  className="p-1.5 rounded-full hover:bg-rose-50 dark:hover:bg-rose-950/40 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
-                  title="Delete Text"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-              <textarea
-                value={text.content}
-                onChange={(e) => {
-                  handleTextChange(text.id, e.target.value);
-                  e.target.style.height = 'auto';
-                  e.target.style.height = `${e.target.scrollHeight}px`;
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Delete' && text.content === '') {
-                    e.preventDefault();
-                    handleDeleteText(text.id);
-                  }
-                  if (e.key === 'Escape') {
-                    e.currentTarget.blur();
-                  }
-                }}
-                autoFocus={text.content === ''}
-                onFocus={(e) => {
-                  e.target.style.height = 'auto';
-                  e.target.style.height = `${e.target.scrollHeight}px`;
-                }}
-                className="bg-transparent border border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 border-dashed focus:border-zinc-300 dark:focus:border-zinc-500 focus:border-solid rounded-2xl outline-none resize-none overflow-hidden p-3 transition-colors allow-text-select"
-                style={{
-                  color: text.color,
-                  fontSize: `${text.size}px`,
-                  fontFamily: text.font,
-                  lineHeight: '1.2',
-                  minWidth: '100px',
-                  minHeight: '40px',
-                }}
-                placeholder={t('typePlaceholder')}
-              />
-            </div>
-          ))}
         </div>
       </div>
     </div>

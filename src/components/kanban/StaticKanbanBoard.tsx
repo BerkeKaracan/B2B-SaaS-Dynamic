@@ -32,18 +32,24 @@ import {
   Search,
   BookmarkPlus,
   LayoutDashboard,
-  MoreHorizontal,
-  Copy,
-  Trash2,
-  Edit2,
   Columns3,
 } from 'lucide-react';
+import { DragDropContext, DropResult } from '@hello-pangea/dnd';
+import KanbanColumn from './KanbanColumn';
 import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from '@hello-pangea/dnd';
+  PRIORITIES,
+  PRIORITY_WEIGHTS,
+  DEFAULT_COLUMNS,
+} from './kanbanStyles';
+import type {
+  Task,
+  TaskStatus,
+  TaskPriority,
+  ActivityLog,
+  SavedView,
+} from './types';
+
+export type { Task, TaskStatus, TaskPriority, ActivityLog, SavedView };
 
 const CustomGithubIcon = ({ className }: { className?: string }) => (
   <svg
@@ -60,39 +66,6 @@ const CustomGithubIcon = ({ className }: { className?: string }) => (
     <path d="M9 18c-4.51 2-5-2-7-2"></path>
   </svg>
 );
-
-export type TaskStatus = string;
-export type TaskPriority = 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NO PRIORITY';
-
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  commitCode?: string;
-  assignee: string;
-  createdBy: string;
-  updatedBy: string;
-  startDate?: string;
-  deadline?: string;
-  priority: TaskPriority;
-  status: TaskStatus;
-}
-
-export interface ActivityLog {
-  id: string;
-  user: string;
-  action: string;
-  target: string;
-  date: string;
-}
-
-export interface SavedView {
-  id: string;
-  name: string;
-  filterQuery: string;
-  filterPriority: TaskPriority | 'ALL';
-  sortBy: 'manual' | 'priority' | 'deadline';
-}
 
 interface GithubCommit {
   sha: string;
@@ -123,28 +96,6 @@ interface AITaskData {
   deadline?: string;
   commitCode?: string;
 }
-
-const PRIORITIES: Record<string, string> = {
-  URGENT: '#E3123B',
-  HIGH: '#7B323D',
-  MEDIUM: '#93B27D',
-  LOW: '#BEF109',
-  'NO PRIORITY': '#B2BAAE',
-};
-
-const PRIORITY_WEIGHTS: Record<string, number> = {
-  URGENT: 5,
-  HIGH: 4,
-  MEDIUM: 3,
-  LOW: 2,
-  'NO PRIORITY': 1,
-};
-
-const DEFAULT_COLUMNS = [
-  { id: 'TO DO', title: 'TO DO', color: '#71C6C0' },
-  { id: 'IN PROGRESS', title: 'IN PROGRESS', color: '#6682FB' },
-  { id: 'DONE', title: 'DONE', color: '#89A841' },
-];
 
 function StaticKanbanBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('KanbanBoard');
@@ -911,7 +862,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
       <button
         type="button"
         onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors font-semibold text-xs ${isDrawerOpen ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors font-semibold text-xs ${isDrawerOpen ? 'bg-sky-600 text-white shadow-sm shadow-sky-600/20' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
       >
         <Activity className="w-3.5 h-3.5" /> {t('history')}
       </button>
@@ -922,14 +873,26 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
 
   if (!isClient) return null;
 
+  const cardLabels = {
+    for: t('for'),
+    start: t('start'),
+    deadline: t('deadline'),
+    editTask: t('editTask'),
+    duplicate: t('duplicate'),
+    delete: t('delete'),
+    addTask: t('addTask'),
+    emptyColumn: t('emptyColumn'),
+    emptyColumnHint: t('emptyColumnHint'),
+  };
+
   return (
-    <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden select-none transition-colors duration-300">
+    <div className="absolute inset-0 flex flex-col bg-zinc-100/40 dark:bg-zinc-950/60 overflow-hidden select-none transition-colors duration-300">
       {portaledToolbar}
       {!hasToolbarSlot && (
-        <div className="flex flex-col bg-white/95 dark:bg-zinc-900/95 border-b border-zinc-200 dark:border-zinc-800 shrink-0 z-10">
+        <div className="flex flex-col bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-zinc-200/90 dark:border-zinc-800 shrink-0 z-10">
           <div className="flex items-center justify-between px-4 md:px-5 h-14 gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="p-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-1.5 bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 rounded-xl border border-sky-200/70 dark:border-sky-800/50 shrink-0">
                 <Columns3 className="w-4 h-4" />
               </div>
               <div className="min-w-0">
@@ -948,25 +911,25 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
         </div>
       )}
 
-      <div className="flex-1 flex overflow-hidden relative w-full">
-        <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar h-full">
+      <div className="flex-1 flex overflow-hidden relative w-full min-h-0">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar h-full min-h-0">
           <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="flex gap-4 md:gap-5 p-4 md:p-5 items-stretch h-full w-max">
+            <div className="flex gap-3.5 md:gap-4 p-3.5 md:p-5 items-stretch h-full w-max min-h-0">
               {columns.map((col) => {
                 const colTasks = tasks
-                  .filter((t) => t.status === col.id)
-                  .filter((t) => {
+                  .filter((taskItem) => taskItem.status === col.id)
+                  .filter((taskItem) => {
                     if (filterQuery) {
                       const q = filterQuery.toLowerCase();
                       if (
-                        !t.title.toLowerCase().includes(q) &&
-                        !t.assignee.toLowerCase().includes(q)
+                        !taskItem.title.toLowerCase().includes(q) &&
+                        !taskItem.assignee.toLowerCase().includes(q)
                       )
                         return false;
                     }
                     if (
                       filterPriority !== 'ALL' &&
-                      t.priority !== filterPriority
+                      taskItem.priority !== filterPriority
                     )
                       return false;
                     return true;
@@ -985,237 +948,26 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                   });
 
                 return (
-                  <div
+                  <KanbanColumn
                     key={col.id}
-                    className="w-[85vw] sm:w-85 shrink-0 flex flex-col h-full max-h-full bg-zinc-100/80 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
-                  >
-                    <div className="px-3 md:px-4 py-3 border-b border-zinc-200/70 dark:border-zinc-800 bg-zinc-50/90 dark:bg-zinc-900/80 flex items-center justify-between shrink-0">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span
-                          className="w-2 h-2 rounded-full shrink-0"
-                          style={{ backgroundColor: col.color }}
-                          aria-hidden
-                        />
-                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight text-sm truncate">
-                          {col.title}
-                        </h3>
-                      </div>
-                      <span className="px-1.5 py-0.5 rounded-md bg-zinc-200/80 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[10px] font-semibold tabular-nums shrink-0">
-                        {colTasks.length}
-                      </span>
-                    </div>
-
-                    <Droppable droppableId={col.id}>
-                      {(provided, snapshot) => (
-                        <div
-                          className={`flex-1 overflow-y-auto p-2 md:p-2.5 flex flex-col gap-2 md:gap-2.5 custom-scrollbar transition-colors min-h-40 ${
-                            snapshot.isDraggingOver
-                              ? 'bg-zinc-200/60 dark:bg-zinc-800/50 ring-1 ring-inset ring-zinc-300/70 dark:ring-zinc-600/40'
-                              : 'bg-zinc-50/90 dark:bg-zinc-950/35'
-                          }`}
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                        >
-                          {colTasks.length === 0 && (
-                            <div className="flex-1 flex flex-col items-center justify-center gap-1.5 py-10 px-4 text-center pointer-events-none min-h-30">
-                              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center">
-                                <span
-                                  className="w-2 h-2 rounded-full"
-                                  style={{ backgroundColor: col.color }}
-                                  aria-hidden
-                                />
-                              </div>
-                              <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500">
-                                No tasks yet
-                              </p>
-                            </div>
-                          )}
-                          {colTasks.map((task, index) => {
-                            const isDarkBg = [
-                              'URGENT',
-                              'HIGH',
-                              'MEDIUM',
-                            ].includes(task.priority);
-                            const textColor = isDarkBg
-                              ? 'text-white'
-                              : 'text-zinc-900';
-                            const mutedTextColor = isDarkBg
-                              ? 'text-white/80'
-                              : 'text-zinc-500';
-                            const borderColor = isDarkBg
-                              ? 'border-white/20'
-                              : 'border-zinc-200';
-                            const bgColor =
-                              PRIORITIES[task.priority] ||
-                              PRIORITIES['NO PRIORITY'];
-
-                            return (
-                              <Draggable
-                                key={task.id}
-                                draggableId={task.id}
-                                index={index}
-                                isDragDisabled={isReadonly}
-                              >
-                                {(provided, snapshot) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                    onClick={() => handleEditTask(task)}
-                                    style={{
-                                      ...provided.draggableProps.style,
-                                      backgroundColor: bgColor,
-                                    }}
-                                    className={`rounded-lg shadow-sm border border-black/5 flex flex-col overflow-visible cursor-grab active:cursor-grabbing hover:shadow transition-shadow ${snapshot.isDragging ? 'shadow-lg z-50 ring-2 ring-zinc-900/15' : ''} ${textColor}`}
-                                  >
-                                    <div className="p-3 md:p-3.5 flex flex-col gap-2 md:gap-2.5 relative">
-                                      <div className="absolute top-2 right-2">
-                                        <button
-                                          className={`task-menu-trigger p-1 rounded-md transition-colors ${isDarkBg ? 'hover:bg-white/20 text-white' : 'hover:bg-zinc-200/50 text-zinc-500'}`}
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setOpenTaskMenu(
-                                              openTaskMenu === task.id
-                                                ? null
-                                                : task.id
-                                            );
-                                          }}
-                                        >
-                                          <MoreHorizontal className="w-4 h-4" />
-                                        </button>
-                                        {openTaskMenu === task.id && (
-                                          <div className="task-dropdown-menu absolute right-0 top-full mt-1 w-40 bg-white dark:bg-zinc-900 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] border border-zinc-200 dark:border-zinc-700 rounded-lg p-1 z-70 animate-in fade-in zoom-in-95 cursor-default text-zinc-900 dark:text-zinc-100">
-                                            <button
-                                              onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                handleEditTask(task);
-                                                setOpenTaskMenu(null);
-                                              }}
-                                              className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-                                            >
-                                              <Edit2 className="w-3.5 h-3.5" />{' '}
-                                              {t('editTask')}
-                                            </button>
-                                            <button
-                                              onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                handleDuplicateTask(task);
-                                              }}
-                                              className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
-                                            >
-                                              <Copy className="w-3.5 h-3.5" />{' '}
-                                              {t('duplicate')}
-                                            </button>
-                                            <div className="w-full h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
-                                            <button
-                                              onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                handleDeleteTask(
-                                                  task.id,
-                                                  task.title
-                                                );
-                                              }}
-                                              className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md transition-colors"
-                                            >
-                                              <Trash2 className="w-3.5 h-3.5" />{' '}
-                                              {t('delete')}
-                                            </button>
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      <div className="flex justify-between items-start gap-2 md:gap-4 pr-8">
-                                        <div className="flex-1 min-w-0">
-                                          <h4 className="text-sm font-semibold leading-snug tracking-tight">
-                                            {task.title}
-                                          </h4>
-                                          {task.description && (
-                                            <p
-                                              className={`text-[10px] md:text-[11px] mt-1 line-clamp-2 font-medium ${mutedTextColor}`}
-                                            >
-                                              {task.description}
-                                            </p>
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      <div className="flex flex-col items-start gap-1.5 shrink-0 mt-0.5">
-                                        <span
-                                          className={`text-[8px] md:text-[9px] font-semibold px-2 py-0.5 rounded-md border ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-zinc-200/50 border-zinc-200'}`}
-                                        >
-                                          {t('for')}{' '}
-                                          {task.assignee.includes('@')
-                                            ? task.assignee.split('@')[0]
-                                            : task.assignee}
-                                        </span>
-                                        {task.commitCode && (
-                                          <span
-                                            className={`px-1.5 py-0.5 rounded text-[8px] md:text-[9px] font-mono font-semibold border ${isDarkBg ? 'bg-white/10 border-white/20' : 'bg-white/50 border-zinc-300'}`}
-                                          >
-                                            {task.commitCode}
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      <div
-                                        className={`h-px w-full ${borderColor} my-0.5`}
-                                      />
-
-                                      <div className="flex justify-between items-end gap-2">
-                                        <div className="flex flex-col gap-0.5 min-w-0">
-                                          <span
-                                            className={`text-[8px] md:text-[9px] font-medium truncate ${mutedTextColor}`}
-                                          >
-                                            {t('createdBy')}{' '}
-                                            <span className="font-semibold">
-                                              {task.createdBy}
-                                            </span>
-                                          </span>
-                                          <span
-                                            className={`text-[8px] md:text-[9px] font-medium truncate ${mutedTextColor}`}
-                                          >
-                                            {t('updatedBy')}{' '}
-                                            <span className="font-semibold">
-                                              {task.updatedBy}
-                                            </span>
-                                          </span>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-0.5 text-[9px] md:text-[10px] font-semibold shrink-0">
-                                          {task.startDate && (
-                                            <span className={mutedTextColor}>
-                                              {t('start')}: {task.startDate}
-                                            </span>
-                                          )}
-                                          {task.deadline && (
-                                            <span className={mutedTextColor}>
-                                              {t('deadline')}: {task.deadline}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </Draggable>
-                            );
-                          })}
-                          {provided.placeholder}
-                          {!isReadonly && (
-                            <button
-                              onClick={() => handleOpenAddModal(col.id)}
-                              className="mt-0.5 w-full flex items-center justify-center gap-2 py-2 md:py-2.5 rounded-lg text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/50 transition-colors border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500"
-                            >
-                              {t('addTask')}
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </Droppable>
-                  </div>
+                    id={col.id}
+                    title={col.title}
+                    color={col.color}
+                    tasks={colTasks}
+                    isReadonly={isReadonly}
+                    openTaskMenu={openTaskMenu}
+                    labels={cardLabels}
+                    onAddTask={handleOpenAddModal}
+                    onToggleMenu={(taskId) =>
+                      setOpenTaskMenu((prev) =>
+                        prev === taskId ? null : taskId
+                      )
+                    }
+                    onCloseMenu={() => setOpenTaskMenu(null)}
+                    onEdit={handleEditTask}
+                    onDuplicate={handleDuplicateTask}
+                    onDelete={handleDeleteTask}
+                  />
                 );
               })}
             </div>
@@ -1411,7 +1163,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                       autoFocus
                       value={newTaskTitle}
                       onChange={(e) => setNewTaskTitle(e.target.value)}
-                      className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:outline-none"
+                      className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-sky-500/30 dark:focus:ring-sky-400/30 focus:border-sky-400 dark:focus:border-sky-600 focus:outline-none transition-colors"
                     />
                   </div>
                   <div>
@@ -1422,7 +1174,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                       rows={2}
                       value={newTaskDescription}
                       onChange={(e) => setNewTaskDescription(e.target.value)}
-                      className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 focus:outline-none"
+                      className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-medium focus:ring-2 focus:ring-sky-500/30 dark:focus:ring-sky-400/30 focus:border-sky-400 dark:focus:border-sky-600 focus:outline-none transition-colors"
                     />
                   </div>
 
@@ -1457,7 +1209,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                         onBlur={() =>
                           setTimeout(() => setShowAssigneeDropdown(false), 200)
                         }
-                        className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
+                        className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500/30 dark:focus:ring-sky-400/30"
                         placeholder={t('modalAssigneePlaceholder')}
                       />
                       {showAssigneeDropdown && collaborators.length > 0 && (
@@ -1494,7 +1246,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                         <select
                           value={newTaskCommit}
                           onChange={(e) => setNewTaskCommit(e.target.value)}
-                          className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                          className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                         >
                           <option value="" className="font-sans">
                             -- Select a recent commit --
@@ -1513,7 +1265,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                           type="text"
                           value={newTaskCommit}
                           onChange={(e) => setNewTaskCommit(e.target.value)}
-                          className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                          className="w-full mt-1 px-3 py-3 sm:py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl sm:rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-500/30"
                           placeholder={t('modalCommitPlaceholder')}
                         />
                       )}
@@ -1606,6 +1358,33 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                       )}
                     </div>
                   </div>
+
+                  {(editingTaskId
+                    ? tasks.find((taskItem) => taskItem.id === editingTaskId)
+                    : null) && (
+                    <div className="rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-950/40 px-3 py-2.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 space-y-0.5">
+                      <p>
+                        {t('createdBy')}{' '}
+                        <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                          {
+                            tasks.find(
+                              (taskItem) => taskItem.id === editingTaskId
+                            )?.createdBy
+                          }
+                        </span>
+                      </p>
+                      <p>
+                        {t('updatedBy')}{' '}
+                        <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                          {
+                            tasks.find(
+                              (taskItem) => taskItem.id === editingTaskId
+                            )?.updatedBy
+                          }
+                        </span>
+                      </p>
+                    </div>
+                  )}
 
                   <div className="pt-4 mt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-end gap-3 shrink-0 sticky bottom-0 bg-white dark:bg-zinc-900">
                     <button

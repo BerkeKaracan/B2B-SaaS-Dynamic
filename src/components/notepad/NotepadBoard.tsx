@@ -8,13 +8,10 @@ import {
   useHasProjectToolbarSlot,
   useProjectToolbarPortal,
 } from '@/components/workspace/ProjectToolbarSlot';
-import {
-  Image as ImageIcon,
-  Smile,
-  MessageSquare,
-  Clock,
-  FileText,
-} from 'lucide-react';
+import { Clock, FileText } from 'lucide-react';
+import { SURFACE, FIELD } from './notepadStyles';
+import NotepadToolbar from './NotepadToolbar';
+import NotepadPageActions from './NotepadPageActions';
 
 function NotepadBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('NotepadBoard');
@@ -78,19 +75,25 @@ function NotepadBoard({ projectId }: { projectId: string }) {
   };
 
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+  const readingMinutes = Math.max(1, Math.ceil(wordCount / 200));
   const isEmpty = !title.trim() && !content.trim();
   const hasToolbarSlot = useHasProjectToolbarSlot();
 
   const toolbarActions = (
-    <div className="flex items-center gap-1.5 shrink-0">
-      <span className="inline-flex items-center px-2 py-1 text-[11px] font-medium tabular-nums text-zinc-500 dark:text-zinc-400 bg-zinc-100/80 dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/80 rounded-md">
-        {wordCount} {t('wordCount')}
-      </span>
-      <span className="hidden md:inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 rounded-md">
-        <Clock className="w-3 h-3" />
-        {t('lastEdited')}
-      </span>
-    </div>
+    <NotepadToolbar
+      wordCount={wordCount}
+      isReadonly={isReadonly}
+      isEditing={isEditorFocused}
+      labels={{
+        wordCount: t('wordCount'),
+        lastEdited: t('lastEdited'),
+        readingTime: t('readingTime', {
+          n: wordCount === 0 ? 0 : readingMinutes,
+        }),
+        documentBadge: t('documentBadge'),
+        readonlyBadge: t('readonlyBadge'),
+      }}
+    />
   );
 
   const portaledToolbar = useProjectToolbarPortal(toolbarActions);
@@ -98,12 +101,16 @@ function NotepadBoard({ projectId }: { projectId: string }) {
   if (!isClient) return null;
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-transparent transition-colors duration-300 overflow-hidden cursor-default">
+    <div
+      className={`absolute inset-0 flex flex-col h-full min-h-0 overflow-hidden transition-colors duration-300 cursor-default ${SURFACE.stage}`}
+    >
       {portaledToolbar}
       {!hasToolbarSlot && (
-        <div className="h-14 shrink-0 z-10 flex items-center justify-between px-4 md:px-5 border-b border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 shrink-0">
+        <div
+          className={`h-14 shrink-0 z-20 flex items-center justify-between px-4 md:px-5 ${SURFACE.chrome}`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0 mr-3">
+            <div className="p-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/50 shrink-0 shadow-sm">
               <FileText className="w-4 h-4" />
             </div>
             <div className="min-w-0">
@@ -112,7 +119,7 @@ function NotepadBoard({ projectId }: { projectId: string }) {
               </h1>
               <div className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 tracking-wide">
                 <Clock className="w-3 h-3 shrink-0" />
-                <span className="truncate">{t('lastEdited')}</span>
+                <span className="truncate">{t('boardSub')}</span>
               </div>
             </div>
           </div>
@@ -120,59 +127,93 @@ function NotepadBoard({ projectId }: { projectId: string }) {
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-        <div className="max-w-3xl w-full mx-auto px-6 sm:px-12 pt-8 pb-24 min-h-full flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar relative">
+        {/* Soft stage atmosphere */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-70 dark:opacity-50"
+          aria-hidden
+          style={{
+            backgroundImage: `
+              radial-gradient(ellipse 80% 50% at 50% -10%, rgba(245,158,11,0.08), transparent 55%),
+              radial-gradient(ellipse 60% 40% at 85% 90%, rgba(113,113,122,0.06), transparent 50%)
+            `,
+          }}
+        />
+
+        <div className="relative max-w-[44rem] w-full mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-28 min-h-full flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div
-            className={`flex flex-wrap items-center gap-1.5 mb-6 shrink-0 transition-opacity ${
-              isEmpty || isEditorFocused
-                ? 'opacity-100'
-                : 'opacity-0 hover:opacity-100 focus-within:opacity-100'
+            className={`group/paper relative flex-1 flex flex-col rounded-2xl px-5 sm:px-10 pt-6 sm:pt-9 pb-10 sm:pb-14 transition-shadow duration-300 ${SURFACE.paper} ${
+              isEditorFocused ? SURFACE.paperFocused : ''
             }`}
           >
-            <button
-              type="button"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 rounded-lg transition-colors"
-            >
-              <ImageIcon className="w-3.5 h-3.5" />
-              {t('addCover')}
-            </button>
-            <button
-              type="button"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 rounded-lg transition-colors"
-            >
-              <Smile className="w-3.5 h-3.5" />
-              {t('addIcon')}
-            </button>
-            <button
-              type="button"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 rounded-lg transition-colors"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              {t('addComment')}
-            </button>
-          </div>
-
-          <div className="flex-1 flex flex-col min-h-[min(70vh,640px)]">
-            <input
-              type="text"
-              value={title}
-              onChange={handleTitleChange}
-              readOnly={isReadonly}
-              onFocus={() => setIsEditorFocused(true)}
-              onBlur={() => setIsEditorFocused(false)}
-              placeholder={t('titlePlaceholder')}
-              className={`w-full text-4xl sm:text-5xl font-bold bg-transparent text-zinc-900 dark:text-zinc-100 border-none outline-none placeholder:text-zinc-300 dark:placeholder:text-zinc-600 mb-4 resize-none leading-tight tracking-tight px-0.5 shrink-0 ${isReadonly ? 'cursor-default' : ''}`}
+            {/* Amber accent rail */}
+            <div
+              className={`absolute left-0 top-8 bottom-8 w-[3px] rounded-full transition-all duration-300 ${SURFACE.accentBar} ${
+                isEditorFocused
+                  ? 'opacity-100 scale-y-100'
+                  : 'opacity-40 scale-y-90'
+              }`}
+              aria-hidden
             />
 
-            <textarea
-              value={content}
-              onChange={handleContentChange}
-              readOnly={isReadonly}
-              onFocus={() => setIsEditorFocused(true)}
-              onBlur={() => setIsEditorFocused(false)}
-              placeholder={t('contentPlaceholder')}
-              className={`w-full flex-1 min-h-[min(55vh,480px)] text-base sm:text-lg bg-transparent text-zinc-800 dark:text-zinc-300 border-none outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-600 resize-none leading-relaxed px-0.5 ${isReadonly ? 'cursor-default' : ''}`}
+            <NotepadPageActions
+              visible={isEmpty || isEditorFocused}
+              labels={{
+                addCover: t('addCover'),
+                addIcon: t('addIcon'),
+                addComment: t('addComment'),
+              }}
             />
+
+            <div className="flex-1 flex flex-col min-h-[min(68vh,620px)]">
+              <input
+                type="text"
+                value={title}
+                onChange={handleTitleChange}
+                readOnly={isReadonly}
+                onFocus={() => setIsEditorFocused(true)}
+                onBlur={() => setIsEditorFocused(false)}
+                placeholder={t('titlePlaceholder')}
+                className={`${FIELD.title} ${FIELD.titleFocus} mb-3 sm:mb-4 shrink-0 ${
+                  isReadonly ? 'cursor-default' : ''
+                }`}
+              />
+
+              <div
+                className={`h-px w-16 mb-5 sm:mb-6 transition-all duration-300 ${
+                  isEditorFocused
+                    ? 'bg-amber-400/80 w-24'
+                    : 'bg-zinc-200 dark:bg-zinc-800'
+                }`}
+                aria-hidden
+              />
+
+              <textarea
+                value={content}
+                onChange={handleContentChange}
+                readOnly={isReadonly}
+                onFocus={() => setIsEditorFocused(true)}
+                onBlur={() => setIsEditorFocused(false)}
+                placeholder={t('contentPlaceholder')}
+                className={`${FIELD.body} ${FIELD.bodyFocus} ${
+                  isReadonly ? 'cursor-default' : ''
+                }`}
+              />
+            </div>
+
+            {/* Footer meta on paper */}
+            <div className="mt-8 pt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between gap-3 text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+              <span className="tabular-nums">
+                {wordCount} {t('wordCount')}
+                {wordCount > 0
+                  ? ` · ${t('readingTime', { n: readingMinutes })}`
+                  : ''}
+              </span>
+              <span className="inline-flex items-center gap-1 truncate">
+                <Clock className="w-3 h-3 shrink-0" />
+                {t('lastEdited')}
+              </span>
+            </div>
           </div>
         </div>
       </div>
