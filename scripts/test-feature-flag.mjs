@@ -28,10 +28,20 @@ if (!apiKey) fail('FEATURE_FLAGS_API_KEY is empty');
 if (!tenantId) fail('TENANT_ID is empty');
 
 const qs = new URLSearchParams({ key, tenant_id: tenantId, tier });
-const url = `${base}/evaluate?${qs}`;
+let url;
+try {
+  url = new URL(`${base}/evaluate`);
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    fail('FEATURE_FLAGS_URL must be http(s)');
+  }
+  for (const [k, v] of qs) url.searchParams.set(k, v);
+} catch {
+  fail('FEATURE_FLAGS_URL is not a valid URL');
+}
 
-console.log('GET', url);
-console.log('Authorization: Bearer', `${apiKey.slice(0, 6)}…`);
+// Never log secrets (API key) or full auth headers — CodeQL clear-text logging.
+console.log('GET', `${url.origin}${url.pathname}`, `key=${key}`, `tier=${tier}`);
+console.log('Authorization: Bearer [redacted]');
 
 const started = Date.now();
 let res;

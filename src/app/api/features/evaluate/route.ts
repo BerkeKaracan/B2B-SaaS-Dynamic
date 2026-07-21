@@ -15,6 +15,45 @@ export const dynamic = 'force-dynamic';
 
 const EVALUATE_TIMEOUT_MS = 2500;
 
+/** Tenant IDs are UUIDs — reject anything else before it touches a fetch URL. */
+const TENANT_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** Feature keys are dotted identifiers, never path/host material. */
+const FEATURE_KEY_RE = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
+
+function buildTrustedTenantLookupUrl(tenantId: string): URL | null {
+  if (!TENANT_UUID_RE.test(tenantId)) return null;
+  try {
+    const base = getApiBaseUrl().replace(/\/$/, '');
+    const url = new URL(`${base}/api/tenants/${tenantId}`);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    // UUID has no `/` / `@` / `:`, so pathname must be exact — blocks path injection.
+    if (url.pathname !== `/api/tenants/${tenantId}`) return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+function buildTrustedRemoteEvaluateUrl(
+  base: string,
+  key: string,
+  tenantId: string,
+  tier: string
+): URL | null {
+  try {
+    const url = new URL(`${base.replace(/\/$/, '')}/evaluate`);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    url.searchParams.set('key', key);
+    url.searchParams.set('tenant_id', tenantId);
+    url.searchParams.set('tier', tier);
+    return url;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Browser-safe proxy to the remote Feature Flag Delivery API.
  * Keeps FEATURE_FLAGS_API_KEY on the server only.
@@ -40,20 +79,32 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  if (!TENANT_UUID_RE.test(tenantId) || !FEATURE_KEY_RE.test(key)) {
+    return NextResponse.json(
+      { error: 'invalid key or tenant_id' },
+      { status: 400 }
+    );
+  }
+
+  const tenantLookupUrl = buildTrustedTenantLookupUrl(tenantId);
+  if (!tenantLookupUrl) {
+    return NextResponse.json(
+      { error: 'invalid key or tenant_id' },
+      { status: 400 }
+    );
+  }
+
   // Prove membership + resolve tier from backend (do not trust client tier)
   let tier = 'basic';
   try {
-    const tenantRes = await fetch(
-      `${getApiBaseUrl().replace(/\/$/, '')}/api/tenants/${tenantId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${auth.token}`,
-          Accept: 'application/json',
-        },
-        cache: 'no-store',
-        signal: AbortSignal.timeout(EVALUATE_TIMEOUT_MS),
-      }
-    );
+    const tenantRes = await fetch(tenantLookupUrl, {
+      headers: {
+        Authorization: `Bearer ${auth.token}`,
+        Accept: 'application/json',
+      },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(EVALUATE_TIMEOUT_MS),
+    });
     if (!tenantRes.ok) {
       return NextResponse.json(
         { success: false, error: 'Workspace access denied' },
@@ -98,12 +149,14 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const qs = new URLSearchParams({
-    key,
-    tenant_id: tenantId,
-    tier,
-  });
-  const remoteUrl = `${base}/evaluate?${qs.toString()}`;
+  const remoteUrl = buildTrustedRemoteEvaluateUrl(base, key, tenantId, tier);
+  if (!remoteUrl) {
+    return NextResponse.json({
+      enabled: false,
+      source: 'error',
+      detail: 'invalid_FEATURE_FLAGS_URL',
+    });
+  }
 
   try {
     const res = await fetch(remoteUrl, {
