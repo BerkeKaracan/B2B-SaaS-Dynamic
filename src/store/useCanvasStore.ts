@@ -38,10 +38,10 @@ const TEMPLATE_PAGE_TYPES = new Set<PageContent['type']>([
   'retrospective',
 ]);
 
-const normalizeGeneratedPageType = (
-  raw: unknown
-): PageContent['type'] => {
-  const value = String(raw || 'empty').toLowerCase().trim();
+const normalizeGeneratedPageType = (raw: unknown): PageContent['type'] => {
+  const value = String(raw || 'empty')
+    .toLowerCase()
+    .trim();
   if (value === 'empty') return 'empty';
   if (TEMPLATE_PAGE_TYPES.has(value as PageContent['type'])) {
     return value as PageContent['type'];
@@ -181,7 +181,10 @@ interface CanvasState {
     mode?: string;
     moduleId?: string;
   }) => void;
-  appendWhiteboardNote: (note: Record<string, unknown>, moduleId?: string) => void;
+  appendWhiteboardNote: (
+    note: Record<string, unknown>,
+    moduleId?: string
+  ) => void;
 
   addGeneratedBlocks: (
     pageId: string,
@@ -242,8 +245,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         (task.page_id as string | undefined);
       const pages = state.pages.map((p) => {
         const isTarget =
-          (boardId && p.id === boardId) ||
-          (!boardId && p.type === 'kanban');
+          (boardId && p.id === boardId) || (!boardId && p.type === 'kanban');
         if (!isTarget) return p;
         const settings = { ...(p.settings || {}) } as Record<string, unknown>;
         const pageTasks = (
@@ -270,8 +272,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   appendMindmapNode: (node) =>
     set((state) => {
       const existing = (
-        (state.metadata.mindmapNodes as Record<string, unknown>[] | undefined) ||
-        []
+        (state.metadata.mindmapNodes as
+          | Record<string, unknown>[]
+          | undefined) || []
       ).slice();
       if (existing.some((n) => n?.id === node.id)) return state;
       const nextNodes = [...existing, node];
@@ -282,8 +285,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         if (!isTarget) return p;
         const settings = { ...(p.settings || {}) } as Record<string, unknown>;
         const pageNodes = (
-          (settings.mindmapNodes as Record<string, unknown>[] | undefined) ||
-          []
+          (settings.mindmapNodes as Record<string, unknown>[] | undefined) || []
         ).slice();
         if (!pageNodes.some((n) => n?.id === node.id)) pageNodes.push(node);
         settings.mindmapNodes = pageNodes;
@@ -311,9 +313,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         const isFallback =
           !matched &&
           !state.pages.some((x) => x.id === targetId) &&
-          !state.pages.some((x) =>
-            ['notes', 'document'].includes(x.type)
-          ) &&
+          !state.pages.some((x) => ['notes', 'document'].includes(x.type)) &&
           p === state.pages[0];
 
         if (!(isExact || isTypeMatch || isFallback)) return p;
@@ -413,8 +413,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             startY =
               Math.max(
                 ...p.blocks.map(
-                  (b) =>
-                    (b.y || 0) + getEstimatedHeight(b.type, b.height)
+                  (b) => (b.y || 0) + getEstimatedHeight(b.type, b.height)
                 )
               ) + BLOCK_STACK_GAP;
           }
@@ -433,8 +432,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
             blocksWithIds.length > 0
               ? Math.max(
                   ...blocksWithIds.map(
-                    (b) =>
-                      (b.y || 0) + getEstimatedHeight(b.type, b.height)
+                    (b) => (b.y || 0) + getEstimatedHeight(b.type, b.height)
                   )
                 )
               : 0;
@@ -880,7 +878,6 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     })),
 
   updatePageDimensions: (pageId, width, height) => {
-    get().saveHistory();
     set((state) => ({
       pages: state.pages.map((p) =>
         p.id === pageId ? { ...p, width, height } : p

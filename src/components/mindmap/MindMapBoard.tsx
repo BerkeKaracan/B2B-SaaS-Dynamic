@@ -128,21 +128,14 @@ function MindMapBoard({ projectId }: { projectId: string }) {
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
 
-  // Drag is rAF-coalesced and only touches local state; the global store is
-  // written once on pointer-up (per-event persistNodes replaced the whole
-  // `pages` array and re-synced Yjs on every raw mouse event).
+  // Store-free node drag: translate3d on the DOM node; setNodes + persist
+  // only once on pointer-up (avoids re-rendering the whole board per move).
   const dragLastClientRef = useRef({ x: 0, y: 0 });
   const pendingDragClientRef = useRef<{ x: number; y: number } | null>(null);
   const dragRafRef = useRef<number | null>(null);
-  const didDragNodeRef = useRef(false);
-  const [dragEndTick, setDragEndTick] = useState(0);
-
-  useEffect(() => {
-    if (dragEndTick === 0) return;
-    persistNodes(nodes);
-    // Persist exactly once per finished node drag, with the committed nodes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dragEndTick]);
+  const nodeDragAccumRef = useRef({ dx: 0, dy: 0 });
+  const nodeDragOriginRef = useRef({ x: 0, y: 0 });
+  const nodesSnapshotRef = useRef<MindNode[]>([]);
 
   const handleCanvasPointerDown = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('.mind-node')) return;
@@ -153,8 +146,62 @@ function MindMapBoard({ projectId }: { projectId: string }) {
   const handleNodePointerDown = (e: React.PointerEvent, nodeId: string) => {
     e.stopPropagation();
     if (isReadonly) return;
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
     setDraggingNodeId(nodeId);
     dragLastClientRef.current = { x: e.clientX, y: e.clientY };
+    nodeDragAccumRef.current = { dx: 0, dy: 0 };
+    nodeDragOriginRef.current = { x: node.x, y: node.y };
+    nodesSnapshotRef.current = nodes;
+  };
+
+  const applyNodeDomDrag = (nodeId: string, dx: number, dy: number) => {
+    const el = document.querySelector(
+      `[data-mind-node-id="${nodeId}"]`
+    ) as HTMLElement | null;
+    if (el) {
+      el.style.willChange = 'transform';
+      el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+    }
+
+    // Update SVG lines that touch this node (child lines + lines to children).
+    const snap = nodesSnapshotRef.current;
+    const dragged = snap.find((n) => n.id === nodeId);
+    if (!dragged) return;
+    const liveX = dragged.x + dx;
+    const liveY = dragged.y + dy;
+
+    // Line belonging to this node (to its parent)
+    if (dragged.parentId) {
+      const line = document.querySelector(
+        `[data-mind-line-id="${nodeId}"]`
+      ) as SVGLineElement | null;
+      if (line) {
+        line.setAttribute('x2', String(liveX + 80));
+        line.setAttribute('y2', String(liveY + 24));
+      }
+    }
+    // Lines of children that point to this node as parent
+    for (const child of snap) {
+      if (child.parentId !== nodeId) continue;
+      const line = document.querySelector(
+        `[data-mind-line-id="${child.id}"]`
+      ) as SVGLineElement | null;
+      if (line) {
+        line.setAttribute('x1', String(liveX + 80));
+        line.setAttribute('y1', String(liveY + 24));
+      }
+    }
+  };
+
+  const clearNodeDomDrag = (nodeId: string) => {
+    const el = document.querySelector(
+      `[data-mind-node-id="${nodeId}"]`
+    ) as HTMLElement | null;
+    if (el) {
+      el.style.transform = '';
+      el.style.willChange = '';
+    }
   };
 
   const flushDrag = () => {
@@ -169,15 +216,14 @@ function MindMapBoard({ projectId }: { projectId: string }) {
     dragLastClientRef.current = { x: pt.x, y: pt.y };
 
     if (draggingNodeId) {
-      didDragNodeRef.current = true;
       const worldDx = dx / zoom;
       const worldDy = dy / zoom;
-      setNodes((prev) =>
-        prev.map((n) =>
-          n.id === draggingNodeId
-            ? { ...n, x: n.x + worldDx, y: n.y + worldDy }
-            : n
-        )
+      nodeDragAccumRef.current.dx += worldDx;
+      nodeDragAccumRef.current.dy += worldDy;
+      applyNodeDomDrag(
+        draggingNodeId,
+        nodeDragAccumRef.current.dx,
+        nodeDragAccumRef.current.dy
       );
     } else if (isDraggingCanvas) {
       setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
@@ -197,9 +243,18 @@ function MindMapBoard({ projectId }: { projectId: string }) {
       cancelAnimationFrame(dragRafRef.current);
       flushDrag();
     }
-    if (draggingNodeId && didDragNodeRef.current) {
-      didDragNodeRef.current = false;
-      setDragEndTick((t) => t + 1);
+    if (draggingNodeId) {
+      const { dx, dy } = nodeDragAccumRef.current;
+      clearNodeDomDrag(draggingNodeId);
+      if (dx !== 0 || dy !== 0) {
+        const id = draggingNodeId;
+        const next = nodesSnapshotRef.current.map((n) =>
+          n.id === id ? { ...n, x: n.x + dx, y: n.y + dy } : n
+        );
+        setNodes(next);
+        persistNodes(next);
+      }
+      nodeDragAccumRef.current = { dx: 0, dy: 0 };
     }
     setIsDraggingCanvas(false);
     setDraggingNodeId(null);
@@ -376,6 +431,7 @@ function MindMapBoard({ projectId }: { projectId: string }) {
               return (
                 <line
                   key={`line-${node.id}`}
+                  data-mind-line-id={node.id}
                   x1={startX}
                   y1={startY}
                   x2={endX}
@@ -399,6 +455,7 @@ function MindMapBoard({ projectId }: { projectId: string }) {
           {nodes.map((node) => (
             <div
               key={node.id}
+              data-mind-node-id={node.id}
               className="mind-node absolute flex items-center justify-center group pointer-events-auto"
               style={{ left: node.x, top: node.y }}
             >

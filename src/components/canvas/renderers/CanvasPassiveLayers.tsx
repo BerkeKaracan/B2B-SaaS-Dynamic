@@ -6,6 +6,7 @@ import {
   getConnectionMidpoint,
   subscribeConnectionMidpoints,
 } from './connectionMidpoints';
+import { getLiveOffsets, subscribeDragSession } from './dragSession';
 
 /**
  * Passive paint layers: the infinite grid and the connection curves drawn on
@@ -35,9 +36,26 @@ function blockCenterWorld(
   if (!page) return null;
   const block = page.blocks.find((b) => b.id === blockId);
   if (!block) return null;
+
+  // During store-free drag, liveOffsets carry the visual translate3d delta
+  // so connection curves follow the GPU-moved element without a store write.
+  const offsets = getLiveOffsets();
+  const pageOff = offsets.get(pageId) || { dx: 0, dy: 0 };
+  const blockOff = offsets.get(blockId) || { dx: 0, dy: 0 };
+
   return {
-    x: (page.x ?? 150) + (block.x ?? 20) + (block.width ?? 320) / 2,
-    y: (page.y ?? 150) + (block.y ?? 20) + (block.height ?? 120) / 2,
+    x:
+      (page.x ?? 150) +
+      pageOff.dx +
+      (block.x ?? 20) +
+      blockOff.dx +
+      (block.width ?? 320) / 2,
+    y:
+      (page.y ?? 150) +
+      pageOff.dy +
+      (block.y ?? 20) +
+      blockOff.dy +
+      (block.height ?? 120) / 2,
   };
 }
 
@@ -202,6 +220,7 @@ export function CanvasPassiveLayers() {
     });
 
     const unsubscribeMidpoints = subscribeConnectionMidpoints(scheduleDraw);
+    const unsubscribeDrag = subscribeDragSession(scheduleDraw);
 
     // Grid color follows the `dark` class on <html>.
     const mo = new MutationObserver(() => {
@@ -220,6 +239,7 @@ export function CanvasPassiveLayers() {
       ro.disconnect();
       unsubscribeStore();
       unsubscribeMidpoints();
+      unsubscribeDrag();
       mo.disconnect();
       if (raf != null) cancelAnimationFrame(raf);
     };

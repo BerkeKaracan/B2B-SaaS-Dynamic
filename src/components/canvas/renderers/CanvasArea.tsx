@@ -14,6 +14,15 @@ import { BlockContent, BlockType, PageContent } from '@/types/record';
 import { getBlockDefaultHeight } from '@/lib/blockConfig';
 import { ConnectionLayer, ConnectionPreviewLayer } from './ConnectionLayer';
 import { CanvasPassiveLayers } from './CanvasPassiveLayers';
+import {
+  startPageDrag as beginPageDragSession,
+  startBlockDrag as beginBlockDragSession,
+  startPageResize as beginPageResizeSession,
+  applyDragPointer,
+  commitDragSession,
+  cancelDragSession,
+  isDragSessionActive,
+} from './dragSession';
 import { LassoLayer } from './LassoLayer';
 import { fetchAPI } from '@/services/api';
 
@@ -201,23 +210,15 @@ export default function CanvasArea() {
     blockId: string;
   } | null>(null);
 
+  // Kept only so renderedPages culling can exempt the active drag target
+  // without reading dragSession (which is outside React). Positions during
+  // drag are applied via DOM transform — these ids do NOT drive store writes.
   const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
   const [draggedBlockInfo, setDraggedBlockInfo] = useState<{
     pageId: string;
     blockId: string;
   } | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-
   const [resizingPageId, setResizingPageId] = useState<string | null>(null);
-  const [resizeConfig, setResizeConfig] = useState<{
-    edge: string;
-    startX: number;
-    startY: number;
-    startW: number;
-    startH: number;
-    startPageX: number;
-    startPageY: number;
-  } | null>(null);
 
   const [connectingFrom, setConnectingFrom] = useState<{
     pageId: string;
@@ -436,8 +437,8 @@ export default function CanvasArea() {
   ]);
 
   useEffect(() => {
-    // One store write per frame for lasso / page-block drag / resize /
-    // connection preview (raw pointermove events fire far above 60Hz).
+    // Lasso / connection preview still go through React (lightweight).
+    // Page/block/resize drag is store-free: applyDragPointer writes only DOM.
     let interactionRaf: number | null = null;
     let pendingInteractionPointer: { clientX: number; clientY: number } | null =
       null;
@@ -463,6 +464,17 @@ export default function CanvasArea() {
         setMousePos({ x: mouseCanvasX, y: mouseCanvasY });
       }
 
+      if (isDragSessionActive()) {
+        applyDragPointer({
+          mouseCanvasX,
+          mouseCanvasY,
+          clientX: pt.clientX,
+          clientY: pt.clientY,
+          scale: currentZoom,
+        });
+        return;
+      }
+
       if (lassoStart) {
         setLassoEnd({ x: mouseCanvasX, y: mouseCanvasY });
         const minX = Math.min(lassoStart.x, mouseCanvasX);
@@ -480,70 +492,11 @@ export default function CanvasArea() {
               newSelected.push(block.id);
           });
         });
-        // Unchanged selection → skip the store write (it is a dep of the
-        // renderedPages memo; a fresh array re-reconciled every page).
         const prevSelected = state.selectedBlocks;
         const sameSelection =
           prevSelected.length === newSelected.length &&
           newSelected.every((id, i) => id === prevSelected[i]);
         if (!sameSelection) setSelectedBlocks(newSelected);
-      } else if (draggedPageId) {
-        updatePagePosition(
-          draggedPageId,
-          mouseCanvasX - dragOffset.x,
-          mouseCanvasY - dragOffset.y
-        );
-      } else if (draggedBlockInfo) {
-        const targetPage = state.pages.find(
-          (p) => p.id === draggedBlockInfo.pageId
-        );
-        if (targetPage) {
-          updateBlockPosition(
-            draggedBlockInfo.pageId,
-            draggedBlockInfo.blockId,
-            mouseCanvasX - targetPage.x - dragOffset.x,
-            mouseCanvasY - targetPage.y - dragOffset.y
-          );
-        }
-      } else if (resizingPageId && resizeConfig) {
-        const deltaX = (pt.clientX - resizeConfig.startX) / currentZoom;
-        const deltaY = (pt.clientY - resizeConfig.startY) / currentZoom;
-
-        let newW = resizeConfig.startW;
-        let newH = resizeConfig.startH;
-        let newX = resizeConfig.startPageX;
-        let newY = resizeConfig.startPageY;
-
-        const edge = resizeConfig.edge;
-
-        if (edge.includes('r')) {
-          newW = Math.max(300, resizeConfig.startW + deltaX);
-        }
-        if (edge.includes('l')) {
-          const possibleW = resizeConfig.startW - deltaX;
-          if (possibleW >= 300) {
-            newW = possibleW;
-            newX = resizeConfig.startPageX + deltaX;
-          }
-        }
-        if (edge.includes('b')) {
-          newH = Math.max(300, resizeConfig.startH + deltaY);
-        }
-        if (edge.includes('t')) {
-          const possibleH = resizeConfig.startH - deltaY;
-          if (possibleH >= 300) {
-            newH = possibleH;
-            newY = resizeConfig.startPageY + deltaY;
-          }
-        }
-
-        updatePageDimensions(resizingPageId, newW, newH);
-        if (
-          newX !== resizeConfig.startPageX ||
-          newY !== resizeConfig.startPageY
-        ) {
-          updatePagePosition(resizingPageId, newX, newY);
-        }
       }
     };
 
@@ -657,12 +610,12 @@ export default function CanvasArea() {
       } else if (
         connectingFrom ||
         lassoStart ||
+        isDragSessionActive() ||
         draggedPageId ||
         draggedBlockInfo ||
-        (resizingPageId && resizeConfig)
+        resizingPageId
       ) {
-        // rAF-coalesce: raw pointermove can fire far above 60Hz; writing to the
-        // store per event replaced `pages` (and re-synced Yjs) per event.
+        // rAF-coalesce: drag path writes DOM only; lasso still hits React.
         pendingInteractionPointer = { clientX: e.clientX, clientY: e.clientY };
         if (interactionRaf == null) {
           interactionRaf = requestAnimationFrame(flushInteraction);
@@ -671,8 +624,8 @@ export default function CanvasArea() {
     };
 
     const handleGlobalPointerUp = (e: globalThis.PointerEvent) => {
-      // Apply the last sub-frame movement before drag state is cleared,
-      // so saveHistory() below captures the final position.
+      // Apply the last sub-frame movement before commit, so the store write
+      // and transfer math see the final visual position.
       if (interactionRaf != null) {
         cancelAnimationFrame(interactionRaf);
         flushInteraction();
@@ -681,13 +634,38 @@ export default function CanvasArea() {
       activePointers.current.delete(e.pointerId);
       if (activePointers.current.size < 2) prevTouchDistance.current = null;
 
-      if (draggedBlockInfo) {
+      const wasDragging =
+        !!draggedPageId || !!draggedBlockInfo || !!resizingPageId;
+      const pendingBlockTransfer = draggedBlockInfo
+        ? { ...draggedBlockInfo }
+        : null;
+
+      const commit = commitDragSession();
+      if (commit) {
+        if (commit.kind === 'page') {
+          updatePagePosition(commit.pageId, commit.x, commit.y);
+        } else if (commit.kind === 'block') {
+          updateBlockPosition(
+            commit.pageId,
+            commit.blockId,
+            commit.x,
+            commit.y
+          );
+        } else if (commit.kind === 'resize') {
+          updatePageDimensions(commit.pageId, commit.width, commit.height);
+          if (commit.moved) {
+            updatePagePosition(commit.pageId, commit.x, commit.y);
+          }
+        }
+      }
+
+      if (pendingBlockTransfer) {
         const state = useCanvasStore.getState();
         const sourcePage = state.pages.find(
-          (p) => p.id === draggedBlockInfo.pageId
+          (p) => p.id === pendingBlockTransfer.pageId
         );
         const block = sourcePage?.blocks.find(
-          (b) => b.id === draggedBlockInfo.blockId
+          (b) => b.id === pendingBlockTransfer.blockId
         );
 
         if (sourcePage && block) {
@@ -722,11 +700,10 @@ export default function CanvasArea() {
         }
       }
 
-      if (draggedPageId || draggedBlockInfo || resizingPageId) saveHistory();
+      if (wasDragging) saveHistory();
       setDraggedPageId(null);
       setDraggedBlockInfo(null);
       setResizingPageId(null);
-      setResizeConfig(null);
       setLassoStart(null);
       setLassoEnd(null);
       setIsSpacePanning(false);
@@ -735,6 +712,12 @@ export default function CanvasArea() {
     const handleGlobalPointerCancel = (e: globalThis.PointerEvent) => {
       activePointers.current.delete(e.pointerId);
       if (activePointers.current.size < 2) prevTouchDistance.current = null;
+      if (isDragSessionActive()) {
+        cancelDragSession();
+        setDraggedPageId(null);
+        setDraggedBlockInfo(null);
+        setResizingPageId(null);
+      }
     };
 
     const handleTouchEndSync = (e: globalThis.TouchEvent) => {
@@ -746,11 +729,13 @@ export default function CanvasArea() {
     };
 
     const handleEmergencyCleanup = () => {
+      cancelDragSession();
       activePointers.current.clear();
       prevTouchDistance.current = null;
       setIsSpacePanning(false);
       setDraggedPageId(null);
       setDraggedBlockInfo(null);
+      setResizingPageId(null);
       setContextMenu(null);
       setAiMenu(null);
     };
@@ -780,10 +765,8 @@ export default function CanvasArea() {
     draggedPageId,
     draggedBlockInfo,
     resizingPageId,
-    resizeConfig,
     connectingFrom,
     lassoStart,
-    dragOffset,
     updatePagePosition,
     updateBlockPosition,
     updatePageDimensions,
@@ -889,11 +872,25 @@ export default function CanvasArea() {
         left: 0,
         top: 0,
       };
-      setDraggedPageId(pageId);
-      setDragOffset({
-        x: (e.clientX - rect.left - currentPanX) / currentZoom - currentX,
-        y: (e.clientY - rect.top - currentPanY) / currentZoom - currentY,
+      const grabOffsetX =
+        (e.clientX - rect.left - currentPanX) / currentZoom - currentX;
+      const grabOffsetY =
+        (e.clientY - rect.top - currentPanY) / currentZoom - currentY;
+
+      const el =
+        (e.currentTarget as HTMLElement).closest('[data-page-id]') ||
+        document.querySelector(`[data-page-id="${pageId}"]`);
+      if (!(el instanceof HTMLElement)) return;
+
+      beginPageDragSession({
+        el,
+        pageId,
+        originX: currentX,
+        originY: currentY,
+        grabOffsetX,
+        grabOffsetY,
       });
+      setDraggedPageId(pageId);
     },
     [isSpacePressed, setActivePage, mode]
   );
@@ -936,11 +933,66 @@ export default function CanvasArea() {
         left: 0,
         top: 0,
       };
-      setDraggedBlockInfo({ pageId, blockId: targetBlockId });
-      setDragOffset({
-        x: (e.clientX - rect.left - currentPanX) / currentZoom - pageX - blockX,
-        y: (e.clientY - rect.top - currentPanY) / currentZoom - pageY - blockY,
+      const grabOffsetX =
+        (e.clientX - rect.left - currentPanX) / currentZoom - pageX - blockX;
+      const grabOffsetY =
+        (e.clientY - rect.top - currentPanY) / currentZoom - pageY - blockY;
+
+      // Multi-select: move every selected block together when primary is selected.
+      const selected = state.selectedBlocks;
+      const multi =
+        selected.includes(targetBlockId) && selected.length > 1
+          ? selected
+          : [targetBlockId];
+
+      const targets: {
+        blockId: string;
+        pageId: string;
+        el: HTMLElement;
+        originX: number;
+        originY: number;
+      }[] = [];
+
+      for (const id of multi) {
+        const el = document.querySelector(
+          `[data-block-id="${id}"]`
+        ) as HTMLElement | null;
+        if (!el) continue;
+        // Find page-local origin from store (block may live on another page
+        // in theory; multi-select within one canvas still uses per-page coords).
+        let foundPageId = pageId;
+        let ox = blockX;
+        let oy = blockY;
+        for (const p of state.pages) {
+          const b = p.blocks.find((blk) => blk.id === id);
+          if (b) {
+            foundPageId = p.id;
+            ox = b.x ?? 20;
+            oy = b.y ?? 20;
+            break;
+          }
+        }
+        targets.push({
+          blockId: id,
+          pageId: foundPageId,
+          el,
+          originX: ox,
+          originY: oy,
+        });
+      }
+
+      if (targets.length === 0) return;
+
+      beginBlockDragSession({
+        targets,
+        primaryBlockId: targetBlockId,
+        primaryPageId: pageId,
+        primaryPageX: pageX,
+        primaryPageY: pageY,
+        grabOffsetX,
+        grabOffsetY,
       });
+      setDraggedBlockInfo({ pageId, blockId: targetBlockId });
     },
     [isSpacePressed, duplicateBlock, setActivePage, setActiveBlock, mode]
   );
@@ -1163,6 +1215,7 @@ export default function CanvasArea() {
       return (
         <section
           key={page.id}
+          data-page-id={page.id}
           role="region"
           aria-label={`Frame: ${page.title}`}
           tabIndex={0}
@@ -1350,16 +1403,22 @@ export default function CanvasArea() {
                   onPointerDown={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    setResizingPageId(page.id);
-                    setResizeConfig({
+                    const el = document.querySelector(
+                      `[data-page-id="${page.id}"]`
+                    );
+                    if (!(el instanceof HTMLElement)) return;
+                    beginPageResizeSession({
+                      el,
+                      pageId: page.id,
                       edge,
-                      startX: e.clientX,
-                      startY: e.clientY,
+                      startClientX: e.clientX,
+                      startClientY: e.clientY,
                       startW: page.width,
                       startH: page.height,
                       startPageX: px,
                       startPageY: py,
                     });
+                    setResizingPageId(page.id);
                   }}
                 >
                   {edge === 'br' && (
@@ -1527,6 +1586,7 @@ export default function CanvasArea() {
                         ? 'ring-2 ring-indigo-500 shadow-lg z-50'
                         : 'shadow-sm z-10'
                     } ${connectingFrom && connectingFrom.blockId !== block.id && mode !== 'readonly' ? 'hover:ring-2 hover:ring-indigo-400' : ''}`}
+                    data-block-id={block.id}
                     style={{
                       left: `${bx}px`,
                       top: `${by}px`,
@@ -1649,7 +1709,6 @@ export default function CanvasArea() {
     activeBlockId,
     selectedBlocks,
     resizingPageId,
-    resizeConfig,
     connectingFrom,
     isSpacePressed,
     isSpacePanning,
