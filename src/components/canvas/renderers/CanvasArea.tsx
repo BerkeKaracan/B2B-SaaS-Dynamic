@@ -38,10 +38,33 @@ import { useCanvasCollaboration } from '@/hooks/useCanvasCollaboration';
 import type { CursorState } from '@/hooks/useCanvasCollaboration';
 import { useZustandYjsSync } from '@/hooks/useZustandYjsSync';
 import { useCanvasNavigation } from '@/hooks/useCanvasNavigation';
+import {
+  useVisibleWorldRect,
+  rectsIntersect,
+} from '@/hooks/useVisibleWorldRect';
 import { LiveCursors } from '../LiveCursors';
 
 const MIN_ZOOM = 10;
 const MAX_ZOOM = 400;
+
+/**
+ * Board pages own client state / fetched data — never unmount them for
+ * culling (remount would refetch). They are hidden with visibility+contain.
+ */
+const BOARD_PAGE_TYPES = new Set([
+  'kanban',
+  'notes',
+  'document',
+  'whiteboard',
+  'mindmap',
+  'timeline',
+  'database',
+  'retrospective',
+]);
+
+/** Content can overflow page.height (it is a minHeight) — cull generously. */
+const PAGE_CULL_HEIGHT_FACTOR = 1.5;
+const BLOCK_CULL_PAD = 100;
 
 type CanvasWorldProps = {
   pages: PageWithSettings[];
@@ -165,6 +188,9 @@ export default function CanvasArea() {
     transformRef,
     gridRef,
   });
+
+  // Viewport culling: quantized world rect (stable ref during small pans)
+  const visibleRect = useVisibleWorldRect(containerRef);
 
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -472,10 +498,8 @@ export default function CanvasArea() {
                   (livePts[0].clientY + livePts[1].clientY) / 2 - rect.top;
                 const scale = oldZoom / 100;
                 const nextScale = nextZoom / 100;
-                const nextPanX =
-                  midX - ((midX - oldPanX) / scale) * nextScale;
-                const nextPanY =
-                  midY - ((midY - oldPanY) / scale) * nextScale;
+                const nextPanX = midX - ((midX - oldPanX) / scale) * nextScale;
+                const nextPanY = midY - ((midY - oldPanY) / scale) * nextScale;
 
                 if (transformRef.current) {
                   transformRef.current.style.transform = `translate3d(${nextPanX}px, ${nextPanY}px, 0) scale(${nextScale})`;
@@ -641,8 +665,7 @@ export default function CanvasArea() {
           const blockAbsY = sourcePage.y + block.y;
           const blockCenterX = blockAbsX + (block.width || 320) / 2;
           const blockCenterY =
-            blockAbsY +
-            (block.height || getBlockDefaultHeight(block.type)) / 2;
+            blockAbsY + (block.height || getBlockDefaultHeight(block.type)) / 2;
 
           const targetPage = [...state.pages].reverse().find((p) => {
             if (p.id === sourcePage.id) return false;
@@ -1045,13 +1068,63 @@ export default function CanvasArea() {
     [updateBlockValue, updateBlockSettings, mode]
   );
 
-  const renderedPages = useMemo(() => {
-    return pages.map((page: PageWithSettings) => {
+  const { nodes: renderedPages, renderedFrameCount } = useMemo(() => {
+    // --- Viewport culling (Figma-style: keep in store, skip render) ---
+    // First pass: per-page cull decision (also feeds the radar counter).
+    const cullStates = pages.map((page: PageWithSettings) => {
+      const px = page.x ?? 150;
+      const py = page.y ?? 150;
+      const pw = page.width ?? 800;
+      const ph = Math.max(page.height ?? 500, 500);
+      const hasActiveOrSelectedBlock =
+        !!activeBlockId || selectedBlocks.length > 0
+          ? page.blocks.some(
+              (b) => b.id === activeBlockId || selectedBlocks.includes(b.id)
+            )
+          : false;
+      const cullingExempt =
+        activePageId === page.id ||
+        hasActiveOrSelectedBlock ||
+        draggedPageId === page.id ||
+        resizingPageId === page.id;
+      const isCulled =
+        !!visibleRect &&
+        !cullingExempt &&
+        !rectsIntersect(
+          visibleRect,
+          px,
+          py,
+          px + pw,
+          py + ph * PAGE_CULL_HEIGHT_FACTOR
+        );
+      return {
+        isCulled,
+        isBoardPage: BOARD_PAGE_TYPES.has(String(page.type ?? '')),
+      };
+    });
+    const renderedFrameCount = cullStates.filter((c) => !c.isCulled).length;
+
+    const nodes = pages.map((page: PageWithSettings, pageIndex: number) => {
       const isPageActive = activePageId === page.id;
       const px = page.x ?? 150;
       const py = page.y ?? 150;
       const pageBgColor =
         (page.settings?.backgroundColor as string) || '#ffffff';
+
+      const { isCulled, isBoardPage } = cullStates[pageIndex];
+
+      // Freeform block pages fully unmount — blocks live in the store.
+      // Board pages stay mounted (unmount would refetch) but stop painting.
+      if (isCulled && !isBoardPage) {
+        return null;
+      }
+      const culledStyle: React.CSSProperties = isCulled
+        ? {
+            visibility: 'hidden',
+            contain: 'strict',
+            pointerEvents: 'none',
+          }
+        : {};
 
       return (
         <section
@@ -1095,6 +1168,7 @@ export default function CanvasArea() {
             minHeight: `${page.height}px`,
             backgroundColor:
               pageBgColor === '#ffffff' ? undefined : pageBgColor,
+            ...culledStyle,
           }}
         >
           {isPageActive && !activeBlockId ? (
@@ -1352,6 +1426,23 @@ export default function CanvasArea() {
                 const bw = block.width ?? 320;
                 const bh = block.height ?? getBlockDefaultHeight(block.type);
 
+                // Block-level culling within a visible page (world = page + offset)
+                if (
+                  visibleRect &&
+                  !isBlockActive &&
+                  draggedBlockInfo?.blockId !== block.id &&
+                  connectingFrom?.blockId !== block.id &&
+                  !rectsIntersect(
+                    visibleRect,
+                    px + bx - BLOCK_CULL_PAD,
+                    py + by - BLOCK_CULL_PAD,
+                    px + bx + bw + BLOCK_CULL_PAD,
+                    py + by + bh + BLOCK_CULL_PAD
+                  )
+                ) {
+                  return null;
+                }
+
                 return (
                   <div
                     key={block.id}
@@ -1513,8 +1604,13 @@ export default function CanvasArea() {
         </section>
       );
     });
+
+    return { nodes, renderedFrameCount };
   }, [
     pages,
+    visibleRect,
+    draggedPageId,
+    draggedBlockInfo,
     activePageId,
     activeBlockId,
     selectedBlocks,
@@ -1577,6 +1673,12 @@ export default function CanvasArea() {
         <div className="flex items-center gap-3 text-[11px] font-mono font-bold text-zinc-600 dark:text-zinc-400">
           <span>X: {Math.round(panX)}</span>
           <span>Y: {Math.round(panY)}</span>
+          <span
+            className="text-emerald-600 dark:text-emerald-400"
+            title="Rendered / total frames (viewport culling)"
+          >
+            {renderedFrameCount}/{pages.length}
+          </span>
         </div>
       </div>
 

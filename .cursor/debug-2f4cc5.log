@@ -1,0 +1,3 @@
+{"sessionId":"2f4cc5","hypothesisId":"C","location":"authCookies.ts:hasClientSession","message":"GET /api/session","data":{"status":200,"ok":true,"debugSession":"ok"},"timestamp":1784573326622}
+{"sessionId":"2f4cc5","hypothesisId":"C","location":"useAuthStore.ts:fetchUser","message":"/auth/me result","data":{"status":200,"ok":true,"hasTenantHeader":true},"timestamp":1784573330801}
+{"sessionId":"2f4cc5","hypothesisId":"C","location":"useAuthStore.ts:fetchUser","message":"/auth/me result","data":{"status":200,"ok":true,"hasTenantHeader":true},"timestamp":1784573331374}
