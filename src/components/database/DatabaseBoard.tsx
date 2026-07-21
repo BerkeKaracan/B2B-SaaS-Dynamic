@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from 'react';
 import {
   Plus,
   Search,
@@ -69,10 +75,14 @@ const generateId = (prefix: string) => {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 };
 
-export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
+function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   const { isReadonly } = useProjectEditMode();
-  const { metadata, updateMetadata, pages, updatePageSettings } =
-    useCanvasStore();
+  // Granular selectors — a whole-store subscription re-rendered every mounted
+  // board at 60fps during pan/zoom (setPan/setZoom write to the store per rAF).
+  const metadata = useCanvasStore((s) => s.metadata);
+  const updateMetadata = useCanvasStore((s) => s.updateMetadata);
+  const pages = useCanvasStore((s) => s.pages);
+  const updatePageSettings = useCanvasStore((s) => s.updatePageSettings);
 
   // Standalone template → top-level metadata; Infinite frame → page.settings
   const canvasPage = useMemo(
@@ -109,15 +119,13 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
   );
 
   const rows = useMemo(
-    () =>
-      (dataSource.databaseRows as RowRecord[] | undefined) || DEFAULT_ROWS,
+    () => (dataSource.databaseRows as RowRecord[] | undefined) || DEFAULT_ROWS,
     [dataSource.databaseRows]
   );
 
   const savedViews = useMemo(
     () =>
-      (dataSource.databaseSavedViews as DatabaseSavedView[] | undefined) ||
-      [],
+      (dataSource.databaseSavedViews as DatabaseSavedView[] | undefined) || [],
     [dataSource.databaseSavedViews]
   );
 
@@ -395,24 +403,28 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
     }
   };
 
-  const processedRows = rows
-    .filter((row) => {
-      if (!filterQuery) return true;
-      const q = filterQuery.toLowerCase();
-      return properties.some((prop) =>
-        String(row[prop.id] || '')
-          .toLowerCase()
-          .includes(q)
-      );
-    })
-    .sort((a, b) => {
-      if (!sortConfig) return 0;
-      const valA = String(a[sortConfig.propId] || '').toLowerCase();
-      const valB = String(b[sortConfig.propId] || '').toLowerCase();
-      if (valA < valB) return sortConfig.dir === 'asc' ? -1 : 1;
-      if (valA > valB) return sortConfig.dir === 'asc' ? 1 : -1;
-      return 0;
-    });
+  const processedRows = useMemo(
+    () =>
+      rows
+        .filter((row) => {
+          if (!filterQuery) return true;
+          const q = filterQuery.toLowerCase();
+          return properties.some((prop) =>
+            String(row[prop.id] || '')
+              .toLowerCase()
+              .includes(q)
+          );
+        })
+        .sort((a, b) => {
+          if (!sortConfig) return 0;
+          const valA = String(a[sortConfig.propId] || '').toLowerCase();
+          const valB = String(b[sortConfig.propId] || '').toLowerCase();
+          if (valA < valB) return sortConfig.dir === 'asc' ? -1 : 1;
+          if (valA > valB) return sortConfig.dir === 'asc' ? 1 : -1;
+          return 0;
+        }),
+    [rows, properties, filterQuery, sortConfig]
+  );
 
   const hasToolbarSlot = useHasProjectToolbarSlot();
 
@@ -616,7 +628,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
     <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden font-sans z-10">
       {portaledToolbar}
       {!hasToolbarSlot && (
-        <div className="h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-end bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md select-none shrink-0 relative z-50">
+        <div className="h-14 px-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-end bg-white/95 dark:bg-zinc-900/95 select-none shrink-0 relative z-50">
           {toolbarActions}
         </div>
       )}
@@ -944,3 +956,7 @@ export default function DatabaseBoard({ projectId }: DatabaseBoardProps) {
     </div>
   );
 }
+
+// Memo: props are just a stable projectId — renderedPages recomputes in
+// CanvasArea must not re-render every mounted board.
+export default React.memo(DatabaseBoard);

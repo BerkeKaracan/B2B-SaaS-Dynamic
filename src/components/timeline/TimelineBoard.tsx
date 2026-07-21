@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'next/navigation';
 import { fetchAPI } from '@/services/api';
@@ -105,13 +111,16 @@ const generateNextDays = (daysCount = 30) => {
   return days;
 };
 
-export default function TimelineBoard({ projectId }: { projectId: string }) {
+function TimelineBoard({ projectId }: { projectId: string }) {
   const params = useParams();
   const tenantId = params.tenantId as string;
   const { isReadonly } = useProjectEditMode();
 
   const updateMetadata = useCanvasStore((state) => state.updateMetadata);
-  const updatePageSettings = useCanvasStore((state) => state.updatePageSettings);  const pages = useCanvasStore((state) => state.pages);
+  const updatePageSettings = useCanvasStore(
+    (state) => state.updatePageSettings
+  );
+  const pages = useCanvasStore((state) => state.pages);
   const metadataEvents = useCanvasStore(
     (state) => state.metadata.timelineEvents as TimelineEvent[] | undefined
   );
@@ -138,6 +147,52 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
   // EKLENDİ: İstenilene kadar gün sayısını artırabilmek için dinamik state
   const [daysCount, setDaysCount] = useState(30);
   const columns = useMemo(() => generateNextDays(daysCount), [daysCount]);
+
+  // Column windowing: 30-60 day lanes are 1,500-3,000 DOM nodes even empty.
+  // Only lanes near the horizontal scroll window render fully; the rest are
+  // same-width placeholders. During a dnd drag everything mounts (droppables
+  // must be registered before capture).
+  const COL_OVERSCAN = 3;
+  const colScrollRef = useRef<HTMLDivElement>(null);
+  const colWindowRafRef = useRef<number | null>(null);
+  const [colWindow, setColWindow] = useState({ start: 0, end: 10 });
+  const [isDraggingEvent, setIsDraggingEvent] = useState(false);
+
+  const updateColWindow = useCallback(() => {
+    const el = colScrollRef.current;
+    if (!el) return;
+    const first = el.querySelector<HTMLElement>('[data-timeline-col]');
+    const colWidth = (first?.offsetWidth || 320) + 16; // + gap-4
+    const start = Math.max(
+      0,
+      Math.floor(el.scrollLeft / colWidth) - COL_OVERSCAN
+    );
+    const end =
+      Math.ceil((el.scrollLeft + el.clientWidth) / colWidth) + COL_OVERSCAN;
+    setColWindow((prev) =>
+      prev.start === start && prev.end === end ? prev : { start, end }
+    );
+  }, []);
+
+  const handleColScroll = useCallback(() => {
+    if (colWindowRafRef.current != null) return;
+    colWindowRafRef.current = requestAnimationFrame(() => {
+      colWindowRafRef.current = null;
+      updateColWindow();
+    });
+  }, [updateColWindow]);
+
+  useEffect(() => {
+    updateColWindow();
+    window.addEventListener('resize', updateColWindow);
+    return () => {
+      window.removeEventListener('resize', updateColWindow);
+      if (colWindowRafRef.current != null) {
+        cancelAnimationFrame(colWindowRafRef.current);
+        colWindowRafRef.current = null;
+      }
+    };
+  }, [updateColWindow, daysCount]);
 
   const [isClient, setIsClient] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -486,7 +541,10 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
           <LayoutDashboard className="w-3.5 h-3.5" /> Default View
         </button>
         {savedViews.map((view) => (
-          <div key={view.id} className="flex items-center group relative shrink-0">
+          <div
+            key={view.id}
+            className="flex items-center group relative shrink-0"
+          >
             <button
               type="button"
               onClick={() => applyView(view.id)}
@@ -657,7 +715,7 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
     <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden select-none transition-colors duration-300">
       {portaledToolbar}
       {!hasToolbarSlot && (
-        <div className="flex flex-col bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 shrink-0 z-10">
+        <div className="flex flex-col bg-white/95 dark:bg-zinc-900/95 border-b border-zinc-200 dark:border-zinc-800 shrink-0 z-10">
           <div className="flex items-center justify-between px-4 md:px-5 h-14 gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="p-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 shrink-0">
@@ -680,10 +738,34 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
       )}
 
       <div className="flex-1 flex overflow-hidden relative w-full">
-        <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar h-full">
-          <DragDropContext onDragEnd={handleDragEnd}>
+        <div
+          ref={colScrollRef}
+          onScroll={handleColScroll}
+          className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar h-full"
+        >
+          <DragDropContext
+            onBeforeCapture={() => setIsDraggingEvent(true)}
+            onDragEnd={(result) => {
+              setIsDraggingEvent(false);
+              handleDragEnd(result);
+            }}
+          >
             <div className="flex gap-4 p-4 md:p-5 items-start h-full w-max">
-              {columns.map((col) => {
+              {columns.map((col, colIndex) => {
+                if (
+                  !isDraggingEvent &&
+                  (colIndex < colWindow.start || colIndex >= colWindow.end)
+                ) {
+                  // Same footprint, no content — keeps scroll width stable.
+                  return (
+                    <div
+                      key={col.key}
+                      data-timeline-col
+                      className="w-[85vw] sm:w-[320px] shrink-0 h-full"
+                    />
+                  );
+                }
+
                 const colEvents = events
                   .filter((e) => e.monthKey === col.key)
                   .filter((e) => {
@@ -714,6 +796,7 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
                 return (
                   <div
                     key={col.key}
+                    data-timeline-col
                     className="w-[85vw] sm:w-[320px] shrink-0 flex flex-col max-h-full"
                   >
                     <div
@@ -1279,3 +1362,7 @@ export default function TimelineBoard({ projectId }: { projectId: string }) {
     </div>
   );
 }
+
+// Memo: props are just a stable projectId — renderedPages recomputes in
+// CanvasArea must not re-render every mounted board.
+export default React.memo(TimelineBoard);

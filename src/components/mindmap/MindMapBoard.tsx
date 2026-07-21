@@ -22,7 +22,7 @@ type MindNode = {
   page_id?: string;
 };
 
-export default function MindMapBoard({ projectId }: { projectId: string }) {
+function MindMapBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('MindMapBoard');
   const { isReadonly } = useProjectEditMode();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -127,41 +127,80 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
 
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // Drag is rAF-coalesced and only touches local state; the global store is
+  // written once on pointer-up (per-event persistNodes replaced the whole
+  // `pages` array and re-synced Yjs on every raw mouse event).
+  const dragLastClientRef = useRef({ x: 0, y: 0 });
+  const pendingDragClientRef = useRef<{ x: number; y: number } | null>(null);
+  const dragRafRef = useRef<number | null>(null);
+  const didDragNodeRef = useRef(false);
+  const [dragEndTick, setDragEndTick] = useState(0);
+
+  useEffect(() => {
+    if (dragEndTick === 0) return;
+    persistNodes(nodes);
+    // Persist exactly once per finished node drag, with the committed nodes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragEndTick]);
 
   const handleCanvasPointerDown = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('.mind-node')) return;
     setIsDraggingCanvas(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    dragLastClientRef.current = { x: e.clientX, y: e.clientY };
   };
 
   const handleNodePointerDown = (e: React.PointerEvent, nodeId: string) => {
     e.stopPropagation();
     if (isReadonly) return;
     setDraggingNodeId(nodeId);
-    setDragStart({ x: e.clientX, y: e.clientY });
+    dragLastClientRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const flushDrag = () => {
+    dragRafRef.current = null;
+    const pt = pendingDragClientRef.current;
+    if (!pt) return;
+    pendingDragClientRef.current = null;
+
+    const dx = pt.x - dragLastClientRef.current.x;
+    const dy = pt.y - dragLastClientRef.current.y;
+    if (dx === 0 && dy === 0) return;
+    dragLastClientRef.current = { x: pt.x, y: pt.y };
+
+    if (draggingNodeId) {
+      didDragNodeRef.current = true;
+      const worldDx = dx / zoom;
+      const worldDy = dy / zoom;
+      setNodes((prev) =>
+        prev.map((n) =>
+          n.id === draggingNodeId
+            ? { ...n, x: n.x + worldDx, y: n.y + worldDy }
+            : n
+        )
+      );
+    } else if (isDraggingCanvas) {
+      setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+    }
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (draggingNodeId) {
-      const dx = (e.clientX - dragStart.x) / zoom;
-      const dy = (e.clientY - dragStart.y) / zoom;
-
-      saveNodes(
-        nodes.map((n) =>
-          n.id === draggingNodeId ? { ...n, x: n.x + dx, y: n.y + dy } : n
-        )
-      );
-      setDragStart({ x: e.clientX, y: e.clientY });
-    } else if (isDraggingCanvas) {
-      const dx = e.clientX - dragStart.x;
-      const dy = e.clientY - dragStart.y;
-      setPan({ x: pan.x + dx, y: pan.y + dy });
-      setDragStart({ x: e.clientX, y: e.clientY });
+    if (!draggingNodeId && !isDraggingCanvas) return;
+    pendingDragClientRef.current = { x: e.clientX, y: e.clientY };
+    if (dragRafRef.current == null) {
+      dragRafRef.current = requestAnimationFrame(flushDrag);
     }
   };
 
   const handlePointerUp = () => {
+    if (dragRafRef.current != null) {
+      cancelAnimationFrame(dragRafRef.current);
+      flushDrag();
+    }
+    if (draggingNodeId && didDragNodeRef.current) {
+      didDragNodeRef.current = false;
+      setDragEndTick((t) => t + 1);
+    }
     setIsDraggingCanvas(false);
     setDraggingNodeId(null);
   };
@@ -270,7 +309,10 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
 
     const fileBase =
       typeof metadata.name === 'string' && metadata.name.trim()
-        ? metadata.name.trim().replace(/[^\w\-]+/g, '_').slice(0, 48)
+        ? metadata.name
+            .trim()
+            .replace(/[^\w\-]+/g, '_')
+            .slice(0, 48)
         : 'mindmap';
     const link = document.createElement('a');
     link.download = `${fileBase}.png`;
@@ -423,7 +465,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
         </div>
 
         <div className="absolute bottom-4 right-4 z-30 flex items-center gap-1.5 pointer-events-auto">
-          <div className="flex items-center gap-0.5 bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 rounded-xl p-0.5 shadow-sm backdrop-blur-md">
+          <div className="flex items-center gap-0.5 bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 rounded-xl p-0.5 shadow-sm">
             <button
               type="button"
               onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))}
@@ -447,7 +489,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
           <button
             type="button"
             onClick={exportMindMapPng}
-            className="p-2.5 bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl shadow-sm backdrop-blur-md transition-colors"
+            className="p-2.5 bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl shadow-sm transition-colors"
             title={t('exportMap')}
           >
             <Download className="w-4 h-4" />
@@ -457,3 +499,7 @@ export default function MindMapBoard({ projectId }: { projectId: string }) {
     </div>
   );
 }
+
+// Memo: props are just a stable projectId — renderedPages recomputes in
+// CanvasArea must not re-render every mounted board.
+export default React.memo(MindMapBoard);

@@ -12,7 +12,8 @@ import { useParams } from 'next/navigation';
 import { useCanvasStore, PageWithSettings } from '@/store/useCanvasStore';
 import { BlockContent, BlockType, PageContent } from '@/types/record';
 import { getBlockDefaultHeight } from '@/lib/blockConfig';
-import { ConnectionLayer } from './ConnectionLayer';
+import { ConnectionLayer, ConnectionPreviewLayer } from './ConnectionLayer';
+import { CanvasPassiveLayers } from './CanvasPassiveLayers';
 import { LassoLayer } from './LassoLayer';
 import { fetchAPI } from '@/services/api';
 
@@ -35,7 +36,6 @@ import DatabaseBoard from '@/components/database/DatabaseBoard';
 import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
 
 import { useCanvasCollaboration } from '@/hooks/useCanvasCollaboration';
-import type { CursorState } from '@/hooks/useCanvasCollaboration';
 import { useZustandYjsSync } from '@/hooks/useZustandYjsSync';
 import { useCanvasNavigation } from '@/hooks/useCanvasNavigation';
 import {
@@ -69,26 +69,19 @@ const BLOCK_CULL_PAD = 100;
 type CanvasWorldProps = {
   pages: PageWithSettings[];
   connections: ReturnType<typeof useCanvasStore.getState>['connections'];
-  cursors: Record<string, CursorState>;
-  currentUserKey: string;
-  connectingFrom: { pageId: string; blockId: string } | null;
-  mousePos: { x: number; y: number };
-  lassoStart: { x: number; y: number } | null;
-  lassoEnd: { x: number; y: number } | null;
   renderedPages: React.ReactNode;
   onRemoveConnection: (id: string) => void;
 };
 
-/** Isolated from pan/zoom so viewport transforms do not re-reconcile pages/blocks. */
+/**
+ * Isolated from pan/zoom so viewport transforms do not re-reconcile
+ * pages/blocks. High-frequency layers (live cursors, lasso, connection
+ * preview) render as siblings — passing them through here as props broke
+ * this memo up to 60 times per second.
+ */
 const CanvasWorld = React.memo(function CanvasWorld({
   connections,
   pages,
-  cursors,
-  currentUserKey,
-  connectingFrom,
-  mousePos,
-  lassoStart,
-  lassoEnd,
   renderedPages,
   onRemoveConnection,
 }: CanvasWorldProps) {
@@ -97,12 +90,8 @@ const CanvasWorld = React.memo(function CanvasWorld({
       <ConnectionLayer
         connections={connections}
         pages={pages}
-        connectingFrom={connectingFrom}
-        mousePos={mousePos}
         onRemoveConnection={onRemoveConnection}
       />
-      <LassoLayer lassoStart={lassoStart} lassoEnd={lassoEnd} />
-      <LiveCursors cursors={cursors} currentUserKey={currentUserKey} />
       {renderedPages}
     </>
   );
@@ -447,6 +436,117 @@ export default function CanvasArea() {
   ]);
 
   useEffect(() => {
+    // One store write per frame for lasso / page-block drag / resize /
+    // connection preview (raw pointermove events fire far above 60Hz).
+    let interactionRaf: number | null = null;
+    let pendingInteractionPointer: { clientX: number; clientY: number } | null =
+      null;
+
+    const flushInteraction = () => {
+      interactionRaf = null;
+      const pt = pendingInteractionPointer;
+      pendingInteractionPointer = null;
+      if (!pt) return;
+
+      const state = useCanvasStore.getState();
+      const currentZoom = (state.zoom ?? 100) / 100;
+      const container = containerRef.current;
+      const rect = container
+        ? container.getBoundingClientRect()
+        : { left: 0, top: 0 };
+      const mouseCanvasX =
+        (pt.clientX - rect.left - (state.panX ?? 0)) / currentZoom;
+      const mouseCanvasY =
+        (pt.clientY - rect.top - (state.panY ?? 0)) / currentZoom;
+
+      if (connectingFrom) {
+        setMousePos({ x: mouseCanvasX, y: mouseCanvasY });
+      }
+
+      if (lassoStart) {
+        setLassoEnd({ x: mouseCanvasX, y: mouseCanvasY });
+        const minX = Math.min(lassoStart.x, mouseCanvasX);
+        const maxX = Math.max(lassoStart.x, mouseCanvasX);
+        const minY = Math.min(lassoStart.y, mouseCanvasY);
+        const maxY = Math.max(lassoStart.y, mouseCanvasY);
+
+        const newSelected: string[] = [];
+        state.pages.forEach((page) => {
+          page.blocks.forEach((block) => {
+            const bx = page.x + block.x;
+            const by = page.y + block.y;
+            const bw = block.width || 320;
+            if (bx < maxX && bx + bw > minX && by < maxY && by + 150 > minY)
+              newSelected.push(block.id);
+          });
+        });
+        // Unchanged selection → skip the store write (it is a dep of the
+        // renderedPages memo; a fresh array re-reconciled every page).
+        const prevSelected = state.selectedBlocks;
+        const sameSelection =
+          prevSelected.length === newSelected.length &&
+          newSelected.every((id, i) => id === prevSelected[i]);
+        if (!sameSelection) setSelectedBlocks(newSelected);
+      } else if (draggedPageId) {
+        updatePagePosition(
+          draggedPageId,
+          mouseCanvasX - dragOffset.x,
+          mouseCanvasY - dragOffset.y
+        );
+      } else if (draggedBlockInfo) {
+        const targetPage = state.pages.find(
+          (p) => p.id === draggedBlockInfo.pageId
+        );
+        if (targetPage) {
+          updateBlockPosition(
+            draggedBlockInfo.pageId,
+            draggedBlockInfo.blockId,
+            mouseCanvasX - targetPage.x - dragOffset.x,
+            mouseCanvasY - targetPage.y - dragOffset.y
+          );
+        }
+      } else if (resizingPageId && resizeConfig) {
+        const deltaX = (pt.clientX - resizeConfig.startX) / currentZoom;
+        const deltaY = (pt.clientY - resizeConfig.startY) / currentZoom;
+
+        let newW = resizeConfig.startW;
+        let newH = resizeConfig.startH;
+        let newX = resizeConfig.startPageX;
+        let newY = resizeConfig.startPageY;
+
+        const edge = resizeConfig.edge;
+
+        if (edge.includes('r')) {
+          newW = Math.max(300, resizeConfig.startW + deltaX);
+        }
+        if (edge.includes('l')) {
+          const possibleW = resizeConfig.startW - deltaX;
+          if (possibleW >= 300) {
+            newW = possibleW;
+            newX = resizeConfig.startPageX + deltaX;
+          }
+        }
+        if (edge.includes('b')) {
+          newH = Math.max(300, resizeConfig.startH + deltaY);
+        }
+        if (edge.includes('t')) {
+          const possibleH = resizeConfig.startH - deltaY;
+          if (possibleH >= 300) {
+            newH = possibleH;
+            newY = resizeConfig.startPageY + deltaY;
+          }
+        }
+
+        updatePageDimensions(resizingPageId, newW, newH);
+        if (
+          newX !== resizeConfig.startPageX ||
+          newY !== resizeConfig.startPageY
+        ) {
+          updatePagePosition(resizingPageId, newX, newY);
+        }
+      }
+    };
+
     const handleGlobalPointerMove = (e: globalThis.PointerEvent) => {
       if (activePointers.current.has(e.pointerId)) {
         activePointers.current.set(e.pointerId, {
@@ -523,19 +623,6 @@ export default function CanvasArea() {
         return;
       }
 
-      const state = useCanvasStore.getState();
-      const currentZoom = (state.zoom ?? 100) / 100;
-      const container = containerRef.current;
-      const rect = container
-        ? container.getBoundingClientRect()
-        : { left: 0, top: 0 };
-      const mouseCanvasX =
-        (e.clientX - rect.left - (state.panX ?? 0)) / currentZoom;
-      const mouseCanvasY =
-        (e.clientY - rect.top - (state.panY ?? 0)) / currentZoom;
-
-      if (connectingFrom) setMousePos({ x: mouseCanvasX, y: mouseCanvasY });
-
       if (isSpacePanning) {
         pendingSpaceDeltaRef.current.x +=
           e.clientX - lastSpaceClientRef.current.x;
@@ -567,87 +654,30 @@ export default function CanvasArea() {
             useCanvasStore.setState({ panX: nextPanX, panY: nextPanY });
           });
         }
-      } else if (lassoStart) {
-        setLassoEnd({ x: mouseCanvasX, y: mouseCanvasY });
-        const minX = Math.min(lassoStart.x, mouseCanvasX);
-        const maxX = Math.max(lassoStart.x, mouseCanvasX);
-        const minY = Math.min(lassoStart.y, mouseCanvasY);
-        const maxY = Math.max(lassoStart.y, mouseCanvasY);
-
-        const newSelected: string[] = [];
-
-        const currentPages = useCanvasStore.getState().pages;
-        currentPages.forEach((page) => {
-          page.blocks.forEach((block) => {
-            const bx = page.x + block.x;
-            const by = page.y + block.y;
-            const bw = block.width || 320;
-            if (bx < maxX && bx + bw > minX && by < maxY && by + 150 > minY)
-              newSelected.push(block.id);
-          });
-        });
-        setSelectedBlocks(newSelected);
-      } else if (draggedPageId) {
-        updatePagePosition(
-          draggedPageId,
-          mouseCanvasX - dragOffset.x,
-          mouseCanvasY - dragOffset.y
-        );
-      } else if (draggedBlockInfo) {
-        const targetPage = state.pages.find(
-          (p) => p.id === draggedBlockInfo.pageId
-        );
-        if (targetPage) {
-          updateBlockPosition(
-            draggedBlockInfo.pageId,
-            draggedBlockInfo.blockId,
-            mouseCanvasX - targetPage.x - dragOffset.x,
-            mouseCanvasY - targetPage.y - dragOffset.y
-          );
-        }
-      } else if (resizingPageId && resizeConfig) {
-        const deltaX = (e.clientX - resizeConfig.startX) / currentZoom;
-        const deltaY = (e.clientY - resizeConfig.startY) / currentZoom;
-
-        let newW = resizeConfig.startW;
-        let newH = resizeConfig.startH;
-        let newX = resizeConfig.startPageX;
-        let newY = resizeConfig.startPageY;
-
-        const edge = resizeConfig.edge;
-
-        if (edge.includes('r')) {
-          newW = Math.max(300, resizeConfig.startW + deltaX);
-        }
-        if (edge.includes('l')) {
-          const possibleW = resizeConfig.startW - deltaX;
-          if (possibleW >= 300) {
-            newW = possibleW;
-            newX = resizeConfig.startPageX + deltaX;
-          }
-        }
-        if (edge.includes('b')) {
-          newH = Math.max(300, resizeConfig.startH + deltaY);
-        }
-        if (edge.includes('t')) {
-          const possibleH = resizeConfig.startH - deltaY;
-          if (possibleH >= 300) {
-            newH = possibleH;
-            newY = resizeConfig.startPageY + deltaY;
-          }
-        }
-
-        updatePageDimensions(resizingPageId, newW, newH);
-        if (
-          newX !== resizeConfig.startPageX ||
-          newY !== resizeConfig.startPageY
-        ) {
-          updatePagePosition(resizingPageId, newX, newY);
+      } else if (
+        connectingFrom ||
+        lassoStart ||
+        draggedPageId ||
+        draggedBlockInfo ||
+        (resizingPageId && resizeConfig)
+      ) {
+        // rAF-coalesce: raw pointermove can fire far above 60Hz; writing to the
+        // store per event replaced `pages` (and re-synced Yjs) per event.
+        pendingInteractionPointer = { clientX: e.clientX, clientY: e.clientY };
+        if (interactionRaf == null) {
+          interactionRaf = requestAnimationFrame(flushInteraction);
         }
       }
     };
 
     const handleGlobalPointerUp = (e: globalThis.PointerEvent) => {
+      // Apply the last sub-frame movement before drag state is cleared,
+      // so saveHistory() below captures the final position.
+      if (interactionRaf != null) {
+        cancelAnimationFrame(interactionRaf);
+        flushInteraction();
+      }
+
       activePointers.current.delete(e.pointerId);
       if (activePointers.current.size < 2) prevTouchDistance.current = null;
 
@@ -741,6 +771,10 @@ export default function CanvasArea() {
       window.removeEventListener('touchcancel', handleTouchEndSync);
       window.removeEventListener('blur', handleEmergencyCleanup);
       window.removeEventListener('contextmenu', handleEmergencyCleanup);
+      if (interactionRaf != null) {
+        cancelAnimationFrame(interactionRaf);
+        interactionRaf = null;
+      }
     };
   }, [
     draggedPageId,
@@ -1154,10 +1188,10 @@ export default function CanvasArea() {
             e.dataTransfer.dropEffect = 'copy';
           }}
           onDrop={(e) => handleDropOnPage(e, page)}
-          className={`canvas-bg absolute shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] rounded-2xl transition-shadow duration-200 focus:outline-none flex flex-col ${
+          className={`canvas-bg absolute shadow-[0_8px_24px_-12px_rgba(0,0,0,0.08)] rounded-2xl focus:outline-none flex flex-col ${
             isPageActive
-              ? 'ring-2 ring-indigo-500 shadow-2xl z-40'
-              : 'ring-1 ring-zinc-200/80 dark:ring-zinc-800/80 hover:shadow-xl z-0'
+              ? 'ring-2 ring-indigo-500 shadow-lg z-40'
+              : 'ring-1 ring-zinc-200/80 dark:ring-zinc-800/80 z-0'
           } ${pageBgColor === '#ffffff' ? 'bg-white dark:bg-zinc-900' : ''} ${
             isSpacePanning ? 'pointer-events-none' : 'pointer-events-auto'
           }`}
@@ -1488,10 +1522,10 @@ export default function CanvasArea() {
                         setConnectingFrom(null);
                       }
                     }}
-                    className={`absolute bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 pt-10 sm:pt-8 cursor-default select-none group transition-shadow ${
+                    className={`absolute bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 pt-10 sm:pt-8 cursor-default select-none group ${
                       isBlockActive
-                        ? 'ring-2 ring-indigo-500 shadow-xl z-50'
-                        : 'shadow-sm hover:shadow-md z-10'
+                        ? 'ring-2 ring-indigo-500 shadow-lg z-50'
+                        : 'shadow-sm z-10'
                     } ${connectingFrom && connectingFrom.blockId !== block.id && mode !== 'readonly' ? 'hover:ring-2 hover:ring-indigo-400' : ''}`}
                     style={{
                       left: `${bx}px`,
@@ -1650,19 +1684,10 @@ export default function CanvasArea() {
       className={`canvas-bg absolute inset-0 overflow-hidden select-none touch-none bg-[#F9F9FB] dark:bg-zinc-950 transition-colors duration-300 transform-gpu ${cursorStyle}`}
       onPointerDown={handlePointerDown}
     >
-      <div
-        ref={gridRef}
-        className="canvas-bg absolute inset-0 infinite-grid-layer pointer-events-none opacity-100 dark:opacity-20 transition-opacity duration-300"
-        style={{
-          backgroundImage: `linear-gradient(to right, #e4e4e7 1px, transparent 1px), linear-gradient(to bottom, #e4e4e7 1px, transparent 1px)`,
-          backgroundSize: `${40 * (zoom / 100)}px ${40 * (zoom / 100)}px`,
-          backgroundPosition: `${panX}px ${panY}px`,
-          willChange: 'background-position, background-size',
-          transform: 'translateZ(0)',
-        }}
-      />
+      {/* Grid + connection curves on one screen-space canvas (no React re-renders). */}
+      <CanvasPassiveLayers />
 
-      <div className="absolute top-6 left-6 z-50 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 shadow-sm pointer-events-none hidden sm:flex items-center gap-4 animate-in fade-in duration-300 transition-colors">
+      <div className="absolute top-6 left-6 z-50 bg-white/95 dark:bg-zinc-900/95 px-4 py-2 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 shadow-sm pointer-events-none hidden sm:flex items-center gap-4 animate-in fade-in duration-300 transition-colors">
         <div className="flex items-center gap-1.5">
           <MousePointer2 className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
           <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
@@ -1695,18 +1720,19 @@ export default function CanvasArea() {
         <CanvasWorld
           connections={connections}
           pages={pages}
-          cursors={cursors}
-          currentUserKey={currentUser.name}
-          connectingFrom={connectingFrom}
-          mousePos={mousePos}
-          lassoStart={lassoStart}
-          lassoEnd={lassoEnd}
           renderedPages={renderedPages}
           onRemoveConnection={removeConnection}
         />
+        <ConnectionPreviewLayer
+          pages={pages}
+          connectingFrom={connectingFrom}
+          mousePos={mousePos}
+        />
+        <LassoLayer lassoStart={lassoStart} lassoEnd={lassoEnd} />
+        <LiveCursors cursors={cursors} currentUserKey={currentUser.name} />
       </div>
 
-      <div className="absolute bottom-24 sm:bottom-8 scale-90 sm:scale-100 left-1/2 -translate-x-1/2 z-50 flex items-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800/60 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-1.5 pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300 transition-colors">
+      <div className="absolute bottom-24 sm:bottom-8 scale-90 sm:scale-100 left-1/2 -translate-x-1/2 z-50 flex items-center bg-white/95 dark:bg-zinc-900/95 border border-zinc-200/60 dark:border-zinc-800/60 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-1.5 pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300 transition-colors">
         {mode !== 'readonly' && (
           <>
             <button

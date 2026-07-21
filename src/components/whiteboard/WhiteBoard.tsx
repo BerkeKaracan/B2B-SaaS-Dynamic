@@ -55,7 +55,7 @@ const COLORS = [
 const FONTS = ['Inter', 'serif', 'monospace', 'Comic Sans MS'];
 const SIZES = [14, 18, 24, 32, 48, 64];
 
-export default function WhiteboardBoard({ projectId }: { projectId: string }) {
+function WhiteboardBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('WhiteboardBoard');
   const { isReadonly } = useProjectEditMode();
 
@@ -72,6 +72,9 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
     pages[0];
   const settings = currentPage?.settings || {};
   const pageKey = currentPage?.id || projectId;
+  // Frame on the infinite canvas → persist only into that page's settings.
+  // Writing metadata too doubled every save cascade (2× re-render + Yjs sync).
+  const isCanvasFrame = pages.some((p) => p.id === projectId);
 
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [texts, setTexts] = useState<FloatingText[]>([]);
@@ -102,8 +105,12 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
       setStrokes(settings.whiteboardStrokes as Stroke[]);
 
     const rawTexts =
-      (settings.whiteboardTexts as Array<Record<string, unknown>> | undefined) ||
-      (metadata.whiteboardTexts as Array<Record<string, unknown>> | undefined) ||
+      (settings.whiteboardTexts as
+        | Array<Record<string, unknown>>
+        | undefined) ||
+      (metadata.whiteboardTexts as
+        | Array<Record<string, unknown>>
+        | undefined) ||
       [];
     if (rawTexts.length > 0) {
       setTexts(
@@ -142,7 +149,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
     if (currentPage) {
       updatePageSettings(pageKey, { whiteboardStrokes: newStrokes });
     }
-    updateMetadata({ whiteboardStrokes: newStrokes });
+    if (!isCanvasFrame) updateMetadata({ whiteboardStrokes: newStrokes });
   };
 
   const saveTexts = (newTexts: FloatingText[]) => {
@@ -151,7 +158,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
     if (currentPage) {
       updatePageSettings(pageKey, { whiteboardTexts: newTexts });
     }
-    updateMetadata({ whiteboardTexts: newTexts });
+    if (!isCanvasFrame) updateMetadata({ whiteboardTexts: newTexts });
   };
 
   const saveTitle = (newTitle: string) => {
@@ -160,9 +167,8 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
     if (currentPage) {
       updatePageSettings(pageKey, { whiteboardTitle: newTitle });
     }
-    updateMetadata({ whiteboardTitle: newTitle });
+    if (!isCanvasFrame) updateMetadata({ whiteboardTitle: newTitle });
   };
-
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -509,8 +515,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
     redrawCanvas();
     setShowClearConfirm(false);
   };
-  const toolBtnBase =
-    'p-2 rounded-lg transition-colors';
+  const toolBtnBase = 'p-2 rounded-lg transition-colors';
   const toolBtnIdle =
     'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100';
   const toolBtnActive =
@@ -620,11 +625,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
                 className="bg-transparent text-zinc-800 dark:text-zinc-200 text-xs font-semibold focus:outline-none cursor-pointer"
               >
                 {SIZES.map((size) => (
-                  <option
-                    key={size}
-                    value={size}
-                    className="dark:bg-zinc-800"
-                  >
+                  <option key={size} value={size} className="dark:bg-zinc-800">
                     {size}px
                   </option>
                 ))}
@@ -795,7 +796,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
       {portaledToolbar}
       {clearConfirmDialog}
       {!hasToolbarSlot && (
-        <div className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-3 sm:px-4 shrink-0 flex items-center justify-between relative z-20 overflow-visible">
+        <div className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 px-3 sm:px-4 shrink-0 flex items-center justify-between relative z-20 overflow-visible">
           {toolbarActions}
         </div>
       )}
@@ -951,3 +952,7 @@ export default function WhiteboardBoard({ projectId }: { projectId: string }) {
     </div>
   );
 }
+
+// Memo: props are just a stable projectId — renderedPages recomputes in
+// CanvasArea must not re-render every mounted board.
+export default React.memo(WhiteboardBoard);

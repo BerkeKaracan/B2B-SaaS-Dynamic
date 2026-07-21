@@ -146,18 +146,18 @@ const DEFAULT_COLUMNS = [
   { id: 'DONE', title: 'DONE', color: '#89A841' },
 ];
 
-export default function StaticKanbanBoard({
-  projectId,
-}: {
-  projectId: string;
-}) {
+function StaticKanbanBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('KanbanBoard');
   const params = useParams();
   const tenantId = params?.tenantId as string;
   const { isReadonly } = useProjectEditMode();
 
-  const { metadata, updateMetadata, pages, updatePageSettings } =
-    useCanvasStore();
+  // Granular selectors — a whole-store subscription re-rendered every mounted
+  // board at 60fps during pan/zoom (setPan/setZoom write to the store per rAF).
+  const metadata = useCanvasStore((s) => s.metadata);
+  const updateMetadata = useCanvasStore((s) => s.updateMetadata);
+  const pages = useCanvasStore((s) => s.pages);
+  const updatePageSettings = useCanvasStore((s) => s.updatePageSettings);
 
   // A Kanban board can render in two ways:
   //  1) Standalone template project → data lives in the project's top-level
@@ -184,9 +184,10 @@ export default function StaticKanbanBoard({
   );
 
   const columns = useMemo(() => {
-    const aiCols = (isPageScoped
-      ? (pageSettings.kanbanColumns as AIColumnData[])
-      : (metadata.kanbanColumns as AIColumnData[])) || [];
+    const aiCols =
+      (isPageScoped
+        ? (pageSettings.kanbanColumns as AIColumnData[])
+        : (metadata.kanbanColumns as AIColumnData[])) || [];
     if (aiCols && aiCols.length > 0) {
       return aiCols.map((c, i) => ({
         id: c.id || c.title || `col-${i}`,
@@ -631,7 +632,8 @@ export default function StaticKanbanBoard({
   const handleDragEnd = (result: DropResult) => {
     if (isReadonly) return;
     const { destination, source, draggableId } = result;
-    if (!destination) return;    if (
+    if (!destination) return;
+    if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
     )
@@ -953,7 +955,7 @@ export default function StaticKanbanBoard({
     <div className="absolute inset-0 flex flex-col bg-transparent overflow-hidden select-none transition-colors duration-300">
       {portaledToolbar}
       {!hasToolbarSlot && (
-        <div className="flex flex-col bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 shrink-0 z-10">
+        <div className="flex flex-col bg-white/95 dark:bg-zinc-900/95 border-b border-zinc-200 dark:border-zinc-800 shrink-0 z-10">
           <div className="flex items-center justify-between px-4 md:px-5 h-14 gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="p-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 shrink-0">
@@ -1658,3 +1660,7 @@ export default function StaticKanbanBoard({
     </div>
   );
 }
+
+// Memo: props are just a stable projectId — renderedPages recomputes in
+// CanvasArea must not re-render every mounted board.
+export default React.memo(StaticKanbanBoard);

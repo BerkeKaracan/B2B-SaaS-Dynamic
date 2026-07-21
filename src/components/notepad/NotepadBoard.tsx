@@ -16,12 +16,17 @@ import {
   FileText,
 } from 'lucide-react';
 
-export default function NotepadBoard({ projectId }: { projectId: string }) {
+function NotepadBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('NotepadBoard');
   const { isReadonly } = useProjectEditMode();
 
-  const { updatePageTitle, pages, updatePageSettings, metadata, updateMetadata } =
-    useCanvasStore();
+  // Granular selectors — a whole-store subscription re-rendered every mounted
+  // board at 60fps during pan/zoom (setPan/setZoom write to the store per rAF).
+  const updatePageTitle = useCanvasStore((s) => s.updatePageTitle);
+  const pages = useCanvasStore((s) => s.pages);
+  const updatePageSettings = useCanvasStore((s) => s.updatePageSettings);
+  const metadata = useCanvasStore((s) => s.metadata);
+  const updateMetadata = useCanvasStore((s) => s.updateMetadata);
 
   const currentPage =
     pages.find((p) => p.id === projectId) ||
@@ -30,6 +35,9 @@ export default function NotepadBoard({ projectId }: { projectId: string }) {
 
   const settings = currentPage?.settings || {};
   const pageKey = currentPage?.id || projectId;
+  // Frame on the infinite canvas → persist only into that page's settings.
+  // Writing metadata too doubled every keystroke cascade (2× re-render + Yjs).
+  const isCanvasFrame = pages.some((p) => p.id === projectId);
 
   const [title, setTitle] = useState(
     (settings.notepadTitle as string) ||
@@ -83,7 +91,7 @@ export default function NotepadBoard({ projectId }: { projectId: string }) {
       updatePageTitle(pageKey, newTitle || 'Untitled Note');
       updatePageSettings(pageKey, { notepadTitle: newTitle });
     }
-    updateMetadata({ notepadTitle: newTitle });
+    if (!isCanvasFrame) updateMetadata({ notepadTitle: newTitle });
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -93,7 +101,7 @@ export default function NotepadBoard({ projectId }: { projectId: string }) {
     if (currentPage) {
       updatePageSettings(pageKey, { notepadContent: newContent });
     }
-    updateMetadata({ notepadContent: newContent });
+    if (!isCanvasFrame) updateMetadata({ notepadContent: newContent });
   };
 
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
@@ -120,7 +128,7 @@ export default function NotepadBoard({ projectId }: { projectId: string }) {
     <div className="absolute inset-0 flex flex-col bg-transparent transition-colors duration-300 overflow-hidden cursor-default">
       {portaledToolbar}
       {!hasToolbarSlot && (
-        <div className="h-14 shrink-0 z-10 flex items-center justify-between px-4 md:px-5 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md">
+        <div className="h-14 shrink-0 z-10 flex items-center justify-between px-4 md:px-5 border-b border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 shrink-0">
               <FileText className="w-4 h-4" />
@@ -198,3 +206,7 @@ export default function NotepadBoard({ projectId }: { projectId: string }) {
     </div>
   );
 }
+
+// Memo: props are just a stable projectId — renderedPages recomputes in
+// CanvasArea must not re-render every mounted board.
+export default React.memo(NotepadBoard);
