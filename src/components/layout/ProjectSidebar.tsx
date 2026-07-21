@@ -3,8 +3,6 @@ import React from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { useLayoutStore } from "@/store/useLayoutStore";
-import { useEffect, useState } from "react";
-import { fetchAPI } from "@/services/api";
 
 export default function ProjectSidebar() {
   const { isPrimarySidebarOpen, togglePrimarySidebar } = useLayoutStore();
@@ -29,23 +27,6 @@ export default function ProjectSidebar() {
       icon: "M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
     },
   ];
-
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkRole = async () => {
-      try {
-        const res = await fetchAPI(`/api/auth/me`);
-        if (res.ok) {
-          const data = await res.json();
-          setIsAdmin(data.role === "admin" || data.role === "owner");
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-    checkRole();
-  }, []);
 
   if (!isPrimarySidebarOpen) {
     return (

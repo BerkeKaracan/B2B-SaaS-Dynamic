@@ -361,7 +361,7 @@ function WhiteboardBoard({ projectId }: { projectId: string }) {
     if (activeTool === 'hand') return;
     try {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    } catch (err) {}
+    } catch {}
 
     if (activeTool === 'text') {
       if ((e.target as HTMLElement).closest('.text-block-wrapper')) return;
@@ -457,7 +457,7 @@ function WhiteboardBoard({ projectId }: { projectId: string }) {
 
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch (err) {}
+    } catch {}
 
     if (!isDrawing.current || !currentStroke.current) return;
 
@@ -472,7 +472,7 @@ function WhiteboardBoard({ projectId }: { projectId: string }) {
 
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch (err) {}
+    } catch {}
 
     if (!isDrawing.current || !currentStroke.current) return;
 

@@ -47,8 +47,6 @@ export default function ItemSidebar() {
     addPage,
     addBlockToPage,
     setActivePage,
-    activePageId,
-    addGeneratedPage,
   } = useCanvasStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -775,7 +773,7 @@ export default function ItemSidebar() {
       >
         <div className="flex h-full w-72 flex-col">
           <div className="p-3 border-b border-zinc-200 dark:border-zinc-800 flex flex-col gap-2 shrink-0">
-            <div className="flex items-center gap-1 w-full min-h-[28px]">
+            <div className="flex items-center gap-1 w-full min-h-7">
               <button
                 type="button"
                 onPointerDown={handlePanelDragStart}
@@ -1003,7 +1001,7 @@ export default function ItemSidebar() {
 
       {/* AI Modal */}
       {canUseAiGenerator && isAiModalOpen && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center pointer-events-auto bg-black/50 dark:bg-black/70">
+        <div className="fixed inset-0 z-99999 flex items-center justify-center pointer-events-auto bg-black/50 dark:bg-black/70">
           <div className="bg-white dark:bg-zinc-950 border border-indigo-200 dark:border-indigo-500/30 p-4 rounded-2xl shadow-2xl flex flex-col gap-3 w-96 animate-in zoom-in-95 fade-in">
             <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider px-1">
               <Sparkles className="w-4 h-4" /> {t('aiGenerator')}
@@ -1054,7 +1052,7 @@ export default function ItemSidebar() {
       {/* Drag Indicator */}
       {activeDrag && (
         <div
-          className="fixed z-[99999] pointer-events-none flex items-center gap-3 p-2.5 bg-white dark:bg-zinc-900 border-2 border-blue-500 dark:border-blue-400 rounded-xl shadow-2xl scale-105"
+          className="fixed z-99999 pointer-events-none flex items-center gap-3 p-2.5 bg-white dark:bg-zinc-900 border-2 border-blue-500 dark:border-blue-400 rounded-xl shadow-2xl scale-105"
           style={{ left: activeDrag.x + 15, top: activeDrag.y + 15 }}
         >
           <div className="p-1.5 bg-zinc-950 dark:bg-white rounded-lg text-white dark:text-zinc-950">

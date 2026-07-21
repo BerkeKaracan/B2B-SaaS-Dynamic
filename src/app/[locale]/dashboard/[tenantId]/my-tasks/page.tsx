@@ -445,7 +445,7 @@ export default function MyTasksPage({
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#FAFAFB] dark:bg-black min-h-screen font-sans transition-colors duration-300">
-      <div className="max-w-[1280px] mx-auto w-full p-6 md:p-10 pb-36 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="max-w-7xl mx-auto w-full p-6 md:p-10 pb-36 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Header */}
         <div className="mb-8 md:mb-10">
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5">
@@ -532,7 +532,7 @@ export default function MyTasksPage({
               <select
                 value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}
-                className="appearance-none px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-700 dark:text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 max-w-[180px]"
+                className="appearance-none px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-700 dark:text-zinc-200 outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 max-w-45"
               >
                 <option value="all">All projects</option>
                 {projects.map((p) => (
@@ -610,7 +610,7 @@ export default function MyTasksPage({
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[900px]">
+                <table className="w-full text-left border-collapse min-w-225">
                   <thead className="bg-zinc-50/90 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800 sticky top-0 z-10">
                     <tr>
                       <th className="px-4 md:px-5 py-3 w-12">
@@ -636,7 +636,7 @@ export default function MyTasksPage({
                           onSort={toggleSort}
                         />
                       </th>
-                      <th className="px-3 py-3 min-w-[160px]">
+                      <th className="px-3 py-3 min-w-40">
                         <SortHeader
                           label="Project"
                           column="project"
@@ -645,7 +645,7 @@ export default function MyTasksPage({
                           onSort={toggleSort}
                         />
                       </th>
-                      <th className="px-3 py-3 min-w-[110px]">
+                      <th className="px-3 py-3 min-w-27.5">
                         <SortHeader
                           label="Priority"
                           column="priority"
@@ -654,7 +654,7 @@ export default function MyTasksPage({
                           onSort={toggleSort}
                         />
                       </th>
-                      <th className="px-3 py-3 min-w-[130px]">
+                      <th className="px-3 py-3 min-w-32.5">
                         <SortHeader
                           label="Status"
                           column="status"
@@ -663,7 +663,7 @@ export default function MyTasksPage({
                           onSort={toggleSort}
                         />
                       </th>
-                      <th className="px-3 py-3 min-w-[120px]">
+                      <th className="px-3 py-3 min-w-30">
                         <SortHeader
                           label="Due"
                           column="dueDate"
@@ -672,7 +672,7 @@ export default function MyTasksPage({
                           onSort={toggleSort}
                         />
                       </th>
-                      <th className="px-3 py-3 min-w-[100px]">
+                      <th className="px-3 py-3 min-w-25">
                         <SortHeader
                           label="Updated"
                           column="updated"
@@ -752,7 +752,7 @@ export default function MyTasksPage({
                           <td className="px-3 py-3.5 align-middle">
                             <Link
                               href={`/dashboard/${tenantId}/projects/${task.projectId}`}
-                              className="inline-flex items-center gap-2 max-w-[200px] px-2.5 py-1 rounded-lg bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200/70 dark:border-zinc-700/70 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
+                              className="inline-flex items-center gap-2 max-w-50 px-2.5 py-1 rounded-lg bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200/70 dark:border-zinc-700/70 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
                             >
                               <FolderKanban className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                               <span className="truncate">{task.projectName}</span>

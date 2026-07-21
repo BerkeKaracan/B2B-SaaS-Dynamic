@@ -255,7 +255,7 @@ function RetrospectiveBoard({ projectId }: { projectId: string }) {
       )}
 
       <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar p-5">
-        <div className="flex gap-4 h-full min-w-[900px] max-w-7xl mx-auto">
+        <div className="flex gap-4 h-full min-w-225 max-w-7xl mx-auto">
           {columns.map((col) => {
             const colCards = cardsByColumn[col.id];
 
@@ -290,7 +290,7 @@ function RetrospectiveBoard({ projectId }: { projectId: string }) {
                   className={`flex-1 overflow-y-auto p-3 space-y-2.5 ${col.columnTint}`}
                 >
                   {colCards.length === 0 && (
-                    <div className="h-full min-h-[120px] flex flex-col items-center justify-center gap-1.5 px-4 text-center">
+                    <div className="h-full min-h-30 flex flex-col items-center justify-center gap-1.5 px-4 text-center">
                       <div
                         className={`w-8 h-8 rounded-lg flex items-center justify-center ${col.accentSoft}`}
                       >
@@ -326,7 +326,7 @@ function RetrospectiveBoard({ projectId }: { projectId: string }) {
                             <div className="w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-[9px] font-semibold uppercase text-zinc-600 dark:text-zinc-300 shrink-0">
                               {card.author?.charAt(0) || '?'}
                             </div>
-                            <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 truncate max-w-[100px]">
+                            <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 truncate max-w-25">
                               {card.author}
                             </span>
                           </div>

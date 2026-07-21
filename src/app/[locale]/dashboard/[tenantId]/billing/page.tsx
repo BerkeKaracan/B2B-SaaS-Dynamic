@@ -267,8 +267,8 @@ export default function BillingPage({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#FAFAFB] h-full min-h-[100dvh] font-sans">
-      <div className="max-w-[1200px] mx-auto w-full p-6 md:p-10 pb-32">
+    <div className="flex-1 overflow-y-auto bg-[#FAFAFB] h-full min-h-dvh font-sans">
+      <div className="max-w-300 mx-auto w-full p-6 md:p-10 pb-32">
         <div className="mb-10">
           <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-amber-900">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />

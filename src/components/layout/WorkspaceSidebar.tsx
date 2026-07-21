@@ -239,7 +239,7 @@ export default function WorkspaceSidebar() {
 
   return (
     <>
-      <aside className="w-[248px] h-full flex flex-col bg-[#F7F7F8] dark:bg-[#18181B] border-r border-zinc-200/70 dark:border-white/6 shrink-0 selection:bg-zinc-200 overflow-hidden transition-all duration-300 antialiased">
+      <aside className="w-62 h-full flex flex-col bg-[#F7F7F8] dark:bg-[#18181B] border-r border-zinc-200/70 dark:border-white/6 shrink-0 selection:bg-zinc-200 overflow-hidden transition-all duration-300 antialiased">
         <div
           className="px-3 pt-4 pb-3 shrink-0 relative"
           ref={workspaceDropdownRef}
@@ -270,7 +270,7 @@ export default function WorkspaceSidebar() {
 
           {isWorkspaceDropdownOpen && (
             <div className="absolute top-full left-3 right-3 mt-1.5 bg-white dark:bg-[#252528] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-              <div className="p-1.5 flex flex-col gap-0.5 max-h-[250px] overflow-y-auto custom-scrollbar">
+              <div className="p-1.5 flex flex-col gap-0.5 max-h-62.5 overflow-y-auto custom-scrollbar">
                 <div className="px-2.5 py-2 text-[10px] font-semibold text-zinc-400 uppercase tracking-[0.14em]">
                   {t('myWorkspaces')}
                 </div>
@@ -334,7 +334,7 @@ export default function WorkspaceSidebar() {
 
             <div
               className={`space-y-0.5 overflow-hidden transition-all duration-200 ${
-                isMenuOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                isMenuOpen ? 'max-h-125 opacity-100' : 'max-h-0 opacity-0'
               }`}
             >
               <Link
@@ -380,7 +380,7 @@ export default function WorkspaceSidebar() {
                   <div
                     className={`ml-3.5 pl-3 mt-1 space-y-0.5 border-l border-zinc-200 dark:border-zinc-800 overflow-hidden transition-all duration-200 ${
                       isProjectsFoldersOpen
-                        ? 'max-h-[300px] opacity-100'
+                        ? 'max-h-75 opacity-100'
                         : 'max-h-0 opacity-0'
                     }`}
                   >
@@ -392,7 +392,7 @@ export default function WorkspaceSidebar() {
                           href={`/dashboard/${tenantId}/projects?folder=${encodeURIComponent(
                             folder
                           )}`}
-                          className={`group flex items-center gap-2.5 px-2 py-[6px] rounded-lg text-[12.5px] tracking-[-0.01em] transition-all duration-200 ${
+                          className={`group flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[12.5px] tracking-[-0.01em] transition-all duration-200 ${
                             isActive
                               ? 'bg-white dark:bg-zinc-800/90 text-zinc-900 dark:text-zinc-50 font-semibold ring-1 ring-zinc-200/70 dark:ring-white/5'
                               : 'text-zinc-500 font-medium hover:bg-zinc-200/40 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100'
@@ -445,7 +445,7 @@ export default function WorkspaceSidebar() {
               <div
                 className={`space-y-0.5 overflow-hidden transition-all duration-200 ${
                   isInsightsOpen
-                    ? 'max-h-[150px] opacity-100'
+                    ? 'max-h-37.5 opacity-100'
                     : 'max-h-0 opacity-0'
                 }`}
               >
@@ -476,7 +476,7 @@ export default function WorkspaceSidebar() {
               <div
                 className={`space-y-0.5 overflow-hidden transition-all duration-200 ${
                   isModulesOpen
-                    ? 'max-h-[500px] opacity-100'
+                    ? 'max-h-125 opacity-100'
                     : 'max-h-0 opacity-0'
                 }`}
               >
@@ -506,7 +506,7 @@ export default function WorkspaceSidebar() {
             <div
               className={`space-y-0.5 overflow-hidden transition-all duration-200 ${
                 isStorageOpen
-                  ? 'max-h-[150px] opacity-100'
+                  ? 'max-h-37.5 opacity-100'
                   : 'max-h-0 opacity-0'
               }`}
             >
@@ -625,7 +625,7 @@ export default function WorkspaceSidebar() {
       </aside>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-[#1E1E20] rounded-2xl w-full max-w-md shadow-2xl border border-zinc-200 dark:border-white/10 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-5 py-4 flex items-center justify-between border-b border-zinc-100 dark:border-white/5">
               <h2 className="text-[14px] font-semibold tracking-[-0.02em] text-zinc-900 dark:text-zinc-100">

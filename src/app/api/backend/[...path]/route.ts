@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  agentDebugLog,
-  agentDebugLogServer,
-  cookieNamesFromHeader,
-} from '@/lib/agentDebugLog';
+import { agentDebugLog, cookieNamesFromHeader } from '@/lib/agentDebugLog';
+import { agentDebugLogServer } from '@/lib/agentDebugLog.server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

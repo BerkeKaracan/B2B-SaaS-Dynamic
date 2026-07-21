@@ -580,7 +580,7 @@ function TimelineBoard({ projectId }: { projectId: string }) {
         </button>
         {isFilterOpen && (
           <div
-            className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-3 z-[120] animate-in fade-in slide-in-from-top-2"
+            className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-3 z-120 animate-in fade-in slide-in-from-top-2"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="space-y-3">
@@ -661,7 +661,7 @@ function TimelineBoard({ projectId }: { projectId: string }) {
         </button>
         {isSortOpen && (
           <div
-            className="absolute top-full mt-2 right-0 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-1.5 z-[120] animate-in fade-in slide-in-from-top-2"
+            className="absolute top-full mt-2 right-0 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-1.5 z-120 animate-in fade-in slide-in-from-top-2"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col">
@@ -838,7 +838,7 @@ function TimelineBoard({ projectId }: { projectId: string }) {
                     <Droppable droppableId={col.key}>
                       {(provided, snapshot) => (
                         <div
-                          className={`flex-1 overflow-y-auto p-2 flex flex-col gap-2.5 custom-scrollbar rounded-xl transition-colors min-h-[150px] ${snapshot.isDraggingOver ? 'bg-zinc-100/80 dark:bg-zinc-800/40 ring-1 ring-inset ring-zinc-300/60 dark:ring-zinc-600/40' : 'bg-transparent'}`}
+                          className={`flex-1 overflow-y-auto p-2 flex flex-col gap-2.5 custom-scrollbar rounded-xl transition-colors min-h-37.5 ${snapshot.isDraggingOver ? 'bg-zinc-100/80 dark:bg-zinc-800/40 ring-1 ring-inset ring-zinc-300/60 dark:ring-zinc-600/40' : 'bg-transparent'}`}
                           ref={provided.innerRef}
                           {...provided.droppableProps}
                         >
@@ -916,7 +916,7 @@ function TimelineBoard({ projectId }: { projectId: string }) {
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
-                                              className="event-dropdown-menu absolute right-0 top-full mt-1 w-36 bg-white dark:bg-zinc-900 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] border border-zinc-200 dark:border-zinc-700 rounded-lg p-1 z-[70] animate-in fade-in zoom-in-95 cursor-default text-zinc-900 dark:text-zinc-100"
+                                              className="event-dropdown-menu absolute right-0 top-full mt-1 w-36 bg-white dark:bg-zinc-900 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] border border-zinc-200 dark:border-zinc-700 rounded-lg p-1 z-70 animate-in fade-in zoom-in-95 cursor-default text-zinc-900 dark:text-zinc-100"
                                             >
                                               <button
                                                 onClick={(e) => {
@@ -991,7 +991,7 @@ function TimelineBoard({ projectId }: { projectId: string }) {
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
-                                              className="event-dropdown-menu absolute right-0 top-full mt-1 w-40 bg-white dark:bg-zinc-900 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] border border-zinc-200 dark:border-zinc-700 rounded-lg p-1 z-[70] animate-in fade-in zoom-in-95 cursor-default text-zinc-900 dark:text-zinc-100"
+                                              className="event-dropdown-menu absolute right-0 top-full mt-1 w-40 bg-white dark:bg-zinc-900 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] border border-zinc-200 dark:border-zinc-700 rounded-lg p-1 z-70 animate-in fade-in zoom-in-95 cursor-default text-zinc-900 dark:text-zinc-100"
                                             >
                                               <button
                                                 onClick={(e) => {
@@ -1105,10 +1105,10 @@ function TimelineBoard({ projectId }: { projectId: string }) {
                 );
               })}
 
-              <div className="w-[120px] shrink-0 flex items-center justify-center h-full pb-10">
+              <div className="w-30 shrink-0 flex items-center justify-center h-full pb-10">
                 <button
                   onClick={() => setDaysCount((prev) => prev + 30)}
-                  className="flex flex-col items-center justify-center gap-2 p-4 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors h-[200px]"
+                  className="flex flex-col items-center justify-center gap-2 p-4 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors h-50"
                 >
                   <ChevronRight size={28} strokeWidth={2} />
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-center">
@@ -1127,8 +1127,8 @@ function TimelineBoard({ projectId }: { projectId: string }) {
 
       {isModalOpen && isClient && typeof document !== 'undefined'
         ? createPortal(
-            <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-zinc-950/50 backdrop-blur-sm sm:p-4">
-              <div className="bg-white dark:bg-zinc-900 rounded-t-[24px] sm:rounded-2xl shadow-[0_24px_64px_-16px_rgba(0,0,0,0.25)] w-full max-w-md flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] border border-zinc-200/80 dark:border-zinc-700/80 animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
+            <div className="fixed inset-0 z-99999 flex items-end sm:items-center justify-center bg-zinc-950/50 backdrop-blur-sm sm:p-4">
+              <div className="bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-2xl shadow-[0_24px_64px_-16px_rgba(0,0,0,0.25)] w-full max-w-md flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] border border-zinc-200/80 dark:border-zinc-700/80 animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
                 <div className="p-5 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/80 dark:bg-zinc-900/80 shrink-0">
                   <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
                     {editingEventId ? 'Edit Event' : 'Add Timeline Event'}

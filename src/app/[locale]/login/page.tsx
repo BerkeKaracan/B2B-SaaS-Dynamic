@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -45,6 +45,54 @@ export default function LoginPage() {
     factor_id: string;
     tenant_id: string;
   } | null>(null);
+
+  const redirectUser = useCallback(
+    async (tenantId: string, token: string) => {
+      try {
+        // Prefer BFF (HttpOnly) once session is set; fall back to explicit bearer for hop
+        const res = await fetchAPI(`/api/tenants/${tenantId}`);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.slug) {
+            const host = window.location.hostname;
+            const isLocal =
+              host.includes('localhost') || host.includes('127.0.0.1');
+            const baseDomain =
+              process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
+              'b2-b-saa-s-dynamic.vercel.app';
+
+            if (host.includes(baseDomain) || isLocal) {
+              const protocol = window.location.protocol;
+              const port = window.location.port
+                ? `:${window.location.port}`
+                : '';
+              const targetDomain = isLocal ? 'localhost' : baseDomain;
+              const expectedHost = `${data.slug}.${targetDomain}`;
+
+              if (host !== expectedHost && host !== `www.${expectedHost}`) {
+                // Cookie hop across subdomain — never put JWT in the URL hash
+                const cookieDomain = isLocal ? undefined : `.${baseDomain}`;
+                const hopToken =
+                  token || (await fetchRealtimeAccessToken()) || '';
+                if (hopToken) {
+                  await establishClientSession(hopToken, cookieDomain);
+                }
+                setClientTenantId(tenantId, cookieDomain);
+                window.location.href = `${protocol}//${expectedHost}${port}/login`;
+                return;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Subdomain redirection error:', error);
+      }
+
+      router.push(`/dashboard/${tenantId}`);
+    },
+    [router]
+  );
 
   const finishLogin = async (accessToken: string, tenantId?: string) => {
     // #region agent log
@@ -101,48 +149,6 @@ export default function LoginPage() {
 
     setClientTenantId(resolvedTenant);
     await redirectUser(resolvedTenant, accessToken);
-  };
-
-  const redirectUser = async (tenantId: string, token: string) => {
-    try {
-      // Prefer BFF (HttpOnly) once session is set; fall back to explicit bearer for hop
-      const res = await fetchAPI(`/api/tenants/${tenantId}`);
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.slug) {
-          const host = window.location.hostname;
-          const isLocal =
-            host.includes('localhost') || host.includes('127.0.0.1');
-          const baseDomain =
-            process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
-            'b2-b-saa-s-dynamic.vercel.app';
-
-          if (host.includes(baseDomain) || isLocal) {
-            const protocol = window.location.protocol;
-            const port = window.location.port ? `:${window.location.port}` : '';
-            const targetDomain = isLocal ? 'localhost' : baseDomain;
-            const expectedHost = `${data.slug}.${targetDomain}`;
-
-            if (host !== expectedHost && host !== `www.${expectedHost}`) {
-              // Cookie hop across subdomain — never put JWT in the URL hash
-              const cookieDomain = isLocal ? undefined : `.${baseDomain}`;
-              const hopToken = token || (await fetchRealtimeAccessToken()) || '';
-              if (hopToken) {
-                await establishClientSession(hopToken, cookieDomain);
-              }
-              setClientTenantId(tenantId, cookieDomain);
-              window.location.href = `${protocol}//${expectedHost}${port}/login`;
-              return;
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Subdomain redirection error:', error);
-    }
-
-    router.push(`/dashboard/${tenantId}`);
   };
 
   useEffect(() => {
@@ -211,7 +217,7 @@ export default function LoginPage() {
     };
 
     verifyToken();
-  }, [router]);
+  }, [router, redirectUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

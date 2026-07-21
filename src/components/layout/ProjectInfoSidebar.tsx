@@ -16,7 +16,7 @@ type ProjectRecord = {
 };
 
 export default function ProjectSidebar() {
-  const { isPrimarySidebarOpen, togglePrimarySidebar } = useLayoutStore();
+  const { togglePrimarySidebar } = useLayoutStore();
   const params = useParams();
   const pathname = usePathname();
 

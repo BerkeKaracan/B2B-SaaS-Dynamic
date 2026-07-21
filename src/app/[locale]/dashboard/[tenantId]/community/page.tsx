@@ -159,7 +159,7 @@ export default function CommunityHubPage() {
     <div className="relative flex-1 overflow-y-auto h-full w-full custom-scrollbar">
       {/* Atmosphere */}
       <div className="pointer-events-none absolute inset-0 bg-[#F4F6F8] dark:bg-black" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(14,165,233,0.12),_transparent_55%),radial-gradient(ellipse_at_bottom_right,_rgba(16,185,129,0.10),_transparent_50%)] dark:bg-[radial-gradient(ellipse_at_top,_rgba(14,165,233,0.08),_transparent_55%),radial-gradient(ellipse_at_bottom_right,_rgba(16,185,129,0.06),_transparent_50%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(14,165,233,0.12),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(16,185,129,0.10),transparent_50%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(14,165,233,0.08),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(16,185,129,0.06),transparent_50%)]" />
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-[0.15]"
         style={{
@@ -252,7 +252,7 @@ export default function CommunityHubPage() {
             <select
               value={templateFilter}
               onChange={(e) => setTemplateFilter(e.target.value)}
-              className="appearance-none w-full sm:w-[180px] pl-3 pr-9 py-2.5 bg-zinc-50/80 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-semibold text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400/60 cursor-pointer"
+              className="appearance-none w-full sm:w-45 pl-3 pr-9 py-2.5 bg-zinc-50/80 dark:bg-zinc-950/50 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-semibold text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400/60 cursor-pointer"
             >
               <option value="all">All templates</option>
               {templatesInUse.map((t) => (
@@ -275,7 +275,7 @@ export default function CommunityHubPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="relative overflow-hidden bg-white/90 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-12 text-center shadow-sm max-w-2xl mx-auto">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(14,165,233,0.08),_transparent_60%)] pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(14,165,233,0.08),transparent_60%)] pointer-events-none" />
             <div className="relative">
               <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
                 <Users className="w-6 h-6 text-zinc-400" />
@@ -311,7 +311,7 @@ export default function CommunityHubPage() {
                 >
                   {/* Preview strip */}
                   <div
-                    className={`relative h-28 bg-gradient-to-br ${meta.soft} border-b border-zinc-100 dark:border-zinc-800 overflow-hidden`}
+                    className={`relative h-28 bg-linear-to-br ${meta.soft} border-b border-zinc-100 dark:border-zinc-800 overflow-hidden`}
                   >
                     <div className="absolute inset-0 opacity-40">
                       <div className="absolute top-4 left-4 right-10 h-2 rounded-full bg-white/70 dark:bg-white/10" />
@@ -319,7 +319,7 @@ export default function CommunityHubPage() {
                       <div className="absolute bottom-4 left-4 flex gap-2">
                         <div className="w-12 h-8 rounded-lg bg-white/80 dark:bg-white/10 border border-white/40 dark:border-white/5" />
                         <div className="w-12 h-8 rounded-lg bg-white/60 dark:bg-white/5 border border-white/30 dark:border-white/5" />
-                        <div className="w-12 h-8 rounded-lg bg-white/40 dark:bg-white/[0.03] border border-white/20 dark:border-white/5" />
+                        <div className="w-12 h-8 rounded-lg bg-white/40 dark:bg-white/3 border border-white/20 dark:border-white/5" />
                       </div>
                     </div>
 

@@ -499,7 +499,7 @@ export default function AnalyticsDashboardPage({
               Monthly Activity
             </h3>
           </div>
-          <div className="w-full h-[360px]">
+          <div className="w-full h-90">
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -564,7 +564,7 @@ export default function AnalyticsDashboardPage({
             <h3 className="text-base font-bold text-zinc-900 mb-6">
               Task Status
             </h3>
-            <div className="w-full h-[280px]">
+            <div className="w-full h-70">
               {taskStatusData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -607,7 +607,7 @@ export default function AnalyticsDashboardPage({
             <h3 className="text-base font-bold text-zinc-900 mb-6">
               Tasks by Priority
             </h3>
-            <div className="w-full h-[280px]">
+            <div className="w-full h-70">
               {tasksByPriority.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -662,7 +662,7 @@ export default function AnalyticsDashboardPage({
           <h3 className="text-base font-bold text-zinc-900 mb-6">
             Projects by Template
           </h3>
-          <div className="w-full h-[280px]">
+          <div className="w-full h-70">
             {templateChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart

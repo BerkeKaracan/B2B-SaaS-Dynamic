@@ -762,7 +762,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
       </button>
       {isFilterOpen && (
         <div
-          className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-3 z-[120] animate-in fade-in slide-in-from-top-2"
+          className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-3 z-120 animate-in fade-in slide-in-from-top-2"
           onMouseDown={(e) => e.stopPropagation()}
         >
           <div className="space-y-3">
@@ -846,7 +846,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
       </button>
       {isSortOpen && (
         <div
-          className="absolute top-full mt-2 right-0 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-1.5 z-[120] animate-in fade-in slide-in-from-top-2"
+          className="absolute top-full mt-2 right-0 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-1.5 z-120 animate-in fade-in slide-in-from-top-2"
           onMouseDown={(e) => e.stopPropagation()}
         >
           <div className="flex flex-col">
@@ -1016,7 +1016,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                 return (
                   <div
                     key={col.id}
-                    className="w-[85vw] sm:w-[340px] shrink-0 flex flex-col h-full max-h-full bg-zinc-100/80 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
+                    className="w-[85vw] sm:w-85 shrink-0 flex flex-col h-full max-h-full bg-zinc-100/80 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
                   >
                     <div className="px-3 md:px-4 py-3 border-b border-zinc-200/70 dark:border-zinc-800 bg-zinc-50/90 dark:bg-zinc-900/80 flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-2 min-w-0">
@@ -1037,7 +1037,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                     <Droppable droppableId={col.id}>
                       {(provided, snapshot) => (
                         <div
-                          className={`flex-1 overflow-y-auto p-2 md:p-2.5 flex flex-col gap-2 md:gap-2.5 custom-scrollbar transition-colors min-h-[160px] ${
+                          className={`flex-1 overflow-y-auto p-2 md:p-2.5 flex flex-col gap-2 md:gap-2.5 custom-scrollbar transition-colors min-h-40 ${
                             snapshot.isDraggingOver
                               ? 'bg-zinc-200/60 dark:bg-zinc-800/50 ring-1 ring-inset ring-zinc-300/70 dark:ring-zinc-600/40'
                               : 'bg-zinc-50/90 dark:bg-zinc-950/35'
@@ -1046,7 +1046,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                           {...provided.droppableProps}
                         >
                           {colTasks.length === 0 && (
-                            <div className="flex-1 flex flex-col items-center justify-center gap-1.5 py-10 px-4 text-center pointer-events-none min-h-[120px]">
+                            <div className="flex-1 flex flex-col items-center justify-center gap-1.5 py-10 px-4 text-center pointer-events-none min-h-30">
                               <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 flex items-center justify-center">
                                 <span
                                   className="w-2 h-2 rounded-full"
@@ -1359,7 +1359,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                         </button>
                       </div>
                       <div className="space-y-5 relative">
-                        <div className="absolute left-[11px] top-4 bottom-4 w-px bg-zinc-100 dark:bg-zinc-800" />
+                        <div className="absolute left-2.75 top-4 bottom-4 w-px bg-zinc-100 dark:bg-zinc-800" />
                         {isCommitsLoading ? (
                           <div className="flex flex-col items-center justify-center py-10 text-zinc-400 dark:text-zinc-500">
                             <Loader2 className="w-5 h-5 animate-spin mb-2" />
@@ -1412,7 +1412,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
       {isAddModalOpen && isClient && typeof document !== 'undefined'
         ? createPortal(
             <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-zinc-950/60 backdrop-blur-sm sm:p-4">
-              <div className="bg-white dark:bg-zinc-900 rounded-t-[32px] sm:rounded-2xl shadow-[0_12px_40px_-12px_rgba(0,0,0,0.2)] w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 border border-zinc-200 dark:border-zinc-800">
+              <div className="bg-white dark:bg-zinc-900 rounded-t-4xl sm:rounded-2xl shadow-[0_12px_40px_-12px_rgba(0,0,0,0.2)] w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200 border border-zinc-200 dark:border-zinc-800">
                 <div className="p-5 md:p-6 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/80 dark:bg-zinc-950/50 shrink-0">
                   <h2 className="text-base md:text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
                     {editingTaskId ? t('modalTitleEdit') : t('modalTitleNew')}
@@ -1580,7 +1580,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                         )}
                       </button>
                       {showStartCalendar && (
-                        <div className="absolute top-full left-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl p-2 z-[100] animate-in fade-in zoom-in-95 duration-100 flex justify-center">
+                        <div className="absolute top-full left-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl p-2 z-100 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
                           <Calendar
                             mode="single"
                             selected={startDateObj}
@@ -1622,7 +1622,7 @@ function StaticKanbanBoard({ projectId }: { projectId: string }) {
                         )}
                       </button>
                       {showDeadlineCalendar && (
-                        <div className="absolute top-full right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl p-2 z-[100] animate-in fade-in zoom-in-95 duration-100 flex justify-center">
+                        <div className="absolute top-full right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl p-2 z-100 animate-in fade-in zoom-in-95 duration-100 flex justify-center">
                           <Calendar
                             mode="single"
                             selected={deadlineObj}

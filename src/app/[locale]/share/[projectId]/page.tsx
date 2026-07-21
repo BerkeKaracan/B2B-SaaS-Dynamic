@@ -228,7 +228,7 @@ export default function PublicSharePage() {
           <BrandMark size="sm" />
           <div className="h-4 w-px bg-zinc-200 shrink-0" />
           <div className="flex flex-col min-w-0">
-            <h1 className="text-xs font-semibold text-zinc-950 truncate max-w-[160px] sm:max-w-xs leading-none">
+            <h1 className="text-xs font-semibold text-zinc-950 truncate max-w-40 sm:max-w-xs leading-none">
               {projectName}
             </h1>
             <span className="text-[9px] font-medium text-zinc-400 mt-1">
@@ -275,7 +275,7 @@ export default function PublicSharePage() {
             <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden">
               {isReadonly && (
                 <div
-                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  className="absolute inset-0 z-60 cursor-not-allowed"
                   title="View mode — editing disabled"
                   aria-hidden
                 />
@@ -303,7 +303,7 @@ export default function PublicSharePage() {
       </div>
 
       {isCloneModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/20 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-zinc-900/20 backdrop-blur-sm px-4">
           <div className="bg-white rounded-xl border border-zinc-200 shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="px-6 py-4 border-b border-zinc-100 bg-zinc-50/50">
               <h2 className="text-base font-bold text-zinc-900">

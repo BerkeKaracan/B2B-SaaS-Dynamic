@@ -397,7 +397,7 @@ export default function ProjectCardsGrid({
         newFavoriteAt ? 'Added to Favorites' : 'Removed from Favorites',
         `Project: ${currentData.name}`
       );
-    } catch (error) {
+    } catch {
       fetchProjects();
     }
   };
@@ -434,7 +434,7 @@ export default function ProjectCardsGrid({
         'Changed Visibility',
         `Project: ${currentData.name} is now ${newVisibility}`
       );
-    } catch (error) {
+    } catch {
       fetchProjects();
     }
   };
@@ -471,7 +471,7 @@ export default function ProjectCardsGrid({
         newStatus === 'true' ? 'Locked Project' : 'Unlocked Project',
         `Project: ${currentData.name}`
       );
-    } catch (error) {
+    } catch {
       fetchProjects();
     }
   };
@@ -525,7 +525,7 @@ export default function ProjectCardsGrid({
             newStatus === 'true' ? 'Published to Hub' : 'Removed from Hub',
             `Project: ${currentData.name}`
           );
-        } catch (error) {
+        } catch {
           fetchProjects();
         }
       },
@@ -568,7 +568,7 @@ export default function ProjectCardsGrid({
             'Archived Project',
             `Project: ${currentData.name}`
           );
-        } catch (error) {
+        } catch {
           fetchProjects();
         }
       },
@@ -611,7 +611,7 @@ export default function ProjectCardsGrid({
             'Moved to Trash',
             `Project: ${currentData.name}`
           );
-        } catch (error) {
+        } catch {
           fetchProjects();
         }
       },
@@ -646,7 +646,7 @@ export default function ProjectCardsGrid({
         'Restored Project',
         `Project: ${currentData.name}`
       );
-    } catch (error) {
+    } catch {
       fetchProjects();
     }
   };
@@ -676,7 +676,7 @@ export default function ProjectCardsGrid({
             'Deleted Permanently',
             `Project: ${currentData?.name || 'Unknown'}`
           );
-        } catch (error) {
+        } catch {
           fetchProjects();
         }
       },
@@ -951,7 +951,7 @@ export default function ProjectCardsGrid({
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 transition-colors max-w-[12rem]"
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 transition-colors max-w-48"
               >
                 <span className="truncate">“{searchQuery.trim()}”</span>
                 <X className="w-3 h-3 text-zinc-400 shrink-0" />
@@ -988,8 +988,8 @@ export default function ProjectCardsGrid({
             <div
               className={`absolute inset-0 pointer-events-none ${
                 view === 'trash'
-                  ? 'bg-[radial-gradient(ellipse_at_top,_rgba(244,63,94,0.08),_transparent_60%)]'
-                  : 'bg-[radial-gradient(ellipse_at_top,_rgba(245,158,11,0.08),_transparent_60%)]'
+                  ? 'bg-[radial-gradient(ellipse_at_top,rgba(244,63,94,0.08),transparent_60%)]'
+                  : 'bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.08),transparent_60%)]'
               }`}
             />
           )}
@@ -1212,7 +1212,7 @@ export default function ProjectCardsGrid({
         createPortal(
           <>
             <div
-              className="fixed inset-0 z-[90]"
+              className="fixed inset-0 z-90"
               onClick={closeProjectMenu}
               aria-hidden
             />
@@ -1228,7 +1228,7 @@ export default function ProjectCardsGrid({
                 project.record_data?.is_locked === true;
               return (
                 <div
-                  className="fixed w-56 max-h-[min(320px,calc(100vh-16px))] overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.5)] rounded-xl py-1.5 z-[100]"
+                  className="fixed w-56 max-h-[min(320px,calc(100vh-16px))] overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.5)] rounded-xl py-1.5 z-100"
                   style={{ top: menuPosition.top, left: menuPosition.left }}
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -1365,7 +1365,7 @@ export default function ProjectCardsGrid({
         )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/30 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-zinc-950/30 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)] w-full max-w-md border border-zinc-200 dark:border-zinc-800">
             <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 bg-[#f7f9fb]/80 dark:bg-zinc-950/40 rounded-t-2xl">
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-400 mb-1.5">
@@ -1439,7 +1439,7 @@ export default function ProjectCardsGrid({
                       aria-hidden
                     />
                     {/* Open upward so the list is not clipped by the modal footer */}
-                    <div className="absolute left-0 right-0 bottom-full mb-1.5 z-50 w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl py-1 max-h-[240px] overflow-y-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <div className="absolute left-0 right-0 bottom-full mb-1.5 z-50 w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl py-1 max-h-60 overflow-y-auto animate-in fade-in slide-in-from-bottom-2 duration-200">
                       {TEMPLATES.map((template) => (
                         <button
                           key={template.id}
@@ -1487,7 +1487,7 @@ export default function ProjectCardsGrid({
       )}
 
       {confirmDialog?.isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm p-4 transform-gpu">
+        <div className="fixed inset-0 z-200 flex items-center justify-center bg-zinc-900/40 dark:bg-black/60 backdrop-blur-sm p-4 transform-gpu">
           <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-full max-w-sm border border-zinc-200 dark:border-zinc-800 transform-gpu will-change-transform overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             <div className="p-6">
               <div

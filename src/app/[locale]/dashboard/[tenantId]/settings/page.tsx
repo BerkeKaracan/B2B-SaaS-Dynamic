@@ -117,7 +117,7 @@ export default function AdvancedSettingsPage({
       });
 
       showNotification('success', t('notifications.success'));
-    } catch (err) {
+    } catch {
       showNotification('error', t('notifications.error'));
     } finally {
       setIsSaving(false);
@@ -187,7 +187,7 @@ export default function AdvancedSettingsPage({
       if (!res.ok) throw new Error('Failed to delete workspace.');
 
       router.push('/login');
-    } catch (err: unknown) {
+    } catch {
       showNotification('error', t('notifications.deleteError'));
     }
   };
@@ -206,7 +206,7 @@ export default function AdvancedSettingsPage({
   if (isLoading) {
     return (
       <div className="flex-1 overflow-y-auto bg-[#FAFAFB] dark:bg-black min-h-screen">
-        <div className="max-w-[920px] mx-auto w-full p-6 md:p-10 animate-pulse space-y-6">
+        <div className="max-w-230 mx-auto w-full p-6 md:p-10 animate-pulse space-y-6">
           <div className="h-16 bg-zinc-200/70 dark:bg-zinc-800 rounded-2xl w-2/3" />
           <div className="h-48 bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl" />
           <div className="h-40 bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl" />
@@ -218,7 +218,7 @@ export default function AdvancedSettingsPage({
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#FAFAFB] dark:bg-black min-h-screen font-sans transition-colors duration-300">
-      <div className="max-w-[920px] mx-auto w-full p-6 md:p-10 pb-36 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="max-w-230 mx-auto w-full p-6 md:p-10 pb-36 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="mb-8 md:mb-10">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl flex items-center justify-center shadow-sm shrink-0">
@@ -255,7 +255,7 @@ export default function AdvancedSettingsPage({
         <div className="space-y-5">
           {/* Branding */}
           <section className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-6 md:px-8 py-5 border-b border-zinc-100 dark:border-zinc-800 bg-gradient-to-r from-zinc-50/80 to-transparent dark:from-zinc-800/40 dark:to-transparent">
+            <div className="px-6 md:px-8 py-5 border-b border-zinc-100 dark:border-zinc-800 bg-linear-to-r from-zinc-50/80 to-transparent dark:from-zinc-800/40 dark:to-transparent">
               <div className="flex items-center gap-2.5">
                 <ImageIcon className="w-4 h-4 text-zinc-400" />
                 <h2 className="text-sm font-extrabold text-zinc-900 dark:text-white uppercase tracking-widest">
@@ -448,7 +448,7 @@ export default function AdvancedSettingsPage({
 
           {/* Danger zone */}
           <section className="bg-white dark:bg-zinc-900 border border-red-200/80 dark:border-red-900/40 rounded-2xl shadow-sm overflow-hidden relative mt-2">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-red-500/[0.06] via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-red-500/6 via-transparent to-transparent pointer-events-none" />
 
             <div className="relative px-6 md:px-8 py-5 border-b border-red-100 dark:border-red-900/30">
               <div className="flex items-center gap-2.5">

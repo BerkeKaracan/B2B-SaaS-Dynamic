@@ -24,7 +24,6 @@ import {
   isDragSessionActive,
 } from './dragSession';
 import { LassoLayer } from './LassoLayer';
-import { fetchAPI } from '@/services/api';
 
 import TextBlock from './TextBlock';
 import FormBlock from './FormBlock';
@@ -35,7 +34,7 @@ import BadgeSelectorBlock from './BadgeSelectorBlock';
 import AssetStreamBlock from './AssetStreamBlock';
 import BlockResizer from './BlockResizer';
 import StaticKanbanBoard from '@/components/kanban/StaticKanbanBoard';
-import { Sparkles, Minus, Plus, Maximize, MousePointer2 } from 'lucide-react';
+import { Minus, Plus, Maximize, MousePointer2 } from 'lucide-react';
 
 import NotepadBoard from '@/components/notepad/NotepadBoard';
 import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
@@ -113,7 +112,6 @@ export default function CanvasArea() {
 
   const params = useParams();
   const routeProjectId = params?.projectId as string;
-  const tenantId = params?.tenantId as string | undefined;
   const [hasLoadedPos, setHasLoadedPos] = useState(false);
 
   const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
@@ -172,7 +170,6 @@ export default function CanvasArea() {
   const saveHistory = useCanvasStore((s) => s.saveHistory);
   const duplicateBlock = useCanvasStore((s) => s.duplicateBlock);
   const transferBlockToPage = useCanvasStore((s) => s.transferBlockToPage);
-  const addGeneratedBlocks = useCanvasStore((s) => s.addGeneratedBlocks);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const transformRef = useRef<HTMLDivElement>(null);
@@ -190,21 +187,6 @@ export default function CanvasArea() {
 
   // Viewport culling: quantized world rect (stable ref during small pans)
   const visibleRect = useVisibleWorldRect(containerRef);
-
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    canvasX: number;
-    canvasY: number;
-  } | null>(null);
-  const [aiMenu, setAiMenu] = useState<{
-    x: number;
-    y: number;
-    canvasX: number;
-    canvasY: number;
-  } | null>(null);
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   const [clipboardBlock, setClipboardBlock] = useState<{
     pageId: string;
@@ -268,43 +250,6 @@ export default function CanvasArea() {
 
     return () => clearTimeout(timeout);
   }, [zoom, panX, panY, routeProjectId, hasLoadedPos]);
-
-  const handleAiGenerate = async () => {
-    if (
-      !activePageId ||
-      !aiMenu ||
-      !aiPrompt.trim() ||
-      mode === 'readonly' ||
-      !tenantId
-    )
-      return;
-    setIsAiGenerating(true);
-
-    try {
-      const res = await fetchAPI('/api/ai/generate-canvas', {
-        method: 'POST',
-        body: JSON.stringify({
-          prompt: aiPrompt,
-          x: aiMenu.canvasX,
-          y: aiMenu.canvasY,
-          tenant_id: tenantId,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.blocks && Array.isArray(data.blocks) && addGeneratedBlocks) {
-          addGeneratedBlocks(activePageId, data.blocks);
-        }
-      }
-    } catch (e) {
-      console.error('AI Generation failed', e);
-    } finally {
-      setIsAiGenerating(false);
-      setAiMenu(null);
-      setAiPrompt('');
-    }
-  };
 
   useEffect(() => {
     if (!provider) return;
@@ -408,8 +353,6 @@ export default function CanvasArea() {
 
         if (e.key === 'Escape') {
           setConnectingFrom(null);
-          setContextMenu(null);
-          setAiMenu(null);
         }
       }
     };
@@ -744,8 +687,6 @@ export default function CanvasArea() {
       setDraggedPageId(null);
       setDraggedBlockInfo(null);
       setResizingPageId(null);
-      setContextMenu(null);
-      setAiMenu(null);
     };
 
     window.addEventListener('pointermove', handleGlobalPointerMove);
@@ -791,11 +732,6 @@ export default function CanvasArea() {
       target === containerRef.current ||
       target.classList.contains('canvas-bg') ||
       target.classList.contains('infinite-grid-layer');
-
-    if (isCanvasBackground) {
-      setContextMenu(null);
-      setAiMenu(null);
-    }
 
     if (isCanvasBackground && e.currentTarget.setPointerCapture) {
       try {
@@ -1040,7 +976,7 @@ export default function CanvasArea() {
 
       return (
         <div className="flex flex-col gap-3 w-full h-full">
-          <div className="w-full h-auto min-h-[40px] overflow-visible relative">
+          <div className="w-full h-auto min-h-10 overflow-visible relative">
             {block.type === 'text' && (
               <TextBlock
                 block={block}
@@ -1319,7 +1255,7 @@ export default function CanvasArea() {
                 />
 
                 {mode !== 'readonly' && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus:opacity-100 group-focus:visible transition-all duration-200 z-[100]">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus:opacity-100 group-focus:visible transition-all duration-200 z-100">
                     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-2 grid grid-cols-5 gap-1.5 w-max">
                       {[
                         '#ffffff',
@@ -1345,7 +1281,7 @@ export default function CanvasArea() {
                           className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
                             pageBgColor === color
                               ? 'border-indigo-500 scale-110 shadow-sm'
-                              : 'border-zinc-200 dark:border-zinc-700 dark:border-zinc-600 hover:border-zinc-400 dark:hover:border-zinc-400'
+                              : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-400'
                           }`}
                           style={{ backgroundColor: color }}
                           title={color}
@@ -1471,7 +1407,7 @@ export default function CanvasArea() {
             <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl">
               {mode === 'readonly' && (
                 <div
-                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  className="absolute inset-0 z-60 cursor-not-allowed"
                   title="Read-Only Mode"
                 />
               )}
@@ -1481,7 +1417,7 @@ export default function CanvasArea() {
             <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
-                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  className="absolute inset-0 z-60 cursor-not-allowed"
                   title="Read-Only Mode"
                 />
               )}
@@ -1491,7 +1427,7 @@ export default function CanvasArea() {
             <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
-                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  className="absolute inset-0 z-60 cursor-not-allowed"
                   title="Read-Only Mode"
                 />
               )}
@@ -1501,7 +1437,7 @@ export default function CanvasArea() {
             <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
-                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  className="absolute inset-0 z-60 cursor-not-allowed"
                   title="Read-Only Mode"
                 />
               )}
@@ -1511,7 +1447,7 @@ export default function CanvasArea() {
             <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
-                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  className="absolute inset-0 z-60 cursor-not-allowed"
                   title="Read-Only Mode"
                 />
               )}
@@ -1521,7 +1457,7 @@ export default function CanvasArea() {
             <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
-                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  className="absolute inset-0 z-60 cursor-not-allowed"
                   title="Read-Only Mode"
                 />
               )}
@@ -1531,7 +1467,7 @@ export default function CanvasArea() {
             <div className="relative w-full h-full min-h-0 flex-1 overflow-hidden bg-transparent rounded-b-2xl border-t border-zinc-200/50 dark:border-zinc-800/50">
               {mode === 'readonly' && (
                 <div
-                  className="absolute inset-0 z-[60] cursor-not-allowed"
+                  className="absolute inset-0 z-60 cursor-not-allowed"
                   title="Read-Only Mode"
                 />
               )}
@@ -1751,6 +1687,8 @@ export default function CanvasArea() {
     addConnection,
     removeBlockFromPage,
     mode,
+    setActiveBlock,
+    setActivePage,
   ]);
 
   if (isLoading) {
@@ -1866,7 +1804,7 @@ export default function CanvasArea() {
         >
           <Minus className="w-4 h-4" />
         </button>
-        <span className="text-[11px] font-black text-zinc-700 dark:text-zinc-300 min-w-[48px] text-center tracking-widest px-1">
+        <span className="text-[11px] font-black text-zinc-700 dark:text-zinc-300 min-w-12 text-center tracking-widest px-1">
           {Math.round(zoom)}%
         </span>
         <button

@@ -21,7 +21,7 @@ interface HandleProps {
 const Handle = ({ dir, cursor, style, onPointerDown }: HandleProps) => (
   <div
     onPointerDown={(e) => onPointerDown(e, dir)}
-    className="absolute w-[10px] h-[10px] bg-white border-[1.5px] border-indigo-500 rounded-sm pointer-events-auto shadow-sm hover:bg-indigo-50 hover:scale-[1.6] transition-transform z-50"
+    className="absolute w-2.5 h-2.5 bg-white border-[1.5px] border-indigo-500 rounded-sm pointer-events-auto shadow-sm hover:bg-indigo-50 hover:scale-[1.6] transition-transform z-50"
     style={{ ...style, cursor }}
   />
 );

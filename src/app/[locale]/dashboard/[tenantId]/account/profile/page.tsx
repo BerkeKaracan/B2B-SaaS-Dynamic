@@ -72,7 +72,7 @@ export default function ProfileSettingsPage() {
         text: t('messages.updateSuccess'),
       });
       setTimeout(() => setStatusMessage(null), 3000);
-    } catch (error) {
+    } catch {
       setStatusMessage({ type: 'error', text: t('messages.updateError') });
     } finally {
       setIsSaving(false);
@@ -118,7 +118,7 @@ export default function ProfileSettingsPage() {
         text: t('messages.avatarSuccess'),
       });
       setTimeout(() => setStatusMessage(null), 3000);
-    } catch (error) {
+    } catch {
       setStatusMessage({ type: 'error', text: t('messages.avatarError') });
       setPreviewUrl(null);
     } finally {

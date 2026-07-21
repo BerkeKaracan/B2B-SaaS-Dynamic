@@ -1,9 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  agentDebugLogServer,
-  cookieNamesFromHeader,
-} from '@/lib/agentDebugLog';
+import { cookieNamesFromHeader } from '@/lib/agentDebugLog';
+import { agentDebugLogServer } from '@/lib/agentDebugLog.server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

@@ -241,7 +241,7 @@ export default function SecuritySettingsPage() {
 
       <div className="space-y-6">
         <div className="bg-zinc-950 text-white border border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
-          <div className="absolute top-[-20%] right-[-10%] w-[300px] h-[300px] bg-indigo-500/20 rounded-full blur-[80px] pointer-events-none"></div>
+          <div className="absolute top-[-20%] right-[-10%] w-75 h-75 bg-indigo-500/20 rounded-full blur-[80px] pointer-events-none"></div>
 
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center gap-4">

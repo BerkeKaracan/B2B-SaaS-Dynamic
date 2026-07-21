@@ -75,7 +75,7 @@ export default function DashboardClientWrapper({
   if (!isAuthenticated) return null;
 
   return (
-    <div className="ui-chrome flex h-[100dvh] w-full flex-col overflow-hidden bg-[#f7f9fb] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans antialiased">
+    <div className="ui-chrome flex h-dvh w-full flex-col overflow-hidden bg-[#f7f9fb] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans antialiased">
       <Toaster richColors closeButton expand={false} position="bottom-right" />
       {user?.email && <RealtimeNotifier userEmail={user.email} />}
 
@@ -89,11 +89,11 @@ export default function DashboardClientWrapper({
         <div
           className={`fixed lg:static inset-y-14 lg:inset-auto left-0 z-50 lg:z-auto h-[calc(100%-3.5rem)] lg:h-full shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${
             isPrimarySidebarOpen
-              ? 'translate-x-0 w-[240px] opacity-100'
+              ? 'translate-x-0 w-60 opacity-100'
               : '-translate-x-full lg:translate-x-0 w-0 opacity-0 lg:opacity-100'
           }`}
         >
-          <div className="w-[240px] h-full">
+          <div className="w-60 h-full">
             <WorkspaceSidebar />
           </div>
         </div>

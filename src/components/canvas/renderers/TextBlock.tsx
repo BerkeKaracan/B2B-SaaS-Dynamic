@@ -102,7 +102,7 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
       <div className="absolute -left-5 top-1 bottom-1 w-0.5 bg-zinc-400 rounded-full opacity-0 group-focus-within/block:opacity-100 transition-opacity duration-200 pointer-events-none" />
 
       {isToolbarOpen && onSettingsChange && (
-        <div className="absolute top-0 -right-4 translate-x-full w-60 bg-white border border-zinc-200 rounded-xl shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] p-3 flex flex-col gap-3.5 z-[100] animate-in slide-in-from-left-2 fade-in duration-200 cursor-default">
+        <div className="absolute top-0 -right-4 translate-x-full w-60 bg-white border border-zinc-200 rounded-xl shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] p-3 flex flex-col gap-3.5 z-100 animate-in slide-in-from-left-2 fade-in duration-200 cursor-default">
           <div className="flex justify-between items-center pb-2 border-b border-zinc-100">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
               Block Options
@@ -251,19 +251,19 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
           <div className="space-y-1">
             <ReactMarkdown
               components={{
-                strong: ({ node, ...props }) => (
+                strong: ({ ...props }) => (
                   <span className="font-bold" {...props} />
                 ),
-                ul: ({ node, ...props }) => (
+                ul: ({ ...props }) => (
                   <ul className="list-disc ml-4 mt-1" {...props} />
                 ),
-                ol: ({ node, ...props }) => (
+                ol: ({ ...props }) => (
                   <ol className="list-decimal ml-4 mt-1" {...props} />
                 ),
-                li: ({ node, ...props }) => (
+                li: ({ ...props }) => (
                   <li className="mt-0.5" {...props} />
                 ),
-                p: ({ node, ...props }) => (
+                p: ({ ...props }) => (
                   <p className="mb-2 last:mb-0" {...props} />
                 ),
               }}
@@ -277,7 +277,7 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
       <button
         type="button"
         onClick={() => setIsToolbarOpen(!isToolbarOpen)}
-        className="absolute -right-2 top-0 opacity-0 group-hover/block:opacity-100 flex items-center justify-center w-6 h-6 bg-white border border-zinc-200 text-zinc-500 rounded-md shadow-sm hover:bg-zinc-50 hover:border-zinc-300 hover:text-zinc-900 transition-colors z-[60]"
+        className="absolute -right-2 top-0 opacity-0 group-hover/block:opacity-100 flex items-center justify-center w-6 h-6 bg-white border border-zinc-200 text-zinc-500 rounded-md shadow-sm hover:bg-zinc-50 hover:border-zinc-300 hover:text-zinc-900 transition-colors z-60"
         title="Options"
       >
         <MoreHorizontal className="w-3.5 h-3.5" />

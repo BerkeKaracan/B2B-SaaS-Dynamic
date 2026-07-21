@@ -255,7 +255,7 @@ export function CanvasPassiveLayers() {
       {/* Above the world transform, like the old in-world SVG at z-45. */}
       <canvas
         ref={connCanvasRef}
-        className="absolute inset-0 pointer-events-none z-[45]"
+        className="absolute inset-0 pointer-events-none z-45"
         aria-hidden
       />
     </>

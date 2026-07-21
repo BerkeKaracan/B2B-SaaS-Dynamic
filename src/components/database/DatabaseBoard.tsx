@@ -379,7 +379,7 @@ function DatabaseBoard({ projectId }: DatabaseBoardProps) {
           id: loadingToast,
         });
       }
-    } catch (err) {
+    } catch {
       toast.error('An error occurred during export.', { id: loadingToast });
     } finally {
       setIsExporting(false);
@@ -481,7 +481,7 @@ function DatabaseBoard({ projectId }: DatabaseBoardProps) {
         </button>
         {isFilterOpen && (
           <div
-            className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-3 z-[120] animate-in fade-in slide-in-from-top-2"
+            className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-3 z-120 animate-in fade-in slide-in-from-top-2"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <label className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1.5 block">
@@ -541,7 +541,7 @@ function DatabaseBoard({ projectId }: DatabaseBoardProps) {
         </button>
         {isSortOpen && (
           <div
-            className="absolute top-full mt-2 right-0 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-2 z-[120] animate-in fade-in slide-in-from-top-2"
+            className="absolute top-full mt-2 right-0 w-56 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] rounded-xl p-2 z-120 animate-in fade-in slide-in-from-top-2"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <label className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2 px-2 block">
@@ -661,7 +661,7 @@ function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                 {properties.map((prop) => (
                   <th
                     key={prop.id}
-                    className="border-r border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 font-normal text-zinc-500 text-sm hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 group/header transition-colors min-w-[150px] max-w-[300px] relative"
+                    className="border-r border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 font-normal text-zinc-500 text-sm hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 group/header transition-colors min-w-37.5 max-w-75 relative"
                   >
                     <div className="flex items-center justify-between px-2.5 py-2">
                       <div className="flex items-center gap-1.5 flex-1 w-full min-w-0">
@@ -762,7 +762,7 @@ function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                       key={`${row.id}-${prop.id}`}
                       className="border-r border-zinc-100 dark:border-zinc-800/80 p-0 align-top relative group/cell"
                     >
-                      <div className="min-h-[36px] w-full flex items-center px-2.5 py-1 focus-within:ring-2 focus-within:ring-inset focus-within:ring-zinc-900/10 focus-within:bg-zinc-50/80 dark:focus-within:bg-zinc-800/40 transition-colors">
+                      <div className="min-h-9 w-full flex items-center px-2.5 py-1 focus-within:ring-2 focus-within:ring-inset focus-within:ring-zinc-900/10 focus-within:bg-zinc-50/80 dark:focus-within:bg-zinc-800/40 transition-colors">
                         {prop.type === 'text' && (
                           <input
                             type="text"
@@ -792,7 +792,7 @@ function DatabaseBoard({ projectId }: DatabaseBoardProps) {
                                   propId: prop.id,
                                 })
                               }
-                              className="w-full h-full min-h-[26px] bg-transparent focus:outline-none text-sm cursor-pointer flex items-center"
+                              className="w-full h-full min-h-6.5 bg-transparent focus:outline-none text-sm cursor-pointer flex items-center"
                             >
                               {(row[prop.id] as string) ? (
                                 <span className="text-zinc-900 dark:text-zinc-100 tabular-nums">
