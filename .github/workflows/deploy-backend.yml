@@ -39,23 +39,23 @@ jobs:
           docker push ${{ env.IMAGE }}:${{ github.sha }}
           docker push ${{ env.IMAGE }}:latest
 
-      # Critical: empty GitHub secret expands to SUPABASE_JWT_SECRET= and
-      # merge-overwrites a non-empty Console value with "".
-      - name: Require non-empty SUPABASE_JWT_SECRET
+      # Empty GitHub secret must NEVER be written as SUPABASE_JWT_SECRET=
+      # (merge would overwrite a good Console value with "").
+      - name: Check SUPABASE_JWT_SECRET
+        id: jwt
         env:
           SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
         run: |
-          set -euo pipefail
           if [ -z "${SUPABASE_JWT_SECRET// }" ]; then
-            echo "::error::GitHub Actions secret SUPABASE_JWT_SECRET is empty or missing."
-            echo "GitHub → Settings → Secrets and variables → Actions → New repository secret"
-            echo "Name: SUPABASE_JWT_SECRET"
-            echo "Value: Supabase → Project Settings → API → JWT Secret (not anon/service_role)"
-            exit 1
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GitHub secret SUPABASE_JWT_SECRET is empty — deploying image without touching that env var. Auth will use get_user fallback until you set the secret."
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "SUPABASE_JWT_SECRET length=${#SUPABASE_JWT_SECRET}"
           fi
-          echo "SUPABASE_JWT_SECRET length=${#SUPABASE_JWT_SECRET}"
 
-      - name: Deploy to Cloud Run
+      - name: Deploy to Cloud Run (with JWT secret)
+        if: steps.jwt.outputs.present == 'true'
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE }}
@@ -63,6 +63,18 @@ jobs:
           image: ${{ env.IMAGE }}:${{ github.sha }}
           env_vars: |-
             SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }}
+            ENVIRONMENT=production
+          env_vars_update_strategy: merge
+          secrets_update_strategy: merge
+
+      - name: Deploy to Cloud Run (without overwriting JWT)
+        if: steps.jwt.outputs.present != 'true'
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE }}
+          region: ${{ env.REGION }}
+          image: ${{ env.IMAGE }}:${{ github.sha }}
+          env_vars: |-
             ENVIRONMENT=production
           env_vars_update_strategy: merge
           secrets_update_strategy: merge
