@@ -26,7 +26,8 @@ from models.auth import (
     MfaUnenrollRequest,
 )
 from core.limiter import limiter
-from api.routers.records import blacklist_auth_token, invalidate_user_role_cache
+from core.auth_jwt import blacklist_auth_token, verify_access_token
+from api.routers.records import invalidate_user_role_cache
 
 router = APIRouter(
     prefix="/api/auth",
@@ -92,6 +93,24 @@ def _resolve_tenant_id(user_id: str) -> str:
         return str(tenant_user_res.data[0]["tenant_id"])
     return ""
 
+
+def _resolve_tenant_slug(tenant_id: str) -> str:
+    if not tenant_id:
+        return ""
+    try:
+        res = (
+            supabase_admin.table("tenants")
+            .select("slug")
+            .eq("id", tenant_id)
+            .limit(1)
+            .execute()
+        )
+        if res.data:
+            return str(res.data[0].get("slug") or "")
+    except Exception as exc:
+        print("tenant slug resolve error:", exc)
+    return ""
+
 @router.post("/register", response_model=RegisterResponse)
 @limiter.limit("3/minute")
 def register_user(request: Request, request_data: RegisterRequest) -> RegisterResponse:
@@ -128,16 +147,12 @@ def register_user(request: Request, request_data: RegisterRequest) -> RegisterRe
 def complete_onboarding(request: Request, request_data: OnboardingRequest, creds: HTTPAuthorizationCredentials = Depends(security)) -> OnboardingResponse:
     try:
         token = creds.credentials
-        user_res = supabase.auth.get_user(token)
+        identity = verify_access_token(token)
+        user_id = identity["user_id"]
         
-        if not user_res or not user_res.user:
-            raise HTTPException(status_code=401, detail="Invalid or expired session.")
-            
-        user_id = user_res.user.id
-        
-        meta = user_res.user.user_metadata or {}
+        meta = identity.get("user_metadata") or {}
         full_name = meta.get("full_name") or meta.get("name") or meta.get("user_name") or meta.get("preferred_username") or "User"
-        email = user_res.user.email
+        email = identity.get("email") or ""
 
         existing_user = supabase_admin.table("tenant_users").select("id").eq("user_id", user_id).limit(1).execute()
         if existing_user.data:
@@ -198,6 +213,7 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
             raise HTTPException(status_code=400, detail="Invalid email or password.")
 
         target_tenant_id = _resolve_tenant_id(str(user_id))
+        tenant_slug = _resolve_tenant_slug(target_tenant_id)
         refresh_token = getattr(session, "refresh_token", "") or ""
 
         mfa_required = False
@@ -217,6 +233,7 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
             refresh_token=refresh_token,
             tenant_id=target_tenant_id,
             user_id=str(user_id),
+            slug=tenant_slug,
             mfa_required=mfa_required,
             factor_id=factor_id,
         )
@@ -233,12 +250,8 @@ def login_workspace(request: Request, request_data: LoginRequest) -> LoginRespon
 def get_current_user_role(request: Request, creds: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     try:
         token = creds.credentials
-        user_res = supabase.auth.get_user(token)
-        
-        if not user_res or not user_res.user:
-            raise HTTPException(status_code=401, detail="Invalid session")
-            
-        user_id = user_res.user.id
+        identity = verify_access_token(token)
+        user_id = identity["user_id"]
         current_tenant_id = request.headers.get("x-tenant-id") or request.headers.get("tenant-id")
 
         role = "employee" 
@@ -257,6 +270,8 @@ def get_current_user_role(request: Request, creds: HTTPAuthorizationCredentials 
             "user_id": user_id,
             "role": role 
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
   
@@ -265,16 +280,20 @@ def get_current_user_role(request: Request, creds: HTTPAuthorizationCredentials 
 def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     try:
         token = creds.credentials
-        user_res = supabase.auth.get_user(token)
+        identity = verify_access_token(token)
+        user_id = identity["user_id"]
+        meta = identity.get("user_metadata") or {}
         
-        if not user_res or not user_res.user:
-            raise HTTPException(status_code=401, detail="Invalid session")
-            
-        meta = user_res.user.user_metadata or {}
-        
-        full_name = meta.get("full_name") or meta.get("name") or meta.get("user_name") or meta.get("preferred_username") or "User"
+        full_name = (
+            meta.get("full_name")
+            or meta.get("name")
+            or meta.get("user_name")
+            or meta.get("preferred_username")
+            or (identity["email"].split("@")[0] if identity.get("email") else None)
+            or "User"
+        )
         avatar_url = meta.get("avatar_url") or meta.get("avatar") or "" 
-        email = user_res.user.email 
+        email = identity.get("email") or ""
         
         words = full_name.split() if full_name else ["U"]
         initials = "".join([word[0] for word in words if word]).upper()[:2]
@@ -295,17 +314,19 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
         timezone = None
 
         try:
+            select_cols = (
+                "tenant_id, role, custom_role_id, department_id, job_title, timezone, "
+                "custom_roles(name), departments(name)"
+            )
             base_query = (
                 supabase_admin.table("tenant_users")
-                .select(
-                    "tenant_id, role, custom_role_id, department_id, job_title, timezone"
-                )
-                .eq("user_id", user_res.user.id)
+                .select(select_cols)
+                .eq("user_id", user_id)
             )
 
             membership_row = None
             if requested_tenant_id:
-                role_res = base_query.eq("tenant_id", requested_tenant_id).execute()
+                role_res = base_query.eq("tenant_id", requested_tenant_id).limit(1).execute()
                 if role_res.data:
                     membership_row = role_res.data[0]
             else:
@@ -316,26 +337,47 @@ def get_current_user(request: Request, creds: HTTPAuthorizationCredentials = Dep
             if membership_row:
                 role = membership_row.get("role", "employee")
                 resolved_tenant_id = membership_row.get("tenant_id")
-                custom_role_id = membership_row.get("custom_role_id")
-                department_id = membership_row.get("department_id")
                 job_title = membership_row.get("job_title")
                 timezone = membership_row.get("timezone")
 
-                if custom_role_id:
-                    cr_res = supabase_admin.table("custom_roles").select("name").eq("id", custom_role_id).execute()
-                    if cr_res.data:
-                        custom_role_name = cr_res.data[0]["name"]
-                
-                if department_id:
-                    dp_res = supabase_admin.table("departments").select("name").eq("id", department_id).execute()
-                    if dp_res.data:
-                        department_name = dp_res.data[0]["name"]
+                cr = membership_row.get("custom_roles")
+                if isinstance(cr, dict):
+                    custom_role_name = cr.get("name")
+                elif isinstance(cr, list) and cr:
+                    custom_role_name = cr[0].get("name")
+
+                dp = membership_row.get("departments")
+                if isinstance(dp, dict):
+                    department_name = dp.get("name")
+                elif isinstance(dp, list) and dp:
+                    department_name = dp[0].get("name")
 
         except Exception as ex:
+            # Fallback without embeds if FK embed shape differs
             print("Role fetch error:", ex)
+            try:
+                base_query = (
+                    supabase_admin.table("tenant_users")
+                    .select(
+                        "tenant_id, role, custom_role_id, department_id, job_title, timezone"
+                    )
+                    .eq("user_id", user_id)
+                )
+                if requested_tenant_id:
+                    role_res = base_query.eq("tenant_id", requested_tenant_id).limit(1).execute()
+                else:
+                    role_res = base_query.order("created_at", desc=True).limit(1).execute()
+                if role_res.data:
+                    membership_row = role_res.data[0]
+                    role = membership_row.get("role", "employee")
+                    resolved_tenant_id = membership_row.get("tenant_id")
+                    job_title = membership_row.get("job_title")
+                    timezone = membership_row.get("timezone")
+            except Exception as ex2:
+                print("Role fetch fallback error:", ex2)
         
         return {
-            "user_id": user_res.user.id,
+            "user_id": user_id,
             "email": email,
             "full_name": full_name,
             "initials": initials,
@@ -358,9 +400,8 @@ def logout_session(creds: HTTPAuthorizationCredentials = Depends(security)) -> d
     """Revoke the current access token for API auth (Redis blacklist + role cache)."""
     token = creds.credentials
     try:
-        user_res = supabase.auth.get_user(token)
-        if user_res and user_res.user:
-            invalidate_user_role_cache(str(user_res.user.id))
+        identity = verify_access_token(token, check_blacklist=False)
+        invalidate_user_role_cache(identity["user_id"])
     except Exception:
         pass
     blacklist_auth_token(token)
@@ -371,12 +412,9 @@ def logout_session(creds: HTTPAuthorizationCredentials = Depends(security)) -> d
 def update_profile(request: Request, request_data: UserProfileUpdate, creds: HTTPAuthorizationCredentials = Depends(security)):
     try:
         token = creds.credentials
-        user_res = supabase.auth.get_user(token)
-        if not user_res or not user_res.user:
-            raise HTTPException(status_code=401, detail="Invalid session")
-            
-        user_id = user_res.user.id
-        current_metadata = user_res.user.user_metadata or {}
+        identity = verify_access_token(token)
+        user_id = identity["user_id"]
+        current_metadata = dict(identity.get("user_metadata") or {})
         
         if request_data.full_name is not None:
             current_metadata["full_name"] = request_data.full_name
@@ -400,6 +438,8 @@ def update_profile(request: Request, request_data: UserProfileUpdate, creds: HTT
                     supabase_admin.table("tenant_users").update(update_payload).eq("user_id", user_id).eq("tenant_id", current_tenant_id).execute()
 
         return {"success": True, "message": "Profile updated successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -415,12 +455,9 @@ def upload_avatar(
             raise HTTPException(status_code=400, detail="avatar_url is required")
 
         token = creds.credentials
-        user_res = supabase.auth.get_user(token)
-        if not user_res or not user_res.user:
-            raise HTTPException(status_code=401, detail="Invalid session")
-
-        user_id = user_res.user.id
-        current_metadata = user_res.user.user_metadata or {}
+        identity = verify_access_token(token)
+        user_id = identity["user_id"]
+        current_metadata = dict(identity.get("user_metadata") or {})
         current_metadata["avatar_url"] = avatar_url
 
         supabase_admin.auth.admin.update_user_by_id(
@@ -439,17 +476,19 @@ def upload_avatar(
 def update_password(request_data: UserPasswordUpdate, creds: HTTPAuthorizationCredentials = Depends(security)):
     try:
         token = creds.credentials
-        user_res = supabase.auth.get_user(token)
-        if not user_res or not user_res.user:
-            raise HTTPException(status_code=401, detail="Invalid session")
-            
-        user_id = user_res.user.id
+        identity = verify_access_token(token)
+        user_id = identity["user_id"]
         supabase_admin.auth.admin.update_user_by_id(
             user_id,
             {"password": request_data.password}
         )
+        # Revoke current access token — force re-login after password change
+        invalidate_user_role_cache(user_id)
+        blacklist_auth_token(token)
         
         return {"success": True, "message": "Password updated successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -503,9 +542,7 @@ def mfa_enroll(creds: HTTPAuthorizationCredentials = Depends(security)) -> MfaEn
     try:
         token = creds.credentials
         # Ensure JWT is valid before MFA enroll
-        user_res = supabase.auth.get_user(token)
-        if not user_res or not user_res.user:
-            raise HTTPException(status_code=401, detail="Invalid session")
+        verify_access_token(token)
 
         client = _session_client(token)
         enrolled = client.auth.mfa.enroll(
@@ -545,8 +582,8 @@ def mfa_verify_enrollment(
         if not access:
             access = token
 
-        user_res = supabase.auth.get_user(access)
-        user_id = user_res.user.id if user_res and user_res.user else ""
+        identity = verify_access_token(access, check_blacklist=False)
+        user_id = identity["user_id"]
 
         return MfaVerifyResponse(
             message="Two-factor authentication enabled.",
@@ -593,11 +630,8 @@ def mfa_verify_login(
         )
         access, refresh = _extract_mfa_tokens(verified)
 
-        user_res = supabase.auth.get_user(access)
-        if not user_res or not user_res.user:
-            raise HTTPException(status_code=401, detail="Invalid session after MFA")
-
-        user_id = str(user_res.user.id)
+        identity = verify_access_token(access, check_blacklist=False)
+        user_id = identity["user_id"]
         return MfaVerifyResponse(
             message="Login successful.",
             access_token=access,

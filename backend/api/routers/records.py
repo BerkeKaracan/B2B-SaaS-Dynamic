@@ -8,6 +8,10 @@ import redis
 
 from core.config import settings
 from core.database import supabase, supabase_admin, get_auth_client
+from core.auth_jwt import (
+    blacklist_auth_token as blacklist_auth_token,
+    verify_access_token,
+)
 from models.record import RecordCreate, RecordUpdate, RecordResponse
 
 router = APIRouter(
@@ -18,15 +22,10 @@ router = APIRouter(
 redis_client = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
 # Role map TTL (keyed by user_id). Token blacklist covers logout within this window.
 CACHE_TTL_SECONDS = 120
-TOKEN_BLACKLIST_TTL_SECONDS = 300
 
 
 def _roles_cache_key(user_id: str) -> str:
     return f"auth_roles:{user_id}"
-
-
-def _token_blacklist_key(token: str) -> str:
-    return f"auth_blacklist:{token}"
 
 
 def invalidate_user_role_cache(user_id: str | None) -> None:
@@ -39,18 +38,6 @@ def invalidate_user_role_cache(user_id: str | None) -> None:
         print(f"Redis invalidate role cache error: {e}")
 
 
-def blacklist_auth_token(token: str | None, ttl: int = TOKEN_BLACKLIST_TTL_SECONDS) -> None:
-    """Invalidate a JWT for API auth cache / get_user_role until natural expiry window."""
-    if not token:
-        return
-    try:
-        redis_client.setex(_token_blacklist_key(token), ttl, "1")
-        # Legacy key from pre-hardening cache (auth_token:{jwt})
-        redis_client.delete(f"auth_token:{token}")
-    except Exception as e:
-        print(f"Redis blacklist error: {e}")
-
-
 def get_user_role(authorization: str = Header(None)) -> dict:
     if not authorization:
         raise HTTPException(status_code=401, detail="Missing Authorization header")
@@ -58,23 +45,10 @@ def get_user_role(authorization: str = Header(None)) -> dict:
     token = authorization.replace("Bearer ", "")
 
     try:
-        if redis_client.get(_token_blacklist_key(token)):
-            raise HTTPException(status_code=401, detail="Session revoked")
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Redis blacklist read error: {e}")
-
-    try:
-        # Always validate the JWT with Supabase (signature / expiry).
-        # Cache only tenant_roles by user_id so logout + role changes can invalidate.
-        user_res = supabase.auth.get_user(token)
-        if not user_res or not user_res.user:
-            raise HTTPException(status_code=401, detail="Invalid session")
-
-        user_id = user_res.user.id
-        email = str(user_res.user.email).lower().strip()
-        full_name = email.split("@")[0]
+        identity = verify_access_token(token)
+        user_id = identity["user_id"]
+        email = identity["email"] or f"{user_id}@unknown"
+        full_name = email.split("@")[0] if "@" in email else user_id[:8]
 
         tenant_roles = None
         try:
@@ -116,6 +90,7 @@ def get_user_role(authorization: str = Header(None)) -> dict:
             "full_name": full_name,
             "email": email,
             "tenant_roles": tenant_roles,
+            # RLS: inject user JWT into PostgREST client
             "client": get_auth_client(token),
             "token": token,
         }

@@ -34,8 +34,16 @@ export default function DashboardClientWrapper({
     useLayoutStore();
 
   useEffect(() => {
+    // Soft-refresh only when store is empty or tenant mismatch
+    if (
+      isAuthenticated &&
+      user &&
+      String(user.tenant_id || '') === String(tenantId)
+    ) {
+      return;
+    }
     fetchUser(tenantId);
-  }, [fetchUser, tenantId]);
+  }, [fetchUser, tenantId, isAuthenticated, user]);
 
   useEffect(() => {
     if (!isCheckingAuth && !isAuthenticated) {

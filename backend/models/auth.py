@@ -21,6 +21,7 @@ class LoginResponse(BaseModel):
     refresh_token: str = ""
     tenant_id: str
     user_id: str
+    slug: str = ""
     mfa_required: bool = False
     factor_id: Optional[str] = None
 

@@ -47,42 +47,43 @@ export default function LoginPage() {
   } | null>(null);
 
   const redirectUser = useCallback(
-    async (tenantId: string, token: string) => {
+    async (tenantId: string, token: string, slugHint?: string) => {
       try {
-        // Prefer BFF (HttpOnly) once session is set; fall back to explicit bearer for hop
-        const res = await fetchAPI(`/api/tenants/${tenantId}`);
+        const host = window.location.hostname;
+        const isLocal =
+          host.includes('localhost') || host.includes('127.0.0.1');
+        const baseDomain =
+          process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
+          'b2-b-saa-s-dynamic.vercel.app';
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data.slug) {
-            const host = window.location.hostname;
-            const isLocal =
-              host.includes('localhost') || host.includes('127.0.0.1');
-            const baseDomain =
-              process.env.NEXT_PUBLIC_ROOT_DOMAIN ||
-              'b2-b-saa-s-dynamic.vercel.app';
+        let slug = (slugHint || '').trim();
+        // Only hit /tenants when we still need slug for a subdomain hop
+        if (!slug && (host.includes(baseDomain) || isLocal)) {
+          const res = await fetchAPI(`/api/tenants/${tenantId}`);
+          if (res.ok) {
+            const data = await res.json();
+            slug = (data.slug || '').trim();
+          }
+        }
 
-            if (host.includes(baseDomain) || isLocal) {
-              const protocol = window.location.protocol;
-              const port = window.location.port
-                ? `:${window.location.port}`
-                : '';
-              const targetDomain = isLocal ? 'localhost' : baseDomain;
-              const expectedHost = `${data.slug}.${targetDomain}`;
+        if (slug && (host.includes(baseDomain) || isLocal)) {
+          const protocol = window.location.protocol;
+          const port = window.location.port
+            ? `:${window.location.port}`
+            : '';
+          const targetDomain = isLocal ? 'localhost' : baseDomain;
+          const expectedHost = `${slug}.${targetDomain}`;
 
-              if (host !== expectedHost && host !== `www.${expectedHost}`) {
-                // Cookie hop across subdomain — never put JWT in the URL hash
-                const cookieDomain = isLocal ? undefined : `.${baseDomain}`;
-                const hopToken =
-                  token || (await fetchRealtimeAccessToken()) || '';
-                if (hopToken) {
-                  await establishClientSession(hopToken, cookieDomain);
-                }
-                setClientTenantId(tenantId, cookieDomain);
-                window.location.href = `${protocol}//${expectedHost}${port}/login`;
-                return;
-              }
+          if (host !== expectedHost && host !== `www.${expectedHost}`) {
+            const cookieDomain = isLocal ? undefined : `.${baseDomain}`;
+            const hopToken =
+              token || (await fetchRealtimeAccessToken()) || '';
+            if (hopToken) {
+              await establishClientSession(hopToken, cookieDomain);
             }
+            setClientTenantId(tenantId, cookieDomain);
+            window.location.href = `${protocol}//${expectedHost}${port}/login`;
+            return;
           }
         }
       } catch (error) {
@@ -94,61 +95,34 @@ export default function LoginPage() {
     [router]
   );
 
-  const finishLogin = async (accessToken: string, tenantId?: string) => {
-    // #region agent log
-    agentDebugLog('A', 'login/page.tsx:finishLogin', 'finishLogin start', {
-      hasToken: !!accessToken,
-      tokenLen: accessToken?.length || 0,
-      hasTenant: !!tenantId,
-    });
-    // #endregion
-
-    // BFF already Set-Cookie on login response; this is a safe backup.
-    try {
-      await establishClientSession(accessToken);
-      // #region agent log
-      agentDebugLog(
-        'A',
-        'login/page.tsx:finishLogin',
-        'establishClientSession ok',
-        {}
-      );
-      // #endregion
-    } catch (err) {
-      // #region agent log
-      agentDebugLog(
-        'A',
-        'login/page.tsx:finishLogin',
-        'establishClientSession failed',
-        { err: err instanceof Error ? err.message : String(err) }
-      );
-      // #endregion
-      console.warn('establishClientSession backup failed:', err);
+  const finishLogin = async (
+    accessToken: string,
+    tenantId?: string,
+    slug?: string
+  ) => {
+    // BFF already Set-Cookie on login response; backup only if needed.
+    const alreadyAuthed = await hasClientSession();
+    if (!alreadyAuthed && accessToken) {
+      try {
+        await establishClientSession(accessToken);
+      } catch (err) {
+        console.warn('establishClientSession backup failed:', err);
+      }
     }
-
-    if (fetchUser) {
-      await fetchUser();
-    }
-
-    // #region agent log
-    const sess = await hasClientSession();
-    agentDebugLog(
-      'C',
-      'login/page.tsx:finishLogin',
-      'after fetchUser session check',
-      { hasClientSession: sess, tenantId: tenantId || null }
-    );
-    // #endregion
 
     const resolvedTenant = tenantId || '';
     if (!resolvedTenant) {
       Cookies.remove('tenant_id');
+      // Hydrate store in background — do not block onboarding redirect
+      void fetchUser?.();
       router.push('/onboarding');
       return;
     }
 
     setClientTenantId(resolvedTenant);
-    await redirectUser(resolvedTenant, accessToken);
+    // Dashboard hydrates once — don't await /auth/me here
+    void fetchUser?.(resolvedTenant);
+    await redirectUser(resolvedTenant, accessToken, slug);
   };
 
   useEffect(() => {
@@ -263,7 +237,11 @@ export default function LoginPage() {
         return;
       }
 
-      await finishLogin(data.access_token, data.tenant_id || data.user?.tenant_id);
+      await finishLogin(
+        data.access_token,
+        data.tenant_id || data.user?.tenant_id,
+        data.slug
+      );
     } catch (err: unknown) {
       // #region agent log
       agentDebugLog('D', 'login/page.tsx:handleSubmit', 'login catch', {
@@ -312,7 +290,8 @@ export default function LoginPage() {
 
       await finishLogin(
         data.access_token,
-        data.tenant_id || pendingAuth.tenant_id
+        data.tenant_id || pendingAuth.tenant_id,
+        data.slug
       );
     } catch (err: unknown) {
       if (err instanceof Error) {

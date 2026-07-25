@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_key: str
     supabase_service_role_key: str
+    # Project Settings → API → JWT Secret (local HS256 verify; no Auth HTTP)
+    SUPABASE_JWT_SECRET: str = ""
 
     REDIS_URL: str
     

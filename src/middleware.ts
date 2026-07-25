@@ -114,6 +114,7 @@ export async function middleware(request: NextRequest) {
 
     const dashboardTenantId = extractDashboardTenantId(basePath);
     if (dashboardTenantId) {
+      // Crypto-valid JWT only; membership enforced on FastAPI (fail-closed 403).
       const allowed = await verifyTenantMembership(token, dashboardTenantId);
       if (!allowed) {
         const safe = request.nextUrl.clone();

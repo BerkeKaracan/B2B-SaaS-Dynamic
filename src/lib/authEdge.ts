@@ -1,37 +1,51 @@
 /**
  * Server-side Supabase access-token validation (signature + expiry).
- * Uses Auth REST /user — does not trust cookie presence alone.
+ * Uses jose local HS256 verify — no Supabase Auth HTTP, no Redis (Edge-safe).
+ * Revocation (blacklist) is enforced on FastAPI only.
  */
+import { jwtVerify } from 'jose';
+
 export type VerifiedSupabaseUser = {
   id: string;
   email?: string;
 };
+
+function jwtSecretKey(): Uint8Array | null {
+  const secret = (process.env.SUPABASE_JWT_SECRET || '').trim();
+  if (!secret) return null;
+  return new TextEncoder().encode(secret);
+}
 
 export async function verifySupabaseAccessToken(
   token: string | undefined | null
 ): Promise<VerifiedSupabaseUser | null> {
   if (!token || token.length < 20) return null;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !anonKey) return null;
+  const key = jwtSecretKey();
+  if (!key) {
+    console.error('SUPABASE_JWT_SECRET is not configured for middleware');
+    return null;
+  }
 
   try {
-    const res = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/user`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: anonKey,
-      },
-      cache: 'no-store',
-      signal: AbortSignal.timeout(4000),
-    });
+    let payload;
+    try {
+      ({ payload } = await jwtVerify(token, key, {
+        algorithms: ['HS256'],
+        audience: 'authenticated',
+      }));
+    } catch {
+      ({ payload } = await jwtVerify(token, key, {
+        algorithms: ['HS256'],
+      }));
+    }
 
-    if (!res.ok) return null;
+    const id = typeof payload.sub === 'string' ? payload.sub : null;
+    if (!id) return null;
 
-    const data = (await res.json()) as { id?: string; email?: string };
-    if (!data?.id) return null;
-    return { id: data.id, email: data.email };
+    const email =
+      typeof payload.email === 'string' ? payload.email : undefined;
+    return { id, email };
   } catch {
     return null;
   }
@@ -47,29 +61,13 @@ export function extractDashboardTenantId(basePath: string): string | null {
   return UUID_RE.test(tenantId) ? tenantId : null;
 }
 
-/** Lightweight membership probe via FastAPI (uses get_user_role + tenant_roles). */
+/**
+ * Membership is enforced on FastAPI (get_user_role + tenant_roles), not here.
+ * Edge must not call Redis or full tenant GET — keep middleware crypto-only.
+ */
 export async function verifyTenantMembership(
-  token: string,
+  _token: string,
   tenantId: string
 ): Promise<boolean> {
-  const apiUrl =
-    process.env.INTERNAL_API_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    'http://127.0.0.1:8000';
-
-  try {
-    const res = await fetch(`${apiUrl.replace(/\/$/, '')}/api/tenants/${tenantId}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-      cache: 'no-store',
-      signal: AbortSignal.timeout(5000),
-    });
-    return res.ok;
-  } catch {
-    // Fail closed on membership check errors for dashboard tenant routes
-    return false;
-  }
+  return UUID_RE.test(tenantId);
 }
