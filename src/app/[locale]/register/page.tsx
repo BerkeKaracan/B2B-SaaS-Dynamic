@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
-import ColdStartAlert from '@/components/ColdStartAlert';
 import { AlertCircle, ArrowRight, Loader2, Lock, Mail, User } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { getApiBaseUrl } from '@/lib/apiBase';
@@ -148,9 +147,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <>
-      <ColdStartAlert />
-      <AuthShell
+    <AuthShell
         panelTitle={
           <>
             Deploy a workspace
@@ -275,6 +272,5 @@ export default function RegisterPage() {
           </Link>
         </p>
       </AuthShell>
-    </>
   );
 }

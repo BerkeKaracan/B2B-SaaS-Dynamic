@@ -4,7 +4,6 @@ import Link from 'next/link';
 import Footer from '@/components/layout/Footer';
 import { useTranslations } from 'next-intl';
 import LandingChatbot from '@/components/chat/LandingChatbot';
-import ColdStartAlert from '@/components/ColdStartAlert';
 import { Reveal } from '@/components/landing/Reveal';
 import HeroCanvasPreview from '@/components/landing/HeroCanvasPreview';
 import AiChatMock from '@/components/landing/AiChatMock';
@@ -115,8 +114,6 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-screen bg-[#fafafb] text-zinc-900 font-sans antialiased selection:bg-zinc-200 flex flex-col overflow-hidden">
-      <ColdStartAlert />
-
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-[1]">
         {/* Soft color atmosphere that tracks the pointer */}
         <div
