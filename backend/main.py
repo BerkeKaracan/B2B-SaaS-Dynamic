@@ -141,7 +141,13 @@ async def root():
 @app.get("/health")
 @app.get("/api/health")
 async def health_check():
-    # Safe booleans only — helps verify Cloud Run env injection without leaking secrets
+    # Keep payload stable for CI / load balancers
+    return {"status": "ok"}
+
+
+@app.get("/api/health/auth")
+async def health_auth_diag():
+    # Safe booleans only — verify Cloud Run env injection without leaking secrets
     return {"status": "ok", "auth": supabase_jwt_secret_diag()}
 
 app.include_router(records.router)

@@ -29,6 +29,17 @@ def test_health_check_endpoint():
     assert api_response.status_code == 200
     assert api_response.json() == {"status": "ok"}
 
+
+def test_health_auth_diag_endpoint():
+    """Auth env diagnostics stay on a separate path so /health payload remains stable."""
+    response = client.get("/api/health/auth")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert "auth" in body
+    assert "resolved" in body["auth"]
+    assert "getenv_present" in body["auth"]
+
 def test_unauthorized_access_to_records():
     """
     Ensure that protected routes like /api/records/ block unauthenticated users.
