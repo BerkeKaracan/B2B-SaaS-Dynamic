@@ -15,7 +15,7 @@ import jwt
 import redis
 from fastapi import HTTPException
 
-from core.config import settings
+from core.config import settings, get_supabase_jwt_secret
 
 logger = logging.getLogger("saas_engine.auth_jwt")
 
@@ -85,7 +85,7 @@ def verify_access_token(token: str, *, check_blacklist: bool = True) -> dict[str
     if not token or len(token) < 20:
         raise HTTPException(status_code=401, detail="Invalid session")
 
-    secret = (settings.SUPABASE_JWT_SECRET or "").strip()
+    secret = get_supabase_jwt_secret()
     if not secret:
         raise HTTPException(
             status_code=500,

@@ -1,0 +1,12 @@
+# Backend image context is `backend/` — root .dockerignore does not apply.
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+venv/
+.venv/
+.pytest_cache/
+.mypy_cache/
+*.md
+tests/
