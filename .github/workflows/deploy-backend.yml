@@ -3,9 +3,9 @@ name: Deploy Backend to Cloud Run
 on:
   push:
     branches:
-      - main 
+      - main
     paths:
-      - 'backend/**' 
+      - 'backend/**'
       - '.github/workflows/**'
 
 env:
@@ -45,6 +45,11 @@ jobs:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
           image: ${{ env.IMAGE }}:${{ github.sha }}
-          # Keep Console / prior-revision env + secrets; never wipe them on image deploys
+          # Plain process env (NOT GCP Secret Manager). Requires repo secret:
+          # Settings → Secrets → Actions → SUPABASE_JWT_SECRET
+          env_vars: |-
+            SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }}
+            ENVIRONMENT=production
+          # Merge so other Console env vars (SUPABASE_URL, REDIS_URL, …) are kept
           env_vars_update_strategy: merge
           secrets_update_strategy: merge
