@@ -11,7 +11,7 @@ import time
 import logging
 
 from api.routers import records, auth, tenants, public, notifications, ai, public_ai, github, chat, fx, storage, internal
-from core.config import settings
+from core.config import settings, get_supabase_jwt_secret, supabase_jwt_secret_diag
 
 import sentry_sdk
 from api.routers import tasks
@@ -62,6 +62,22 @@ logger.info(
     IS_PRODUCTION,
     DOCS_URL,
 )
+_jwt_diag = supabase_jwt_secret_diag()
+logger.info(
+    "API boot: SUPABASE_JWT_SECRET getenv_present=%s getenv_non_empty=%s "
+    "settings_non_empty=%s resolved=%s environ_jwt_keys=%s",
+    _jwt_diag["getenv_present"],
+    _jwt_diag["getenv_non_empty"],
+    _jwt_diag["settings_non_empty"],
+    _jwt_diag["resolved"],
+    _jwt_diag["environ_jwt_keys"],
+)
+if not get_supabase_jwt_secret():
+    logger.error(
+        "SUPABASE_JWT_SECRET is missing/empty in this process. "
+        "Set it as a Cloud Run environment variable (not only Secret Manager volume) "
+        "on the active revision, then redeploy."
+    )
 
 # --- MONITORING & SECURITY MIDDLEWARE ---
 @app.middleware("http")
@@ -125,7 +141,8 @@ async def root():
 @app.get("/health")
 @app.get("/api/health")
 async def health_check():
-    return {"status": "ok"}
+    # Safe booleans only — helps verify Cloud Run env injection without leaking secrets
+    return {"status": "ok", "auth": supabase_jwt_secret_diag()}
 
 app.include_router(records.router)
 app.include_router(auth.router)
