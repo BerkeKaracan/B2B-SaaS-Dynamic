@@ -1,7 +1,13 @@
-# Backend image context is `backend/` — root .dockerignore does not apply.
+# Backend build context is `backend/` — root .dockerignore does NOT apply.
+# Keep local secrets out of the image so they cannot shadow Cloud Run env.
 .env
+.env.local
+.env.development
+.env.production
+.env.staging
 .env.*
 !.env.example
+
 __pycache__/
 *.pyc
 venv/

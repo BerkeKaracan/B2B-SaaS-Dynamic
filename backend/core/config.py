@@ -107,16 +107,18 @@ def get_supabase_jwt_secret() -> str:
     """Resolve JWT secret without mutating os.environ.
 
     Precedence:
-      1) os.getenv (Cloud Run / Docker process env)
+      1) os.environ (Cloud Run / Docker process env) — always first
       2) scan os.environ for *JWT*SECRET*
       3) secret volume mount files
       4) Pydantic Settings (local .env only when enabled)
     """
-    # 1) Explicit process env
-    for key in ("SUPABASE_JWT_SECRET", "supabase_jwt_secret"):
-        value = os.getenv(key)
-        if value is not None and value.strip():
-            return value.strip()
+    # 1) Explicit process env (same pattern as auth dependency)
+    secret = os.environ.get("SUPABASE_JWT_SECRET") or ""
+    if secret.strip():
+        return secret.strip()
+    secret = os.environ.get("supabase_jwt_secret") or ""
+    if secret.strip():
+        return secret.strip()
 
     # 2) Alternate names already present in the process environment
     for key, value in os.environ.items():

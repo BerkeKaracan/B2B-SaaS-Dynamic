@@ -33,6 +33,12 @@ RUN pip install --no-cache /wheels/*
 
 COPY --chown=appuser:appgroup . .
 
+# Belt-and-suspenders: never ship a local .env into the runtime image.
+# An empty SUPABASE_JWT_SECRET in a baked .env can confuse Settings; Cloud Run
+# injects real secrets via process environment at runtime.
+RUN find /app -maxdepth 1 -type f \( -name '.env' -o -name '.env.*' \) \
+      ! -name '.env.example' -delete 2>/dev/null || true
+
 USER appuser
 
 # Cloud Run injects PORT; local default 8080.

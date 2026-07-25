@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import time
 from typing import Any
 
@@ -85,7 +86,21 @@ def verify_access_token(token: str, *, check_blacklist: bool = True) -> dict[str
     if not token or len(token) < 20:
         raise HTTPException(status_code=401, detail="Invalid session")
 
-    secret = get_supabase_jwt_secret()
+    # Auth path: ALWAYS prefer live process env over Pydantic/Settings/.env.
+    # Cloud Run injects SUPABASE_JWT_SECRET into os.environ — do not rely on
+    # Settings alone (a baked empty .env must never win).
+    secret = (
+        os.environ.get("SUPABASE_JWT_SECRET")
+        or getattr(settings, "supabase_jwt_secret", None)
+        or getattr(settings, "SUPABASE_JWT_SECRET", None)
+        or get_supabase_jwt_secret()
+        or ""
+    )
+    if isinstance(secret, str):
+        secret = secret.strip()
+    else:
+        secret = ""
+
     if not secret:
         raise HTTPException(
             status_code=500,
