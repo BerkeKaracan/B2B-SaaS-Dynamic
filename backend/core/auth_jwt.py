@@ -1,8 +1,8 @@
 """Local Supabase access-token verification + Redis blacklist.
 
-Prefers HS256 local verify when SUPABASE_JWT_SECRET is set.
-Falls back to supabase.auth.get_user() when the secret is missing/empty
-so production keeps working if Cloud Run env was overwritten with "".
+Prefers HS256 local verify when SUPABASE_JWT_SECRET is set and correct.
+On missing/blank/wrong secret, falls back to GoTrue /auth/v1/user so /me
+never dies on a bad Cloud Run env value.
 """
 
 from __future__ import annotations
@@ -13,12 +13,12 @@ import os
 import time
 from typing import Any
 
+import httpx
 import jwt
 import redis
 from fastapi import HTTPException
 
 from core.config import settings, get_supabase_jwt_secret
-from core.database import supabase
 
 logger = logging.getLogger("saas_engine.auth_jwt")
 
@@ -43,7 +43,7 @@ def remaining_token_ttl_seconds(token: str, fallback: int = 3600) -> int:
         unverified = jwt.decode(
             token,
             options={"verify_signature": False, "verify_exp": False},
-            algorithms=["HS256"],
+            algorithms=["HS256", "ES256", "RS256"],
         )
         exp = unverified.get("exp")
         if exp is None:
@@ -92,24 +92,23 @@ def _jwt_secret() -> str:
     return ""
 
 
-def _verify_via_supabase_auth(token: str) -> dict[str, Any]:
-    """Network fallback when local JWT secret is unavailable."""
-    try:
-        user_res = supabase.auth.get_user(token)
-    except Exception as exc:
-        logger.error("supabase.auth.get_user fallback failed: %s", exc)
-        raise HTTPException(status_code=401, detail="Invalid session") from exc
+def _normalize_token(token: str) -> str:
+    t = (token or "").strip()
+    if t.lower().startswith("bearer "):
+        t = t[7:].strip()
+    return t
 
-    if not user_res or not user_res.user:
-        raise HTTPException(status_code=401, detail="Invalid session")
 
-    user = user_res.user
-    meta = user.user_metadata or {}
+def _identity_from_user_payload(user: dict[str, Any]) -> dict[str, Any]:
+    meta = user.get("user_metadata") or {}
     if not isinstance(meta, dict):
         meta = {}
-    email = str(user.email or "").lower().strip()
+    email = str(user.get("email") or "").lower().strip()
+    user_id = user.get("id") or user.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
     return {
-        "user_id": str(user.id),
+        "user_id": str(user_id),
         "email": email,
         "user_metadata": meta,
         "claims": {},
@@ -117,28 +116,47 @@ def _verify_via_supabase_auth(token: str) -> dict[str, Any]:
     }
 
 
-def verify_access_token(token: str, *, check_blacklist: bool = True) -> dict[str, Any]:
-    """Verify signature + exp (local), or Auth API fallback; then Redis blacklist."""
-    if not token or len(token) < 20:
+def _verify_via_supabase_auth(token: str) -> dict[str, Any]:
+    """Validate token with GoTrue (works without SUPABASE_JWT_SECRET)."""
+    base = (settings.supabase_url or "").rstrip("/")
+    anon = settings.supabase_key or ""
+    if not base or not anon:
+        logger.error("Supabase URL/key missing for auth fallback")
+        raise HTTPException(status_code=500, detail="Auth provider not configured")
+
+    url = f"{base}/auth/v1/user"
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            res = client.get(
+                url,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "apikey": anon,
+                },
+            )
+    except Exception as exc:
+        logger.error("GoTrue /auth/v1/user request failed: %s", exc)
+        raise HTTPException(status_code=401, detail="Invalid session") from exc
+
+    if res.status_code == 401 or res.status_code == 403:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    if res.status_code >= 400:
+        logger.error("GoTrue /auth/v1/user status=%s body=%s", res.status_code, res.text[:200])
         raise HTTPException(status_code=401, detail="Invalid session")
 
-    if check_blacklist:
-        try:
-            if is_token_blacklisted(token):
-                raise HTTPException(status_code=401, detail="Session revoked")
-        except HTTPException:
-            raise
+    try:
+        payload = res.json()
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Invalid session") from exc
 
-    secret = _jwt_secret()
+    # Some responses nest under "user"
+    user = payload.get("user") if isinstance(payload.get("user"), dict) else payload
+    if not isinstance(user, dict):
+        raise HTTPException(status_code=401, detail="Invalid session")
+    return _identity_from_user_payload(user)
 
-    # Empty Cloud Run env var (key present, value "") → Auth API fallback.
-    # Never 500 the whole API because of a missing/blank JWT secret.
-    if not secret:
-        logger.warning(
-            "SUPABASE_JWT_SECRET missing/empty — falling back to supabase.auth.get_user"
-        )
-        return _verify_via_supabase_auth(token)
 
+def _verify_local_jwt(token: str, secret: str) -> dict[str, Any]:
     try:
         claims = jwt.decode(
             token,
@@ -150,17 +168,14 @@ def verify_access_token(token: str, *, check_blacklist: bool = True) -> dict[str
     except jwt.ExpiredSignatureError as exc:
         raise HTTPException(status_code=401, detail="Session expired") from exc
     except jwt.InvalidAudienceError:
-        try:
-            claims = jwt.decode(
-                token,
-                secret,
-                algorithms=["HS256"],
-                options={"require": ["exp", "sub"]},
-            )
-        except jwt.PyJWTError as exc:
-            raise HTTPException(status_code=401, detail="Invalid session") from exc
-    except jwt.PyJWTError as exc:
-        raise HTTPException(status_code=401, detail="Invalid session") from exc
+        claims = jwt.decode(
+            token,
+            secret,
+            algorithms=["HS256"],
+            options={"require": ["exp", "sub"]},
+        )
+    except jwt.PyJWTError:
+        raise
 
     user_id = claims.get("sub")
     if not user_id:
@@ -178,3 +193,39 @@ def verify_access_token(token: str, *, check_blacklist: bool = True) -> dict[str
         "claims": claims,
         "exp": claims.get("exp"),
     }
+
+
+def verify_access_token(token: str, *, check_blacklist: bool = True) -> dict[str, Any]:
+    """Verify signature + exp (local), or GoTrue fallback; then Redis blacklist."""
+    token = _normalize_token(token)
+    if not token or len(token) < 20:
+        raise HTTPException(status_code=401, detail="Invalid session")
+
+    if check_blacklist:
+        try:
+            if is_token_blacklisted(token):
+                raise HTTPException(status_code=401, detail="Session revoked")
+        except HTTPException:
+            raise
+
+    secret = _jwt_secret()
+
+    if secret:
+        try:
+            return _verify_local_jwt(token, secret)
+        except HTTPException:
+            # Expired / revoked-style errors must not fall back
+            raise
+        except jwt.PyJWTError as exc:
+            # Wrong secret, new asymmetric JWT, etc. → Auth API
+            logger.warning(
+                "Local JWT verify failed (%s) — falling back to GoTrue /auth/v1/user",
+                type(exc).__name__,
+            )
+
+    else:
+        logger.warning(
+            "SUPABASE_JWT_SECRET missing/empty — falling back to GoTrue /auth/v1/user"
+        )
+
+    return _verify_via_supabase_auth(token)

@@ -1,6 +1,7 @@
 /**
  * Server-side Supabase access-token validation (signature + expiry).
- * Uses jose local HS256 verify — no Supabase Auth HTTP, no Redis (Edge-safe).
+ * Prefers jose local HS256 when SUPABASE_JWT_SECRET is set.
+ * Falls back to GoTrue /auth/v1/user when secret is missing/wrong (Edge-safe HTTP).
  * Revocation (blacklist) is enforced on FastAPI only.
  */
 import { jwtVerify } from 'jose';
@@ -16,39 +17,70 @@ function jwtSecretKey(): Uint8Array | null {
   return new TextEncoder().encode(secret);
 }
 
+async function verifyViaGoTrue(
+  token: string
+): Promise<VerifiedSupabaseUser | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) return null;
+
+  try {
+    const res = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/user`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: anonKey,
+      },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      id?: string;
+      email?: string;
+      user?: { id?: string; email?: string };
+    };
+    const id = data.id || data.user?.id;
+    if (!id) return null;
+    const email = data.email || data.user?.email;
+    return { id, email: typeof email === 'string' ? email : undefined };
+  } catch {
+    return null;
+  }
+}
+
 export async function verifySupabaseAccessToken(
   token: string | undefined | null
 ): Promise<VerifiedSupabaseUser | null> {
   if (!token || token.length < 20) return null;
 
   const key = jwtSecretKey();
-  if (!key) {
-    console.error('SUPABASE_JWT_SECRET is not configured for middleware');
-    return null;
-  }
-
-  try {
-    let payload;
+  if (key) {
     try {
-      ({ payload } = await jwtVerify(token, key, {
-        algorithms: ['HS256'],
-        audience: 'authenticated',
-      }));
+      let payload;
+      try {
+        ({ payload } = await jwtVerify(token, key, {
+          algorithms: ['HS256'],
+          audience: 'authenticated',
+        }));
+      } catch {
+        ({ payload } = await jwtVerify(token, key, {
+          algorithms: ['HS256'],
+        }));
+      }
+
+      const id = typeof payload.sub === 'string' ? payload.sub : null;
+      if (id) {
+        const email =
+          typeof payload.email === 'string' ? payload.email : undefined;
+        return { id, email };
+      }
     } catch {
-      ({ payload } = await jwtVerify(token, key, {
-        algorithms: ['HS256'],
-      }));
+      // Wrong secret / asymmetric JWT — try GoTrue below
     }
-
-    const id = typeof payload.sub === 'string' ? payload.sub : null;
-    if (!id) return null;
-
-    const email =
-      typeof payload.email === 'string' ? payload.email : undefined;
-    return { id, email };
-  } catch {
-    return null;
   }
+
+  return verifyViaGoTrue(token);
 }
 
 const UUID_RE =
@@ -63,7 +95,7 @@ export function extractDashboardTenantId(basePath: string): string | null {
 
 /**
  * Membership is enforced on FastAPI (get_user_role + tenant_roles), not here.
- * Edge must not call Redis or full tenant GET — keep middleware crypto-only.
+ * Edge must not call Redis or full tenant GET — keep middleware crypto-only when possible.
  */
 export async function verifyTenantMembership(
   _token: string,
