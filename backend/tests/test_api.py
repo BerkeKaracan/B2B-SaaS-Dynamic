@@ -37,8 +37,12 @@ def test_health_auth_diag_endpoint():
     body = response.json()
     assert body["status"] == "ok"
     assert "auth" in body
-    assert "resolved" in body["auth"]
-    assert "getenv_present" in body["auth"]
+    auth = body["auth"]
+    assert "resolved" in auth
+    assert "getenv_present" in auth
+    assert "dotenv_loading_enabled" in auth
+    assert "supabase_url_getenv_present" in auth
+    assert "secret_mount_files" in auth
 
 def test_unauthorized_access_to_records():
     """
