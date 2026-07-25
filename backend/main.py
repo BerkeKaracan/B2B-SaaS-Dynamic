@@ -11,7 +11,7 @@ import time
 import logging
 
 from api.routers import records, auth, tenants, public, notifications, ai, public_ai, github, chat, fx, storage, internal
-from core.config import settings, get_supabase_jwt_secret, supabase_jwt_secret_diag
+from core.config import settings, supabase_jwt_secret_diag
 
 import sentry_sdk
 from api.routers import tasks
@@ -62,28 +62,8 @@ logger.info(
     IS_PRODUCTION,
     DOCS_URL,
 )
-_jwt_diag = supabase_jwt_secret_diag()
-logger.info(
-    "API boot: SUPABASE_JWT_SECRET k_service=%r dotenv_loading=%s dotenv_file=%s "
-    "supabase_url_present=%s getenv_present=%s getenv_non_empty=%s "
-    "settings_non_empty=%s resolved=%s mount_files=%s environ_jwt_keys=%s",
-    _jwt_diag.get("k_service"),
-    _jwt_diag.get("dotenv_loading_enabled"),
-    _jwt_diag.get("dotenv_file_present"),
-    _jwt_diag.get("supabase_url_getenv_present"),
-    _jwt_diag["getenv_present"],
-    _jwt_diag["getenv_non_empty"],
-    _jwt_diag["settings_non_empty"],
-    _jwt_diag["resolved"],
-    _jwt_diag.get("secret_mount_files"),
-    _jwt_diag["environ_jwt_keys"],
-)
-if not get_supabase_jwt_secret():
-    logger.error(
-        "SUPABASE_JWT_SECRET is missing/empty in this process. "
-        "Ensure the active Cloud Run revision exposes it as an environment variable "
-        "(or a readable secret volume file). Check GET /api/health/auth."
-    )
+# Do not log JWT/env secret diagnostics (CodeQL clear-text logging).
+# Ops: GET /api/health/auth returns safe booleans only.
 
 # --- MONITORING & SECURITY MIDDLEWARE ---
 @app.middleware("http")
