@@ -27,17 +27,12 @@ if settings.SENTRY_DSN:
 
 
 def _resolve_is_production() -> bool:
-    """True when ENVIRONMENT/APP_ENV is production, or when running on Render."""
+    """True when ENVIRONMENT/APP_ENV is production (e.g. Cloud Run)."""
     env_raw = os.getenv("ENVIRONMENT")
     if env_raw is None or not str(env_raw).strip():
         env_raw = os.getenv("APP_ENV")
     env = str(env_raw or "").strip().lower()
-    if env in {"production", "prod"}:
-        return True
-    # Render sets RENDER=true; hide docs even if ENVIRONMENT was forgotten.
-    if os.getenv("RENDER", "").strip().lower() in {"true", "1"}:
-        return True
-    return False
+    return env in {"production", "prod"}
 
 
 IS_PRODUCTION = _resolve_is_production()
@@ -61,10 +56,9 @@ app = FastAPI(
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("saas_engine")
 logger.info(
-    "API boot: ENVIRONMENT=%r APP_ENV=%r RENDER=%r is_production=%s docs_url=%s",
+    "API boot: ENVIRONMENT=%r APP_ENV=%r is_production=%s docs_url=%s",
     os.getenv("ENVIRONMENT"),
     os.getenv("APP_ENV"),
-    os.getenv("RENDER"),
     IS_PRODUCTION,
     DOCS_URL,
 )
@@ -105,8 +99,7 @@ async def monitor_and_secure_requests(request: Request, call_next):
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://saas-engine-backend.onrender.com",
-    "https://b2-b-saa-s-dynamic.vercel.app"
+    "https://b2-b-saa-s-dynamic.vercel.app",
 ]
 
 app.add_middleware(
@@ -122,7 +115,7 @@ app.add_middleware(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
-# Outermost: trust X-Forwarded-* from Render so request.client + SlowAPI see real IPs.
+# Outermost: trust X-Forwarded-* from Cloud Run / reverse proxies so request.client + SlowAPI see real IPs.
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 @app.get("/")

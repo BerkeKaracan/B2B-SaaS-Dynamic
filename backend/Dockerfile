@@ -35,7 +35,7 @@ COPY --chown=appuser:appgroup . .
 
 USER appuser
 
-# Cloud Run / Render inject PORT; local default 8080.
+# Cloud Run injects PORT; local default 8080.
 EXPOSE 8080
 
 # Default 1 worker for small instances. Raise WEB_CONCURRENCY when memory allows.

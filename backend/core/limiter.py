@@ -4,7 +4,7 @@ from fastapi import Request
 
 
 def get_real_ip(request: Request) -> str:
-    """Client IP behind Render / reverse proxies (X-Forwarded-For aware).
+    """Client IP behind Cloud Run / reverse proxies (X-Forwarded-For aware).
 
     Prefer proxy headers; fall back to request.client (populated by
     uvicorn ProxyHeadersMiddleware when trusted).

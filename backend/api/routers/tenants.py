@@ -142,7 +142,7 @@ def update_tenant_tier(
         "yes",
     )
     environment = os.getenv("ENVIRONMENT", "development").lower()
-    is_prod = environment == "production" or os.getenv("RENDER", "").lower() == "true"
+    is_prod = environment == "production"
     is_dev = environment in ("development", "dev", "local")
 
     if is_prod or not (is_dev and allow_demo):

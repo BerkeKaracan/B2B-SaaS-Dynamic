@@ -22,7 +22,7 @@ import {
 
 const GITHUB_REPO = 'https://github.com/BerkeKaracan/B2B-SaaS-Dynamic';
 
-/** Wait for Render cold starts before surfacing an error. */
+/** Wait for backend cold starts before surfacing an error. */
 const RETRY_BUDGET_MS = 60_000;
 const RETRY_INTERVAL_MS = 3_000;
 const ATTEMPT_TIMEOUT_MS = 12_000;
@@ -80,7 +80,7 @@ async function fetchChangelogWithRetry(
         return (await res.json()) as ChangelogUpdate[];
       }
     } catch {
-      // Render may still be waking — keep trying within the budget.
+      // Backend may still be waking — keep trying within the budget.
     }
 
     const elapsed = Date.now() - startedAt;

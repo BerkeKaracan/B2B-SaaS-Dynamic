@@ -6,11 +6,10 @@ export default function ColdStartAlert() {
 
   useEffect(() => {
     const wakeUpServer = async () => {
-      const API_BASE_URL =
-        process.env.NEXT_PUBLIC_API_URL ||
-        "https://saas-engine-backend.onrender.com";
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+      if (!API_BASE_URL) return;
       try {
-        await fetch(`${API_BASE_URL}/health`);
+        await fetch(`${API_BASE_URL.replace(/\/$/, "")}/health`);
       } catch (error) {
         console.error("Wake up call failed:", error);
       }
