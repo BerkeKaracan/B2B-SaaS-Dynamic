@@ -39,17 +39,30 @@ jobs:
           docker push ${{ env.IMAGE }}:${{ github.sha }}
           docker push ${{ env.IMAGE }}:latest
 
+      # Critical: empty GitHub secret expands to SUPABASE_JWT_SECRET= and
+      # merge-overwrites a non-empty Console value with "".
+      - name: Require non-empty SUPABASE_JWT_SECRET
+        env:
+          SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_JWT_SECRET// }" ]; then
+            echo "::error::GitHub Actions secret SUPABASE_JWT_SECRET is empty or missing."
+            echo "GitHub → Settings → Secrets and variables → Actions → New repository secret"
+            echo "Name: SUPABASE_JWT_SECRET"
+            echo "Value: Supabase → Project Settings → API → JWT Secret (not anon/service_role)"
+            exit 1
+          fi
+          echo "SUPABASE_JWT_SECRET length=${#SUPABASE_JWT_SECRET}"
+
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
           image: ${{ env.IMAGE }}:${{ github.sha }}
-          # Plain process env (NOT GCP Secret Manager). Requires repo secret:
-          # Settings → Secrets → Actions → SUPABASE_JWT_SECRET
           env_vars: |-
             SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }}
             ENVIRONMENT=production
-          # Merge so other Console env vars (SUPABASE_URL, REDIS_URL, …) are kept
           env_vars_update_strategy: merge
           secrets_update_strategy: merge

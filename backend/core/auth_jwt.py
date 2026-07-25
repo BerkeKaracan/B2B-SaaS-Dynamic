@@ -1,7 +1,8 @@
 """Local Supabase access-token verification + Redis blacklist.
 
-Validates HS256 JWTs with SUPABASE_JWT_SECRET (no Auth HTTP round-trip).
-User-scoped PostgREST must still use get_auth_client(token) so RLS sees the JWT.
+Prefers HS256 local verify when SUPABASE_JWT_SECRET is set.
+Falls back to supabase.auth.get_user() when the secret is missing/empty
+so production keeps working if Cloud Run env was overwritten with "".
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ import redis
 from fastapi import HTTPException
 
 from core.config import settings, get_supabase_jwt_secret
+from core.database import supabase
 
 logger = logging.getLogger("saas_engine.auth_jwt")
 
@@ -78,34 +80,47 @@ def blacklist_auth_token(token: str | None) -> None:
         logger.error("Redis blacklist write error: %s", exc)
 
 
-def verify_access_token(token: str, *, check_blacklist: bool = True) -> dict[str, Any]:
-    """Verify signature + exp, then optionally enforce Redis blacklist.
+def _jwt_secret() -> str:
+    """Non-empty JWT secret from process env / settings, or ''."""
+    for candidate in (
+        os.environ.get("SUPABASE_JWT_SECRET"),
+        getattr(settings, "supabase_jwt_secret", None),
+        get_supabase_jwt_secret(),
+    ):
+        if isinstance(candidate, str) and candidate.strip():
+            return candidate.strip()
+    return ""
 
-    Returns claim dict including: user_id, email, user_metadata, claims, exp.
-    """
-    if not token or len(token) < 20:
+
+def _verify_via_supabase_auth(token: str) -> dict[str, Any]:
+    """Network fallback when local JWT secret is unavailable."""
+    try:
+        user_res = supabase.auth.get_user(token)
+    except Exception as exc:
+        logger.error("supabase.auth.get_user fallback failed: %s", exc)
+        raise HTTPException(status_code=401, detail="Invalid session") from exc
+
+    if not user_res or not user_res.user:
         raise HTTPException(status_code=401, detail="Invalid session")
 
-    # Auth path: ALWAYS prefer live process env over Pydantic/Settings/.env.
-    # Cloud Run injects SUPABASE_JWT_SECRET into os.environ — do not rely on
-    # Settings alone (a baked empty .env must never win).
-    secret = (
-        os.environ.get("SUPABASE_JWT_SECRET")
-        or getattr(settings, "supabase_jwt_secret", None)
-        or getattr(settings, "SUPABASE_JWT_SECRET", None)
-        or get_supabase_jwt_secret()
-        or ""
-    )
-    if isinstance(secret, str):
-        secret = secret.strip()
-    else:
-        secret = ""
+    user = user_res.user
+    meta = user.user_metadata or {}
+    if not isinstance(meta, dict):
+        meta = {}
+    email = str(user.email or "").lower().strip()
+    return {
+        "user_id": str(user.id),
+        "email": email,
+        "user_metadata": meta,
+        "claims": {},
+        "exp": None,
+    }
 
-    if not secret:
-        raise HTTPException(
-            status_code=500,
-            detail="SUPABASE_JWT_SECRET is not configured",
-        )
+
+def verify_access_token(token: str, *, check_blacklist: bool = True) -> dict[str, Any]:
+    """Verify signature + exp (local), or Auth API fallback; then Redis blacklist."""
+    if not token or len(token) < 20:
+        raise HTTPException(status_code=401, detail="Invalid session")
 
     if check_blacklist:
         try:
@@ -113,6 +128,16 @@ def verify_access_token(token: str, *, check_blacklist: bool = True) -> dict[str
                 raise HTTPException(status_code=401, detail="Session revoked")
         except HTTPException:
             raise
+
+    secret = _jwt_secret()
+
+    # Empty Cloud Run env var (key present, value "") → Auth API fallback.
+    # Never 500 the whole API because of a missing/blank JWT secret.
+    if not secret:
+        logger.warning(
+            "SUPABASE_JWT_SECRET missing/empty — falling back to supabase.auth.get_user"
+        )
+        return _verify_via_supabase_auth(token)
 
     try:
         claims = jwt.decode(
