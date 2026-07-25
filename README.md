@@ -28,7 +28,7 @@ Live intent: LinkedIn / portfolio share with a working register → dashboard �
 - **Backend:** FastAPI, Pydantic v2, Redis (rate limiting)
 - **Data / auth:** Supabase (Postgres + Auth)
 - **CI:** GitHub Actions (`ci.yml` — lint, build, pytest, Playwright)
-- **Deploy path:** Docker Compose (primary). `k8s/` is reference only.
+- **Deploy path:** Docker Compose (local). Backend target: Google Cloud Run + Artifact Registry.
 
 ---
 
@@ -125,7 +125,6 @@ Privacy / legal pages already state this is a **portfolio demonstration**, not a
 ├── backend/          # FastAPI app, models, tests
 ├── src/              # Next.js app, components, stores
 ├── messages/         # en / tr i18n
-├── k8s/              # Optional reference manifests (not primary deploy)
 └── .github/workflows # ci.yml (+ optional db-backup.yml)
 ```
 

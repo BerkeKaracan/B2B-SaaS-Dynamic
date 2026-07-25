@@ -35,7 +35,8 @@ COPY --chown=appuser:appgroup . .
 
 USER appuser
 
-EXPOSE 8000
+# Cloud Run / Render inject PORT; local default 8080.
+EXPOSE 8080
 
-# Default 1 worker for small instances (Render / small ECS). Raise WEB_CONCURRENCY when memory allows.
-CMD ["sh", "-c", "gunicorn main:app --workers ${WEB_CONCURRENCY:-1} --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 120"]
+# Default 1 worker for small instances. Raise WEB_CONCURRENCY when memory allows.
+CMD ["sh", "-c", "gunicorn main:app --workers ${WEB_CONCURRENCY:-1} --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8080} --timeout 120"]
