@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState, memo } from "react";
 import { BlockContent } from "@/types/record";
 import { fetchAPI } from "@/services/api";
-import ReactMarkdown from "react-markdown";
+import { MarkdownContent } from "@/components/ui/MarkdownContent";
 import {
   MoreHorizontal,
   X,
@@ -248,29 +248,7 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
             textDecoration: isUnderline ? "underline" : "none",
           }}
         >
-          <div className="space-y-1">
-            <ReactMarkdown
-              components={{
-                strong: ({ ...props }) => (
-                  <span className="font-bold" {...props} />
-                ),
-                ul: ({ ...props }) => (
-                  <ul className="list-disc ml-4 mt-1" {...props} />
-                ),
-                ol: ({ ...props }) => (
-                  <ol className="list-decimal ml-4 mt-1" {...props} />
-                ),
-                li: ({ ...props }) => (
-                  <li className="mt-0.5" {...props} />
-                ),
-                p: ({ ...props }) => (
-                  <p className="mb-2 last:mb-0" {...props} />
-                ),
-              }}
-            >
-              {text}
-            </ReactMarkdown>
-          </div>
+          <MarkdownContent variant="compact">{text}</MarkdownContent>
         </div>
       )}
 

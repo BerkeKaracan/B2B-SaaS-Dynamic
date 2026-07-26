@@ -14,7 +14,7 @@ import {
   Lightbulb,
   Zap,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import { MarkdownContent } from "@/components/ui/MarkdownContent";
 
 interface Message {
   role: "user" | "assistant";
@@ -188,41 +188,7 @@ export default function AIPage({
                       : "bg-white/90 dark:bg-zinc-900/90 backdrop-blur border border-teal-100/80 dark:border-teal-500/15 text-zinc-800 dark:text-zinc-100 rounded-tl-sm"
                   }`}
                 >
-                  <div className="prose prose-sm sm:prose-base max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:text-zinc-50 dark:prose-invert">
-                    <ReactMarkdown
-                      components={{
-                        strong: ({ ...props }) => (
-                          <span className="font-bold" {...props} />
-                        ),
-                        ul: ({ ...props }) => (
-                          <ul
-                            className="list-disc ml-4 my-2 space-y-1"
-                            {...props}
-                          />
-                        ),
-                        ol: ({ ...props }) => (
-                          <ol
-                            className="list-decimal ml-4 my-2 space-y-1"
-                            {...props}
-                          />
-                        ),
-                        li: ({ ...props }) => (
-                          <li className="mt-0.5" {...props} />
-                        ),
-                        h3: ({ ...props }) => (
-                          <h3
-                            className="text-lg font-bold mt-4 mb-2"
-                            {...props}
-                          />
-                        ),
-                        p: ({ ...props }) => (
-                          <p className="mb-3 last:mb-0" {...props} />
-                        ),
-                      }}
-                    >
-                      {msg.content}
-                    </ReactMarkdown>
-                  </div>
+                  <MarkdownContent>{msg.content}</MarkdownContent>
                 </div>
 
                 {msg.role === "assistant" && (

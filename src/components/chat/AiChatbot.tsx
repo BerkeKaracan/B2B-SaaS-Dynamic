@@ -4,8 +4,8 @@ import { useParams } from 'next/navigation';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { fetchAPI } from '@/services/api';
 import { Send, Loader2, Database, CheckCircle2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 import toast from 'react-hot-toast';
+import { MarkdownContent } from '@/components/ui/MarkdownContent';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -521,29 +521,7 @@ export default function AiChatbot() {
                   : 'bg-white dark:bg-[#1E1E20] text-zinc-800 dark:text-zinc-200 border border-zinc-200/60 dark:border-zinc-800 rounded-bl-sm'
               }`}
             >
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown
-                  components={{
-                    strong: ({ ...props }) => (
-                      <span className="font-bold" {...props} />
-                    ),
-                    ul: ({ ...props }) => (
-                      <ul className="list-disc ml-4 mt-1" {...props} />
-                    ),
-                    ol: ({ ...props }) => (
-                      <ol className="list-decimal ml-4 mt-1" {...props} />
-                    ),
-                    li: ({ ...props }) => (
-                      <li className="mt-0.5" {...props} />
-                    ),
-                    p: ({ ...props }) => (
-                      <p className="mb-2 last:mb-0" {...props} />
-                    ),
-                  }}
-                >
-                  {msg.content}
-                </ReactMarkdown>
-              </div>
+              <MarkdownContent variant="compact">{msg.content}</MarkdownContent>
             </div>
           </div>
         ))}

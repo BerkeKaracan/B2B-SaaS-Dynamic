@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Send, Bot, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getApiBaseUrl } from '@/lib/apiBase';
+import { MarkdownContent } from '@/components/ui/MarkdownContent';
 
 export default function LandingChatbot() {
   const [messages, setMessages] = useState<
@@ -63,38 +64,6 @@ export default function LandingChatbot() {
     }
   };
 
-  const parseMarkdown = (text: string) => {
-    if (!text) return null;
-    return text.split('\n').map((line, i) => {
-      const isListItem = line.startsWith('- ');
-      const content = isListItem ? line.slice(2) : line;
-
-      const parts = content.split(/\*\*(.*?)\*\*/g);
-      const renderedContent = parts.map((part, j) =>
-        j % 2 === 1 ? (
-          <strong key={j} className="font-bold text-indigo-950">
-            {part}
-          </strong>
-        ) : (
-          part
-        )
-      );
-
-      if (isListItem) {
-        return (
-          <li key={i} className="ml-4 list-disc">
-            {renderedContent}
-          </li>
-        );
-      }
-      return (
-        <p key={i} className="my-2">
-          {renderedContent}
-        </p>
-      );
-    });
-  };
-
   return (
     <section className="py-24 px-6 max-w-5xl mx-auto">
       <div className="bg-white rounded-[2rem] border border-zinc-200/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col md:flex-row group">
@@ -147,9 +116,9 @@ export default function LandingChatbot() {
                   }`}
                 >
                   {msg.role === 'ai' ? (
-                    <div className="prose prose-sm max-w-none text-zinc-700 prose-p:leading-relaxed prose-strong:text-indigo-950">
-                      {parseMarkdown(msg.text)}
-                    </div>
+                    <MarkdownContent variant="compact" className="text-zinc-700">
+                      {msg.text}
+                    </MarkdownContent>
                   ) : (
                     <p className="whitespace-pre-wrap">{msg.text}</p>
                   )}

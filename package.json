@@ -35,6 +35,8 @@
     "react-hot-toast": "^2.6.0",
     "react-markdown": "^10.1.0",
     "recharts": "^3.9.2",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "resend": "^6.14.0",
     "sonner": "^2.0.7",
     "y-protocols": "^1.0.7",
