@@ -12,46 +12,31 @@ describe('featureGate', () => {
     expect(normalizeTier('PRO')).toBe('pro');
   });
 
-  it('enables AI canvas generator for advanced and pro only', () => {
+  it('enables AI canvas generator for advanced and pro only (local)', () => {
     expect(isFeatureEnabledLocal(AI_CANVAS_GENERATOR, 'basic')).toBe(false);
     expect(isFeatureEnabledLocal(AI_CANVAS_GENERATOR, 'free')).toBe(false);
     expect(isFeatureEnabledLocal(AI_CANVAS_GENERATOR, 'advanced')).toBe(true);
     expect(isFeatureEnabledLocal(AI_CANVAS_GENERATOR, 'pro')).toBe(true);
   });
 
-  it('returns false for unknown keys', () => {
+  it('returns false for unknown keys locally', () => {
     expect(isFeatureEnabledLocal('unknown.flag', 'pro')).toBe(false);
   });
 
-  it('keeps advanced/pro on even when Pulse returns false', () => {
-    const advanced = resolveFeatureEnabled(AI_CANVAS_GENERATOR, 'advanced', {
+  it('uses Pulse SoT when remote ok (even if local would allow)', () => {
+    const advancedOff = resolveFeatureEnabled(AI_CANVAS_GENERATOR, 'advanced', {
       status: 'ok',
       enabled: false,
     });
-    expect(advanced.enabled).toBe(true);
-    expect(advanced.source).toBe('tier');
+    expect(advancedOff.enabled).toBe(false);
+    expect(advancedOff.source).toBe('remote');
 
-    const pro = resolveFeatureEnabled(AI_CANVAS_GENERATOR, 'pro', {
-      status: 'ok',
-      enabled: false,
-    });
-    expect(pro.enabled).toBe(true);
-    expect(pro.source).toBe('tier');
-  });
-
-  it('lets Pulse grant basic trials', () => {
-    const granted = resolveFeatureEnabled(AI_CANVAS_GENERATOR, 'basic', {
+    const basicOn = resolveFeatureEnabled(AI_CANVAS_GENERATOR, 'basic', {
       status: 'ok',
       enabled: true,
     });
-    expect(granted.enabled).toBe(true);
-    expect(granted.source).toBe('remote');
-
-    const denied = resolveFeatureEnabled(AI_CANVAS_GENERATOR, 'basic', {
-      status: 'ok',
-      enabled: false,
-    });
-    expect(denied.enabled).toBe(false);
+    expect(basicOn.enabled).toBe(true);
+    expect(basicOn.source).toBe('remote');
   });
 
   it('falls back to tier when Pulse is down', () => {
@@ -65,5 +50,14 @@ describe('featureGate', () => {
       status: 'error',
     });
     expect(basic.enabled).toBe(false);
+    expect(basic.source).toBe('fallback');
+  });
+
+  it('falls back to tier when Pulse is unset', () => {
+    const pro = resolveFeatureEnabled(AI_CANVAS_GENERATOR, 'pro', {
+      status: 'unset',
+    });
+    expect(pro.enabled).toBe(true);
+    expect(pro.source).toBe('fallback');
   });
 });

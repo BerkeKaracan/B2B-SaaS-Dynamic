@@ -43,42 +43,44 @@ jobs:
           docker push ${{ env.IMAGE }}:${{ github.sha }}
           docker push ${{ env.IMAGE }}:latest
 
-      # Empty GitHub secret must NEVER be written as SUPABASE_JWT_SECRET=
-      # (merge would overwrite a good Console value with "").
-      - name: Check SUPABASE_JWT_SECRET
-        id: jwt
+      - name: Prepare Cloud Run env vars
+        id: envprep
         env:
           SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+          FEATURE_FLAGS_URL: ${{ secrets.FEATURE_FLAGS_URL }}
+          FEATURE_FLAGS_API_KEY: ${{ secrets.FEATURE_FLAGS_API_KEY }}
         run: |
-          if [ -z "${SUPABASE_JWT_SECRET// }" ]; then
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::JWT GitHub secret is empty — deploying image without touching that Cloud Run env var (Auth API fallback remains available)."
-          else
-            echo "present=true" >> "$GITHUB_OUTPUT"
-            echo "JWT GitHub secret is present (non-empty)."
-          fi
+          set -euo pipefail
+          {
+            echo "ENVIRONMENT=production"
+            if [ -n "${SUPABASE_JWT_SECRET// }" ]; then
+              echo "SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}"
+              echo "JWT secret will be merged into Cloud Run." >&2
+            else
+              echo "::warning::JWT GitHub secret empty — not overwriting Cloud Run JWT env." >&2
+            fi
+            if [ -n "${FEATURE_FLAGS_URL// }" ] && [ -n "${FEATURE_FLAGS_API_KEY// }" ]; then
+              echo "FEATURE_FLAGS_URL=${FEATURE_FLAGS_URL}"
+              echo "FEATURE_FLAGS_API_KEY=${FEATURE_FLAGS_API_KEY}"
+              echo "Pulse Flag URL+delivery key will be merged into Cloud Run." >&2
+            else
+              echo "::warning::FEATURE_FLAGS_URL/API_KEY incomplete — not overwriting Cloud Run Pulse env." >&2
+            fi
+          } > /tmp/cloudrun.env
+          echo "cloudrun.env keys:" >&2
+          cut -d= -f1 /tmp/cloudrun.env >&2
+          {
+            echo "vars<<EOF"
+            cat /tmp/cloudrun.env
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Deploy to Cloud Run (with JWT secret)
-        if: steps.jwt.outputs.present == 'true'
+      - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
           image: ${{ env.IMAGE }}:${{ github.sha }}
-          env_vars: |-
-            SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }}
-            ENVIRONMENT=production
-          env_vars_update_strategy: merge
-          secrets_update_strategy: merge
-
-      - name: Deploy to Cloud Run (without overwriting JWT)
-        if: steps.jwt.outputs.present != 'true'
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ env.SERVICE }}
-          region: ${{ env.REGION }}
-          image: ${{ env.IMAGE }}:${{ github.sha }}
-          env_vars: |-
-            ENVIRONMENT=production
+          env_vars: ${{ steps.envprep.outputs.vars }}
           env_vars_update_strategy: merge
           secrets_update_strategy: merge

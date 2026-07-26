@@ -1,13 +1,13 @@
 """Feature-flag consumer for SaaS Engine.
 
-Flag management lives in Pulse Flag. This module evaluates whether a
-feature is enabled for a tenant, merged with local plan entitlements.
+Flag management lives in Pulse Flag (multi-tenant by project delivery key).
+This module evaluates whether a feature is enabled for a tenant.
 
-Resolution for ai.canvas_generator:
-1. Resolve tenants.tier from DB (platform admin manages tiers).
-2. advanced|pro → enabled via local entitlement.
-3. If Pulse is reachable → Pulse can additionally grant (e.g. basic trials).
-4. If Pulse unset/unreachable → local tier matrix only.
+Resolution:
+1. Resolve tenants.tier from DB.
+2. If FEATURE_FLAGS_URL set and Pulse OK → Pulse is source of truth.
+3. If Pulse unset/unreachable/error → local tier fallback for known keys
+   (ai.canvas_generator → advanced|pro).
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ logger = logging.getLogger("saas_engine.feature_gate")
 
 AI_CANVAS_GENERATOR = "ai.canvas_generator"
 
-# Local entitlement when Pulse is unset/unreachable, and always as tier unlock.
+# Local entitlement ONLY when Pulse is unset/unreachable.
 _LOCAL_TIER_FLAGS: dict[str, set[str]] = {
     AI_CANVAS_GENERATOR: {"advanced", "pro"},
 }
@@ -137,17 +137,11 @@ def resolve_feature_enabled(
     remote_status: RemoteStatus,
     remote_enabled: Optional[bool],
 ) -> bool:
-    """Merge Pulse result with local tier entitlements (mirrors Next featureGate)."""
-    local = _evaluate_local(key, tier)
-    has_local = key in _LOCAL_TIER_FLAGS
+    """Pulse SoT when OK; local tier matrix only as fallback (mirrors Next featureGate)."""
+    if remote_status == "ok":
+        return bool(remote_enabled)
 
-    if remote_status in ("unset", "error"):
-        return local
-
-    pulse_on = bool(remote_enabled)
-    if has_local:
-        return local or pulse_on
-    return pulse_on
+    return _evaluate_local(key, tier)
 
 
 def is_feature_enabled(

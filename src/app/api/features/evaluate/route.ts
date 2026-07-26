@@ -60,7 +60,8 @@ function buildTrustedRemoteEvaluateUrl(
  * evaluation and only used as a last-resort local fallback label.
  *
  * GET /api/features/evaluate?key=&tenant_id=
- * → { enabled: boolean, source: "remote" | "fallback" | "error" }
+ * → { enabled: boolean, source: "remote" | "fallback" }
+ * Pulse OK → SoT. Pulse down/unset → local tier fallback for known keys.
  */
 export async function GET(request: NextRequest) {
   const auth = await requireApiAuth(request);

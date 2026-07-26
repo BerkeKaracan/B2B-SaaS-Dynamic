@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { normalizeTier } from '@/lib/featureGate';
+import { normalizeTier, resolveFeatureEnabled } from '@/lib/featureGate';
 import {
   resolveFeatureFlagsApiKey,
   resolveFeatureFlagsUrl,
@@ -50,16 +50,27 @@ export async function GET(request: NextRequest) {
     tier,
     remoteStatus: null as number | null,
     remoteEnabled: null as boolean | null,
+    resolvedEnabled: null as boolean | null,
+    source: null as string | null,
     detail: null as string | null,
   };
 
   if (!base) {
+    const resolved = resolveFeatureEnabled(key, tier, { status: 'unset' });
+    result.resolvedEnabled = resolved.enabled;
+    result.source = resolved.source;
     result.detail =
       'FEATURE_FLAGS_URL missing on this Vercel deployment. Add it and Redeploy.';
+    result.ok = resolved.enabled;
     return NextResponse.json(result);
   }
   if (!apiKey) {
-    result.detail = 'FEATURE_FLAGS_API_KEY missing';
+    const resolved = resolveFeatureEnabled(key, tier, { status: 'error' });
+    result.resolvedEnabled = resolved.enabled;
+    result.source = resolved.source;
+    result.detail =
+      'FEATURE_FLAGS_API_KEY missing (must be Pulse project delivery key)';
+    result.ok = resolved.enabled;
     return NextResponse.json(result);
   }
   if (!tenantId) {
@@ -93,9 +104,28 @@ export async function GET(request: NextRequest) {
       result.detail = bodyText.slice(0, 120);
     }
     result.remoteEnabled = enabled;
-    result.ok = res.ok && enabled === true;
+
+    if (res.ok && typeof enabled === 'boolean') {
+      const resolved = resolveFeatureEnabled(key, tier, {
+        status: 'ok',
+        enabled,
+      });
+      result.resolvedEnabled = resolved.enabled;
+      result.source = resolved.source;
+      result.ok = resolved.enabled;
+    } else {
+      const resolved = resolveFeatureEnabled(key, tier, { status: 'error' });
+      result.resolvedEnabled = resolved.enabled;
+      result.source = resolved.source;
+      result.ok = resolved.enabled;
+      if (!result.detail) result.detail = `remote_${res.status}`;
+    }
     return NextResponse.json(result);
   } catch (err) {
+    const resolved = resolveFeatureEnabled(key, tier, { status: 'error' });
+    result.resolvedEnabled = resolved.enabled;
+    result.source = resolved.source;
+    result.ok = resolved.enabled;
     result.detail = err instanceof Error ? err.message : 'unreachable';
     return NextResponse.json(result);
   }
