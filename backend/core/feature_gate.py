@@ -1,12 +1,13 @@
 """Feature-flag consumer for SaaS Engine.
 
-Flag management lives in Pulse Flag. This module only evaluates
-whether a feature is enabled for a tenant.
+Flag management lives in Pulse Flag. This module evaluates whether a
+feature is enabled for a tenant, merged with local plan entitlements.
 
-Resolution order:
-1. If FEATURE_FLAGS_URL is set → GET {url}/evaluate (Pulse is source of truth)
-2. If URL unset → local tier fallback for known keys (dev only)
-3. If URL set but remote fails → fail closed (False). Never mask with local rules.
+Resolution for ai.canvas_generator:
+1. Resolve tenants.tier from DB (platform admin manages tiers).
+2. advanced|pro → enabled via local entitlement.
+3. If Pulse is reachable → Pulse can additionally grant (e.g. basic trials).
+4. If Pulse unset/unreachable → local tier matrix only.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Optional
+from typing import Literal, Optional, Tuple
 from urllib.error import URLError, HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -27,10 +28,12 @@ logger = logging.getLogger("saas_engine.feature_gate")
 
 AI_CANVAS_GENERATOR = "ai.canvas_generator"
 
-# Local fallback ONLY when FEATURE_FLAGS_URL is unset.
+# Local entitlement when Pulse is unset/unreachable, and always as tier unlock.
 _LOCAL_TIER_FLAGS: dict[str, set[str]] = {
     AI_CANVAS_GENERATOR: {"advanced", "pro"},
 }
+
+RemoteStatus = Literal["unset", "ok", "error"]
 
 
 def normalize_tier(raw: Optional[str]) -> str:
@@ -66,18 +69,20 @@ def assert_tenant_member(tenant_id: str, user_id: str) -> None:
         raise HTTPException(status_code=403, detail="Workspace access denied.")
 
 
-def _evaluate_remote(key: str, tenant_id: str, tier: str) -> Optional[bool]:
-    """Returns enabled bool, or None if FEATURE_FLAGS_URL is not configured."""
+def _evaluate_remote(
+    key: str, tenant_id: str, tier: str
+) -> Tuple[RemoteStatus, Optional[bool]]:
+    """Returns (status, enabled). enabled is set only when status == 'ok'."""
     base = (os.getenv("FEATURE_FLAGS_URL") or "").strip().rstrip("/")
     if not base:
-        return None
+        return "unset", None
 
     api_key = (os.getenv("FEATURE_FLAGS_API_KEY") or "").strip()
     if not api_key:
         logger.error(
             "FEATURE_FLAGS_URL is set but FEATURE_FLAGS_API_KEY is missing"
         )
-        return False
+        return "error", None
 
     query = urlencode(
         {
@@ -98,9 +103,9 @@ def _evaluate_remote(key: str, tenant_id: str, tier: str) -> Optional[bool]:
         with urlopen(req, timeout=2.5) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
         if isinstance(payload, dict) and "enabled" in payload:
-            return bool(payload["enabled"])
+            return "ok", bool(payload["enabled"])
         logger.warning("Feature flag remote response missing enabled: %s", payload)
-        return False
+        return "error", None
     except HTTPError as exc:
         body = ""
         try:
@@ -113,10 +118,10 @@ def _evaluate_remote(key: str, tenant_id: str, tier: str) -> Optional[bool]:
             key,
             body,
         )
-        return False
+        return "error", None
     except (URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
         logger.warning("Feature flag remote evaluate failed for %s: %s", key, exc)
-        return False
+        return "error", None
 
 
 def _evaluate_local(key: str, tier: str) -> bool:
@@ -126,20 +131,33 @@ def _evaluate_local(key: str, tier: str) -> bool:
     return normalize_tier(tier) in allowed
 
 
+def resolve_feature_enabled(
+    key: str,
+    tier: str,
+    remote_status: RemoteStatus,
+    remote_enabled: Optional[bool],
+) -> bool:
+    """Merge Pulse result with local tier entitlements (mirrors Next featureGate)."""
+    local = _evaluate_local(key, tier)
+    has_local = key in _LOCAL_TIER_FLAGS
+
+    if remote_status in ("unset", "error"):
+        return local
+
+    pulse_on = bool(remote_enabled)
+    if has_local:
+        return local or pulse_on
+    return pulse_on
+
+
 def is_feature_enabled(
     key: str, tenant_id: str, *, tier: Optional[str] = None
 ) -> bool:
     resolved_tier = (
         normalize_tier(tier) if tier is not None else get_tenant_tier(tenant_id)
     )
-
-    base = (os.getenv("FEATURE_FLAGS_URL") or "").strip()
-    if base:
-        # Pulse is authoritative — never fall back to local advanced/pro matrix.
-        remote = _evaluate_remote(key, tenant_id, resolved_tier)
-        return bool(remote)
-
-    return _evaluate_local(key, resolved_tier)
+    status, remote_enabled = _evaluate_remote(key, tenant_id, resolved_tier)
+    return resolve_feature_enabled(key, resolved_tier, status, remote_enabled)
 
 
 def require_feature(key: str, tenant_id: str, user_id: str) -> None:

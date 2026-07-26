@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  isFeatureEnabledLocal,
-  normalizeTier,
-} from '@/lib/featureGate';
+import { normalizeTier, resolveFeatureEnabled } from '@/lib/featureGate';
 import {
   resolveFeatureFlagsApiKey,
   resolveFeatureFlagsUrl,
@@ -124,36 +121,34 @@ export async function GET(request: NextRequest) {
   const apiKey = resolveFeatureFlagsApiKey();
 
   if (!base && apiKey) {
+    const resolved = resolveFeatureEnabled(key, tier, { status: 'error' });
     return NextResponse.json({
-      enabled: false,
-      source: 'error',
+      ...resolved,
       detail: 'FEATURE_FLAGS_URL missing',
     });
   }
 
   if (!base) {
-    return NextResponse.json({
-      enabled: isFeatureEnabledLocal(key, tier),
-      source: 'fallback',
-    });
+    const resolved = resolveFeatureEnabled(key, tier, { status: 'unset' });
+    return NextResponse.json(resolved);
   }
 
   if (!apiKey) {
     console.error(
       '[features/evaluate] FEATURE_FLAGS_URL is set but FEATURE_FLAGS_API_KEY is missing'
     );
+    const resolved = resolveFeatureEnabled(key, tier, { status: 'error' });
     return NextResponse.json({
-      enabled: false,
-      source: 'error',
+      ...resolved,
       detail: 'FEATURE_FLAGS_API_KEY missing',
     });
   }
 
   const remoteUrl = buildTrustedRemoteEvaluateUrl(base, key, tenantId, tier);
   if (!remoteUrl) {
+    const resolved = resolveFeatureEnabled(key, tier, { status: 'error' });
     return NextResponse.json({
-      enabled: false,
-      source: 'error',
+      ...resolved,
       detail: 'invalid_FEATURE_FLAGS_URL',
     });
   }
@@ -175,31 +170,32 @@ export async function GET(request: NextRequest) {
       console.error(
         `[features/evaluate] remote ${res.status} for ${key}: ${body.slice(0, 200)}`
       );
+      const resolved = resolveFeatureEnabled(key, tier, { status: 'error' });
       return NextResponse.json({
-        enabled: false,
-        source: 'error',
+        ...resolved,
         detail: `remote_${res.status}`,
       });
     }
 
     const payload = (await res.json()) as { enabled?: unknown };
     if (typeof payload?.enabled !== 'boolean') {
+      const resolved = resolveFeatureEnabled(key, tier, { status: 'error' });
       return NextResponse.json({
-        enabled: false,
-        source: 'error',
+        ...resolved,
         detail: 'invalid_payload',
       });
     }
 
-    return NextResponse.json({
+    const resolved = resolveFeatureEnabled(key, tier, {
+      status: 'ok',
       enabled: payload.enabled,
-      source: 'remote',
     });
+    return NextResponse.json(resolved);
   } catch (err) {
     console.error('[features/evaluate] remote failed', err);
+    const resolved = resolveFeatureEnabled(key, tier, { status: 'error' });
     return NextResponse.json({
-      enabled: false,
-      source: 'error',
+      ...resolved,
       detail: 'unreachable',
     });
   }
