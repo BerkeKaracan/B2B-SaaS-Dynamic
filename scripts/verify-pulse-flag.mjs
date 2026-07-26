@@ -22,7 +22,8 @@ if (!base || !key) {
 }
 
 console.log('pulse_host', new URL(base).host);
-console.log('key_prefix', `${key.slice(0, 6)}…`);
+// Never log the delivery key or any substring (CodeQL clear-text logging).
+console.log('delivery_key_present', true);
 console.log('flag', flagKey);
 
 async function evaluate(tier) {
