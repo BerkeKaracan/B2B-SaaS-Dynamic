@@ -8,7 +8,6 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import Navbar from './Navbar';
 import WorkspaceSidebar from './WorkspaceSidebar';
 import ItemSidebar from './ItemSidebar';
-import ProjectInfoPanel from './ProjectInfoPanel';
 import { Toaster } from 'sonner';
 import RealtimeNotifier from '@/components/RealtimeNotifier';
 
@@ -87,11 +86,7 @@ export default function DashboardClientWrapper({
       <Toaster richColors closeButton expand={false} position="bottom-right" />
       {user?.email && <RealtimeNotifier userEmail={user.email} />}
 
-      <Navbar
-        tenantId={tenantId}
-        onMenuToggle={togglePrimarySidebar}
-        showProjectInfo={isDesignView}
-      />
+      <Navbar tenantId={tenantId} onMenuToggle={togglePrimarySidebar} />
 
       <div className="flex flex-1 overflow-hidden relative min-h-0">
         <div
@@ -129,8 +124,6 @@ export default function DashboardClientWrapper({
           >
             {children}
           </main>
-
-          {isDesignView && <ProjectInfoPanel />}
         </div>
       </div>
     </div>

@@ -5,7 +5,6 @@ describe('useLayoutStore', () => {
   beforeEach(() => {
     useLayoutStore.setState({
       isPrimarySidebarOpen: false,
-      isSecondarySidebarOpen: false,
       showEngineToolkit: false,
     });
   });
@@ -16,11 +15,6 @@ describe('useLayoutStore', () => {
     expect(useLayoutStore.getState().isPrimarySidebarOpen).toBe(true);
     useLayoutStore.getState().togglePrimarySidebar();
     expect(useLayoutStore.getState().isPrimarySidebarOpen).toBe(false);
-  });
-
-  it('toggles the secondary sidebar', () => {
-    useLayoutStore.getState().toggleSecondarySidebar();
-    expect(useLayoutStore.getState().isSecondarySidebarOpen).toBe(true);
   });
 
   it('sets engine toolkit visibility', () => {

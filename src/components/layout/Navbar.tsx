@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useLayoutStore } from '@/store/useLayoutStore';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useTenantStore } from '@/store/useTenantStore';
@@ -19,7 +18,6 @@ import {
   Sparkles,
   Loader2,
   CheckCircle2,
-  SlidersHorizontal,
   MessageSquareHeart,
   ExternalLink,
   Menu,
@@ -31,13 +29,10 @@ import { FEEDBACK_PORTAL_URL } from '@/lib/feedbackPortal';
 export default function Navbar({
   tenantId,
   onMenuToggle,
-  showProjectInfo = false,
 }: {
   tenantId: string;
   onMenuToggle?: () => void;
-  showProjectInfo?: boolean;
 }) {
-  const { toggleSecondarySidebar, isSecondarySidebarOpen } = useLayoutStore();
   const { isSaving, showSaved } = useCanvasStore();
 
   const { user, logout, fetchUser } = useAuthStore();
@@ -178,21 +173,6 @@ export default function Navbar({
 
           <ThemeToggle />
           <NotificationBell />
-
-          {showProjectInfo && (
-            <button
-              type="button"
-              onClick={toggleSecondarySidebar}
-              className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border transition-all active:scale-95 ${
-                isSecondarySidebarOpen
-                  ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white text-white dark:text-zinc-950'
-                  : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600'
-              }`}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span className="tracking-wide">Info</span>
-            </button>
-          )}
 
           <div className="relative ml-0.5" ref={dropdownRef}>
             <button
