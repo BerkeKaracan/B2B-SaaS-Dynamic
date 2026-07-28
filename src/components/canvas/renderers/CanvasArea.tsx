@@ -134,11 +134,10 @@ export default function CanvasArea() {
 
   // Stable project room — never activePageId (that remounted channels per page).
   const collabRoomId = routeProjectId || '';
-  const { doc, provider, cursors, selfKey } = useCanvasCollaboration(
-    collabRoomId,
-    currentUser,
-    { enableDocSync: canvasSyncEnabled }
-  );
+  const { doc, cursors, selfKey, connectionStatus, publishCursor } =
+    useCanvasCollaboration(collabRoomId, currentUser, {
+      enableDocSync: canvasSyncEnabled,
+    });
 
   // null when flag off → no Yjs↔store bridge, no full-state Realtime storm
   useZustandYjsSync(canvasSyncEnabled ? doc : null);
@@ -249,7 +248,7 @@ export default function CanvasArea() {
   }, [zoom, panX, panY, routeProjectId, hasLoadedPos]);
 
   useEffect(() => {
-    if (!provider) return;
+    if (connectionStatus !== 'subscribed') return;
     let lastTrackTime = 0;
     const throttleDelay = 80;
     let lastX = Number.NaN;
@@ -282,22 +281,12 @@ export default function CanvasArea() {
       lastX = mouseCanvasX;
       lastY = mouseCanvasY;
       lastTrackTime = now;
-
-      void provider.send({
-        type: 'broadcast',
-        event: 'cursor-move',
-        payload: {
-          userKey: selfKey,
-          user: currentUser.name,
-          color: currentUser.color,
-          cursor: { x: mouseCanvasX, y: mouseCanvasY },
-        },
-      });
+      publishCursor({ x: mouseCanvasX, y: mouseCanvasY });
     };
 
     window.addEventListener('pointermove', handleMouseMove);
     return () => window.removeEventListener('pointermove', handleMouseMove);
-  }, [provider, currentUser.name, currentUser.color, selfKey]);
+  }, [connectionStatus, publishCursor]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1723,6 +1712,25 @@ export default function CanvasArea() {
         <LassoLayer lassoStart={lassoStart} lassoEnd={lassoEnd} />
         <LiveCursors cursors={cursors} currentUserKey={selfKey} />
       </div>
+
+      {connectionStatus !== 'subscribed' && collabRoomId ? (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+          <div
+            className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.14em] border shadow-sm ${
+              connectionStatus === 'connecting'
+                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                : connectionStatus === 'no-token'
+                  ? 'bg-rose-50 text-rose-800 border-rose-200'
+                  : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+            }`}
+          >
+            {connectionStatus === 'connecting' && 'Live: connecting…'}
+            {connectionStatus === 'no-token' && 'Live: sign-in required'}
+            {connectionStatus === 'error' && 'Live: realtime error'}
+            {connectionStatus === 'idle' && 'Live: idle'}
+          </div>
+        </div>
+      ) : null}
 
       <div className="absolute bottom-24 sm:bottom-8 scale-90 sm:scale-100 left-1/2 -translate-x-1/2 z-50 flex items-center bg-white/95 dark:bg-zinc-900/95 border border-zinc-200/60 dark:border-zinc-800/60 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-1.5 pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300 transition-colors">
         {mode !== 'readonly' && (
