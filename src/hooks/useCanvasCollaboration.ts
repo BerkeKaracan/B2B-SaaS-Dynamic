@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import * as Y from 'yjs';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabaseClient';
@@ -35,23 +35,18 @@ export function useCanvasCollaboration(
   const [provider, setProvider] = useState<RealtimeChannel | null>(null);
   const [isSynced, setIsSynced] = useState(false);
   const [cursors, setCursors] = useState<Record<string, CursorState>>({});
-  const clientIdRef = useRef(
-    typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `client-${Math.random().toString(36).slice(2)}`
-  );
+  // useId is render-safe (no Math.random / randomUUID during render)
+  const reactId = useId().replace(/:/g, '');
+  const clientIdRef = useRef(`client-${reactId}`);
 
   useEffect(() => {
     if (!roomId || roomId === 'default-room') {
-      setDoc(null);
-      setProvider(null);
-      setIsSynced(false);
-      setCursors({});
+      // Keep initial nulls; previous effect cleanup clears an active session.
       return;
     }
 
+    let cancelled = false;
     const ydoc = enableDocSync ? new Y.Doc() : null;
-    setDoc(ydoc);
 
     const channel = supabase.channel(`canvas-${roomId}`, {
       config: {
@@ -189,7 +184,10 @@ export function useCanvasCollaboration(
     });
 
     channel.subscribe((status: string) => {
-      if (status !== 'SUBSCRIBED') return;
+      if (cancelled || status !== 'SUBSCRIBED') return;
+      // External system ready — safe place to publish React state
+      setDoc(ydoc);
+      setProvider(channel);
       setIsSynced(true);
       // Sparse presence: identity only — not every mousemove.
       void channel.track({
@@ -210,19 +208,21 @@ export function useCanvasCollaboration(
       }
     });
 
-    setProvider(channel);
-
     return () => {
+      cancelled = true;
       if (coalesceTimer != null) clearTimeout(coalesceTimer);
       if (ydoc) {
         ydoc.off('update', onLocalYUpdate);
         ydoc.destroy();
       }
       void channel.unsubscribe();
-      setProvider(null);
-      setDoc(null);
-      setIsSynced(false);
-      setCursors({});
+      // Defer so we do not sync-setState in the effect body / cleanup path
+      queueMicrotask(() => {
+        setDoc(null);
+        setProvider(null);
+        setIsSynced(false);
+        setCursors({});
+      });
     };
   }, [roomId, user.name, user.color, enableDocSync]);
 
