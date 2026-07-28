@@ -3,7 +3,8 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import * as Y from 'yjs';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabaseClient';
+import { createAuthedSupabaseClient } from '@/lib/supabaseAuthedClient';
+import { fetchRealtimeAccessToken } from '@/lib/authCookies';
 import {
   decodeYUpdateFromBroadcast,
   encodeYUpdateForBroadcast,
@@ -35,196 +36,210 @@ export function useCanvasCollaboration(
   const [provider, setProvider] = useState<RealtimeChannel | null>(null);
   const [isSynced, setIsSynced] = useState(false);
   const [cursors, setCursors] = useState<Record<string, CursorState>>({});
-  // useId is render-safe (no Math.random / randomUUID during render)
-  const reactId = useId().replace(/:/g, '');
-  const clientIdRef = useRef(`client-${reactId}`);
+  const selfKey = `client-${useId().replace(/:/g, '')}`;
+  const sessionGenRef = useRef(0);
 
   useEffect(() => {
     if (!roomId || roomId === 'default-room') {
-      // Keep initial nulls; previous effect cleanup clears an active session.
       return;
     }
 
     let cancelled = false;
-    const ydoc = enableDocSync ? new Y.Doc() : null;
-
-    const channel = supabase.channel(`canvas-${roomId}`, {
-      config: {
-        broadcast: { ack: false },
-        presence: { key: user.name },
-      },
-    });
-
+    const sessionGen = ++sessionGenRef.current;
+    let client: ReturnType<typeof createAuthedSupabaseClient> = null;
+    let channel: RealtimeChannel | null = null;
+    let ydoc: Y.Doc | null = null;
     let coalesceTimer: ReturnType<typeof setTimeout> | null = null;
     const pendingUpdates: Uint8Array[] = [];
 
-    const flushOutbound = () => {
-      coalesceTimer = null;
-      if (!ydoc || pendingUpdates.length === 0) return;
-      const merged =
-        pendingUpdates.length === 1
-          ? pendingUpdates[0]
-          : Y.mergeUpdates(pendingUpdates);
-      pendingUpdates.length = 0;
+    const clearSessionState = () => {
+      // Ignore stale cleanups from a previous effect generation
+      if (sessionGenRef.current !== sessionGen) return;
+      setDoc(null);
+      setProvider(null);
+      setIsSynced(false);
+      setCursors({});
+    };
 
-      const encoded = encodeYUpdateForBroadcast(merged);
-      if (!encoded.ok) {
-        if (encoded.reason === 'too_large') {
-          console.warn(
-            '[collab] dropped oversized y-update',
-            encoded.byteLength
-          );
-        }
+    void (async () => {
+      const token = await fetchRealtimeAccessToken();
+      if (cancelled || !token) {
+        console.warn('[collab] realtime token missing — cursors/sync disabled');
         return;
       }
 
-      void channel.send({
-        type: 'broadcast',
-        event: 'y-update',
-        payload: {
-          from: clientIdRef.current,
-          update: encoded.base64,
+      client = createAuthedSupabaseClient(token);
+      if (cancelled || !client) {
+        console.warn('[collab] authed supabase client failed');
+        return;
+      }
+
+      ydoc = enableDocSync ? new Y.Doc() : null;
+
+      channel = client.channel(`canvas-${roomId}`, {
+        config: {
+          broadcast: { self: false, ack: false },
+          presence: { key: selfKey },
         },
       });
-    };
 
-    const onLocalYUpdate = (update: Uint8Array, origin: unknown) => {
-      if (origin === Y_ORIGIN_REMOTE) return;
-      pendingUpdates.push(update);
-      if (coalesceTimer == null) {
-        coalesceTimer = setTimeout(flushOutbound, OUTBOUND_COALESCE_MS);
-      }
-    };
+      const flushOutbound = () => {
+        coalesceTimer = null;
+        if (!ydoc || !channel || pendingUpdates.length === 0) return;
+        const merged =
+          pendingUpdates.length === 1
+            ? pendingUpdates[0]
+            : Y.mergeUpdates(pendingUpdates);
+        pendingUpdates.length = 0;
 
-    if (ydoc) {
-      ydoc.on('update', onLocalYUpdate);
-
-      channel.on('broadcast', { event: 'y-update' }, ({ payload }) => {
-        if (!payload || payload.from === clientIdRef.current) return;
-        const bytes = decodeYUpdateFromBroadcast(payload.update);
-        if (!bytes) return;
-        Y.applyUpdate(ydoc, bytes, Y_ORIGIN_REMOTE);
-      });
-
-      channel.on('broadcast', { event: 'y-sync-request' }, ({ payload }) => {
-        if (!payload || payload.from === clientIdRef.current) return;
-        let stateVector: Uint8Array | undefined;
-        if (typeof payload.stateVector === 'string') {
-          try {
-            stateVector = base64ToUint8(payload.stateVector);
-          } catch {
-            stateVector = undefined;
-          }
-        }
-        const update = Y.encodeStateAsUpdate(ydoc, stateVector);
-        const encoded = encodeYUpdateForBroadcast(update);
+        const encoded = encodeYUpdateForBroadcast(merged);
         if (!encoded.ok) {
-          console.warn(
-            '[collab] skipped y-sync-response (too large)',
-            encoded.byteLength
-          );
+          if (encoded.reason === 'too_large') {
+            console.warn(
+              '[collab] dropped oversized y-update',
+              encoded.byteLength
+            );
+          }
           return;
         }
+
         void channel.send({
           type: 'broadcast',
           event: 'y-update',
           payload: {
-            from: clientIdRef.current,
+            from: selfKey,
             update: encoded.base64,
           },
         });
-      });
-    }
+      };
 
-    channel.on('broadcast', { event: 'cursor-move' }, ({ payload }) => {
-      if (!payload?.userKey) return;
-      setCursors((prev) => {
-        const existing = prev[payload.userKey];
-        if (!existing) {
-          return {
-            ...prev,
-            [payload.userKey]: {
-              user: payload.userKey,
-              color: payload.color || '#6366f1',
-              cursor: payload.cursor ?? null,
-            },
-          };
+      const onLocalYUpdate = (update: Uint8Array, origin: unknown) => {
+        if (origin === Y_ORIGIN_REMOTE) return;
+        pendingUpdates.push(update);
+        if (coalesceTimer == null) {
+          coalesceTimer = setTimeout(flushOutbound, OUTBOUND_COALESCE_MS);
         }
-        return {
-          ...prev,
-          [payload.userKey]: {
-            ...existing,
-            cursor: payload.cursor ?? null,
-          },
-        };
-      });
-    });
-
-    channel.on('presence', { event: 'sync' }, () => {
-      const state = channel.presenceState();
-      const active: Record<string, CursorState> = {};
-      for (const key of Object.keys(state)) {
-        const row = state[key]?.[0] as unknown as CursorState | undefined;
-        if (!row) continue;
-        active[key] = {
-          user: row.user || key,
-          color: row.color || '#6366f1',
-          cursor: row.cursor ?? null,
-        };
-      }
-      setCursors((prev) => {
-        const merged = { ...active };
-        for (const [key, cur] of Object.entries(prev)) {
-          if (merged[key] && cur.cursor) {
-            merged[key] = { ...merged[key], cursor: cur.cursor };
-          }
-        }
-        return merged;
-      });
-    });
-
-    channel.subscribe((status: string) => {
-      if (cancelled || status !== 'SUBSCRIBED') return;
-      // External system ready — safe place to publish React state
-      setDoc(ydoc);
-      setProvider(channel);
-      setIsSynced(true);
-      // Sparse presence: identity only — not every mousemove.
-      void channel.track({
-        user: user.name,
-        color: user.color,
-        cursor: null,
-      });
+      };
 
       if (ydoc) {
-        void channel.send({
-          type: 'broadcast',
-          event: 'y-sync-request',
-          payload: {
-            from: clientIdRef.current,
-            stateVector: uint8ToBase64(Y.encodeStateVector(ydoc)),
-          },
+        ydoc.on('update', onLocalYUpdate);
+
+        channel.on('broadcast', { event: 'y-update' }, ({ payload }) => {
+          if (!payload || payload.from === selfKey || !ydoc) return;
+          const bytes = decodeYUpdateFromBroadcast(payload.update);
+          if (!bytes) return;
+          Y.applyUpdate(ydoc, bytes, Y_ORIGIN_REMOTE);
+        });
+
+        channel.on('broadcast', { event: 'y-sync-request' }, ({ payload }) => {
+          if (!payload || payload.from === selfKey || !ydoc || !channel) return;
+          let stateVector: Uint8Array | undefined;
+          if (typeof payload.stateVector === 'string') {
+            try {
+              stateVector = base64ToUint8(payload.stateVector);
+            } catch {
+              stateVector = undefined;
+            }
+          }
+          const update = Y.encodeStateAsUpdate(ydoc, stateVector);
+          const encoded = encodeYUpdateForBroadcast(update);
+          if (!encoded.ok) {
+            console.warn(
+              '[collab] skipped y-sync-response (too large)',
+              encoded.byteLength
+            );
+            return;
+          }
+          void channel.send({
+            type: 'broadcast',
+            event: 'y-update',
+            payload: {
+              from: selfKey,
+              update: encoded.base64,
+            },
+          });
         });
       }
-    });
+
+      channel.on('broadcast', { event: 'cursor-move' }, ({ payload }) => {
+        if (!payload?.userKey || payload.userKey === selfKey) return;
+        setCursors((prev) => ({
+          ...prev,
+          [payload.userKey]: {
+            user: payload.user || payload.userKey,
+            color: payload.color || '#6366f1',
+            cursor: payload.cursor ?? null,
+          },
+        }));
+      });
+
+      channel.on('presence', { event: 'sync' }, () => {
+        if (!channel) return;
+        const state = channel.presenceState();
+        setCursors((prev) => {
+          const next: Record<string, CursorState> = {};
+          for (const key of Object.keys(state)) {
+            if (key === selfKey) continue;
+            const row = state[key]?.[0] as unknown as CursorState | undefined;
+            if (!row) continue;
+            next[key] = {
+              user: row.user || key,
+              color: row.color || '#6366f1',
+              // Keep last broadcast cursor if presence has null
+              cursor: prev[key]?.cursor ?? row.cursor ?? null,
+            };
+          }
+          return next;
+        });
+      });
+
+      channel.subscribe((status: string) => {
+        if (cancelled || status !== 'SUBSCRIBED' || !channel) return;
+
+        setDoc(ydoc);
+        setProvider(channel);
+        setIsSynced(true);
+
+        void channel.track({
+          user: user.name,
+          color: user.color,
+          cursor: null,
+        });
+
+        if (ydoc) {
+          void channel.send({
+            type: 'broadcast',
+            event: 'y-sync-request',
+            payload: {
+              from: selfKey,
+              stateVector: uint8ToBase64(Y.encodeStateVector(ydoc)),
+            },
+          });
+        }
+      });
+    })();
 
     return () => {
       cancelled = true;
       if (coalesceTimer != null) clearTimeout(coalesceTimer);
       if (ydoc) {
-        ydoc.off('update', onLocalYUpdate);
         ydoc.destroy();
+        ydoc = null;
       }
-      void channel.unsubscribe();
-      // Defer so we do not sync-setState in the effect body / cleanup path
-      queueMicrotask(() => {
-        setDoc(null);
-        setProvider(null);
-        setIsSynced(false);
-        setCursors({});
-      });
+      if (client && channel) {
+        void client.removeChannel(channel);
+      }
+      channel = null;
+      client = null;
+      queueMicrotask(clearSessionState);
     };
-  }, [roomId, user.name, user.color, enableDocSync]);
+  }, [roomId, user.name, user.color, enableDocSync, selfKey]);
 
-  return { doc, provider, isSynced, cursors };
+  return {
+    doc,
+    provider,
+    isSynced,
+    cursors,
+    selfKey,
+  };
 }

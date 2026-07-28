@@ -134,7 +134,7 @@ export default function CanvasArea() {
 
   // Stable project room — never activePageId (that remounted channels per page).
   const collabRoomId = routeProjectId || '';
-  const { doc, provider, cursors } = useCanvasCollaboration(
+  const { doc, provider, cursors, selfKey } = useCanvasCollaboration(
     collabRoomId,
     currentUser,
     { enableDocSync: canvasSyncEnabled }
@@ -287,7 +287,8 @@ export default function CanvasArea() {
         type: 'broadcast',
         event: 'cursor-move',
         payload: {
-          userKey: currentUser.name,
+          userKey: selfKey,
+          user: currentUser.name,
           color: currentUser.color,
           cursor: { x: mouseCanvasX, y: mouseCanvasY },
         },
@@ -296,7 +297,7 @@ export default function CanvasArea() {
 
     window.addEventListener('pointermove', handleMouseMove);
     return () => window.removeEventListener('pointermove', handleMouseMove);
-  }, [provider, currentUser.name, currentUser.color]);
+  }, [provider, currentUser.name, currentUser.color, selfKey]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1720,7 +1721,7 @@ export default function CanvasArea() {
           mousePos={mousePos}
         />
         <LassoLayer lassoStart={lassoStart} lassoEnd={lassoEnd} />
-        <LiveCursors cursors={cursors} currentUserKey={currentUser.name} />
+        <LiveCursors cursors={cursors} currentUserKey={selfKey} />
       </div>
 
       <div className="absolute bottom-24 sm:bottom-8 scale-90 sm:scale-100 left-1/2 -translate-x-1/2 z-50 flex items-center bg-white/95 dark:bg-zinc-900/95 border border-zinc-200/60 dark:border-zinc-800/60 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-1.5 pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300 transition-colors">
