@@ -1008,7 +1008,7 @@ export default function ProjectCardsGrid({
                 ? 'bg-rose-400'
                 : status === 'archived'
                   ? 'bg-amber-400'
-                  : 'bg-sky-400/80 group-hover:bg-sky-500';
+                  : currentTemplate.rail;
 
             const cardClasses = `group relative flex flex-col overflow-hidden rounded-2xl border bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm transition-all duration-300 ${
               status === 'active'
@@ -1019,11 +1019,13 @@ export default function ProjectCardsGrid({
             const cardContent = (
               <>
                 <div className={`absolute left-0 inset-y-0 w-1 ${railAccent} transition-colors`} />
-                <div className="relative h-28 border-b border-zinc-100 dark:border-zinc-800 bg-[linear-gradient(135deg,#f4f7fa_0%,#eaf3f9_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#0f172a_55%,#09090b_100%)] overflow-hidden">
-                  <div className="absolute inset-0 opacity-40 dark:opacity-25" style={{
-                    backgroundImage:
-                      'radial-gradient(circle at 20% 30%, rgba(56,189,248,0.35), transparent 40%), radial-gradient(circle at 80% 70%, rgba(16,185,129,0.18), transparent 35%)',
-                  }} />
+                <div
+                  className={`relative h-28 border-b border-zinc-100 dark:border-zinc-800 overflow-hidden ${currentTemplate.headerBg}`}
+                >
+                  <div
+                    className="absolute inset-0 opacity-40 dark:opacity-25"
+                    style={{ backgroundImage: currentTemplate.glow }}
+                  />
                   <div className="absolute inset-0 opacity-[0.35] dark:opacity-[0.2]" style={{
                     backgroundImage:
                       'linear-gradient(to right, rgba(24,24,27,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(24,24,27,0.06) 1px, transparent 1px)',

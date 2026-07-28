@@ -38,7 +38,14 @@ export type ProjectTemplateMeta = {
   aliases?: string[];
   label: string;
   icon: LucideIcon;
+  /** Icon / label accent (Tailwind text-* classes). */
   color: string;
+  /** Left rail on project cards when status is active. */
+  rail: string;
+  /** Soft header wash on project cards (light + dark). */
+  headerBg: string;
+  /** Radial glow overlay for the card header (CSS backgroundImage). */
+  glow: string;
   /** Full-bleed board (not infinite canvas). */
   isStandaloneBoard: boolean;
 };
@@ -49,14 +56,22 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     id: 'blank',
     label: 'Blank',
     icon: LayoutTemplate,
-    color: 'text-zinc-500 dark:text-zinc-400',
+    color: 'text-sky-600 dark:text-sky-400',
+    rail: 'bg-sky-400/80 group-hover:bg-sky-500',
+    headerBg:
+      'bg-[linear-gradient(135deg,#f0f9ff_0%,#e0f2fe_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#0c4a6e_50%,#09090b_100%)]',
+    glow: 'radial-gradient(circle at 20% 30%, rgba(56,189,248,0.38), transparent 42%), radial-gradient(circle at 80% 70%, rgba(14,165,233,0.16), transparent 36%)',
     isStandaloneBoard: false,
   },
   {
     id: 'kanban',
     label: 'Kanban',
     icon: KanbanSquare,
-    color: 'text-blue-500',
+    color: 'text-indigo-500 dark:text-indigo-400',
+    rail: 'bg-indigo-400/80 group-hover:bg-indigo-500',
+    headerBg:
+      'bg-[linear-gradient(135deg,#eef2ff_0%,#e0e7ff_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#312e81_50%,#09090b_100%)]',
+    glow: 'radial-gradient(circle at 20% 30%, rgba(99,102,241,0.36), transparent 42%), radial-gradient(circle at 80% 70%, rgba(129,140,248,0.16), transparent 36%)',
     isStandaloneBoard: true,
   },
   {
@@ -64,42 +79,66 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     aliases: ['notepad'],
     label: 'Document',
     icon: FileText,
-    color: 'text-amber-500',
+    color: 'text-amber-600 dark:text-amber-400',
+    rail: 'bg-amber-400/80 group-hover:bg-amber-500',
+    headerBg:
+      'bg-[linear-gradient(135deg,#fffbeb_0%,#fef3c7_45%,#fafaf9_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#78350f_50%,#09090b_100%)]',
+    glow: 'radial-gradient(circle at 20% 30%, rgba(245,158,11,0.34), transparent 42%), radial-gradient(circle at 80% 70%, rgba(251,191,36,0.14), transparent 36%)',
     isStandaloneBoard: true,
   },
   {
     id: 'whiteboard',
     label: 'Whiteboard',
     icon: PenTool,
-    color: 'text-emerald-500',
+    color: 'text-emerald-600 dark:text-emerald-400',
+    rail: 'bg-emerald-400/80 group-hover:bg-emerald-500',
+    headerBg:
+      'bg-[linear-gradient(135deg,#ecfdf5_0%,#d1fae5_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#064e3b_50%,#09090b_100%)]',
+    glow: 'radial-gradient(circle at 20% 30%, rgba(16,185,129,0.34), transparent 42%), radial-gradient(circle at 80% 70%, rgba(52,211,153,0.14), transparent 36%)',
     isStandaloneBoard: true,
   },
   {
     id: 'timeline',
     label: 'Timeline',
     icon: Clock,
-    color: 'text-sky-600',
+    color: 'text-violet-600 dark:text-violet-400',
+    rail: 'bg-violet-400/80 group-hover:bg-violet-500',
+    headerBg:
+      'bg-[linear-gradient(135deg,#f5f3ff_0%,#ede9fe_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#4c1d95_50%,#09090b_100%)]',
+    glow: 'radial-gradient(circle at 20% 30%, rgba(139,92,246,0.34), transparent 42%), radial-gradient(circle at 80% 70%, rgba(167,139,250,0.14), transparent 36%)',
     isStandaloneBoard: true,
   },
   {
     id: 'database',
     label: 'Database',
     icon: Database,
-    color: 'text-teal-600',
+    color: 'text-teal-600 dark:text-teal-400',
+    rail: 'bg-teal-400/80 group-hover:bg-teal-500',
+    headerBg:
+      'bg-[linear-gradient(135deg,#f0fdfa_0%,#ccfbf1_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#134e4a_50%,#09090b_100%)]',
+    glow: 'radial-gradient(circle at 20% 30%, rgba(20,184,166,0.34), transparent 42%), radial-gradient(circle at 80% 70%, rgba(45,212,191,0.14), transparent 36%)',
     isStandaloneBoard: true,
   },
   {
     id: 'mindmap',
     label: 'Mindmap',
     icon: Network,
-    color: 'text-cyan-600',
+    color: 'text-orange-600 dark:text-orange-400',
+    rail: 'bg-orange-400/80 group-hover:bg-orange-500',
+    headerBg:
+      'bg-[linear-gradient(135deg,#fff7ed_0%,#ffedd5_45%,#fafaf9_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#7c2d12_50%,#09090b_100%)]',
+    glow: 'radial-gradient(circle at 20% 30%, rgba(249,115,22,0.34), transparent 42%), radial-gradient(circle at 80% 70%, rgba(251,146,60,0.14), transparent 36%)',
     isStandaloneBoard: true,
   },
   {
     id: 'retrospective',
     label: 'Retrospective',
     icon: MessageSquare,
-    color: 'text-rose-500',
+    color: 'text-rose-500 dark:text-rose-400',
+    rail: 'bg-rose-400/80 group-hover:bg-rose-500',
+    headerBg:
+      'bg-[linear-gradient(135deg,#fff1f2_0%,#ffe4e6_45%,#fafaf9_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#881337_50%,#09090b_100%)]',
+    glow: 'radial-gradient(circle at 20% 30%, rgba(244,63,94,0.32), transparent 42%), radial-gradient(circle at 80% 70%, rgba(251,113,133,0.14), transparent 36%)',
     isStandaloneBoard: true,
   },
 ];
