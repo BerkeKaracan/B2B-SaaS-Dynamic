@@ -3,8 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { fetchAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Loader2, Send } from 'lucide-react';
-import { createAuthedSupabaseClient } from '@/lib/supabaseAuthedClient';
-import { fetchRealtimeAccessToken } from '@/lib/authCookies';
+import { getSharedRealtimeClient } from '@/lib/realtimeClient';
 
 interface TeamMessage {
   id: string;
@@ -53,14 +52,11 @@ export default function TeamChat({ tenantId }: { tenantId: string }) {
     if (!tenantId) return;
 
     let cancelled = false;
-    let client: ReturnType<typeof createAuthedSupabaseClient> = null;
     let channel: { unsubscribe?: () => void } | null = null;
 
     void (async () => {
-      const token = await fetchRealtimeAccessToken();
-      if (cancelled || !token) return;
-      client = createAuthedSupabaseClient(token);
-      if (!client) return;
+      const client = await getSharedRealtimeClient();
+      if (cancelled || !client) return;
 
       const ch = client
         .channel(`room_${tenantId}`)
@@ -87,9 +83,14 @@ export default function TeamChat({ tenantId }: { tenantId: string }) {
 
     return () => {
       cancelled = true;
-      if (client && channel) {
-        client.removeChannel(channel as Parameters<typeof client.removeChannel>[0]);
-      }
+      void (async () => {
+        const client = await getSharedRealtimeClient();
+        if (client && channel) {
+          client.removeChannel(
+            channel as Parameters<typeof client.removeChannel>[0]
+          );
+        }
+      })();
     };
   }, [tenantId]);
 

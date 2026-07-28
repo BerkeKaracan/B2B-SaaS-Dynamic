@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import * as Y from 'yjs';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { createAuthedSupabaseClient } from '@/lib/supabaseAuthedClient';
-import { fetchRealtimeAccessToken } from '@/lib/authCookies';
+import { getSharedRealtimeClient } from '@/lib/realtimeClient';
 import {
   decodeYUpdateFromBroadcast,
   encodeYUpdateForBroadcast,
@@ -45,170 +44,214 @@ export function useCanvasCollaboration(
   const [connectionStatus, setConnectionStatus] =
     useState<CollabConnectionStatus>('idle');
   const selfKey = `client-${useId().replace(/:/g, '')}`;
-  const sessionGenRef = useRef(0);
+
   const channelRef = useRef<RealtimeChannel | null>(null);
   const readyRef = useRef(false);
+  const ydocRef = useRef<Y.Doc | null>(null);
+  const enableDocSyncRef = useRef(enableDocSync);
+  const userRef = useRef(user);
+  const selfKeyRef = useRef(selfKey);
+  const pendingUpdatesRef = useRef<Uint8Array[]>([]);
+  const coalesceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const yBoundRef = useRef(false);
+
+  // Keep latest values for callbacks without reconnecting the channel
+  useEffect(() => {
+    enableDocSyncRef.current = enableDocSync;
+  }, [enableDocSync]);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+  useEffect(() => {
+    selfKeyRef.current = selfKey;
+  }, [selfKey]);
+
+  const flushOutbound = useCallback(() => {
+    coalesceTimerRef.current = null;
+    const channel = channelRef.current;
+    const ydoc = ydocRef.current;
+    const pending = pendingUpdatesRef.current;
+    if (!channel || !ydoc || !readyRef.current || pending.length === 0) return;
+
+    const merged =
+      pending.length === 1 ? pending[0] : Y.mergeUpdates(pending);
+    pendingUpdatesRef.current = [];
+
+    const encoded = encodeYUpdateForBroadcast(merged);
+    if (!encoded.ok) {
+      if (encoded.reason === 'too_large') {
+        console.warn(
+          '[collab] dropped oversized y-update',
+          encoded.byteLength
+        );
+      }
+      return;
+    }
+
+    void channel.send({
+      type: 'broadcast',
+      event: 'y-update',
+      payload: {
+        from: selfKeyRef.current,
+        update: encoded.base64,
+      },
+    });
+  }, []);
+
+  const onLocalYUpdate = useCallback(
+    (update: Uint8Array, origin: unknown) => {
+      if (origin === Y_ORIGIN_REMOTE) return;
+      pendingUpdatesRef.current.push(update);
+      if (coalesceTimerRef.current == null) {
+        coalesceTimerRef.current = setTimeout(
+          flushOutbound,
+          OUTBOUND_COALESCE_MS
+        );
+      }
+    },
+    [flushOutbound]
+  );
+
+  const detachYjs = useCallback(() => {
+    const ydoc = ydocRef.current;
+    if (ydoc && yBoundRef.current) {
+      ydoc.off('update', onLocalYUpdate);
+      yBoundRef.current = false;
+    }
+    if (coalesceTimerRef.current != null) {
+      clearTimeout(coalesceTimerRef.current);
+      coalesceTimerRef.current = null;
+    }
+    pendingUpdatesRef.current = [];
+    if (ydoc) {
+      ydoc.destroy();
+      ydocRef.current = null;
+    }
+    queueMicrotask(() => setDoc(null));
+  }, [onLocalYUpdate]);
+
+  const attachYjs = useCallback(
+    (channel: RealtimeChannel) => {
+      if (ydocRef.current) return;
+      const ydoc = new Y.Doc();
+      ydocRef.current = ydoc;
+      ydoc.on('update', onLocalYUpdate);
+      yBoundRef.current = true;
+      queueMicrotask(() => setDoc(ydoc));
+
+      if (readyRef.current) {
+        void channel.send({
+          type: 'broadcast',
+          event: 'y-sync-request',
+          payload: {
+            from: selfKeyRef.current,
+            stateVector: uint8ToBase64(Y.encodeStateVector(ydoc)),
+          },
+        });
+      }
+    },
+    [onLocalYUpdate]
+  );
 
   const publishCursor = useCallback(
     (cursor: { x: number; y: number } | null) => {
       const channel = channelRef.current;
       if (!channel || !readyRef.current) return;
+      const u = userRef.current;
       void channel.track({
-        user: user.name,
-        color: user.color,
+        user: u.name,
+        color: u.color,
         cursor,
       });
     },
-    [user.name, user.color]
+    []
   );
 
+  // Connect / disconnect only when room changes
   useEffect(() => {
     if (!roomId || roomId === 'default-room') {
       return;
     }
 
     let cancelled = false;
-    const sessionGen = ++sessionGenRef.current;
-    let client: ReturnType<typeof createAuthedSupabaseClient> = null;
     let channel: RealtimeChannel | null = null;
-    let ydoc: Y.Doc | null = null;
-    let coalesceTimer: ReturnType<typeof setTimeout> | null = null;
-    const pendingUpdates: Uint8Array[] = [];
 
-    const clearSessionState = () => {
-      if (sessionGenRef.current !== sessionGen) return;
-      channelRef.current = null;
-      readyRef.current = false;
-      setDoc(null);
-      setIsSynced(false);
-      setCursors({});
-      setConnectionStatus('idle');
+    const syncCursorsFromPresence = () => {
+      if (!channel) return;
+      const key = selfKeyRef.current;
+      const state = channel.presenceState();
+      const next: Record<string, CursorState> = {};
+      for (const presenceKey of Object.keys(state)) {
+        if (presenceKey === key) continue;
+        const row = state[presenceKey]?.[0] as unknown as
+          | (CursorState & { user?: string; color?: string })
+          | undefined;
+        if (!row) continue;
+        next[presenceKey] = {
+          user: row.user || presenceKey,
+          color: row.color || '#6366f1',
+          cursor: row.cursor ?? null,
+        };
+      }
+      setCursors(next);
     };
 
-    // Async path only — avoid sync setState in effect body
     void (async () => {
       setConnectionStatus('connecting');
-      const token = await fetchRealtimeAccessToken();
+      const client = await getSharedRealtimeClient();
       if (cancelled) return;
-      if (!token) {
+      if (!client) {
         console.warn('[collab] realtime token missing — cursors/sync disabled');
         setConnectionStatus('no-token');
         return;
       }
 
-      client = createAuthedSupabaseClient(token);
-      if (cancelled || !client) {
-        console.warn('[collab] authed supabase client failed');
-        setConnectionStatus('error');
-        return;
-      }
-
-      ydoc = enableDocSync ? new Y.Doc() : null;
-
       channel = client.channel(`canvas-${roomId}`, {
         config: {
           broadcast: { self: false, ack: false },
-          presence: { key: selfKey },
+          presence: { key: selfKeyRef.current },
         },
       });
       channelRef.current = channel;
 
-      const flushOutbound = () => {
-        coalesceTimer = null;
-        if (!ydoc || !channel || pendingUpdates.length === 0) return;
-        const merged =
-          pendingUpdates.length === 1
-            ? pendingUpdates[0]
-            : Y.mergeUpdates(pendingUpdates);
-        pendingUpdates.length = 0;
+      channel.on('broadcast', { event: 'y-update' }, ({ payload }) => {
+        const ydoc = ydocRef.current;
+        if (!payload || payload.from === selfKeyRef.current || !ydoc) return;
+        const bytes = decodeYUpdateFromBroadcast(payload.update);
+        if (!bytes) return;
+        Y.applyUpdate(ydoc, bytes, Y_ORIGIN_REMOTE);
+      });
 
-        const encoded = encodeYUpdateForBroadcast(merged);
-        if (!encoded.ok) {
-          if (encoded.reason === 'too_large') {
-            console.warn(
-              '[collab] dropped oversized y-update',
-              encoded.byteLength
-            );
+      channel.on('broadcast', { event: 'y-sync-request' }, ({ payload }) => {
+        const ydoc = ydocRef.current;
+        if (!payload || payload.from === selfKeyRef.current || !ydoc || !channel)
+          return;
+        let stateVector: Uint8Array | undefined;
+        if (typeof payload.stateVector === 'string') {
+          try {
+            stateVector = base64ToUint8(payload.stateVector);
+          } catch {
+            stateVector = undefined;
           }
+        }
+        const update = Y.encodeStateAsUpdate(ydoc, stateVector);
+        const encoded = encodeYUpdateForBroadcast(update);
+        if (!encoded.ok) {
+          console.warn(
+            '[collab] skipped y-sync-response (too large)',
+            encoded.byteLength
+          );
           return;
         }
-
         void channel.send({
           type: 'broadcast',
           event: 'y-update',
           payload: {
-            from: selfKey,
+            from: selfKeyRef.current,
             update: encoded.base64,
           },
         });
-      };
-
-      const onLocalYUpdate = (update: Uint8Array, origin: unknown) => {
-        if (origin === Y_ORIGIN_REMOTE) return;
-        pendingUpdates.push(update);
-        if (coalesceTimer == null) {
-          coalesceTimer = setTimeout(flushOutbound, OUTBOUND_COALESCE_MS);
-        }
-      };
-
-      const syncCursorsFromPresence = () => {
-        if (!channel) return;
-        const state = channel.presenceState();
-        const next: Record<string, CursorState> = {};
-        for (const key of Object.keys(state)) {
-          if (key === selfKey) continue;
-          const row = state[key]?.[0] as unknown as
-            | (CursorState & { user?: string; color?: string })
-            | undefined;
-          if (!row) continue;
-          next[key] = {
-            user: row.user || key,
-            color: row.color || '#6366f1',
-            cursor: row.cursor ?? null,
-          };
-        }
-        setCursors(next);
-      };
-
-      if (ydoc) {
-        ydoc.on('update', onLocalYUpdate);
-
-        channel.on('broadcast', { event: 'y-update' }, ({ payload }) => {
-          if (!payload || payload.from === selfKey || !ydoc) return;
-          const bytes = decodeYUpdateFromBroadcast(payload.update);
-          if (!bytes) return;
-          Y.applyUpdate(ydoc, bytes, Y_ORIGIN_REMOTE);
-        });
-
-        channel.on('broadcast', { event: 'y-sync-request' }, ({ payload }) => {
-          if (!payload || payload.from === selfKey || !ydoc || !channel) return;
-          let stateVector: Uint8Array | undefined;
-          if (typeof payload.stateVector === 'string') {
-            try {
-              stateVector = base64ToUint8(payload.stateVector);
-            } catch {
-              stateVector = undefined;
-            }
-          }
-          const update = Y.encodeStateAsUpdate(ydoc, stateVector);
-          const encoded = encodeYUpdateForBroadcast(update);
-          if (!encoded.ok) {
-            console.warn(
-              '[collab] skipped y-sync-response (too large)',
-              encoded.byteLength
-            );
-            return;
-          }
-          void channel.send({
-            type: 'broadcast',
-            event: 'y-update',
-            payload: {
-              from: selfKey,
-              update: encoded.base64,
-            },
-          });
-        });
-      }
+      });
 
       channel.on('presence', { event: 'sync' }, syncCursorsFromPresence);
       channel.on('presence', { event: 'join' }, syncCursorsFromPresence);
@@ -219,37 +262,33 @@ export function useCanvasCollaboration(
 
         if (status === 'SUBSCRIBED') {
           readyRef.current = true;
-          setDoc(ydoc);
           setIsSynced(true);
           setConnectionStatus('subscribed');
 
+          const u = userRef.current;
           void channel?.track({
-            user: user.name,
-            color: user.color,
+            user: u.name,
+            color: u.color,
             cursor: null,
           });
 
-          if (ydoc && channel) {
-            void channel.send({
-              type: 'broadcast',
-              event: 'y-sync-request',
-              payload: {
-                from: selfKey,
-                stateVector: uint8ToBase64(Y.encodeStateVector(ydoc)),
-              },
-            });
+          if (enableDocSyncRef.current && channel) {
+            attachYjs(channel);
           }
           return;
         }
 
-        if (
-          status === 'CHANNEL_ERROR' ||
-          status === 'TIMED_OUT' ||
-          status === 'CLOSED'
-        ) {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           readyRef.current = false;
           setConnectionStatus('error');
           console.warn('[collab] realtime channel status', status, err ?? '');
+          return;
+        }
+
+        // CLOSED during intentional cleanup must not flash as error
+        if (status === 'CLOSED' && !cancelled) {
+          readyRef.current = false;
+          setConnectionStatus('connecting');
         }
       });
     })();
@@ -257,19 +296,32 @@ export function useCanvasCollaboration(
     return () => {
       cancelled = true;
       readyRef.current = false;
-      if (coalesceTimer != null) clearTimeout(coalesceTimer);
-      if (ydoc) {
-        ydoc.destroy();
-        ydoc = null;
-      }
-      if (client && channel) {
-        void client.removeChannel(channel);
-      }
-      channel = null;
-      client = null;
-      queueMicrotask(clearSessionState);
+      detachYjs();
+      const ch = channel;
+      channelRef.current = null;
+      void (async () => {
+        const client = await getSharedRealtimeClient();
+        if (client && ch) {
+          client.removeChannel(ch);
+        }
+        setIsSynced(false);
+        setCursors({});
+        setConnectionStatus('idle');
+      })();
     };
-  }, [roomId, enableDocSync, selfKey, user.name, user.color]);
+  }, [roomId, attachYjs, detachYjs]);
+
+  // Toggle Yjs on the existing channel when the feature flag flips
+  useEffect(() => {
+    const channel = channelRef.current;
+    if (!readyRef.current || !channel) return;
+
+    if (enableDocSync) {
+      attachYjs(channel);
+    } else {
+      detachYjs();
+    }
+  }, [enableDocSync, attachYjs, detachYjs]);
 
   return {
     doc,

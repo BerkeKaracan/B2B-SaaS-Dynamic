@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { createAuthedSupabaseClient } from '@/lib/supabaseAuthedClient';
-import { fetchRealtimeAccessToken } from '@/lib/authCookies';
+import { getSharedRealtimeClient } from '@/lib/realtimeClient';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface NotificationPayload {
   new: {
@@ -20,17 +20,11 @@ export default function RealtimeNotifier({ userEmail }: { userEmail: string }) {
     if (!userEmail) return;
 
     let cancelled = false;
-    let client: ReturnType<typeof createAuthedSupabaseClient> = null;
-    let channel: ReturnType<
-      NonNullable<ReturnType<typeof createAuthedSupabaseClient>>['channel']
-    > | null = null;
+    let channel: RealtimeChannel | null = null;
 
     const subscribe = async () => {
-      const token = await fetchRealtimeAccessToken();
-      if (cancelled || !token) return;
-
-      client = createAuthedSupabaseClient(token);
-      if (!client) return;
+      const client = await getSharedRealtimeClient();
+      if (cancelled || !client) return;
 
       channel = client
         .channel('realtime-in-app-notifications')
@@ -52,8 +46,6 @@ export default function RealtimeNotifier({ userEmail }: { userEmail: string }) {
                 label: 'Close',
                 onClick: () => undefined,
               },
-              // Explicit colors — var(--background)/--foreground are not defined
-              // in globals.css, which rendered text invisible on the toast.
               style: {
                 background: '#18181b',
                 color: '#fafafa',
@@ -71,9 +63,12 @@ export default function RealtimeNotifier({ userEmail }: { userEmail: string }) {
 
     return () => {
       cancelled = true;
-      if (client && channel) {
-        client.removeChannel(channel);
-      }
+      void (async () => {
+        const client = await getSharedRealtimeClient();
+        if (client && channel) {
+          client.removeChannel(channel);
+        }
+      })();
     };
   }, [userEmail]);
 

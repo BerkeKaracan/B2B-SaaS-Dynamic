@@ -1,42 +1,26 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+'use client';
+
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import { fetchRealtimeAccessToken } from '@/lib/authCookies';
+import {
+  getOrCreateRealtimeClientWithToken,
+  getSharedRealtimeClient,
+} from '@/lib/realtimeClient';
 
 /**
- * Browser Supabase client authenticated with a short-lived access token
- * from /api/auth/realtime-token (HttpOnly session → memory only).
+ * Returns the shared Realtime Supabase client for the given access token.
+ * Prefer `getSharedRealtimeClient()` — this exists for call sites that already fetched a token.
  */
 export function createAuthedSupabaseClient(
   accessToken: string
 ): SupabaseClient<Database> | null {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-  if (!supabaseUrl || !anonKey || !accessToken) return null;
-
-  const client = createClient<Database>(supabaseUrl, anonKey, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  });
-
-  try {
-    client.realtime.setAuth(accessToken);
-  } catch {
-    /* ignore */
-  }
-
-  return client;
+  return getOrCreateRealtimeClientWithToken(accessToken);
 }
 
 export async function createRealtimeSupabaseClient(): Promise<SupabaseClient<Database> | null> {
-  const token = await fetchRealtimeAccessToken();
-  if (!token) return null;
-  return createAuthedSupabaseClient(token);
+  return getSharedRealtimeClient();
 }
+
+/** @deprecated Use getSharedRealtimeClient — kept for clarity at call sites. */
+export { getSharedRealtimeClient, fetchRealtimeAccessToken };
