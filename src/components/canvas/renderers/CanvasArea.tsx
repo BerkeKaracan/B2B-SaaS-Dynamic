@@ -46,6 +46,9 @@ import {
   rectsIntersect,
 } from '@/hooks/useVisibleWorldRect';
 import { LiveCursors } from '../LiveCursors';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { COLLAB_CANVAS_SYNC } from '@/lib/featureGate';
+import { useAuthStore } from '@/store/useAuthStore';
 
 const MIN_ZOOM = 10;
 const MAX_ZOOM = 400;
@@ -92,7 +95,14 @@ export default function CanvasArea() {
 
   const params = useParams();
   const routeProjectId = params?.projectId as string;
+  const tenantId = params?.tenantId as string | undefined;
   const [hasLoadedPos, setHasLoadedPos] = useState(false);
+
+  const authUser = useAuthStore((s) => s.user);
+  const { enabled: canvasSyncEnabled } = useFeatureFlag(
+    COLLAB_CANVAS_SYNC,
+    tenantId
+  );
 
   const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
   const connections = useCanvasStore((s) => s.connections);
@@ -111,20 +121,27 @@ export default function CanvasArea() {
 
   useEffect(() => {
     const randomNum = Math.floor(Math.random() * 1000);
+    const fromAuth =
+      (authUser?.full_name && authUser.full_name.trim()) ||
+      (authUser?.email && authUser.email.split('@')[0]) ||
+      null;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentUser({
-      name: `Test User ${randomNum}`,
+      name: fromAuth || `User ${randomNum}`,
       color: randomNum % 2 === 0 ? '#ef4444' : '#10b981',
     });
-  }, []);
+  }, [authUser?.email, authUser?.full_name]);
 
-  const projectId = activePageId || 'default-room';
+  // Stable project room — never activePageId (that remounted channels per page).
+  const collabRoomId = routeProjectId || '';
   const { doc, provider, cursors } = useCanvasCollaboration(
-    projectId,
-    currentUser
+    collabRoomId,
+    currentUser,
+    { enableDocSync: canvasSyncEnabled }
   );
 
-  useZustandYjsSync(doc);
+  // null when flag off → no Yjs↔store bridge, no full-state Realtime storm
+  useZustandYjsSync(canvasSyncEnabled ? doc : null);
 
   const addBlockToPage = useCanvasStore((s) => s.addBlockToPage);
   const updateBlockValue = useCanvasStore((s) => s.updateBlockValue);
@@ -234,37 +251,52 @@ export default function CanvasArea() {
   useEffect(() => {
     if (!provider) return;
     let lastTrackTime = 0;
-    const throttleDelay = 50;
+    const throttleDelay = 80;
+    let lastX = Number.NaN;
+    let lastY = Number.NaN;
+    const minDelta = 2;
 
     const handleMouseMove = (e: PointerEvent) => {
       const now = Date.now();
-      if (now - lastTrackTime >= throttleDelay) {
-        const currentStore = useCanvasStore.getState();
-        const currentZoom = (currentStore.zoom ?? 100) / 100;
-        const rect = containerRef.current?.getBoundingClientRect() || {
-          left: 0,
-          top: 0,
-        };
-        const mouseCanvasX =
-          (e.clientX - rect.left - (currentStore.panX ?? 0)) / currentZoom;
-        const mouseCanvasY =
-          (e.clientY - rect.top - (currentStore.panY ?? 0)) / currentZoom;
+      if (now - lastTrackTime < throttleDelay) return;
 
-        provider.send({
-          type: 'broadcast',
-          event: 'cursor-move',
-          payload: {
-            userKey: currentUser.name,
-            cursor: { x: mouseCanvasX, y: mouseCanvasY },
-          },
-        });
-        lastTrackTime = now;
+      const currentStore = useCanvasStore.getState();
+      const currentZoom = (currentStore.zoom ?? 100) / 100;
+      const rect = containerRef.current?.getBoundingClientRect() || {
+        left: 0,
+        top: 0,
+      };
+      const mouseCanvasX =
+        (e.clientX - rect.left - (currentStore.panX ?? 0)) / currentZoom;
+      const mouseCanvasY =
+        (e.clientY - rect.top - (currentStore.panY ?? 0)) / currentZoom;
+
+      if (
+        Number.isFinite(lastX) &&
+        Math.abs(mouseCanvasX - lastX) < minDelta &&
+        Math.abs(mouseCanvasY - lastY) < minDelta
+      ) {
+        return;
       }
+
+      lastX = mouseCanvasX;
+      lastY = mouseCanvasY;
+      lastTrackTime = now;
+
+      void provider.send({
+        type: 'broadcast',
+        event: 'cursor-move',
+        payload: {
+          userKey: currentUser.name,
+          color: currentUser.color,
+          cursor: { x: mouseCanvasX, y: mouseCanvasY },
+        },
+      });
     };
 
     window.addEventListener('pointermove', handleMouseMove);
     return () => window.removeEventListener('pointermove', handleMouseMove);
-  }, [provider, currentUser]);
+  }, [provider, currentUser.name, currentUser.color]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
