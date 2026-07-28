@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from main import app
+from conftest import DUMMY_JWT_SECRET
 
 client = TestClient(app)
 
@@ -41,8 +42,15 @@ def test_health_auth_diag_endpoint():
     assert "resolved" in auth
     assert "getenv_present" in auth
     assert "dotenv_loading_enabled" in auth
+    # conftest sets K_SERVICE=pytest so local .env is never loaded during tests
+    assert auth["dotenv_loading_enabled"] is False
     assert "supabase_url_getenv_present" in auth
     assert "secret_mount_files" in auth
+    # Diagnostics must never echo secret material
+    dumped = str(body)
+    assert "eyJ" not in dumped
+    assert DUMMY_JWT_SECRET not in dumped
+    assert auth.get("getenv_length", 0) == len(DUMMY_JWT_SECRET)
 
 def test_unauthorized_access_to_records():
     """

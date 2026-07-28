@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run unit tests
+        run: npm test
+
       - name: Run linter
         run: npm run lint
 
@@ -41,10 +44,14 @@ jobs:
     name: Backend Test Suite
     runs-on: ubuntu-latest
     env:
+      # Dummy-only credentials (see backend/tests/conftest.py + .env.example placeholders)
+      K_SERVICE: 'pytest'
       DATABASE_URL: 'sqlite:///./test.db'
       SUPABASE_URL: 'https://dummy12345.supabase.co'
       SUPABASE_KEY: 'dummy-service-key-for-ci'
       SUPABASE_SERVICE_ROLE_KEY: 'dummy-service-role-key-for-ci'
+      SUPABASE_JWT_SECRET: 'dummy-jwt-secret-for-tests-not-real-32b+'
+      INTERNAL_API_SECRET: 'change-me-to-a-long-random-string'
       REDIS_URL: 'redis://localhost:6379'
       PYTHONPATH: '.'
     steps:
