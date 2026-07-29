@@ -11,6 +11,9 @@ services:
     environment:
       # Dockerfile defaults to 8080 (Cloud Run). Local compose publishes 8000.
       - PORT=8000
+      # Local: canvas WS works without JWT secret / GoTrue round-trips
+      - ALLOW_INSECURE_CANVAS_WS=true
+      - ENVIRONMENT=development
     healthcheck:
       test:
         [

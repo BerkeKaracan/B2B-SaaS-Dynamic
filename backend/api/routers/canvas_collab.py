@@ -12,6 +12,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi import status as http_status
 
 from core.auth_jwt import verify_access_token
+import os
 
 logger = logging.getLogger("saas_engine.canvas_ws")
 
@@ -20,6 +21,15 @@ router = APIRouter(tags=["canvas-collab"])
 AUTH_TIMEOUT_SEC = 8.0
 MAX_ROOMS = 500
 MAX_CLIENTS_PER_ROOM = 40
+
+
+def _allow_insecure_canvas_ws() -> bool:
+    """Local Docker: skip JWT verify so cursors work without SUPABASE_JWT_SECRET."""
+    raw = (os.getenv("ALLOW_INSECURE_CANVAS_WS") or "").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    env = (os.getenv("ENVIRONMENT") or os.getenv("APP_ENV") or "").strip().lower()
+    return env in {"development", "dev", "local"}
 
 
 @dataclass
@@ -133,22 +143,31 @@ async def canvas_collab_ws(websocket: WebSocket, room_id: str):
         self_key = _safe_str(msg.get("selfKey"), max_len=64)
         user = _safe_str(msg.get("user"), max_len=64) or "User"
         color = _safe_str(msg.get("color"), max_len=32) or "#6366f1"
-        if not token or not self_key:
+        if not self_key:
             await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
             return
 
-        try:
-            verify_access_token(token)
-        except Exception as exc:
-            logger.warning(
-                "canvas ws auth failed room=%s err=%s",
+        if _allow_insecure_canvas_ws():
+            logger.info(
+                "canvas ws insecure join room=%s peer=%s (ALLOW_INSECURE_CANVAS_WS / development)",
                 room_id,
-                type(exc).__name__,
+                self_key,
             )
-            await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
-            return
-
-        logger.info("canvas ws authenticated room=%s peer=%s", room_id, self_key)
+        else:
+            if not token or token == "local-dev":
+                await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
+                return
+            try:
+                verify_access_token(token)
+            except Exception as exc:
+                logger.warning(
+                    "canvas ws auth failed room=%s err=%s",
+                    room_id,
+                    type(exc).__name__,
+                )
+                await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
+                return
+            logger.info("canvas ws authenticated room=%s peer=%s", room_id, self_key)
 
         peer = Peer(ws=websocket, self_key=self_key, user=user, color=color)
         try:
