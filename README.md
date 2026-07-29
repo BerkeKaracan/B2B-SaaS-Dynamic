@@ -1,40 +1,54 @@
-# B2 SaaS Engine
+# Workspace OS - B2B SaaS Architecture Demonstration
 
-**Portfolio / demo product (v1)** — a multi-tenant workspace OS built to show full-stack product engineering, not a commercial company.
+**Version:** 1.3.0  
+**Repository:** BerkeKaracan/B2B-SaaS-Dynamic
 
-There is **no real legal entity**, **no Stripe**, and **no real customers**. Names like “ACME Corp.” or “SaaS Engine Inc.” on the marketing surface are **intentionally fake** for the demo UI.
+## Overview
 
-Live intent: LinkedIn / portfolio share with a working register → dashboard → Infinite canvas + board templates experience.
+This repository contains the source code for a multi-tenant workspace operating system. It is engineered as a portfolio demonstration to showcase a production-grade Full-Stack architecture handling tenancy, real-time synchronization, and containerized deployments.
 
----
+Please note: This is a technical demonstration. There is no commercial entity, and billing/payment gateways are mocked.
 
-## What this is
+## Tech Stack
 
-| Layer | Role |
-|-------|------|
-| **Next.js** (App Router) | Marketing site, auth UI, dashboard, Infinite canvas, board templates |
-| **FastAPI** | Secure API gateway (tenants, records, AI helpers, rate limits) |
-| **Supabase** | Auth + PostgreSQL (RLS) |
+- **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Zustand, Tailwind CSS 4
+- **Backend:** FastAPI, Pydantic v2, Uvicorn
+- **Database & Auth:** PostgreSQL (via Supabase), Supabase Auth
+- **Caching & Rate Limiting:** Redis
+- **Infrastructure:** Docker, Google Cloud Run, GitHub Actions
 
-**Workspace surfaces:** Infinite (blank + blocks), Kanban, Notepad/Document, Whiteboard, Mindmap, Timeline, Database, Retrospective — also usable as standalone project templates.
+## System Architecture & Engineering Decisions
 
-**Billing:** Demo only (tier flips / mock invoices). Real payments are **out of scope** for v1.
+The system is decoupled into a Next.js frontend and a FastAPI backend gateway to ensure secure data processing and scalable real-time connections.
 
----
+### 1. Authentication & Security Flow
 
-## Tech stack
+- **HttpOnly Cookies:** JWTs are not stored in `localStorage`. The Next.js layer establishes an HttpOnly `token` cookie via `/api/session`.
+- **BFF (Backend-For-Frontend) Pattern:** Browser API calls route through the Next.js proxy (`/api/backend/*`), attaching the JWT securely before forwarding to FastAPI.
+- **Data Access:** The FastAPI backend utilizes the Supabase `service_role` to bypass default constraints, strictly enforcing tenant data isolation within the application logic layer. Postgres Row Level Security (RLS) is maintained as a defense-in-depth measure.
 
-- **Frontend:** Next.js, TypeScript, Zustand, Tailwind, next-intl, Yjs (collab)
-- **Backend:** FastAPI, Pydantic v2, Redis (rate limiting)
-- **Data / auth:** Supabase (Postgres + Auth)
-- **CI:** GitHub Actions (`ci.yml` — lint, build, pytest, Playwright)
-- **Deploy path:** Docker Compose (local). Backend target: Google Cloud Run + Artifact Registry.
+### 2. Real-Time Infrastructure (Canvas & Cursors)
 
----
+- **Custom WebSocket Hub:** Live cursors (+ optional Yjs co-edit) go through FastAPI `/ws/canvas/{room_id}` (in-memory room hub).
+- **Architectural Pivot:** Supabase Presence was tried for cursors, then replaced after unstable `CLOSED` / channel races.
+- **CRDT Synchronization:** Yjs over the same WebSocket. Local Docker can force sync with `NEXT_PUBLIC_COLLAB_DOC_SYNC=true`; Pulse flag `collab.canvas_sync` remains the prod kill-switch.
 
-## Quick start (Docker)
+### 3. Database Design
 
-**Prerequisites:** Node 20+, Docker Compose, a Supabase project.
+- **JSONB Document Storage:** Instead of heavily normalized relational tables for canvas nodes, project data (Blank, Kanban, etc.) is persisted as JSON documents in the `records.record_data` column. This allows the Zustand store to serialize complex UI states efficiently.
+- **Multi-tenancy:** All core tables (`tenants`, `tenant_users`, `records`) are scoped via `tenant_id`.
+
+## CI/CD and Deployment
+
+The deployment pipeline is automated via GitHub Actions (`.github/workflows/deploy-backend.yml`):
+
+1. Code pushed to `main` triggers Vitest and Pytest test suites.
+2. The backend is containerized via Docker and pushed to Google Artifact Registry.
+3. The image is deployed to Google Cloud Run (`europe-west3`).
+
+## Local Development (Docker)
+
+Prerequisites: Node.js 20+, Docker Compose, and a Supabase project.
 
 ```bash
 git clone https://github.com/BerkeKaracan/B2B-SaaS-Dynamic.git
@@ -42,110 +56,32 @@ cd B2B-SaaS-Dynamic
 
 cp .env.example .env
 cp backend/.env.example backend/.env
-# Fill Supabase URL/keys in both files
 
 docker compose up -d --build
 ```
 
-- Frontend: http://localhost:3000  
-- Backend docs: http://localhost:8000/docs  
+- Frontend: http://localhost:3000
+- Backend docs: http://localhost:8000/docs
 - Backend logs: `docker logs b2b-backend -f`
 
-### Local frontend without Docker
+## Production env (Vercel + Cloud Run LIVE)
 
-```bash
-npm install
-npm run dev
-```
+Set these on Vercel **before** rebuild (values are baked into the client + CSP):
 
-Backend still needs `backend/.env` and a running API (`uvicorn` or the Compose backend service).
+| Variable | Example | Notes |
+|----------|---------|--------|
+| `NEXT_PUBLIC_API_URL` | `https://YOUR-SERVICE-xxxxx.run.app` | HTTPS API origin |
+| `NEXT_PUBLIC_WS_URL` | `wss://YOUR-SERVICE-xxxxx.run.app` | Same host, `wss://` scheme — canvas LIVE |
+| `NEXT_PUBLIC_SITE_URL` | `https://your-frontend.vercel.app` | Canonical site URL |
 
----
+CSP on Vercel omits `ws://localhost`. `connect-src` keeps `https:` / `wss:` and also lists the WS/API host from the vars above. Without `NEXT_PUBLIC_WS_URL` (or API URL), the client will **not** guess `frontend:8000`.
 
-## Environment checklist
-
-### Frontend (`.env` — see [.env.example](.env.example))
-
-| Variable | Required | Notes |
-|----------|----------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Public anon key |
-| `NEXT_PUBLIC_SITE_URL` | **Prod yes** | Canonical URL for sitemap / robots / Open Graph (e.g. `https://your-domain.com`) |
-| `NEXT_PUBLIC_API_URL` | Prod yes | Browser → API base (e.g. `https://api.your-domain.com`) |
-| `NEXT_PUBLIC_WS_URL` | Prod (LIVE) | Canvas WebSocket base (`wss://api…`). Falls back to API URL (`https`→`wss`) |
-| `NEXT_PUBLIC_ROOT_DOMAIN` | Optional | Tenant subdomain routing; defaults exist for local/demo |
-| `INTERNAL_API_URL` | Docker | Set by Compose to `http://backend:8000` |
-| `RESEND_API_KEY` | Optional | Email features |
-| `SENTRY_AUTH_TOKEN` | Optional | Source maps / Sentry release |
-| `NOTION_API_KEY` / `NOTION_PAGE_ID` | Optional | Notion export |
-| `CSP_STRICT` / `CSP_CONNECT_WS_ORIGINS` | Prod CSP | Vercel already omits `ws://localhost`; set WS URL at build so CSP lists the API host |
-
-### Backend (`backend/.env` — see [backend/.env.example](backend/.env.example))
-
-| Variable | Required | Notes |
-|----------|----------|--------|
-| `DATABASE_URL` | Yes | Postgres connection string |
-| `SUPABASE_URL` | Yes | Same project as frontend |
-| `SUPABASE_KEY` / `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-side Supabase access |
-| `REDIS_URL` | Yes | Rate limiting |
-| `GROQ_API_KEY` | Optional | AI routes |
-| `GITHUB_TOKEN` / repo vars | Optional | GitHub integrations |
-
-### Production share checklist
-
-1. Set `NEXT_PUBLIC_SITE_URL` to the live HTTPS origin.
-2. Set `NEXT_PUBLIC_API_URL` (and ideally `NEXT_PUBLIC_WS_URL=wss://…`) to the Cloud Run / API host **before** the Vercel build — CSP `connect-src` and the LIVE client both need that host (bare `wss:` is allowed, but the client must not fall back to the frontend hostname `:8000`).
-3. Validate the URL once with [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/).
-4. Smoke: landing → Platform/Solutions → pricing → register → Infinite blank + Kanban; two tabs for LIVE cursors if collab is on.
-
----
+Cloud Run must accept WebSocket upgrades on `/ws/canvas/{room_id}` (same service as the HTTP API).
 
 ## Feedback & support
 
-Product feedback lives on a shared multi-tenant portal (this app’s tenant space):
-
 [https://feedback-portal-lyart.vercel.app/?tenant=b2-b-saa-s-dynamic](https://feedback-portal-lyart.vercel.app/?tenant=b2-b-saa-s-dynamic)
-
-Linked from Contact, Community, Footer, dashboard sidebar, and the account menu.
-
-## Demo caveats (honest v1)
-
-- **Forgot password** — UI demo only (not a real reset flow).
-- **Billing** — demo tiers; no Stripe.
-- **Infinite** — Database / Retrospective / Timeline frames are page-scoped (isolated per frame), same pattern as Kanban.
-- **Public share** — full board render for kanban / notepad / timeline; other types fall back to a simpler view.
-- **Blog / community** — thin marketing stubs (real GitHub link; contact via mailto).
-
-Privacy / legal pages already state this is a **portfolio demonstration**, not a commercial service.
-
----
-
-## Repo layout
-
-```
-.
-├── backend/          # FastAPI app, models, tests
-├── src/              # Next.js app, components, stores
-├── messages/         # en / tr i18n
-└── .github/workflows # ci.yml (+ optional db-backup.yml)
-```
-
----
-
-## Scripts
-
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Next.js dev server |
-| `npm run build` / `npm start` | Production Next.js |
-| `npm run lint` | ESLint |
-| `npm test` | Vitest unit tests |
-| `docker compose up -d --build` | Full stack |
-
-Backend tests: `pytest` under `backend/` (also run in CI).
-
----
 
 ## License / attribution
 
-Built by **Berke Karacan** as an engineering portfolio project. Not affiliated with a real “SaaS Engine Inc.” entity.
+Built by **Berke Karacan** as an engineering portfolio project. Not affiliated with a real commercial “SaaS Engine Inc.” entity.
