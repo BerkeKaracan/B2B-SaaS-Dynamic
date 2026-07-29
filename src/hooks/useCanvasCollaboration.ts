@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import * as Y from 'yjs';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/supabase';
 import { getCanvasCollabClient } from '@/lib/realtimeClient';
 import {
   decodeYUpdateFromBroadcast,
@@ -32,6 +33,50 @@ export type CollabConnectionStatus =
 const Y_ORIGIN_REMOTE = 'remote';
 const OUTBOUND_COALESCE_MS = 80;
 const SUBSCRIBE_WATCHDOG_MS = 12000;
+
+/**
+ * Serialize join/leave for a topic so React Strict Mode
+ * (unmount removeChannel → remount channel) cannot race and kill the new join.
+ */
+const topicChains = new Map<string, Promise<unknown>>();
+
+function enqueueTopicTask<T>(topic: string, task: () => Promise<T>): Promise<T> {
+  const prev = topicChains.get(topic) ?? Promise.resolve();
+  const next = prev.then(task, task);
+  topicChains.set(
+    topic,
+    next.then(
+      () => undefined,
+      () => undefined
+    )
+  );
+  return next;
+}
+
+function channelMatchesTopic(ch: RealtimeChannel, topic: string): boolean {
+  const name = (ch as RealtimeChannel & { topic?: string }).topic || '';
+  return (
+    name === topic ||
+    name === `realtime:${topic}` ||
+    name.endsWith(`:${topic}`)
+  );
+}
+
+async function removeTopicChannels(
+  client: SupabaseClient<Database>,
+  topic: string,
+  except?: RealtimeChannel | null
+): Promise<void> {
+  const existing = client.getChannels().filter((ch) => channelMatchesTopic(ch, topic));
+  for (const ch of existing) {
+    if (except && ch === except) continue;
+    try {
+      await client.removeChannel(ch);
+    } catch {
+      /* ignore */
+    }
+  }
+}
 
 export function useCanvasCollaboration(
   roomId: string,
@@ -176,7 +221,7 @@ export function useCanvasCollaboration(
     []
   );
 
-  // Connect only when room changes. Uses anon public Realtime — no JWT.
+  // Connect only when room changes. Anon public Realtime — no JWT.
   useEffect(() => {
     if (!roomId || roomId === 'default-room') {
       return;
@@ -189,26 +234,45 @@ export function useCanvasCollaboration(
     }
 
     let cancelled = false;
+    let channel: RealtimeChannel | null = null;
     let subscribed = false;
     let watchdogTimer: ReturnType<typeof setTimeout> | null = null;
+    let rejoinTimer: ReturnType<typeof setTimeout> | null = null;
+    let joinAttempt = 0;
 
     const topic = `canvas:${roomId}`;
-    queueMicrotask(() => {
-      if (!cancelled) setConnectionStatus('connecting');
-    });
 
-    const channel = client.channel(topic, {
-      config: {
-        broadcast: { self: false, ack: false },
-        presence: { key: selfKeyRef.current },
-      },
-    });
-    channelRef.current = channel;
+    const clearWatchdog = () => {
+      if (watchdogTimer != null) {
+        clearTimeout(watchdogTimer);
+        watchdogTimer = null;
+      }
+    };
 
-    const syncCursorsFromPresence = () => {
+    const markConnecting = () => {
+      queueMicrotask(() => {
+        if (!cancelled) setConnectionStatus('connecting');
+      });
+    };
+
+    const markSubscribed = () => {
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setIsSynced(true);
+        setConnectionStatus('subscribed');
+      });
+    };
+
+    const markError = () => {
+      queueMicrotask(() => {
+        if (!cancelled) setConnectionStatus('error');
+      });
+    };
+
+    const syncCursorsFromPresence = (ch: RealtimeChannel) => {
       if (cancelled) return;
       const key = selfKeyRef.current;
-      const state = channel.presenceState();
+      const state = ch.presenceState();
       const next: Record<string, CursorState> = {};
       for (const presenceKey of Object.keys(state)) {
         if (presenceKey === key) continue;
@@ -225,120 +289,167 @@ export function useCanvasCollaboration(
       setCursors(next);
     };
 
-    channel.on('broadcast', { event: 'y-update' }, ({ payload }) => {
-      const ydoc = ydocRef.current;
-      if (!payload || payload.from === selfKeyRef.current || !ydoc) return;
-      const bytes = decodeYUpdateFromBroadcast(payload.update);
-      if (!bytes) return;
-      Y.applyUpdate(ydoc, bytes, Y_ORIGIN_REMOTE);
-    });
-
-    channel.on('broadcast', { event: 'y-sync-request' }, ({ payload }) => {
-      const ydoc = ydocRef.current;
-      if (!payload || payload.from === selfKeyRef.current || !ydoc) return;
-      let stateVector: Uint8Array | undefined;
-      if (typeof payload.stateVector === 'string') {
-        try {
-          stateVector = base64ToUint8(payload.stateVector);
-        } catch {
-          stateVector = undefined;
-        }
-      }
-      const update = Y.encodeStateAsUpdate(ydoc, stateVector);
-      const encoded = encodeYUpdateForBroadcast(update);
-      if (!encoded.ok) {
-        console.warn(
-          '[collab] skipped y-sync-response (too large)',
-          encoded.byteLength
-        );
-        return;
-      }
-      void channel.send({
-        type: 'broadcast',
-        event: 'y-update',
-        payload: {
-          from: selfKeyRef.current,
-          update: encoded.base64,
-        },
-      });
-    });
-
-    channel.on('presence', { event: 'sync' }, syncCursorsFromPresence);
-    channel.on('presence', { event: 'join' }, syncCursorsFromPresence);
-    channel.on('presence', { event: 'leave' }, syncCursorsFromPresence);
-
-    watchdogTimer = setTimeout(() => {
-      watchdogTimer = null;
-      if (cancelled || subscribed) return;
-      readyRef.current = false;
-      queueMicrotask(() => {
-        if (!cancelled) setConnectionStatus('error');
-      });
-      console.warn('[collab] subscribe timed out', { topic });
-    }, SUBSCRIBE_WATCHDOG_MS);
-
-    channel.subscribe((status, err) => {
-      if (cancelled) return;
-
-      if (status === 'SUBSCRIBED') {
-        if (watchdogTimer != null) {
-          clearTimeout(watchdogTimer);
-          watchdogTimer = null;
-        }
-        subscribed = true;
-        readyRef.current = true;
-        queueMicrotask(() => {
-          if (cancelled) return;
-          setIsSynced(true);
-          setConnectionStatus('subscribed');
-        });
-
-        const u = userRef.current;
-        void channel.track({
-          user: u.name,
-          color: u.color,
-          cursor: null,
-        });
-
-        if (enableDocSyncRef.current) {
-          attachYjsRef.current(channel);
-        }
-        return;
-      }
-
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        if (watchdogTimer != null) {
-          clearTimeout(watchdogTimer);
-          watchdogTimer = null;
-        }
+    const join = () =>
+      enqueueTopicTask(topic, async () => {
+        if (cancelled) return;
+        joinAttempt += 1;
+        subscribed = false;
         readyRef.current = false;
-        queueMicrotask(() => {
-          if (!cancelled) setConnectionStatus('error');
-        });
-        console.warn('[collab] channel', status, err?.message ?? err ?? '');
-        return;
-      }
+        markConnecting();
 
-      // CLOSED after unmount is normal; ignore when cancelled
-      if (status === 'CLOSED' && !cancelled && subscribed) {
-        readyRef.current = false;
-        queueMicrotask(() => {
-          if (!cancelled) setConnectionStatus('error');
+        // Ensure previous Strict Mode channel is fully gone before joining
+        await removeTopicChannels(client, topic);
+        if (cancelled) return;
+
+        const ch = client.channel(topic, {
+          config: {
+            broadcast: { self: false, ack: false },
+            presence: { key: selfKeyRef.current },
+          },
         });
-        console.warn('[collab] channel CLOSED unexpectedly');
-      }
-    });
+        channel = ch;
+        channelRef.current = ch;
+
+        ch.on('broadcast', { event: 'y-update' }, ({ payload }) => {
+          const ydoc = ydocRef.current;
+          if (!payload || payload.from === selfKeyRef.current || !ydoc) return;
+          const bytes = decodeYUpdateFromBroadcast(payload.update);
+          if (!bytes) return;
+          Y.applyUpdate(ydoc, bytes, Y_ORIGIN_REMOTE);
+        });
+
+        ch.on('broadcast', { event: 'y-sync-request' }, ({ payload }) => {
+          const ydoc = ydocRef.current;
+          if (!payload || payload.from === selfKeyRef.current || !ydoc) return;
+          let stateVector: Uint8Array | undefined;
+          if (typeof payload.stateVector === 'string') {
+            try {
+              stateVector = base64ToUint8(payload.stateVector);
+            } catch {
+              stateVector = undefined;
+            }
+          }
+          const update = Y.encodeStateAsUpdate(ydoc, stateVector);
+          const encoded = encodeYUpdateForBroadcast(update);
+          if (!encoded.ok) {
+            console.warn(
+              '[collab] skipped y-sync-response (too large)',
+              encoded.byteLength
+            );
+            return;
+          }
+          void ch.send({
+            type: 'broadcast',
+            event: 'y-update',
+            payload: {
+              from: selfKeyRef.current,
+              update: encoded.base64,
+            },
+          });
+        });
+
+        ch.on('presence', { event: 'sync' }, () => syncCursorsFromPresence(ch));
+        ch.on('presence', { event: 'join' }, () => syncCursorsFromPresence(ch));
+        ch.on('presence', { event: 'leave' }, () => syncCursorsFromPresence(ch));
+
+        clearWatchdog();
+        watchdogTimer = setTimeout(() => {
+          watchdogTimer = null;
+          if (cancelled || subscribed) return;
+          readyRef.current = false;
+          markError();
+          console.warn('[collab] subscribe timed out', { topic, joinAttempt });
+        }, SUBSCRIBE_WATCHDOG_MS);
+
+        await new Promise<void>((resolve) => {
+          let settled = false;
+          const done = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+          };
+
+          ch.subscribe((status, err) => {
+            if (cancelled) {
+              done();
+              return;
+            }
+
+            if (status === 'SUBSCRIBED') {
+              clearWatchdog();
+              subscribed = true;
+              readyRef.current = true;
+              markSubscribed();
+
+              const u = userRef.current;
+              void ch.track({
+                user: u.name,
+                color: u.color,
+                cursor: null,
+              });
+
+              if (enableDocSyncRef.current) {
+                attachYjsRef.current(ch);
+              }
+              done();
+              return;
+            }
+
+            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              clearWatchdog();
+              readyRef.current = false;
+              markError();
+              console.warn(
+                '[collab] channel',
+                status,
+                err?.message ?? err ?? ''
+              );
+              done();
+              return;
+            }
+
+            // Unexpected CLOSED after we were live — one automatic rejoin
+            if (status === 'CLOSED' && subscribed) {
+              clearWatchdog();
+              subscribed = false;
+              readyRef.current = false;
+              console.warn('[collab] channel CLOSED unexpectedly — rejoining');
+              done();
+              if (!cancelled && joinAttempt < 3) {
+                rejoinTimer = setTimeout(() => {
+                  rejoinTimer = null;
+                  if (!cancelled) void join();
+                }, 350);
+              } else {
+                markError();
+              }
+            }
+          });
+        });
+      });
+
+    void join();
 
     return () => {
       cancelled = true;
-      if (watchdogTimer != null) {
-        clearTimeout(watchdogTimer);
-        watchdogTimer = null;
+      clearWatchdog();
+      if (rejoinTimer != null) {
+        clearTimeout(rejoinTimer);
+        rejoinTimer = null;
       }
       readyRef.current = false;
       detachYjsRef.current();
       channelRef.current = null;
-      void client.removeChannel(channel);
+      const ch = channel;
+      void enqueueTopicTask(topic, async () => {
+        if (ch) {
+          try {
+            await client.removeChannel(ch);
+          } catch {
+            /* ignore */
+          }
+        }
+      });
       queueMicrotask(() => {
         setIsSynced(false);
         setCursors({});
