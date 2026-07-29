@@ -27,6 +27,8 @@ redis_client = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
 TOKEN_BLACKLIST_PREFIX = "auth_blacklist:"
 BLACKLIST_MIN_TTL_SECONDS = 60
 BLACKLIST_MAX_TTL_SECONDS = 60 * 60 * 24 * 7
+_logged_missing_jwt_secret = False
+_logged_local_jwt_fallback = False
 
 
 def _blacklist_key(token: str) -> str:
@@ -218,14 +220,22 @@ def verify_access_token(token: str, *, check_blacklist: bool = True) -> dict[str
             raise
         except jwt.PyJWTError as exc:
             # Wrong secret, new asymmetric JWT, etc. → Auth API
-            logger.warning(
-                "Local JWT verify failed (%s) — falling back to GoTrue /auth/v1/user",
-                type(exc).__name__,
-            )
+            global _logged_local_jwt_fallback
+            if not _logged_local_jwt_fallback:
+                _logged_local_jwt_fallback = True
+                logger.warning(
+                    "Local JWT verify failed (%s) — falling back to GoTrue /auth/v1/user "
+                    "(further failures suppressed)",
+                    type(exc).__name__,
+                )
 
     else:
-        logger.warning(
-            "SUPABASE_JWT_SECRET missing/empty — falling back to GoTrue /auth/v1/user"
-        )
+        global _logged_missing_jwt_secret
+        if not _logged_missing_jwt_secret:
+            _logged_missing_jwt_secret = True
+            logger.warning(
+                "SUPABASE_JWT_SECRET missing/empty — falling back to GoTrue /auth/v1/user "
+                "(further warnings suppressed; set the secret in backend/.env for local speed)"
+            )
 
     return _verify_via_supabase_auth(token)

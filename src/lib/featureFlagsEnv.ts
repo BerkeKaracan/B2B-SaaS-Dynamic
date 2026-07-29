@@ -1,4 +1,13 @@
 /**
+ * Local/Docker test without Pulse: FEATURE_FLAGS_DISABLED=1|true|yes
+ * skips remote evaluate and uses tier fallback only.
+ */
+export function isFeatureFlagsRemoteDisabled(): boolean {
+  const raw = (process.env.FEATURE_FLAGS_DISABLED || '').trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
+}
+
+/**
  * Resolve Pulse Flag delivery base URL from env.
  * Accepts common aliases so a misnamed Vercel variable still works.
  */
@@ -12,6 +21,10 @@ export function resolveFeatureFlagsUrl(): {
     FEATURE_FLAGS_BASE_URL: Boolean(process.env.FEATURE_FLAGS_BASE_URL?.trim()),
     FEATURE_FLAGS_API_URL: Boolean(process.env.FEATURE_FLAGS_API_URL?.trim()),
   };
+
+  if (isFeatureFlagsRemoteDisabled()) {
+    return { url: '', from: 'FEATURE_FLAGS_DISABLED', present };
+  }
 
   const candidates: Array<[string, string | undefined]> = [
     ['FEATURE_FLAGS_URL', process.env.FEATURE_FLAGS_URL],

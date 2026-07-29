@@ -118,20 +118,22 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const { url: base } = resolveFeatureFlagsUrl();
+  const { url: base, from } = resolveFeatureFlagsUrl();
   const apiKey = resolveFeatureFlagsApiKey();
 
-  if (!base && apiKey) {
-    const resolved = resolveFeatureEnabled(key, tier, { status: 'error' });
+  // Local/Docker without Pulse — no remote call, no ECONNREFUSED spam
+  if (!base) {
+    const resolved = resolveFeatureEnabled(key, tier, {
+      status: from === 'FEATURE_FLAGS_DISABLED' ? 'unset' : apiKey ? 'error' : 'unset',
+    });
     return NextResponse.json({
       ...resolved,
-      detail: 'FEATURE_FLAGS_URL missing',
+      ...(from === 'FEATURE_FLAGS_DISABLED'
+        ? { detail: 'flags_disabled_local' }
+        : apiKey
+          ? { detail: 'FEATURE_FLAGS_URL missing' }
+          : {}),
     });
-  }
-
-  if (!base) {
-    const resolved = resolveFeatureEnabled(key, tier, { status: 'unset' });
-    return NextResponse.json(resolved);
   }
 
   if (!apiKey) {
@@ -193,7 +195,9 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json(resolved);
   } catch (err) {
-    console.error('[features/evaluate] remote failed', err);
+    const message = err instanceof Error ? err.message : String(err);
+    // One-line warn — full stack spam when Pulse is down in Docker
+    console.warn(`[features/evaluate] remote unreachable for ${key}: ${message}`);
     const resolved = resolveFeatureEnabled(key, tier, { status: 'error' });
     return NextResponse.json({
       ...resolved,
