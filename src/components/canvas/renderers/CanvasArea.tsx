@@ -46,8 +46,6 @@ import {
   rectsIntersect,
 } from '@/hooks/useVisibleWorldRect';
 import { LiveCursors } from '../LiveCursors';
-import { useFeatureFlag } from '@/hooks/useFeatureFlag';
-import { COLLAB_CANVAS_SYNC } from '@/lib/featureGate';
 import { useAuthStore } from '@/store/useAuthStore';
 
 const MIN_ZOOM = 10;
@@ -95,18 +93,16 @@ export default function CanvasArea() {
 
   const params = useParams();
   const routeProjectId = params?.projectId as string;
-  const tenantId = params?.tenantId as string | undefined;
   const [hasLoadedPos, setHasLoadedPos] = useState(false);
 
   const authUser = useAuthStore((s) => s.user);
-  const { enabled: canvasSyncFlag } = useFeatureFlag(
-    COLLAB_CANVAS_SYNC,
-    tenantId
-  );
-  // Local Docker: NEXT_PUBLIC_COLLAB_DOC_SYNC=true enables co-edit without Pulse
+
+  // LIVE: empty roomId disables socket. Build with NEXT_PUBLIC_DISABLE_LIVE=true to pause.
+  const liveDisabled = process.env.NEXT_PUBLIC_DISABLE_LIVE === 'true';
+  // Yjs block/page co-edit follows LIVE (cursors already did).
+  // Kill Yjs only (keep cursors): NEXT_PUBLIC_COLLAB_DOC_SYNC=false
   const canvasSyncEnabled =
-    canvasSyncFlag ||
-    process.env.NEXT_PUBLIC_COLLAB_DOC_SYNC === 'true';
+    !liveDisabled && process.env.NEXT_PUBLIC_COLLAB_DOC_SYNC !== 'false';
 
   const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
   const connections = useCanvasStore((s) => s.connections);
@@ -136,16 +132,14 @@ export default function CanvasArea() {
     });
   }, [authUser?.email, authUser?.full_name]);
 
-  // LIVE: empty roomId disables socket. Build with NEXT_PUBLIC_DISABLE_LIVE=true to pause.
-  const liveDisabled = process.env.NEXT_PUBLIC_DISABLE_LIVE === 'true';
   const collabRoomId = liveDisabled ? '' : routeProjectId || '';
   const { doc, cursors, selfKey, connectionStatus, publishCursor } =
     useCanvasCollaboration(collabRoomId, currentUser, {
-      enableDocSync: !liveDisabled && canvasSyncEnabled,
+      enableDocSync: canvasSyncEnabled,
     });
 
-  // null when live/flag off → no Yjs↔store bridge
-  useZustandYjsSync(!liveDisabled && canvasSyncEnabled ? doc : null);
+  // null when live/doc-sync off → no Yjs↔store bridge
+  useZustandYjsSync(canvasSyncEnabled ? doc : null);
 
   const addBlockToPage = useCanvasStore((s) => s.addBlockToPage);
   const updateBlockValue = useCanvasStore((s) => s.updateBlockValue);
