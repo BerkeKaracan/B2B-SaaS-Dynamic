@@ -146,7 +146,7 @@ export default function CanvasArea() {
     });
 
   // null when flag off → no Yjs↔store bridge, no full-state Realtime storm
-  useZustandYjsSync(canvasSyncEnabled ? doc : null);
+  useZustandYjsSync(!liveDisabled && canvasSyncEnabled ? doc : null);
 
   const addBlockToPage = useCanvasStore((s) => s.addBlockToPage);
   const updateBlockValue = useCanvasStore((s) => s.updateBlockValue);
