@@ -68,11 +68,11 @@ docker compose up -d --build
 
 Set these on Vercel **before** rebuild (values are baked into the client + CSP):
 
-| Variable | Example | Notes |
-|----------|---------|--------|
-| `NEXT_PUBLIC_API_URL` | `https://YOUR-SERVICE-xxxxx.run.app` | HTTPS API origin |
-| `NEXT_PUBLIC_WS_URL` | `wss://YOUR-SERVICE-xxxxx.run.app` | Same host, `wss://` scheme — canvas LIVE |
-| `NEXT_PUBLIC_SITE_URL` | `https://your-frontend.vercel.app` | Canonical site URL |
+| Variable               | Example                              | Notes                                    |
+| ---------------------- | ------------------------------------ | ---------------------------------------- |
+| `NEXT_PUBLIC_API_URL`  | `https://YOUR-SERVICE-xxxxx.run.app` | HTTPS API origin                         |
+| `NEXT_PUBLIC_WS_URL`   | `wss://YOUR-SERVICE-xxxxx.run.app`   | Same host, `wss://` scheme — canvas LIVE |
+| `NEXT_PUBLIC_SITE_URL` | `https://your-frontend.vercel.app`   | Canonical site URL                       |
 
 CSP on Vercel omits `ws://localhost`. `connect-src` keeps `https:` / `wss:` and also lists the WS/API host from the vars above. Without `NEXT_PUBLIC_WS_URL` (or API URL), the client will **not** guess `frontend:8000`.
 
