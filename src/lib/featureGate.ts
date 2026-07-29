@@ -5,12 +5,20 @@
  * ai.canvas_generator:
  * - Pulse OK → Pulse is source of truth (project delivery key scoped).
  * - Pulse unset/error → local tier fallback (advanced|pro).
+ *
+ * collab.canvas_sync:
+ * - Default OFF for every tier (no local grant).
+ * - Pulse kill-switch: set enabled=false on the Pulse project to stop Yjs
+ *   Realtime sync instantly without redeploy. Cursors stay separate/light.
  */
 
 export const AI_CANVAS_GENERATOR = 'ai.canvas_generator';
+/** Blank-canvas CRDT sync over Supabase Realtime — default off everywhere. */
+export const COLLAB_CANVAS_SYNC = 'collab.canvas_sync';
 
 const LOCAL_TIER_FLAGS: Record<string, ReadonlySet<string>> = {
   [AI_CANVAS_GENERATOR]: new Set(['advanced', 'pro']),
+  // Intentionally empty / omitted: collab.canvas_sync never auto-enables via tier.
 };
 
 export function normalizeTier(raw?: string | null): string {

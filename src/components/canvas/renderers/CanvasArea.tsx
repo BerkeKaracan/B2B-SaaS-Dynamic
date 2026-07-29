@@ -46,6 +46,9 @@ import {
   rectsIntersect,
 } from '@/hooks/useVisibleWorldRect';
 import { LiveCursors } from '../LiveCursors';
+import { useFeatureFlag } from '@/hooks/useFeatureFlag';
+import { COLLAB_CANVAS_SYNC } from '@/lib/featureGate';
+import { useAuthStore } from '@/store/useAuthStore';
 
 const MIN_ZOOM = 10;
 const MAX_ZOOM = 400;
@@ -92,7 +95,18 @@ export default function CanvasArea() {
 
   const params = useParams();
   const routeProjectId = params?.projectId as string;
+  const tenantId = params?.tenantId as string | undefined;
   const [hasLoadedPos, setHasLoadedPos] = useState(false);
+
+  const authUser = useAuthStore((s) => s.user);
+  const { enabled: canvasSyncFlag } = useFeatureFlag(
+    COLLAB_CANVAS_SYNC,
+    tenantId
+  );
+  // Local Docker: NEXT_PUBLIC_COLLAB_DOC_SYNC=true enables co-edit without Pulse
+  const canvasSyncEnabled =
+    canvasSyncFlag ||
+    process.env.NEXT_PUBLIC_COLLAB_DOC_SYNC === 'true';
 
   const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
   const connections = useCanvasStore((s) => s.connections);
@@ -111,20 +125,27 @@ export default function CanvasArea() {
 
   useEffect(() => {
     const randomNum = Math.floor(Math.random() * 1000);
+    const fromAuth =
+      (authUser?.full_name && authUser.full_name.trim()) ||
+      (authUser?.email && authUser.email.split('@')[0]) ||
+      null;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentUser({
-      name: `Test User ${randomNum}`,
+      name: fromAuth || `User ${randomNum}`,
       color: randomNum % 2 === 0 ? '#ef4444' : '#10b981',
     });
-  }, []);
+  }, [authUser?.email, authUser?.full_name]);
 
-  const projectId = activePageId || 'default-room';
-  const { doc, provider, cursors } = useCanvasCollaboration(
-    projectId,
-    currentUser
-  );
+  // LIVE: empty roomId disables socket. Build with NEXT_PUBLIC_DISABLE_LIVE=true to pause.
+  const liveDisabled = process.env.NEXT_PUBLIC_DISABLE_LIVE === 'true';
+  const collabRoomId = liveDisabled ? '' : routeProjectId || '';
+  const { doc, cursors, selfKey, connectionStatus, publishCursor } =
+    useCanvasCollaboration(collabRoomId, currentUser, {
+      enableDocSync: !liveDisabled && canvasSyncEnabled,
+    });
 
-  useZustandYjsSync(doc);
+  // null when live/flag off → no Yjs↔store bridge
+  useZustandYjsSync(!liveDisabled && canvasSyncEnabled ? doc : null);
 
   const addBlockToPage = useCanvasStore((s) => s.addBlockToPage);
   const updateBlockValue = useCanvasStore((s) => s.updateBlockValue);
@@ -232,39 +253,45 @@ export default function CanvasArea() {
   }, [zoom, panX, panY, routeProjectId, hasLoadedPos]);
 
   useEffect(() => {
-    if (!provider) return;
+    if (connectionStatus !== 'subscribed') return;
     let lastTrackTime = 0;
-    const throttleDelay = 50;
+    const throttleDelay = 80;
+    let lastX = Number.NaN;
+    let lastY = Number.NaN;
+    const minDelta = 2;
 
     const handleMouseMove = (e: PointerEvent) => {
       const now = Date.now();
-      if (now - lastTrackTime >= throttleDelay) {
-        const currentStore = useCanvasStore.getState();
-        const currentZoom = (currentStore.zoom ?? 100) / 100;
-        const rect = containerRef.current?.getBoundingClientRect() || {
-          left: 0,
-          top: 0,
-        };
-        const mouseCanvasX =
-          (e.clientX - rect.left - (currentStore.panX ?? 0)) / currentZoom;
-        const mouseCanvasY =
-          (e.clientY - rect.top - (currentStore.panY ?? 0)) / currentZoom;
+      if (now - lastTrackTime < throttleDelay) return;
 
-        provider.send({
-          type: 'broadcast',
-          event: 'cursor-move',
-          payload: {
-            userKey: currentUser.name,
-            cursor: { x: mouseCanvasX, y: mouseCanvasY },
-          },
-        });
-        lastTrackTime = now;
+      const currentStore = useCanvasStore.getState();
+      const currentZoom = (currentStore.zoom ?? 100) / 100;
+      const rect = containerRef.current?.getBoundingClientRect() || {
+        left: 0,
+        top: 0,
+      };
+      const mouseCanvasX =
+        (e.clientX - rect.left - (currentStore.panX ?? 0)) / currentZoom;
+      const mouseCanvasY =
+        (e.clientY - rect.top - (currentStore.panY ?? 0)) / currentZoom;
+
+      if (
+        Number.isFinite(lastX) &&
+        Math.abs(mouseCanvasX - lastX) < minDelta &&
+        Math.abs(mouseCanvasY - lastY) < minDelta
+      ) {
+        return;
       }
+
+      lastX = mouseCanvasX;
+      lastY = mouseCanvasY;
+      lastTrackTime = now;
+      publishCursor({ x: mouseCanvasX, y: mouseCanvasY });
     };
 
     window.addEventListener('pointermove', handleMouseMove);
     return () => window.removeEventListener('pointermove', handleMouseMove);
-  }, [provider, currentUser]);
+  }, [connectionStatus, publishCursor]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1688,8 +1715,27 @@ export default function CanvasArea() {
           mousePos={mousePos}
         />
         <LassoLayer lassoStart={lassoStart} lassoEnd={lassoEnd} />
-        <LiveCursors cursors={cursors} currentUserKey={currentUser.name} />
+        <LiveCursors cursors={cursors} currentUserKey={selfKey} />
       </div>
+
+      {connectionStatus !== 'subscribed' && collabRoomId ? (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+          <div
+            className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.14em] border shadow-sm ${
+              connectionStatus === 'connecting'
+                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                : connectionStatus === 'no-token'
+                  ? 'bg-rose-50 text-rose-800 border-rose-200'
+                  : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+            }`}
+          >
+            {connectionStatus === 'connecting' && 'Live: connecting…'}
+            {connectionStatus === 'no-token' && 'Live: sign-in required'}
+            {connectionStatus === 'error' && 'Live: realtime error'}
+            {connectionStatus === 'idle' && 'Live: idle'}
+          </div>
+        </div>
+      ) : null}
 
       <div className="absolute bottom-24 sm:bottom-8 scale-90 sm:scale-100 left-1/2 -translate-x-1/2 z-50 flex items-center bg-white/95 dark:bg-zinc-900/95 border border-zinc-200/60 dark:border-zinc-800/60 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.08)] p-1.5 pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300 transition-colors">
         {mode !== 'readonly' && (

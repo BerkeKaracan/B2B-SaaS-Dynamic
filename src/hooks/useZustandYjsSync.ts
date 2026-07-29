@@ -1,69 +1,104 @@
+'use client';
+
 import { useEffect, useRef } from 'react';
 import * as Y from 'yjs';
 import {
-  PageWithSettings,
   Connection,
+  PageWithSettings,
   useCanvasStore,
 } from '@/store/useCanvasStore';
 
+/**
+ * Incremental Zustand ↔ Yjs bridge.
+ * Uses Y.Map keyed by id so a single page/block drag emits a small update —
+ * never delete+reinsert the entire pages array (that melted Realtime before).
+ *
+ * Pass `null` when collab.canvas_sync is off — no-op, zero broadcast risk.
+ */
 export function useZustandYjsSync(ydoc: Y.Doc | null) {
   const isSyncingRef = useRef(false);
 
   useEffect(() => {
     if (!ydoc) return;
 
-    const yPages = ydoc.getArray('canvas-pages');
-    const yConnections = ydoc.getArray('canvas-connections');
+    const yPages = ydoc.getMap<PageWithSettings>('canvas-pages');
+    const yConnections = ydoc.getMap<Connection>('canvas-connections');
 
-    const handleYjsUpdate = () => {
+    const applyYjsToStore = () => {
       if (isSyncingRef.current) return;
-
       isSyncingRef.current = true;
       try {
-        const pagesData = yPages.toArray();
-        const connectionsData = yConnections.toArray();
-
-        if (pagesData.length > 0 || connectionsData.length > 0) {
-          useCanvasStore.setState({
-            pages: pagesData as PageWithSettings[],
-            connections: connectionsData as Connection[],
-          });
-        }
+        const pages = Array.from(yPages.values());
+        const connections = Array.from(yConnections.values());
+        useCanvasStore.setState({ pages, connections });
       } finally {
         isSyncingRef.current = false;
       }
     };
 
-    yPages.observeDeep(handleYjsUpdate);
-    yConnections.observeDeep(handleYjsUpdate);
+    yPages.observe(applyYjsToStore);
+    yConnections.observe(applyYjsToStore);
 
     let prevPages = useCanvasStore.getState().pages;
     let prevConnections = useCanvasStore.getState().connections;
 
-    // The store→Yjs write is a full delete+insert of the pages array plus a
-    // broadcast; doing it per keystroke/drag-frame froze big canvases. Batch
-    // it: at most one re-sync per SYNC_DEBOUNCE_MS, always with latest state.
-    const SYNC_DEBOUNCE_MS = 120;
+    // Seed empty doc from local store once (join with existing canvas).
+    if (yPages.size === 0 && prevPages.length > 0) {
+      isSyncingRef.current = true;
+      try {
+        ydoc.transact(() => {
+          for (const page of prevPages) {
+            yPages.set(page.id, page);
+          }
+          for (const conn of prevConnections) {
+            yConnections.set(conn.id, conn);
+          }
+        }, 'local-seed');
+      } finally {
+        isSyncingRef.current = false;
+      }
+    } else if (yPages.size > 0) {
+      applyYjsToStore();
+      prevPages = useCanvasStore.getState().pages;
+      prevConnections = useCanvasStore.getState().connections;
+    }
+
+    const SYNC_DEBOUNCE_MS = 100;
     let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
     const flushToYjs = () => {
       flushTimer = null;
       const state = useCanvasStore.getState();
-      if (state.pages === prevPages && state.connections === prevConnections)
+      if (state.pages === prevPages && state.connections === prevConnections) {
         return;
+      }
+
+      const prevPageById = new Map(prevPages.map((p) => [p.id, p]));
+      const prevConnById = new Map(prevConnections.map((c) => [c.id, c]));
+      const nextPageIds = new Set(state.pages.map((p) => p.id));
+      const nextConnIds = new Set(state.connections.map((c) => c.id));
 
       isSyncingRef.current = true;
       try {
         ydoc.transact(() => {
-          if (state.pages !== prevPages) {
-            yPages.delete(0, yPages.length);
-            yPages.insert(0, state.pages);
+          for (const id of Array.from(yPages.keys())) {
+            if (!nextPageIds.has(id)) yPages.delete(id);
           }
-          if (state.connections !== prevConnections) {
-            yConnections.delete(0, yConnections.length);
-            yConnections.insert(0, state.connections);
+          for (const page of state.pages) {
+            if (prevPageById.get(page.id) !== page) {
+              yPages.set(page.id, page);
+            }
           }
-        });
+
+          for (const id of Array.from(yConnections.keys())) {
+            if (!nextConnIds.has(id)) yConnections.delete(id);
+          }
+          for (const conn of state.connections) {
+            if (prevConnById.get(conn.id) !== conn) {
+              yConnections.set(conn.id, conn);
+            }
+          }
+        }, 'local');
       } finally {
         prevPages = state.pages;
         prevConnections = state.connections;
@@ -73,22 +108,21 @@ export function useZustandYjsSync(ydoc: Y.Doc | null) {
 
     const unsubscribeZustand = useCanvasStore.subscribe((state) => {
       if (isSyncingRef.current) {
-        // Change originated from Yjs — already in sync; without this the next
-        // unrelated store write re-echoed the whole remote payload.
         prevPages = state.pages;
         prevConnections = state.connections;
         return;
       }
-      if (state.pages === prevPages && state.connections === prevConnections)
+      if (state.pages === prevPages && state.connections === prevConnections) {
         return;
+      }
       if (flushTimer == null) {
         flushTimer = setTimeout(flushToYjs, SYNC_DEBOUNCE_MS);
       }
     });
 
     return () => {
-      yPages.unobserveDeep(handleYjsUpdate);
-      yConnections.unobserveDeep(handleYjsUpdate);
+      yPages.unobserve(applyYjsToStore);
+      yConnections.unobserve(applyYjsToStore);
       unsubscribeZustand();
       if (flushTimer != null) {
         clearTimeout(flushTimer);

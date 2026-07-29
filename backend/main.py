@@ -10,7 +10,7 @@ from core.limiter import limiter, get_real_ip
 import time
 import logging
 
-from api.routers import records, auth, tenants, public, notifications, ai, public_ai, github, chat, fx, storage, internal
+from api.routers import records, auth, tenants, public, notifications, ai, public_ai, github, chat, fx, storage, internal, canvas_collab
 from core.config import settings, supabase_jwt_secret_diag
 
 import sentry_sdk
@@ -149,3 +149,4 @@ app.include_router(tasks.router)
 app.include_router(fx.router)
 app.include_router(storage.router)
 app.include_router(internal.router)
+app.include_router(canvas_collab.router)

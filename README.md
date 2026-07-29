@@ -1,6 +1,6 @@
 # Workspace OS - B2B SaaS Architecture Demonstration
 
-**Version:** 1.3.0
+**Version:** 1.3.0  
 **Repository:** BerkeKaracan/B2B-SaaS-Dynamic
 
 ## Overview
@@ -29,9 +29,9 @@ The system is decoupled into a Next.js frontend and a FastAPI backend gateway to
 
 ### 2. Real-Time Infrastructure (Canvas & Cursors)
 
-- **Custom WebSocket Hub:** Live cursor tracking is handled by a custom FastAPI WebSocket implementation (`/ws/canvas/{room_id}`) backed by an in-memory room hub.
-- **Architectural Pivot:** Supabase Presence was initially tested for cursor broadcasting but was abandoned in favor of the custom WebSocket approach due to connection instability (`CLOSED` states) in practice.
-- **CRDT Synchronization:** Yjs and `y-protocols` are implemented for shared canvas editing. However, collaborative canvas sync (`collab.canvas_sync`) is currently disabled by default pending further validation of edge-case state resolutions.
+- **Custom WebSocket Hub:** Live cursors (+ optional Yjs co-edit) go through FastAPI `/ws/canvas/{room_id}` (in-memory room hub).
+- **Architectural Pivot:** Supabase Presence was tried for cursors, then replaced after unstable `CLOSED` / channel races.
+- **CRDT Synchronization:** Yjs over the same WebSocket. Local Docker can force sync with `NEXT_PUBLIC_COLLAB_DOC_SYNC=true`; Pulse flag `collab.canvas_sync` remains the prod kill-switch.
 
 ### 3. Database Design
 
@@ -42,22 +42,46 @@ The system is decoupled into a Next.js frontend and a FastAPI backend gateway to
 
 The deployment pipeline is automated via GitHub Actions (`.github/workflows/deploy-backend.yml`):
 
-1.  Code pushed to `main` triggers Vitest and Pytest test suites.
-2.  The backend is containerized via Docker and pushed to Google Artifact Registry.
-3.  The image is deployed to Google Cloud Run (`europe-west3`).
+1. Code pushed to `main` triggers Vitest and Pytest test suites.
+2. The backend is containerized via Docker and pushed to Google Artifact Registry.
+3. The image is deployed to Google Cloud Run (`europe-west3`).
 
 ## Local Development (Docker)
 
 Prerequisites: Node.js 20+, Docker Compose, and a Supabase project.
 
 ```bash
-git clone [https://github.com/BerkeKaracan/B2B-SaaS-Dynamic.git](https://github.com/BerkeKaracan/B2B-SaaS-Dynamic.git)
+git clone https://github.com/BerkeKaracan/B2B-SaaS-Dynamic.git
 cd B2B-SaaS-Dynamic
 
-# Configure environment variables
 cp .env.example .env
 cp backend/.env.example backend/.env
 
-# Build and start the cluster
 docker compose up -d --build
 ```
+
+- Frontend: http://localhost:3000
+- Backend docs: http://localhost:8000/docs
+- Backend logs: `docker logs b2b-backend -f`
+
+## Production env (Vercel + Cloud Run LIVE)
+
+Set these on Vercel **before** rebuild (values are baked into the client + CSP):
+
+| Variable | Example | Notes |
+|----------|---------|--------|
+| `NEXT_PUBLIC_API_URL` | `https://YOUR-SERVICE-xxxxx.run.app` | HTTPS API origin |
+| `NEXT_PUBLIC_WS_URL` | `wss://YOUR-SERVICE-xxxxx.run.app` | Same host, `wss://` scheme — canvas LIVE |
+| `NEXT_PUBLIC_SITE_URL` | `https://your-frontend.vercel.app` | Canonical site URL |
+
+CSP on Vercel omits `ws://localhost`. `connect-src` keeps `https:` / `wss:` and also lists the WS/API host from the vars above. Without `NEXT_PUBLIC_WS_URL` (or API URL), the client will **not** guess `frontend:8000`.
+
+Cloud Run must accept WebSocket upgrades on `/ws/canvas/{room_id}` (same service as the HTTP API).
+
+## Feedback & support
+
+[https://feedback-portal-lyart.vercel.app/?tenant=b2-b-saa-s-dynamic](https://feedback-portal-lyart.vercel.app/?tenant=b2-b-saa-s-dynamic)
+
+## License / attribution
+
+Built by **Berke Karacan** as an engineering portfolio project. Not affiliated with a real commercial “SaaS Engine Inc.” entity.

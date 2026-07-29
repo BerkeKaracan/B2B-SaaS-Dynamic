@@ -38,6 +38,7 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+.cursor/debug*.log
 
 # Supabase local development defaults
 .supabase/

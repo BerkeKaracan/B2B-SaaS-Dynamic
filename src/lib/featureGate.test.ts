@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   AI_CANVAS_GENERATOR,
+  COLLAB_CANVAS_SYNC,
   isFeatureEnabledLocal,
   normalizeTier,
   resolveFeatureEnabled,
@@ -17,6 +18,14 @@ describe('featureGate', () => {
     expect(isFeatureEnabledLocal(AI_CANVAS_GENERATOR, 'free')).toBe(false);
     expect(isFeatureEnabledLocal(AI_CANVAS_GENERATOR, 'advanced')).toBe(true);
     expect(isFeatureEnabledLocal(AI_CANVAS_GENERATOR, 'pro')).toBe(true);
+  });
+
+  it('keeps collab.canvas_sync off for all local tiers (kill-switch default)', () => {
+    expect(isFeatureEnabledLocal(COLLAB_CANVAS_SYNC, 'pro')).toBe(false);
+    expect(
+      resolveFeatureEnabled(COLLAB_CANVAS_SYNC, 'pro', { status: 'unset' })
+        .enabled
+    ).toBe(false);
   });
 
   it('returns false for unknown keys locally', () => {

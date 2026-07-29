@@ -14,6 +14,8 @@ import { getSiteUrl } from '@/lib/siteUrl';
 const inter = Inter({ subsets: ['latin'] });
 
 const siteUrl = getSiteUrl();
+/** Skip Vercel beacons outside Vercel (Docker/local) — prevents script/network noise. */
+const enableVercelMetrics = process.env.VERCEL === '1';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -90,8 +92,12 @@ export default async function RootLayout({
             {children}
             <CookieConsent />
             <Toaster position="bottom-right" />
-            <Analytics />
-            <SpeedInsights />
+            {enableVercelMetrics ? (
+              <>
+                <Analytics />
+                <SpeedInsights />
+              </>
+            ) : null}
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

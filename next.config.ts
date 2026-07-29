@@ -5,23 +5,75 @@ import createNextIntlPlugin from 'next-intl/plugin';
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 /**
- * Localhost in connect-src only for local/Docker builds.
- * Vercel sets VERCEL=1 at build time → strict CSP without localhost.
+ * CSP connect-src for canvas LIVE WebSockets.
+ *
+ * Prod (Vercel / CSP_STRICT): never allow ws://localhost.
+ *   - Scheme sources `https:` / `wss:` cover Cloud Run + any TLS API host.
+ *   - NEXT_PUBLIC_WS_URL / NEXT_PUBLIC_API_URL origins are also listed explicitly
+ *     so a future tightening that drops bare `wss:` still keeps the API host.
+ *
+ * Local/Docker: add http(s)/ws(s) localhost for compose (:3000 → :8000).
  */
-function getLocalConnectSrc(): string {
-  if (process.env.VERCEL === '1' || process.env.CSP_STRICT === 'true') {
-    return '';
+function isStrictCsp(): boolean {
+  return (
+    process.env.VERCEL === '1' ||
+    process.env.CSP_STRICT === 'true' ||
+    process.env.CSP_ALLOW_LOCALHOST === 'false'
+  );
+}
+
+function wsOriginFromEnv(raw: string | undefined): string | null {
+  const trimmed = (raw || '').trim().replace(/\/$/, '');
+  if (!trimmed) return null;
+  try {
+    if (trimmed.startsWith('wss://') || trimmed.startsWith('ws://')) {
+      const u = new URL(trimmed);
+      return `${u.protocol}//${u.host}`;
+    }
+    const u = new URL(trimmed);
+    if (u.protocol === 'https:') return `wss://${u.host}`;
+    if (u.protocol === 'http:') return `ws://${u.host}`;
+  } catch {
+    return null;
   }
-  return ' http://localhost:* http://127.0.0.1:*';
+  return null;
+}
+
+function getExplicitWsConnectSrc(): string {
+  const origins = new Set<string>();
+  for (const raw of [
+    process.env.NEXT_PUBLIC_WS_URL,
+    process.env.NEXT_PUBLIC_API_URL,
+    process.env.CSP_CONNECT_WS_ORIGINS, // space-separated extra wss:// hosts
+  ]) {
+    if (!raw) continue;
+    for (const part of raw.split(/[\s,]+/)) {
+      const origin = wsOriginFromEnv(part);
+      if (origin) origins.add(origin);
+    }
+  }
+  if (origins.size === 0) return '';
+  return ` ${[...origins].join(' ')}`;
+}
+
+function getLocalConnectSrc(): string {
+  if (isStrictCsp()) return '';
+  // http for BFF/API; ws for canvas live cursors → backend :8000
+  return (
+    ' http://localhost:* http://127.0.0.1:*' +
+    ' ws://localhost:* ws://127.0.0.1:*'
+  );
 }
 
 function buildContentSecurityPolicy(): string {
+  // `https:` + `wss:` = any TLS / WebSocket TLS host (Cloud Run, custom API domain).
+  // Explicit WS origins from env are defense-in-depth for the LIVE canvas socket.
   return [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: blob:",
-    `connect-src 'self' https: wss:${getLocalConnectSrc()}`,
+    `connect-src 'self' https: wss:${getExplicitWsConnectSrc()}${getLocalConnectSrc()}`,
   ].join('; ');
 }
 
