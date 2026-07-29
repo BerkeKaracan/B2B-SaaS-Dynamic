@@ -24,7 +24,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN addgroup --system appgroup && adduser --system --group appuser
+RUN groupadd --system appgroup \
+    && useradd --system --gid appgroup --home-dir /tmp --shell /usr/sbin/nologin appuser
+
+ENV HOME=/tmp
 
 COPY --from=builder /build/wheels /wheels
 COPY --from=builder /build/requirements.txt .

@@ -72,12 +72,13 @@ Backend still needs `backend/.env` and a running API (`uvicorn` or the Compose b
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Public anon key |
 | `NEXT_PUBLIC_SITE_URL` | **Prod yes** | Canonical URL for sitemap / robots / Open Graph (e.g. `https://your-domain.com`) |
 | `NEXT_PUBLIC_API_URL` | Prod yes | Browser → API base (e.g. `https://api.your-domain.com`) |
+| `NEXT_PUBLIC_WS_URL` | Prod (LIVE) | Canvas WebSocket base (`wss://api…`). Falls back to API URL (`https`→`wss`) |
 | `NEXT_PUBLIC_ROOT_DOMAIN` | Optional | Tenant subdomain routing; defaults exist for local/demo |
 | `INTERNAL_API_URL` | Docker | Set by Compose to `http://backend:8000` |
 | `RESEND_API_KEY` | Optional | Email features |
 | `SENTRY_AUTH_TOKEN` | Optional | Source maps / Sentry release |
 | `NOTION_API_KEY` / `NOTION_PAGE_ID` | Optional | Notion export |
-| `CSP_ALLOW_LOCALHOST` | Local only | Never on Vercel |
+| `CSP_STRICT` / `CSP_CONNECT_WS_ORIGINS` | Prod CSP | Vercel already omits `ws://localhost`; set WS URL at build so CSP lists the API host |
 
 ### Backend (`backend/.env` — see [backend/.env.example](backend/.env.example))
 
@@ -93,8 +94,9 @@ Backend still needs `backend/.env` and a running API (`uvicorn` or the Compose b
 ### Production share checklist
 
 1. Set `NEXT_PUBLIC_SITE_URL` to the live HTTPS origin.
-2. Validate the URL once with [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/).
-3. Smoke: landing → Platform/Solutions → pricing → register → Infinite blank + Kanban.
+2. Set `NEXT_PUBLIC_API_URL` (and ideally `NEXT_PUBLIC_WS_URL=wss://…`) to the Cloud Run / API host **before** the Vercel build — CSP `connect-src` and the LIVE client both need that host (bare `wss:` is allowed, but the client must not fall back to the frontend hostname `:8000`).
+3. Validate the URL once with [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/).
+4. Smoke: landing → Platform/Solutions → pricing → register → Infinite blank + Kanban; two tabs for LIVE cursors if collab is on.
 
 ---
 
