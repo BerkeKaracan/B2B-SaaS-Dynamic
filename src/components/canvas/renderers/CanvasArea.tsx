@@ -137,10 +137,12 @@ export default function CanvasArea() {
   }, [authUser?.email, authUser?.full_name]);
 
   // Stable project room — never activePageId (that remounted channels per page).
-  const collabRoomId = routeProjectId || '';
+  // NEXT_PUBLIC_DISABLE_LIVE=true pauses cursors/co-edit while we rebuild collab.
+  const liveDisabled = process.env.NEXT_PUBLIC_DISABLE_LIVE === 'true';
+  const collabRoomId = liveDisabled ? '' : routeProjectId || '';
   const { doc, cursors, selfKey, connectionStatus, publishCursor } =
     useCanvasCollaboration(collabRoomId, currentUser, {
-      enableDocSync: canvasSyncEnabled,
+      enableDocSync: !liveDisabled && canvasSyncEnabled,
     });
 
   // null when flag off → no Yjs↔store bridge, no full-state Realtime storm

@@ -263,18 +263,9 @@ def update_record(record_id: UUID, payload: RecordUpdate, background_tasks: Back
         
         if rec_tenant not in user["tenant_roles"]:
             raise HTTPException(status_code=403, detail="Unauthorized to modify this record")
-            
-        user_role = user["tenant_roles"][rec_tenant]
-        current_record_data = existing_res.data[0].get("record_data", {})
-        
-        collaborators = current_record_data.get("collaborators", [])
-        owner_email = str(current_record_data.get("owner_email", "")).lower().strip()
-       
-        is_editor = any(isinstance(c, dict) and str(c.get("email", "")).lower().strip() == user["email"] and c.get("role") in ["editor", "owner", "admin"] for c in collaborators)
 
-        if user_role not in ["admin", "owner"] and owner_email != user["email"]:
-            if not is_editor:
-                raise HTTPException(status_code=403, detail="You do not have permission to modify this record. Edit access is required.")
+        # Any workspace member may autosave project JSON.
+        current_record_data = existing_res.data[0].get("record_data", {}) or {}
 
         payload_data = payload.record_data
         

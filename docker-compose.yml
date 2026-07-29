@@ -36,8 +36,9 @@ services:
         - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
         - INTERNAL_API_URL=http://backend:8000
-        # Enable Blank canvas co-edit over WS in local Docker (Pulse not required)
-        - NEXT_PUBLIC_COLLAB_DOC_SYNC=true
+        # Pause LIVE while core save/auth is stabilized (set false to re-enable)
+        - NEXT_PUBLIC_DISABLE_LIVE=true
+        - NEXT_PUBLIC_COLLAB_DOC_SYNC=false
       dockerfile: Dockerfile
     container_name: b2b-frontend
     ports:
