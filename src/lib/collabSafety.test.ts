@@ -18,7 +18,7 @@ describe('collab safety guards', () => {
     const pages = doc.getMap<{ id: string; title: string }>('canvas-pages');
     let lastUpdate = new Uint8Array();
     doc.on('update', (u: Uint8Array) => {
-      lastUpdate = u;
+      lastUpdate = new Uint8Array(u);
     });
 
     doc.transact(() => {
@@ -43,7 +43,7 @@ describe('collab safety guards', () => {
     const pages = doc.getArray('canvas-pages');
     let lastUpdate = new Uint8Array();
     doc.on('update', (u: Uint8Array) => {
-      lastUpdate = u;
+      lastUpdate = new Uint8Array(u);
     });
 
     const fat = Array.from({ length: 200 }, (_, i) => ({
