@@ -201,25 +201,65 @@
       "desc": "This platform capability is not in the registry.",
       "cta": "Browse all features"
     },
+    "crumb": {
+      "home": "Home",
+      "platform": "Platform",
+      "features": "Features"
+    },
     "cta": {
       "primary": "Create workspace",
-      "secondary": "Read docs"
+      "secondary": "Read architecture docs",
+      "demo": "Open template hub"
+    },
+    "how": {
+      "title": "How it works in the product"
+    },
+    "related": {
+      "title": "Continue exploring"
     },
     "more": {
       "title": "Platform",
-      "subtitle": "Explore other capabilities",
+      "subtitle": "Other capabilities",
       "all": "All features"
+    },
+    "nav": {
+      "previous": "Previous",
+      "next": "Next"
     },
     "bottomCta": {
       "title": "Ready to run on WORKSPACE OS?",
-      "desc": "Spin up a workspace in under a minute and put canvas, sync, RBAC, and storage to work together.",
+      "desc": "Spin up a workspace and put canvas, live collab, RBAC, and boards to work together.",
       "button": "Start free"
+    },
+    "relatedLinks": {
+      "docs": "Architecture docs",
+      "docsDesc": "BFF, WebSockets, Cloud Run — how it is wired.",
+      "features": "All features",
+      "featuresDesc": "Capability map for the whole platform.",
+      "templates": "Board templates",
+      "templatesDesc": "Kanban, notepad, whiteboard, timeline.",
+      "demo": "Template hub",
+      "demoDesc": "Public demos you can open without setup."
     },
     "canvas": {
       "badge": "Infinite canvas",
       "title": "An infinite canvas built for real company work.",
       "subtitle": "Orchestrate blocks, board frames, and living documents on a spatial plane — not another linear doc.",
       "body": "Infinite canvas replaces rigid pages with a freeform workspace. Drop text, databases, kanban, timelines, and assets onto one surface, then connect them so context stays visible while teams move.",
+      "journey": {
+        "0": {
+          "title": "Open a Blank project",
+          "desc": "Infinite plane with pan/zoom — pages and freeform blocks."
+        },
+        "1": {
+          "title": "Drop boards as frames",
+          "desc": "Embed Kanban or docs inside the canvas, or open them standalone."
+        },
+        "2": {
+          "title": "Connect and autosave",
+          "desc": "Links stay visible; Zustand persists JSONB to your tenant records."
+        }
+      },
       "features": {
         "0": {
           "title": "Dynamic block orchestration",
@@ -240,6 +280,20 @@
       "title": "Cursors and co-edit on the same WebSocket.",
       "subtitle": "Peers see each other move — and optionally share the same Yjs document — without Presence channel storms.",
       "body": "Live collaboration rides FastAPI /ws/canvas/{room_id}. Cursors are always light; block and page co-edit uses Yjs over the same socket when LIVE is on. Project JSON still autosaves to PostgreSQL JSONB in the background.",
+      "journey": {
+        "0": {
+          "title": "Join the room",
+          "desc": "Authenticated clients open /ws/canvas/{projectId} with a shared room key."
+        },
+        "1": {
+          "title": "See live cursors",
+          "desc": "Presence is ephemeral — light payloads, no full canvas array storms."
+        },
+        "2": {
+          "title": "Optional Yjs co-edit",
+          "desc": "When LIVE doc sync is on, pages and blocks move together across tabs."
+        }
+      },
       "features": {
         "0": {
           "title": "Live cursors",
@@ -260,6 +314,20 @@
       "title": "Cookies, BFF, and tenant ACL — not tokens in localStorage.",
       "subtitle": "HttpOnly session cookies, Next.js proxy auth, and application-level tenant checks. RLS stays as a second fence.",
       "body": "WORKSPACE OS authenticates through /api/session (HttpOnly cookie). Browser calls hit the Next BFF (/api/backend/*), which attaches JWTs server-side. FastAPI enforces tenant membership and roles; Postgres RLS remains defense-in-depth.",
+      "journey": {
+        "0": {
+          "title": "Sign in once",
+          "desc": "Session lands in an HttpOnly cookie via /api/session — never localStorage."
+        },
+        "1": {
+          "title": "Same-origin BFF",
+          "desc": "Browser calls /api/backend/*; Next attaches Authorization before FastAPI."
+        },
+        "2": {
+          "title": "Tenant gates",
+          "desc": "API checks membership and roles; RLS backs up isolation in Postgres."
+        }
+      },
       "features": {
         "0": {
           "title": "HttpOnly sessions",
@@ -280,6 +348,20 @@
       "title": "Board templates and protected uploads in one workspace.",
       "subtitle": "Kanban, documents, whiteboards, timelines — plus tenant-scoped file storage when you attach assets.",
       "body": "Projects can be Infinite blank canvases or dedicated boards. Uploads sit in protected Supabase storage scoped to the tenant, attachable to canvas blocks without a separate asset CMS.",
+      "journey": {
+        "0": {
+          "title": "Pick a surface",
+          "desc": "Blank canvas or a board template (Kanban, notepad, whiteboard, timeline…)."
+        },
+        "1": {
+          "title": "Attach when needed",
+          "desc": "Files land in tenant-scoped buckets and bind to canvas blocks."
+        },
+        "2": {
+          "title": "Stay permission-aware",
+          "desc": "Delivery follows the same workspace membership model as projects."
+        }
+      },
       "features": {
         "0": {
           "title": "Board templates",
@@ -298,32 +380,37 @@
   },
   "FeaturesPage": {
     "back": "Go Back",
-    "badge": "Platform Features",
-    "title": "Built for scale. Designed for speed.",
-    "subtitle": "Discover the powerful tools that make WORKSPACE OS the ultimate operating system for your company.",
+    "badge": "Platform",
+    "title": "Four capabilities. One workspace OS.",
+    "subtitle": "Canvas, LIVE collaboration, RBAC, and boards — open each capability, then jump to docs, templates, or a demo.",
+    "openCapability": "Open capability",
     "canvas": {
-      "title": "Infinite Spatial Canvas",
-      "desc": "Break free from linear documents. Drag, drop, and connect text, images, databases, and kanban boards on an infinite vector grid."
+      "title": "Spatial canvas",
+      "desc": "Text, images, databases, and kanban on an infinite board — the surface everything else hangs on."
     },
     "realtime": {
-      "title": "Zero-Latency Real-Time Sync",
-      "desc": "Every keystroke, every block movement is synchronized instantly across your entire team using our advanced WebSocket architecture."
+      "title": "Live collaboration",
+      "desc": "Live cursors and optional Yjs co-edit over FastAPI WebSockets — durable JSONB autosave stays separate."
     },
     "security": {
-      "title": "Enterprise-Grade RBAC",
-      "desc": "Granular role-based access control. Define exactly who can view, edit, or manage specific projects and workspace settings."
+      "title": "Security & RBAC",
+      "desc": "HttpOnly sessions, Next BFF proxy, and tenant ACL — Postgres RLS as defense-in-depth."
     },
     "storage": {
-      "title": "Protected Cloud Storage",
-      "desc": "Keep canvas assets and project files in tenant-isolated buckets with permission-aware delivery."
+      "title": "Boards & assets",
+      "desc": "Kanban, docs, whiteboards, timelines — plus tenant-isolated uploads attached to canvas work."
+    },
+    "relatedSolutions": {
+      "label": "Solutions",
+      "desc": "Industry use cases on the same canvas OS."
     },
     "ai": {
       "title": "Context-Aware AI",
       "desc": "Chat with your canvas. Our built-in GPT-OSS 120B engine reads your blocks and helps you brainstorm, summarize, and generate content."
     },
     "cta": {
-      "title": "Ready to experience the difference?",
-      "button": "Start Free Trial"
+      "title": "Ready to open a workspace?",
+      "button": "Start free"
     }
   },
   "TemplatesPage": {

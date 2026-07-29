@@ -3,17 +3,21 @@
 import React from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import Footer from '@/components/layout/Footer';
-import LandingNavbar from '@/components/landing/LandingNavbar';
-import LandingAtmosphere from '@/components/landing/LandingAtmosphere';
 import {
   Layers,
-  Zap,
+  Radio,
   Lock,
   Sparkles,
   ArrowRight,
   Cloud,
+  BookOpen,
+  LayoutGrid,
+  Rocket,
 } from 'lucide-react';
+import MarketingPageChrome, {
+  MarketingBreadcrumb,
+  MarketingRelatedGrid,
+} from '@/components/landing/MarketingPageChrome';
 
 const cards = [
   {
@@ -28,7 +32,7 @@ const cards = [
   },
   {
     href: '/platform/sync',
-    icon: Zap,
+    icon: Radio,
     soft: 'from-emerald-100 to-emerald-50',
     iconWrap: 'bg-emerald-50 border-emerald-100 text-emerald-600',
     bar: 'bg-emerald-500',
@@ -60,30 +64,32 @@ const cards = [
 
 export default function FeaturesPage() {
   const t = useTranslations('FeaturesPage');
+  const tPlat = useTranslations('PlatformPage');
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-zinc-900 font-sans flex flex-col selection:bg-sky-100 relative overflow-hidden">
-      <LandingAtmosphere />
-      <LandingNavbar />
+    <MarketingPageChrome>
+      <main className="flex-1 pt-28 md:pt-32 pb-20 px-6 max-w-6xl mx-auto w-full">
+        <MarketingBreadcrumb
+          items={[
+            { href: '/', label: tPlat('crumb.home') },
+            { label: t('badge') },
+          ]}
+        />
 
-      <main className="relative z-10 flex-1 pt-28 md:pt-32 pb-20 px-6 max-w-6xl mx-auto w-full">
-        <div className="text-center mb-16 md:mb-20">
+        <div className="text-center mb-14 md:mb-16 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-50 border border-sky-100 text-xs font-bold text-sky-700 mb-6">
             <Sparkles className="w-3.5 h-3.5 text-sky-500" />
             {t('badge')}
           </div>
-          <h1 className="text-4xl md:text-6xl font-black text-zinc-950 tracking-tight mb-6 leading-[1.08]">
-            {t('title').split('.')[0]}. <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-linear-to-r from-sky-600 to-cyan-500">
-              {t('title').split('.')[1]}.
-            </span>
+          <h1 className="text-4xl md:text-5xl font-black text-zinc-950 tracking-tight mb-5 leading-[1.08]">
+            {t('title')}
           </h1>
-          <p className="text-lg text-zinc-500 max-w-2xl mx-auto leading-relaxed font-medium">
+          <p className="text-base md:text-lg text-zinc-500 leading-relaxed font-medium">
             {t('subtitle')}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6 mb-16">
           {cards.map((card) => {
             const Icon = card.icon;
             return (
@@ -92,7 +98,9 @@ export default function FeaturesPage() {
                 href={card.href}
                 className={`group relative overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-sm hover:shadow-md ${card.hover} transition-all`}
               >
-                <div className={`h-20 bg-gradient-to-br ${card.soft} border-b border-zinc-100 relative`}>
+                <div
+                  className={`h-20 bg-gradient-to-br ${card.soft} border-b border-zinc-100 relative`}
+                >
                   <div
                     className={`absolute top-4 left-5 w-11 h-11 rounded-2xl border flex items-center justify-center bg-white/90 ${card.iconWrap}`}
                   >
@@ -110,30 +118,70 @@ export default function FeaturesPage() {
                   <p className="text-zinc-500 leading-relaxed font-medium text-sm md:text-[15px]">
                     {t(card.descKey)}
                   </p>
+                  <p className="mt-4 text-xs font-bold text-sky-700 inline-flex items-center gap-1">
+                    {t('openCapability')}
+                    <ArrowRight className="w-3 h-3" />
+                  </p>
                 </div>
               </Link>
             );
           })}
         </div>
 
-        <div className="mt-16 md:mt-20 rounded-[2rem] bg-zinc-950 p-10 md:p-12 text-center relative overflow-hidden shadow-xl">
+        <MarketingRelatedGrid
+          title={tPlat('related.title')}
+          links={[
+            {
+              href: '/docs',
+              label: tPlat('relatedLinks.docs'),
+              desc: tPlat('relatedLinks.docsDesc'),
+              icon: BookOpen,
+            },
+            {
+              href: '/templates',
+              label: tPlat('relatedLinks.templates'),
+              desc: tPlat('relatedLinks.templatesDesc'),
+              icon: LayoutGrid,
+            },
+            {
+              href: '/demo',
+              label: tPlat('relatedLinks.demo'),
+              desc: tPlat('relatedLinks.demoDesc'),
+              icon: Rocket,
+            },
+            {
+              href: '/solutions/engineering',
+              label: t('relatedSolutions.label'),
+              desc: t('relatedSolutions.desc'),
+              icon: Sparkles,
+            },
+          ]}
+        />
+
+        <div className="rounded-[2rem] bg-zinc-950 p-10 md:p-12 text-center relative overflow-hidden shadow-xl">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.2),transparent_55%)]" />
           <div className="relative z-10">
             <h2 className="text-3xl md:text-4xl font-black text-white mb-8 tracking-tight">
               {t('cta.title')}
             </h2>
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-zinc-950 rounded-2xl font-extrabold text-sm hover:bg-sky-50 transition-colors"
-            >
-              {t('cta.button')}
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href="/register"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-zinc-950 rounded-2xl font-extrabold text-sm hover:bg-sky-50 transition-colors"
+              >
+                {t('cta.button')}
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="/docs"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/10 border border-white/20 text-white rounded-2xl font-extrabold text-sm hover:bg-white/15 transition-colors"
+              >
+                {tPlat('cta.secondary')}
+              </Link>
+            </div>
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
+    </MarketingPageChrome>
   );
 }

@@ -4,16 +4,24 @@ import React, { use } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
-  CheckCircle2,
-  GitMerge,
-  Users,
-  TrendingUp,
+  BookOpen,
   Briefcase,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  GitMerge,
+  Layers,
+  LayoutGrid,
+  Radio,
+  Rocket,
+  TrendingUp,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
-import LandingNavbar from '@/components/landing/LandingNavbar';
-import LandingAtmosphere from '@/components/landing/LandingAtmosphere';
-import Footer from '@/components/layout/Footer';
+import MarketingPageChrome, {
+  MarketingBreadcrumb,
+  MarketingRelatedGrid,
+} from '@/components/landing/MarketingPageChrome';
 
 type SolutionSlug = 'engineering' | 'hr' | 'sales' | 'operations';
 
@@ -26,14 +34,14 @@ type SolutionMeta = {
 };
 
 type SolutionContent = {
+  shortLabel: string;
   badge: string;
   title: string;
   tagline: string;
   description: string;
   valueProposition: string;
   features: { title: string; desc: string }[];
-  metrics: { value: string; label: string }[];
-  shortLabel: string;
+  uses: { label: string; href: string }[];
 };
 
 const SOLUTION_META: Record<SolutionSlug, SolutionMeta> = {
@@ -70,122 +78,122 @@ const SOLUTION_META: Record<SolutionSlug, SolutionMeta> = {
 const solutionRegistry: Record<SolutionSlug, SolutionContent> = {
   engineering: {
     shortLabel: 'Engineering & Product',
-    badge: 'Engineering & Product OS',
-    title: 'Build features, not internal infrastructure tools.',
+    badge: 'Engineering & Product',
+    title: 'Ship features on one spatial workspace.',
     tagline:
-      'Unify your engineering sprints, feature backlogs, and visual system flowcharts into a single, low-latency relational spatial canvas.',
+      'Sprint boards, architecture sketches, and living docs on the same infinite canvas — with LIVE when the team needs to co-edit.',
     description:
-      'Traditional project management tables fail to represent complex asynchronous architecture flows. WORKSPACE OS allows technical product managers and engineering leaders to map technical debt, coordinate multi-team deployments, and visually connect canvas blocks directly to real-time database state rows.',
+      'Tables alone struggle with dependency graphs and async architecture decisions. WORKSPACE OS lets PMs and eng leads map debt, connect Kanban columns to whiteboard notes, and keep durable project state in Postgres JSONB while optional LIVE cursors keep the room aligned.',
     valueProposition:
-      'Accelerate your product shipment velocities up to 43% while completely eliminating cross-functional alignment overhead.',
+      'One canvas for backlog, design notes, and deployment checklists — not five tools stitched with screenshots.',
     features: [
       {
-        title: 'Dynamic Sprint Mapping Nodes',
-        desc: 'Instantly create interactive Kanban blocks linked via vector pathways to track complex critical dependencies.',
+        title: 'Kanban + whiteboard in one room',
+        desc: 'Drop sprint columns next to system diagrams without exporting between products.',
       },
       {
-        title: 'Asynchronous Auto-Save Logging',
-        desc: 'Zero-latency database background persistence stream secures structural modifications without interruptive load times.',
+        title: 'Durable autosave',
+        desc: 'Structural edits persist through the Next BFF into Postgres — LIVE is additive, not the source of truth.',
       },
       {
-        title: 'Technical Architecture Visualization',
-        desc: 'Embed cloud storage asset references into structural layouts to create living, self-updating documentation.',
+        title: 'Tenant-safe assets',
+        desc: 'Attach specs and diagrams from protected storage scoped to the project ACL.',
       },
     ],
-    metrics: [
-      { value: '43%', label: 'Faster Deployment Cycles' },
-      { value: 'Zero', label: 'Hydration Sync Failures' },
-      { value: '100%', label: 'Type-Safe Relational Data' },
+    uses: [
+      { label: 'Spatial canvas', href: '/platform/canvas' },
+      { label: 'LIVE sync', href: '/platform/sync' },
+      { label: 'Board templates', href: '/templates' },
     ],
   },
   hr: {
     shortLabel: 'Human Resources',
-    badge: 'Enterprise Human Resources',
-    title: 'People operations engineered for hyper-growth teams.',
+    badge: 'People ops',
+    title: 'Onboarding and org clarity on a shared canvas.',
     tagline:
-      'Streamline complex organizational charts, cross-departmental alignment workflows, and compliance checklist frameworks seamlessly.',
+      'Hiring pipelines, checklist boards, and handbooks live in one workspace with role-aware access.',
     description:
-      'Managing modern remote or hybrid engineering workforces requires granular visibility. Ditch chaotic spreadsheets. WORKSPACE OS gives HR professionals a clear spatial area to outline strategic hiring pipelines, visualize organization charts dynamically, and enforce mandatory compliance grids.',
+      'Hybrid teams drown in spreadsheets and shared drives. WORKSPACE OS gives HR a spatial area for onboarding flows, org maps, and policy docs — with HttpOnly sessions, BFF auth, and RLS as defense-in-depth for sensitive material.',
     valueProposition:
-      'Reduce employee onboarding operational friction by 60% and securely store identity documents under row-level database security.',
+      'Replace scattered onboarding folders with one ACL-aware board your managers can actually navigate.',
     features: [
       {
-        title: 'Visual Node-Based Onboarding',
-        desc: 'Design adaptive onboarding workflows where task cards automatically trigger based on the user\'s role metadata.',
+        title: 'Role-aware boards',
+        desc: 'Invite managers and new hires with project ACL instead of forwarding inbox links.',
       },
       {
-        title: 'Granular Team Access Controls',
-        desc: 'Secure sensitive personal information using enterprise-grade Row-Level Security (RLS) and custom RBAC permissions.',
+        title: 'Checklist canvases',
+        desc: 'Step cards for Day 1–30 sit beside handbook blocks and asset uploads.',
       },
       {
-        title: 'Centralized Asset Repositories',
-        desc: 'Upload and anchor company guidelines and regional handbook documentation safely inside protected object storage nodes.',
+        title: 'Protected uploads',
+        desc: 'Guidelines and regional docs stay in tenant-isolated storage attached to the project.',
       },
     ],
-    metrics: [
-      { value: '60%', label: 'Operational Friction Reduction' },
-      { value: '100%', label: 'RBAC Compliance Met' },
-      { value: '4.9/5', label: 'Onboarding Satisfaction Rate' },
+    uses: [
+      { label: 'RBAC & ACL', href: '/platform/rbac' },
+      { label: 'Boards & assets', href: '/platform/storage' },
+      { label: 'Onboarding template', href: '/templates' },
     ],
   },
   sales: {
     shortLabel: 'Sales & CRM',
-    badge: 'High-Velocity Revenue OS',
-    title: 'Close larger enterprise deals with structured precision.',
+    badge: 'Revenue ops',
+    title: 'Map deals spatially — not only in list views.',
     tagline:
-      'Transform your static pipeline boards into dynamic spatial conversion engines. Track custom enterprise parameters dynamically.',
+      'Pipeline stages, account notes, and proposal assets on one canvas your AE and SE can share.',
     description:
-      'Standard customer relationship platforms isolate deal context inside hard-to-read sub-menus. WORKSPACE OS brings visual layout parameters to your pipeline strategy, mapping key account touchpoints, complex contract lifecycles, and cross-functional legal review processes onto a fluid spatial interface.',
+      'CRM rows hide context in submenus. WORKSPACE OS keeps deal stages as boards, links requirements to implementation notes, and supports read-friendly share flows when you present to a buyer — without inventing fake win-rate guarantees.',
     valueProposition:
-      'Empower your account executives to unlock an automatic 28% increase in contract pipeline win-rates with continuous clarity.',
+      'Keep account context next to the pipeline so handoffs between AE, SE, and legal stay on one surface.',
     features: [
       {
-        title: 'Infinite Conversion Layouts',
-        desc: 'Map complex sales cycles visually, linking customer requirements to technical implementation capabilities inside real canvas sheets.',
+        title: 'Pipeline boards',
+        desc: 'Kanban stages for opportunities with notes and attachments on the same sheet.',
       },
       {
-        title: 'Real-Time Pipeline Hydration',
-        desc: 'As deal parameters slide from one canvas coordinate to another, data streams instantly update global tracking logs.',
+        title: 'LIVE for deal rooms',
+        desc: 'Optional live cursors when prep calls need two people on the same board.',
       },
       {
-        title: 'Shared Client Previews',
-        desc: 'Generate protected read-only web share URLs to present architectural proposals and custom pricing pipelines elegantly to buyers.',
+        title: 'Shareable surfaces',
+        desc: 'Present proposals from the workspace instead of detached slide dumps.',
       },
     ],
-    metrics: [
-      { value: '28%', label: 'Higher Pipeline Win Rates' },
-      { value: '3.2x', label: 'Faster Account Onboarding' },
-      { value: '$12M+', label: 'Daily Managed Sales Volume' },
+    uses: [
+      { label: 'Spatial canvas', href: '/platform/canvas' },
+      { label: 'LIVE sync', href: '/platform/sync' },
+      { label: 'CRM template', href: '/templates' },
     ],
   },
   operations: {
     shortLabel: 'Strategy & Ops',
-    badge: 'Strategy & Corporate Operations',
-    title: "Orchestrate your company's core strategic roadmap.",
+    badge: 'Strategy & ops',
+    title: 'OKRs and execution on one operating canvas.',
     tagline:
-      'Synchronize company OKRs, executive task force timelines, and cross-departmental operations with complete transparency.',
+      'Roadmaps, timelines, and cross-team checklists stay linked so planning does not detach from delivery.',
     description:
-      'Corporate operational alignment cracks when execution is detached from initial planning blueprints. WORKSPACE OS bridges this structural gap by embedding living documents, active data metrics, and cross-functional calendars into unified infinite workspace coordinates.',
+      'Ops breaks when strategy lives in slides and execution lives elsewhere. WORKSPACE OS embeds living docs, timeline boards, and team modules in one infinite workspace — with RBAC so exec views and working boards can differ by ACL.',
     valueProposition:
-      'Consolidate your disparate operational toolchains into a single operating system, reducing software licensing overheads by up to 35%.',
+      'Connect quarterly targets to day-to-day boards without another status-meeting spreadsheet.',
     features: [
       {
-        title: 'Executive Timeline Overlays',
-        desc: 'Build strategic roadmaps that link high-level quarterly target nodes to day-to-day tactical execution components.',
+        title: 'Timeline + board overlays',
+        desc: 'Roadmap lanes sit beside execution Kanban without copy-paste between tools.',
       },
       {
-        title: 'Cross-Workspace Module Sync',
-        desc: 'Create dedicated module silos for multiple internal teams while maintaining a global master operational canvas.',
+        title: 'Cross-team modules',
+        desc: 'Separate project rooms under one tenant while linking related canvases.',
       },
       {
-        title: 'Built-In Automated Notifications',
-        desc: 'Keep key stakeholders aligned with real-time system mention notifications across structural project updates.',
+        title: 'Mention-friendly updates',
+        desc: 'Keep stakeholders on structural changes from the same workspace stream.',
       },
     ],
-    metrics: [
-      { value: '35%', label: 'Toolchain Overhead Savings' },
-      { value: '100%', label: 'Cross-Department Alignment' },
-      { value: 'Zero', label: 'Lost Executive Context' },
+    uses: [
+      { label: 'Boards & assets', href: '/platform/storage' },
+      { label: 'RBAC & ACL', href: '/platform/rbac' },
+      { label: 'Platform overview', href: '/features' },
     ],
   },
 };
@@ -206,26 +214,29 @@ export default function SolutionLandingPage({
 
   if (!isSolutionSlug(slug)) {
     return (
-      <div className="min-h-screen bg-[#F7F9FB] flex flex-col items-center justify-center p-6 text-center">
-        <h2 className="text-xl font-black text-zinc-950 mb-2">
-          Solution not found
-        </h2>
-        <p className="text-sm text-zinc-500 mb-6 max-w-sm">
-          This industry solution is not in the registry.
-        </p>
-        <Link
-          href="/solutions/engineering"
-          className="px-4 py-2.5 bg-zinc-950 text-white font-bold rounded-xl text-sm hover:bg-sky-600 transition-colors"
-        >
-          Browse solutions
-        </Link>
-      </div>
+      <MarketingPageChrome>
+        <main className="flex-1 flex flex-col items-center justify-center p-6 text-center pt-28">
+          <h2 className="text-xl font-black text-zinc-950 mb-2">Solution not found</h2>
+          <p className="text-sm text-zinc-500 mb-6 max-w-sm">
+            This industry solution is not in the registry.
+          </p>
+          <Link
+            href="/solutions/engineering"
+            className="px-4 py-2.5 bg-zinc-950 text-white font-bold rounded-xl text-sm hover:bg-sky-600 transition-colors"
+          >
+            Browse solutions
+          </Link>
+        </main>
+      </MarketingPageChrome>
     );
   }
 
   const content = solutionRegistry[slug];
   const meta = SOLUTION_META[slug];
   const Icon = meta.icon;
+  const idx = SLUGS.indexOf(slug);
+  const prev = SLUGS[(idx - 1 + SLUGS.length) % SLUGS.length];
+  const next = SLUGS[(idx + 1) % SLUGS.length];
 
   const siblings = SLUGS.filter((s) => s !== slug).map((s) => ({
     slug: s,
@@ -234,13 +245,18 @@ export default function SolutionLandingPage({
   }));
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-zinc-900 font-sans antialiased selection:bg-sky-100 flex flex-col relative overflow-hidden">
-      <LandingAtmosphere />
-      <LandingNavbar />
-
-      <main className="relative z-10 flex-1 pt-28 md:pt-32 pb-20 px-4 sm:px-6">
+    <MarketingPageChrome>
+      <main className="flex-1 pt-28 md:pt-32 pb-20 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="mb-10 md:mb-14">
+          <MarketingBreadcrumb
+            items={[
+              { href: '/', label: 'Home' },
+              { href: '/solutions/engineering', label: 'Solutions' },
+              { label: content.shortLabel },
+            ]}
+          />
+
+          <div className="mb-10 md:mb-12">
             <div
               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] font-black uppercase tracking-widest mb-5 bg-linear-to-br ${meta.soft} border-white/80`}
             >
@@ -264,35 +280,38 @@ export default function SolutionLandingPage({
                 href="/register"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-zinc-950 text-white text-sm font-bold hover:bg-sky-600 transition-colors shadow-lg shadow-zinc-950/10"
               >
-                Deploy this solution
+                Start free
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 href="/demo"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-sm font-bold hover:border-sky-200 hover:text-sky-700 transition-colors"
               >
-                Explore live demo
+                Open demo
+              </Link>
+              <Link
+                href="/features"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-sky-700 text-sm font-bold hover:bg-sky-50 transition-colors"
+              >
+                View platform
               </Link>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-10">
-            {content.metrics.map((m) => (
-              <div
-                key={m.label}
-                className="rounded-2xl border border-zinc-200/80 bg-white p-6 text-center shadow-sm"
+          <div className="flex flex-wrap gap-2 mb-10">
+            {content.uses.map((u) => (
+              <Link
+                key={u.href + u.label}
+                href={u.href}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 bg-white text-xs font-bold text-zinc-700 hover:border-sky-200 hover:text-sky-700 transition-colors"
               >
-                <span className={`block text-3xl font-black tracking-tight mb-1 ${meta.accent}`}>
-                  {m.value}
-                </span>
-                <span className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                  {m.label}
-                </span>
-              </div>
+                {u.label}
+                <ArrowRight className="w-3 h-3 opacity-50" />
+              </Link>
             ))}
           </div>
 
-          <div className="relative overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-sm mb-16">
+          <div className="relative overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-sm mb-12">
             <div className={`h-1.5 w-full ${meta.bar}`} />
             <div
               className={`bg-linear-to-br ${meta.soft} px-6 md:px-10 py-8 md:py-10 border-b border-zinc-100`}
@@ -300,8 +319,8 @@ export default function SolutionLandingPage({
               <p className="text-sm md:text-base text-zinc-600 font-medium leading-relaxed max-w-3xl mb-4">
                 {content.description}
               </p>
-              <p className={`text-sm font-bold leading-relaxed italic ${meta.accent}`}>
-                &ldquo;{content.valueProposition}&rdquo;
+              <p className={`text-sm font-bold leading-relaxed ${meta.accent}`}>
+                {content.valueProposition}
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-zinc-100">
@@ -326,14 +345,60 @@ export default function SolutionLandingPage({
             </div>
           </div>
 
+          <MarketingRelatedGrid
+            title="Continue exploring"
+            links={[
+              {
+                href: '/features',
+                label: 'Platform features',
+                desc: 'Canvas, LIVE, RBAC, and boards at a glance.',
+                icon: Layers,
+              },
+              {
+                href: '/platform/sync',
+                label: 'LIVE collaboration',
+                desc: 'Cursors and optional Yjs over FastAPI WebSockets.',
+                icon: Radio,
+              },
+              {
+                href: '/docs',
+                label: 'Documentation',
+                desc: 'BFF, auth, and how the stack is actually wired.',
+                icon: BookOpen,
+              },
+              {
+                href: '/demo',
+                label: 'Interactive demo',
+                desc: 'Try the product surface without a sales call.',
+                icon: Rocket,
+              },
+            ]}
+          />
+
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
                 Solutions
               </p>
               <h2 className="text-xl font-black text-zinc-950 tracking-tight">
-                Explore other use cases
+                Other use cases
               </h2>
+            </div>
+            <div className="hidden sm:flex items-center gap-2">
+              <Link
+                href={`/solutions/${prev}`}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-xs font-bold text-zinc-600 hover:border-sky-200 hover:text-sky-700"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                {solutionRegistry[prev].shortLabel}
+              </Link>
+              <Link
+                href={`/solutions/${next}`}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-zinc-200 bg-white text-xs font-bold text-zinc-600 hover:border-sky-200 hover:text-sky-700"
+              >
+                {solutionRegistry[next].shortLabel}
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           </div>
 
@@ -375,25 +440,31 @@ export default function SolutionLandingPage({
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(56,189,248,0.22),transparent_55%)]" />
             <div className="relative z-10 max-w-xl">
               <h3 className="text-xl md:text-2xl font-black tracking-tight mb-2">
-                Ready to refactor your operational layer?
+                Ready to try this workspace?
               </h3>
               <p className="text-sm text-zinc-400 font-medium leading-relaxed">
-                Set up your unified workspace in under 60 seconds. Empower your
-                teams with structural relational database power natively.
+                Create a tenant, open a canvas, and invite your team — same stack as production.
               </p>
             </div>
-            <Link
-              href="/register"
-              className="relative z-10 shrink-0 inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white text-zinc-950 text-sm font-black hover:bg-sky-50 transition-colors"
-            >
-              Start free
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            <div className="relative z-10 flex flex-col sm:flex-row gap-3 shrink-0">
+              <Link
+                href="/register"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white text-zinc-950 text-sm font-black hover:bg-sky-50 transition-colors"
+              >
+                Start free
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="/templates"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white/10 border border-white/20 text-white text-sm font-bold hover:bg-white/15 transition-colors"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                Templates
+              </Link>
+            </div>
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
+    </MarketingPageChrome>
   );
 }

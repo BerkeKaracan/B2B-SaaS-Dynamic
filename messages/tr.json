@@ -201,29 +201,69 @@
       "desc": "Bu platform yeteneği kayıtlı değil.",
       "cta": "Tüm özellikleri gör"
     },
+    "crumb": {
+      "home": "Ana sayfa",
+      "platform": "Platform",
+      "features": "Özellikler"
+    },
     "cta": {
       "primary": "Workspace oluştur",
-      "secondary": "Dokümantasyonu oku"
+      "secondary": "Mimari dokümantasyonu oku",
+      "demo": "Şablon merkezini aç"
+    },
+    "how": {
+      "title": "Üründe nasıl çalışır"
+    },
+    "related": {
+      "title": "Keşfetmeye devam"
     },
     "more": {
       "title": "Platform",
-      "subtitle": "Diğer yetenekleri keşfet",
+      "subtitle": "Diğer yetenekler",
       "all": "Tüm özellikler"
+    },
+    "nav": {
+      "previous": "Önceki",
+      "next": "Sonraki"
     },
     "bottomCta": {
       "title": "WORKSPACE OS ile çalışmaya hazır mısın?",
-      "desc": "Bir dakikadan kısa sürede workspace aç; canvas, sync, RBAC ve storage’ı birlikte kullan.",
+      "desc": "Bir workspace aç; canvas, canlı collab, RBAC ve panoları birlikte kullan.",
       "button": "Ücretsiz başla"
+    },
+    "relatedLinks": {
+      "docs": "Mimari dokümanlar",
+      "docsDesc": "BFF, WebSocket, Cloud Run — nasıl bağlı.",
+      "features": "Tüm özellikler",
+      "featuresDesc": "Tüm platform yetenek haritası.",
+      "templates": "Pano şablonları",
+      "templatesDesc": "Kanban, notepad, whiteboard, timeline.",
+      "demo": "Şablon merkezi",
+      "demoDesc": "Kurulum olmadan açabileceğin public demolar."
     },
     "canvas": {
       "badge": "Sonsuz tuval",
       "title": "Gerçek şirket işi için sonsuz bir canvas.",
       "subtitle": "Blokları, pano çerçevelerini ve canlı dokümanları uzamsal bir düzlemde yönet — bir doğrusal doküman daha değil.",
       "body": "Sonsuz tuval, katı sayfaların yerine serbest bir çalışma alanı koyar. Metin, veritabanı, kanban, timeline ve asset’leri tek yüzeye bırak; bağlam görünür kalsın, ekipler hareket etsin.",
+      "journey": {
+        "0": {
+          "title": "Blank proje aç",
+          "desc": "Pan/zoom ile sonsuz düzlem — sayfalar ve serbest bloklar."
+        },
+        "1": {
+          "title": "Panoları çerçeve olarak bırak",
+          "desc": "Kanban veya dokümanı canvas içine göm ya da bağımsız aç."
+        },
+        "2": {
+          "title": "Bağla ve autosave et",
+          "desc": "Bağlantılar görünür kalır; Zustand JSONB’yi tenant records’a yazar."
+        }
+      },
       "features": {
         "0": {
           "title": "Dinamik blok orkestrasyonu",
-          "desc": "Metin, form, pano ve veri bloklarını sonsuz bir vektör düzleminde birleştir."
+          "desc": "Metin, form, pano ve veri bloklarını sonsuz vektör düzleminde birleştir."
         },
         "1": {
           "title": "Blank içinde pano çerçeveleri",
@@ -240,6 +280,20 @@
       "title": "Aynı WebSocket’te imleçler ve ortak düzenleme.",
       "subtitle": "Ekipler birbirinin hareketini görür — isteğe bağlı aynı Yjs belgesini paylaşır — Presence kanal fırtınası olmadan.",
       "body": "Canlı işbirliği FastAPI /ws/canvas/{room_id} üzerinden akar. İmleçler hafiftir; blok ve sayfa ortak düzenlemesi LIVE açıkken aynı sokette Yjs kullanır. Proje JSON’u arka planda PostgreSQL JSONB’ye autosave olmaya devam eder.",
+      "journey": {
+        "0": {
+          "title": "Odaya katıl",
+          "desc": "Kimlik doğrulanmış istemciler /ws/canvas/{projectId} ile ortak oda açar."
+        },
+        "1": {
+          "title": "Canlı imleçleri gör",
+          "desc": "Presence geçicidir — hafif payload, tam canvas dizisi fırtınası yok."
+        },
+        "2": {
+          "title": "İsteğe bağlı Yjs co-edit",
+          "desc": "LIVE doc sync açıkken sayfalar ve bloklar sekmeler arasında birlikte hareket eder."
+        }
+      },
       "features": {
         "0": {
           "title": "Canlı imleçler",
@@ -260,6 +314,20 @@
       "title": "Cookie, BFF ve tenant ACL — localStorage’da token yok.",
       "subtitle": "HttpOnly oturum çerezleri, Next.js proxy auth ve uygulama katmanı tenant kontrolleri. RLS ikinci hat olarak kalır.",
       "body": "WORKSPACE OS kimliği /api/session (HttpOnly cookie) ile kurar. Tarayıcı Next BFF’e (/api/backend/*) gider; sunucu JWT’yi ekler. FastAPI tenant üyeliğini ve rolleri uygular; Postgres RLS savunma derinliğidir.",
+      "journey": {
+        "0": {
+          "title": "Bir kez oturum aç",
+          "desc": "Oturum /api/session ile HttpOnly cookie’de kalır — localStorage’da değil."
+        },
+        "1": {
+          "title": "Same-origin BFF",
+          "desc": "Tarayıcı /api/backend/* çağırır; Next, FastAPI’den önce Authorization ekler."
+        },
+        "2": {
+          "title": "Tenant kapıları",
+          "desc": "API üyelik ve rolleri kontrol eder; RLS Postgres’te izolasyonu yedekler."
+        }
+      },
       "features": {
         "0": {
           "title": "HttpOnly oturumlar",
@@ -280,6 +348,20 @@
       "title": "Tek workspace’te pano şablonları ve korumalı yüklemeler.",
       "subtitle": "Kanban, doküman, whiteboard, timeline — plus tenant’a bağlı dosya depolama.",
       "body": "Projeler Infinite blank canvas veya özel panolar olabilir. Yüklemeler tenant’a scoped korumalı Supabase storage’da durur; ayrı bir asset CMS olmadan canvas bloklarına bağlanır.",
+      "journey": {
+        "0": {
+          "title": "Yüzey seç",
+          "desc": "Blank canvas veya pano şablonu (Kanban, notepad, whiteboard, timeline…)."
+        },
+        "1": {
+          "title": "Gerektiğinde ekle",
+          "desc": "Dosyalar tenant-scoped bucket’lara iner ve canvas bloklarına bağlanır."
+        },
+        "2": {
+          "title": "İzin-aware kal",
+          "desc": "Teslimat, projelerle aynı workspace üyelik modelini izler."
+        }
+      },
       "features": {
         "0": {
           "title": "Pano şablonları",
@@ -298,32 +380,37 @@
   },
   "FeaturesPage": {
     "back": "Geri Dön",
-    "badge": "Platform Özellikleri",
-    "title": "Ölçeklenmek için yapıldı. Hız için tasarlandı.",
-    "subtitle": "WORKSPACE OS'u şirketiniz için nihai işletim sistemi yapan güçlü araçları keşfedin.",
+    "badge": "Platform",
+    "title": "Dört yetenek. Tek workspace OS.",
+    "subtitle": "Canvas, LIVE işbirliği, RBAC ve panolar — her yeteneği açın; sonra docs, şablonlar veya demoya geçin.",
+    "openCapability": "Yeteneği aç",
     "canvas": {
-      "title": "Sonsuz Uzamsal Tuval",
-      "desc": "Doğrusal belgelerden kurtulun. Sonsuz bir vektör ızgarasında metinleri, görselleri, veritabanlarını ve kanban panolarını sürükleyin, bırakın ve bağlayın."
+      "title": "Uzamsal tuval",
+      "desc": "Metin, görsel, veritabanı ve kanban sonsuz bir panoda — diğer her şey bu yüzeyde durur."
     },
     "realtime": {
-      "title": "Sıfır Gecikmeli Senkronizasyon",
-      "desc": "Gelişmiş WebSocket mimarimiz sayesinde her tuş vuruşu, her blok hareketi tüm ekibiniz arasında anında senkronize edilir."
+      "title": "Canlı işbirliği",
+      "desc": "FastAPI WebSocket üzerinden canlı imleçler ve isteğe bağlı Yjs ortak düzenleme — kalıcı JSONB kaydı ayrı kalır."
     },
     "security": {
-      "title": "Kurumsal Düzey Yetkilendirme",
-      "desc": "Ayrıntılı rol tabanlı erişim kontrolü (RBAC). Belirli projeleri kimin görüntüleyebileceğini veya yönetebileceğini tam olarak belirleyin."
+      "title": "Güvenlik ve RBAC",
+      "desc": "HttpOnly oturumlar, Next BFF proxy ve tenant ACL — Postgres RLS savunma katmanı olarak."
     },
     "storage": {
-      "title": "Korumalı Bulut Depolama",
-      "desc": "Canvas asset’lerini ve proje dosyalarını tenant-isolated bucket’larda, izin-aware teslimatla saklayın."
+      "title": "Panolar ve asset’ler",
+      "desc": "Kanban, doküman, whiteboard, timeline — plus canvas işine bağlı tenant-isolated yüklemeler."
+    },
+    "relatedSolutions": {
+      "label": "Çözümler",
+      "desc": "Aynı canvas OS üzerinde sektör kullanım senaryoları."
     },
     "ai": {
       "title": "Bağlam Farkındalıklı AI",
       "desc": "Tuvalinizle sohbet edin. Yerleşik GPT-OSS 120B motorumuz bloklarınızı okur; beyin fırtınası yapmanıza, özetlemenize ve içerik üretmenize yardımcı olur."
     },
     "cta": {
-      "title": "Farkı deneyimlemeye hazır mısınız?",
-      "button": "Ücretsiz Denemeyi Başlat"
+      "title": "Bir workspace açmaya hazır mısınız?",
+      "button": "Ücretsiz başla"
     }
   },
   "TemplatesPage": {
@@ -441,7 +528,6 @@
       "system": "Sistem"
     }
   },
-
   "IntegrationsPage": {
     "back": "Geri Dön",
     "badge": "Entegrasyonlar",
@@ -478,9 +564,18 @@
       "p2": "Bu sınırları yıkmak için WORKSPACE OS'u kurduk. Sonsuz bir uzamsal tuvali gerçek zamanlı ilişkisel veritabanlarıyla birleştirerek; fikirlerinizin, verilerinizin ve iş akışlarınızın sınırlamalar olmadan bir arada nefes alabileceği merkezi bir sinir sistemi yarattık."
     },
     "stats": {
-      "1": { "value": "2026", "label": "Kuruluş" },
-      "2": { "value": "%100", "label": "Bağımsız (Bootstrapped)" },
-      "3": { "value": "Küresel", "label": "Uzaktan Ekip" }
+      "1": {
+        "value": "2026",
+        "label": "Kuruluş"
+      },
+      "2": {
+        "value": "%100",
+        "label": "Bağımsız (Bootstrapped)"
+      },
+      "3": {
+        "value": "Küresel",
+        "label": "Uzaktan Ekip"
+      }
     },
     "values": {
       "title": "Temel Değerlerimiz",
