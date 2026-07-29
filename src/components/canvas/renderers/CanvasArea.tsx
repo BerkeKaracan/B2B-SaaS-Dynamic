@@ -136,8 +136,7 @@ export default function CanvasArea() {
     });
   }, [authUser?.email, authUser?.full_name]);
 
-  // Stable project room — never activePageId (that remounted channels per page).
-  // NEXT_PUBLIC_DISABLE_LIVE=true pauses cursors/co-edit while we rebuild collab.
+  // LIVE: empty roomId disables socket. Build with NEXT_PUBLIC_DISABLE_LIVE=true to pause.
   const liveDisabled = process.env.NEXT_PUBLIC_DISABLE_LIVE === 'true';
   const collabRoomId = liveDisabled ? '' : routeProjectId || '';
   const { doc, cursors, selfKey, connectionStatus, publishCursor } =
@@ -145,7 +144,7 @@ export default function CanvasArea() {
       enableDocSync: !liveDisabled && canvasSyncEnabled,
     });
 
-  // null when flag off → no Yjs↔store bridge, no full-state Realtime storm
+  // null when live/flag off → no Yjs↔store bridge
   useZustandYjsSync(!liveDisabled && canvasSyncEnabled ? doc : null);
 
   const addBlockToPage = useCanvasStore((s) => s.addBlockToPage);

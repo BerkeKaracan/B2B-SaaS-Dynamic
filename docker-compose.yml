@@ -36,9 +36,9 @@ services:
         - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
         - INTERNAL_API_URL=http://backend:8000
-        # Pause LIVE while core save/auth is stabilized (set false to re-enable)
-        - NEXT_PUBLIC_DISABLE_LIVE=true
-        - NEXT_PUBLIC_COLLAB_DOC_SYNC=false
+        # Local Docker LIVE: cursors + Yjs co-edit over FastAPI WebSocket
+        - NEXT_PUBLIC_DISABLE_LIVE=false
+        - NEXT_PUBLIC_COLLAB_DOC_SYNC=true
       dockerfile: Dockerfile
     container_name: b2b-frontend
     ports:
@@ -48,8 +48,10 @@ services:
     environment:
       - INTERNAL_API_URL=http://backend:8000
       - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
-      # Local Docker test: do not call Pulse on :8002 (use tier fallback only)
       - FEATURE_FLAGS_DISABLED=true
+      # Runtime mirror (baked args still required for NEXT_PUBLIC_*)
+      - NEXT_PUBLIC_DISABLE_LIVE=false
+      - NEXT_PUBLIC_COLLAB_DOC_SYNC=true
     depends_on:
       backend:
         condition: service_healthy

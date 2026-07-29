@@ -19,7 +19,7 @@ ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 # Baked into Next rewrites at build time (Docker network hostname).
 ARG INTERNAL_API_URL=http://backend:8000
 # Local Docker co-edit without Pulse Flag
-ARG NEXT_PUBLIC_COLLAB_DOC_SYNC=false
+ARG NEXT_PUBLIC_COLLAB_DOC_SYNC=true
 ARG NEXT_PUBLIC_DISABLE_LIVE=false
 
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL

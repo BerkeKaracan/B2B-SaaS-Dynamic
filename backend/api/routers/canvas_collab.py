@@ -24,12 +24,26 @@ MAX_CLIENTS_PER_ROOM = 40
 
 
 def _allow_insecure_canvas_ws() -> bool:
-    """Local Docker: skip JWT verify so cursors work without SUPABASE_JWT_SECRET."""
+    """Local Docker: skip JWT verify so LIVE works without SUPABASE_JWT_SECRET."""
     raw = (os.getenv("ALLOW_INSECURE_CANVAS_WS") or "").strip().lower()
     if raw in {"1", "true", "yes", "on"}:
         return True
+    if raw in {"0", "false", "no", "off"}:
+        return False
     env = (os.getenv("ENVIRONMENT") or os.getenv("APP_ENV") or "").strip().lower()
-    return env in {"development", "dev", "local"}
+    if env in {"development", "dev", "local"}:
+        return True
+    # No JWT secret configured → treat as local/dev (Cloud Run should set the secret)
+    secret = (os.getenv("SUPABASE_JWT_SECRET") or "").strip()
+    return not secret
+
+
+# Boot visibility for operators
+logger.info(
+    "canvas_collab: insecure_ws=%s env=%s",
+    _allow_insecure_canvas_ws(),
+    (os.getenv("ENVIRONMENT") or os.getenv("APP_ENV") or "").strip() or "(unset)",
+)
 
 
 @dataclass
