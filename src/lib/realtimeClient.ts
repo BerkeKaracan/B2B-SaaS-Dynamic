@@ -10,9 +10,20 @@ let sharedClient: SupabaseClient<Database> | null = null;
 let sharedToken: string | null = null;
 let inflight: Promise<SupabaseClient<Database> | null> | null = null;
 
-function buildRealtimeClient(
+async function applyRealtimeAuth(
+  client: SupabaseClient<Database>,
   accessToken: string
-): SupabaseClient<Database> | null {
+): Promise<void> {
+  try {
+    await client.realtime.setAuth(accessToken);
+  } catch {
+    /* ignore — subscribe path still surfaces auth failures */
+  }
+}
+
+async function buildRealtimeClient(
+  accessToken: string
+): Promise<SupabaseClient<Database> | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   if (!supabaseUrl || !anonKey || !accessToken) return null;
@@ -32,12 +43,7 @@ function buildRealtimeClient(
     },
   });
 
-  try {
-    client.realtime.setAuth(accessToken);
-  } catch {
-    /* ignore */
-  }
-
+  await applyRealtimeAuth(client, accessToken);
   return client;
 }
 
@@ -59,6 +65,8 @@ export async function getSharedRealtimeClient(): Promise<SupabaseClient<Database
     }
 
     if (sharedClient && sharedToken === token) {
+      // Keep socket auth fresh even when reusing the singleton
+      await applyRealtimeAuth(sharedClient, token);
       return sharedClient;
     }
 
@@ -66,7 +74,7 @@ export async function getSharedRealtimeClient(): Promise<SupabaseClient<Database
     sharedClient = null;
     sharedToken = null;
 
-    const client = buildRealtimeClient(token);
+    const client = await buildRealtimeClient(token);
     if (!client) return null;
 
     sharedClient = client;
@@ -89,13 +97,33 @@ export function getOrCreateRealtimeClientWithToken(
   if (!accessToken) return null;
 
   if (sharedClient && sharedToken === accessToken) {
+    void applyRealtimeAuth(sharedClient, accessToken);
     return sharedClient;
   }
 
   sharedClient = null;
   sharedToken = null;
-  const client = buildRealtimeClient(accessToken);
-  if (!client) return null;
+
+  // Sync API: fire-and-forget auth; prefer getSharedRealtimeClient for collab
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  if (!supabaseUrl || !anonKey) return null;
+
+  const client = createClient<Database>(supabaseUrl, anonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: REALTIME_STORAGE_KEY,
+    },
+  });
+
+  void applyRealtimeAuth(client, accessToken);
   sharedClient = client;
   sharedToken = accessToken;
   return client;

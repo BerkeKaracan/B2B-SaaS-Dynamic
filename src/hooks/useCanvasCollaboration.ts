@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import * as Y from 'yjs';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/supabase';
 import { getSharedRealtimeClient } from '@/lib/realtimeClient';
 import {
   decodeYUpdateFromBroadcast,
@@ -31,6 +32,8 @@ export type CollabConnectionStatus =
 
 const Y_ORIGIN_REMOTE = 'remote';
 const OUTBOUND_COALESCE_MS = 80;
+const SUBSCRIBE_WATCHDOG_MS = 8000;
+const MAX_AUTO_RETRIES = 1;
 
 export function useCanvasCollaboration(
   roomId: string,
@@ -112,7 +115,7 @@ export function useCanvasCollaboration(
     [flushOutbound]
   );
 
-  const detachYjs = useCallback(() => {
+  const detachYjsImpl = useCallback(() => {
     const ydoc = ydocRef.current;
     if (ydoc && yBoundRef.current) {
       ydoc.off('update', onLocalYUpdate);
@@ -130,7 +133,7 @@ export function useCanvasCollaboration(
     queueMicrotask(() => setDoc(null));
   }, [onLocalYUpdate]);
 
-  const attachYjs = useCallback(
+  const attachYjsImpl = useCallback(
     (channel: RealtimeChannel) => {
       if (ydocRef.current) return;
       const ydoc = new Y.Doc();
@@ -152,6 +155,16 @@ export function useCanvasCollaboration(
     },
     [onLocalYUpdate]
   );
+
+  // Stable refs so the room connect effect never re-runs on callback identity
+  const attachYjsRef = useRef(attachYjsImpl);
+  const detachYjsRef = useRef(detachYjsImpl);
+  useEffect(() => {
+    attachYjsRef.current = attachYjsImpl;
+  }, [attachYjsImpl]);
+  useEffect(() => {
+    detachYjsRef.current = detachYjsImpl;
+  }, [detachYjsImpl]);
 
   const publishCursor = useCallback(
     (cursor: { x: number; y: number } | null) => {
@@ -175,6 +188,28 @@ export function useCanvasCollaboration(
 
     let cancelled = false;
     let channel: RealtimeChannel | null = null;
+    let watchdogTimer: ReturnType<typeof setTimeout> | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempt = 0;
+    let subscribed = false;
+    /** True while we are removing a channel on purpose (retry / cleanup). */
+    let intentionalClose = false;
+
+    const topic = `canvas-${roomId}`;
+
+    const clearWatchdog = () => {
+      if (watchdogTimer != null) {
+        clearTimeout(watchdogTimer);
+        watchdogTimer = null;
+      }
+    };
+
+    const clearReconnect = () => {
+      if (reconnectTimer != null) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+    };
 
     const syncCursorsFromPresence = () => {
       if (!channel) return;
@@ -196,8 +231,76 @@ export function useCanvasCollaboration(
       setCursors(next);
     };
 
-    void (async () => {
+    const removeStaleChannels = async (
+      client: SupabaseClient<Database>,
+      except?: RealtimeChannel | null
+    ) => {
+      const existing = client.getChannels().filter((ch) => {
+        const topicName =
+          (ch as RealtimeChannel & { topic?: string }).topic || '';
+        // Supabase prefixes with "realtime:" internally in some versions
+        return (
+          topicName === topic ||
+          topicName === `realtime:${topic}` ||
+          topicName.endsWith(`:${topic}`)
+        );
+      });
+      for (const ch of existing) {
+        if (except && ch === except) continue;
+        try {
+          await client.removeChannel(ch);
+        } catch {
+          /* ignore */
+        }
+      }
+      if (channelRef.current && channelRef.current !== except) {
+        channelRef.current = null;
+      }
+    };
+
+    const teardownChannel = async (
+      client: SupabaseClient<Database> | null,
+      ch: RealtimeChannel | null
+    ) => {
+      clearWatchdog();
+      readyRef.current = false;
+      intentionalClose = true;
+      detachYjsRef.current();
+      if (channelRef.current === ch) {
+        channelRef.current = null;
+      }
+      if (client && ch) {
+        try {
+          await client.removeChannel(ch);
+        } catch {
+          /* ignore */
+        }
+      }
+      intentionalClose = false;
+    };
+
+    const scheduleRetry = (reason: string) => {
+      if (cancelled) return;
+      if (attempt > MAX_AUTO_RETRIES) {
+        setConnectionStatus('error');
+        console.warn('[collab] give up after retries:', reason);
+        return;
+      }
+      clearReconnect();
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        if (!cancelled) {
+          void connect();
+        }
+      }, 400);
+    };
+
+    const connect = async () => {
+      if (cancelled) return;
+      attempt += 1;
+      subscribed = false;
       setConnectionStatus('connecting');
+
       const client = await getSharedRealtimeClient();
       if (cancelled) return;
       if (!client) {
@@ -206,7 +309,15 @@ export function useCanvasCollaboration(
         return;
       }
 
-      channel = client.channel(`canvas-${roomId}`, {
+      // Drop previous attempt channel + any stale same-topic channels
+      if (channel) {
+        await teardownChannel(client, channel);
+        channel = null;
+      }
+      await removeStaleChannels(client);
+      if (cancelled) return;
+
+      channel = client.channel(topic, {
         config: {
           broadcast: { self: false, ack: false },
           presence: { key: selfKeyRef.current },
@@ -257,10 +368,31 @@ export function useCanvasCollaboration(
       channel.on('presence', { event: 'join' }, syncCursorsFromPresence);
       channel.on('presence', { event: 'leave' }, syncCursorsFromPresence);
 
+      clearWatchdog();
+      watchdogTimer = setTimeout(() => {
+        watchdogTimer = null;
+        if (cancelled || subscribed) return;
+        readyRef.current = false;
+        setConnectionStatus('error');
+        console.warn('[collab] subscribe watchdog timed out', {
+          attempt,
+          topic,
+        });
+        void (async () => {
+          await teardownChannel(client, channel);
+          channel = null;
+          scheduleRetry('watchdog');
+        })();
+      }, SUBSCRIBE_WATCHDOG_MS);
+
       channel.subscribe((status: string, err?: Error) => {
         if (cancelled) return;
 
         if (status === 'SUBSCRIBED') {
+          clearWatchdog();
+          subscribed = true;
+          // Successful join resets retry budget for future unexpected drops
+          attempt = 0;
           readyRef.current = true;
           setIsSynced(true);
           setConnectionStatus('subscribed');
@@ -273,55 +405,78 @@ export function useCanvasCollaboration(
           });
 
           if (enableDocSyncRef.current && channel) {
-            attachYjs(channel);
+            attachYjsRef.current(channel);
           }
           return;
         }
 
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          clearWatchdog();
           readyRef.current = false;
           setConnectionStatus('error');
           console.warn('[collab] realtime channel status', status, err ?? '');
+          void (async () => {
+            await teardownChannel(client, channel);
+            channel = null;
+            scheduleRetry(status);
+          })();
           return;
         }
 
-        // CLOSED during intentional cleanup must not flash as error
-        if (status === 'CLOSED' && !cancelled) {
+        // CLOSED during intentional cleanup / Strict Mode unmount — ignore
+        if (status === 'CLOSED') {
+          if (cancelled || intentionalClose) return;
+          clearWatchdog();
           readyRef.current = false;
-          setConnectionStatus('connecting');
+          setConnectionStatus('error');
+          subscribed = false;
+          void (async () => {
+            await teardownChannel(client, channel);
+            channel = null;
+            scheduleRetry('CLOSED');
+          })();
         }
       });
-    })();
+    };
+
+    void connect();
 
     return () => {
       cancelled = true;
+      intentionalClose = true;
+      clearWatchdog();
+      clearReconnect();
       readyRef.current = false;
-      detachYjs();
+      detachYjsRef.current();
       const ch = channel;
       channelRef.current = null;
       void (async () => {
         const client = await getSharedRealtimeClient();
         if (client && ch) {
-          client.removeChannel(ch);
+          try {
+            await client.removeChannel(ch);
+          } catch {
+            /* ignore */
+          }
         }
         setIsSynced(false);
         setCursors({});
         setConnectionStatus('idle');
       })();
     };
-  }, [roomId, attachYjs, detachYjs]);
+  }, [roomId]);
 
-  // Toggle Yjs on the existing channel when the feature flag flips
+  // Toggle Yjs on the existing channel when the feature flag flips (no reconnect)
   useEffect(() => {
     const channel = channelRef.current;
     if (!readyRef.current || !channel) return;
 
     if (enableDocSync) {
-      attachYjs(channel);
+      attachYjsImpl(channel);
     } else {
-      detachYjs();
+      detachYjsImpl();
     }
-  }, [enableDocSync, attachYjs, detachYjs]);
+  }, [enableDocSync, attachYjsImpl, detachYjsImpl]);
 
   return {
     doc,
