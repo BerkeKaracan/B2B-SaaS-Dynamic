@@ -12,7 +12,11 @@ function getLocalConnectSrc(): string {
   if (process.env.VERCEL === '1' || process.env.CSP_STRICT === 'true') {
     return '';
   }
-  return ' http://localhost:* http://127.0.0.1:*';
+  // http for BFF/API; ws for canvas live cursors → backend :8000
+  return (
+    ' http://localhost:* http://127.0.0.1:*' +
+    ' ws://localhost:* ws://127.0.0.1:*'
+  );
 }
 
 function buildContentSecurityPolicy(): string {
