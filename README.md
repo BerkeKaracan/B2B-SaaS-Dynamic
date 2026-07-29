@@ -31,7 +31,7 @@ The system is decoupled into a Next.js frontend and a FastAPI backend gateway to
 
 - **Custom WebSocket Hub:** Live cursors (+ optional Yjs co-edit) go through FastAPI `/ws/canvas/{room_id}` (in-memory room hub).
 - **Architectural Pivot:** Supabase Presence was tried for cursors, then replaced after unstable `CLOSED` / channel races.
-- **CRDT Synchronization:** Yjs over the same WebSocket. Local Docker can force sync with `NEXT_PUBLIC_COLLAB_DOC_SYNC=true`; Pulse flag `collab.canvas_sync` remains the prod kill-switch.
+- **CRDT Synchronization:** Yjs over the same WebSocket whenever LIVE is on. Kill Yjs only (cursors stay): `NEXT_PUBLIC_COLLAB_DOC_SYNC=false`.
 
 ### 3. Database Design
 
