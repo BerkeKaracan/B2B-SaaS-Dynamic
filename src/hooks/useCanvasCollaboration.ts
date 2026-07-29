@@ -2,15 +2,8 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import * as Y from 'yjs';
-import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/supabase';
-import { getCanvasCollabClient } from '@/lib/realtimeClient';
-import {
-  decodeYUpdateFromBroadcast,
-  encodeYUpdateForBroadcast,
-  uint8ToBase64,
-  base64ToUint8,
-} from '@/lib/canvasCollabCodec';
+import { fetchRealtimeAccessToken } from '@/lib/authCookies';
+import { getCanvasCollabWsUrl } from '@/lib/collabWsUrl';
 
 export type CursorState = {
   user: string;
@@ -19,7 +12,10 @@ export type CursorState = {
 };
 
 export type CanvasCollaborationOptions = {
-  /** When false (default): presence + cursors only — no Yjs Realtime storm. */
+  /**
+   * Reserved for future CRDT sync over the same WS.
+   * Currently cursors-only — enableDocSync does not open a Realtime storm.
+   */
   enableDocSync?: boolean;
 };
 
@@ -30,80 +26,32 @@ export type CollabConnectionStatus =
   | 'error'
   | 'no-token';
 
-const Y_ORIGIN_REMOTE = 'remote';
-const OUTBOUND_COALESCE_MS = 80;
-const SUBSCRIBE_WATCHDOG_MS = 12000;
+const OUTBOUND_CURSOR_MIN_MS = 50;
+const RECONNECT_MS = 900;
+const MAX_RECONNECT = 8;
 
 /**
- * Serialize join/leave for a topic so React Strict Mode
- * (unmount removeChannel → remount channel) cannot race and kill the new join.
+ * Live cursors via our FastAPI WebSocket hub — not Supabase Realtime.
+ * Avoids CHANNEL_ERROR / CLOSED races from supabase-js presence.
  */
-const topicChains = new Map<string, Promise<unknown>>();
-
-function enqueueTopicTask<T>(topic: string, task: () => Promise<T>): Promise<T> {
-  const prev = topicChains.get(topic) ?? Promise.resolve();
-  const next = prev.then(task, task);
-  topicChains.set(
-    topic,
-    next.then(
-      () => undefined,
-      () => undefined
-    )
-  );
-  return next;
-}
-
-function channelMatchesTopic(ch: RealtimeChannel, topic: string): boolean {
-  const name = (ch as RealtimeChannel & { topic?: string }).topic || '';
-  return (
-    name === topic ||
-    name === `realtime:${topic}` ||
-    name.endsWith(`:${topic}`)
-  );
-}
-
-async function removeTopicChannels(
-  client: SupabaseClient<Database>,
-  topic: string,
-  except?: RealtimeChannel | null
-): Promise<void> {
-  const existing = client.getChannels().filter((ch) => channelMatchesTopic(ch, topic));
-  for (const ch of existing) {
-    if (except && ch === except) continue;
-    try {
-      await client.removeChannel(ch);
-    } catch {
-      /* ignore */
-    }
-  }
-}
-
 export function useCanvasCollaboration(
   roomId: string,
   user: { name: string; color: string },
-  options: CanvasCollaborationOptions = {}
+  _options: CanvasCollaborationOptions = {}
 ) {
-  const enableDocSync = Boolean(options.enableDocSync);
-  const [doc, setDoc] = useState<Y.Doc | null>(null);
+  const [doc] = useState<Y.Doc | null>(null);
   const [isSynced, setIsSynced] = useState(false);
   const [cursors, setCursors] = useState<Record<string, CursorState>>({});
   const [connectionStatus, setConnectionStatus] =
     useState<CollabConnectionStatus>('idle');
   const selfKey = `client-${useId().replace(/:/g, '')}`;
 
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const readyRef = useRef(false);
-  const ydocRef = useRef<Y.Doc | null>(null);
-  const enableDocSyncRef = useRef(enableDocSync);
   const userRef = useRef(user);
   const selfKeyRef = useRef(selfKey);
-  const pendingUpdatesRef = useRef<Uint8Array[]>([]);
-  const coalesceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const yBoundRef = useRef(false);
+  const lastCursorSentRef = useRef(0);
 
-  useEffect(() => {
-    enableDocSyncRef.current = enableDocSync;
-  }, [enableDocSync]);
   useEffect(() => {
     userRef.current = user;
   }, [user]);
@@ -111,345 +59,235 @@ export function useCanvasCollaboration(
     selfKeyRef.current = selfKey;
   }, [selfKey]);
 
-  const flushOutbound = useCallback(() => {
-    coalesceTimerRef.current = null;
-    const channel = channelRef.current;
-    const ydoc = ydocRef.current;
-    const pending = pendingUpdatesRef.current;
-    if (!channel || !ydoc || !readyRef.current || pending.length === 0) return;
-
-    const merged =
-      pending.length === 1 ? pending[0] : Y.mergeUpdates(pending);
-    pendingUpdatesRef.current = [];
-
-    const encoded = encodeYUpdateForBroadcast(merged);
-    if (!encoded.ok) {
-      if (encoded.reason === 'too_large') {
-        console.warn(
-          '[collab] dropped oversized y-update',
-          encoded.byteLength
-        );
-      }
-      return;
-    }
-
-    void channel.send({
-      type: 'broadcast',
-      event: 'y-update',
-      payload: {
-        from: selfKeyRef.current,
-        update: encoded.base64,
-      },
-    });
-  }, []);
-
-  const onLocalYUpdate = useCallback(
-    (update: Uint8Array, origin: unknown) => {
-      if (origin === Y_ORIGIN_REMOTE) return;
-      pendingUpdatesRef.current.push(update);
-      if (coalesceTimerRef.current == null) {
-        coalesceTimerRef.current = setTimeout(
-          flushOutbound,
-          OUTBOUND_COALESCE_MS
-        );
-      }
-    },
-    [flushOutbound]
-  );
-
-  const detachYjsImpl = useCallback(() => {
-    const ydoc = ydocRef.current;
-    if (ydoc && yBoundRef.current) {
-      ydoc.off('update', onLocalYUpdate);
-      yBoundRef.current = false;
-    }
-    if (coalesceTimerRef.current != null) {
-      clearTimeout(coalesceTimerRef.current);
-      coalesceTimerRef.current = null;
-    }
-    pendingUpdatesRef.current = [];
-    if (ydoc) {
-      ydoc.destroy();
-      ydocRef.current = null;
-    }
-    queueMicrotask(() => setDoc(null));
-  }, [onLocalYUpdate]);
-
-  const attachYjsImpl = useCallback(
-    (channel: RealtimeChannel) => {
-      if (ydocRef.current) return;
-      const ydoc = new Y.Doc();
-      ydocRef.current = ydoc;
-      ydoc.on('update', onLocalYUpdate);
-      yBoundRef.current = true;
-      queueMicrotask(() => setDoc(ydoc));
-
-      if (readyRef.current) {
-        void channel.send({
-          type: 'broadcast',
-          event: 'y-sync-request',
-          payload: {
-            from: selfKeyRef.current,
-            stateVector: uint8ToBase64(Y.encodeStateVector(ydoc)),
-          },
-        });
-      }
-    },
-    [onLocalYUpdate]
-  );
-
-  const attachYjsRef = useRef(attachYjsImpl);
-  const detachYjsRef = useRef(detachYjsImpl);
-  useEffect(() => {
-    attachYjsRef.current = attachYjsImpl;
-  }, [attachYjsImpl]);
-  useEffect(() => {
-    detachYjsRef.current = detachYjsImpl;
-  }, [detachYjsImpl]);
-
   const publishCursor = useCallback(
     (cursor: { x: number; y: number } | null) => {
-      const channel = channelRef.current;
-      if (!channel || !readyRef.current) return;
-      const u = userRef.current;
-      void channel.track({
-        user: u.name,
-        color: u.color,
-        cursor,
-      });
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN || !readyRef.current) return;
+      const now = Date.now();
+      if (now - lastCursorSentRef.current < OUTBOUND_CURSOR_MIN_MS) return;
+      lastCursorSentRef.current = now;
+      try {
+        ws.send(JSON.stringify({ type: 'cursor', cursor }));
+      } catch {
+        /* ignore */
+      }
     },
     []
   );
 
-  // Connect only when room changes. Anon public Realtime — no JWT.
   useEffect(() => {
     if (!roomId || roomId === 'default-room') {
       return;
     }
 
-    const client = getCanvasCollabClient();
-    if (!client) {
+    const wsUrl = getCanvasCollabWsUrl(roomId);
+    if (!wsUrl) {
       queueMicrotask(() => setConnectionStatus('error'));
       return;
     }
 
     let cancelled = false;
-    let channel: RealtimeChannel | null = null;
-    let subscribed = false;
-    let watchdogTimer: ReturnType<typeof setTimeout> | null = null;
-    let rejoinTimer: ReturnType<typeof setTimeout> | null = null;
-    let joinAttempt = 0;
+    let ws: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempt = 0;
+    let openedOnce = false;
 
-    const topic = `canvas:${roomId}`;
-
-    const clearWatchdog = () => {
-      if (watchdogTimer != null) {
-        clearTimeout(watchdogTimer);
-        watchdogTimer = null;
+    const clearReconnect = () => {
+      if (reconnectTimer != null) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
       }
     };
 
-    const markConnecting = () => {
-      queueMicrotask(() => {
-        if (!cancelled) setConnectionStatus('connecting');
-      });
-    };
-
-    const markSubscribed = () => {
-      queueMicrotask(() => {
-        if (cancelled) return;
-        setIsSynced(true);
-        setConnectionStatus('subscribed');
-      });
-    };
-
-    const markError = () => {
-      queueMicrotask(() => {
-        if (!cancelled) setConnectionStatus('error');
-      });
-    };
-
-    const syncCursorsFromPresence = (ch: RealtimeChannel) => {
-      if (cancelled) return;
-      const key = selfKeyRef.current;
-      const state = ch.presenceState();
+    const applyPeers = (
+      peers: Array<{
+        selfKey?: string;
+        user?: string;
+        color?: string;
+        cursor?: { x: number; y: number } | null;
+      }>
+    ) => {
       const next: Record<string, CursorState> = {};
-      for (const presenceKey of Object.keys(state)) {
-        if (presenceKey === key) continue;
-        const row = state[presenceKey]?.[0] as unknown as
-          | (CursorState & { user?: string; color?: string })
-          | undefined;
-        if (!row) continue;
-        next[presenceKey] = {
-          user: row.user || presenceKey,
-          color: row.color || '#6366f1',
-          cursor: row.cursor ?? null,
+      for (const p of peers) {
+        if (!p?.selfKey || p.selfKey === selfKeyRef.current) continue;
+        next[p.selfKey] = {
+          user: p.user || p.selfKey,
+          color: p.color || '#6366f1',
+          cursor: p.cursor ?? null,
         };
       }
       setCursors(next);
     };
 
-    const join = () =>
-      enqueueTopicTask(topic, async () => {
-        if (cancelled) return;
-        joinAttempt += 1;
-        subscribed = false;
-        readyRef.current = false;
-        markConnecting();
-
-        // Ensure previous Strict Mode channel is fully gone before joining
-        await removeTopicChannels(client, topic);
-        if (cancelled) return;
-
-        const ch = client.channel(topic, {
-          config: {
-            broadcast: { self: false, ack: false },
-            presence: { key: selfKeyRef.current },
-          },
-        });
-        channel = ch;
-        channelRef.current = ch;
-
-        ch.on('broadcast', { event: 'y-update' }, ({ payload }) => {
-          const ydoc = ydocRef.current;
-          if (!payload || payload.from === selfKeyRef.current || !ydoc) return;
-          const bytes = decodeYUpdateFromBroadcast(payload.update);
-          if (!bytes) return;
-          Y.applyUpdate(ydoc, bytes, Y_ORIGIN_REMOTE);
-        });
-
-        ch.on('broadcast', { event: 'y-sync-request' }, ({ payload }) => {
-          const ydoc = ydocRef.current;
-          if (!payload || payload.from === selfKeyRef.current || !ydoc) return;
-          let stateVector: Uint8Array | undefined;
-          if (typeof payload.stateVector === 'string') {
-            try {
-              stateVector = base64ToUint8(payload.stateVector);
-            } catch {
-              stateVector = undefined;
-            }
-          }
-          const update = Y.encodeStateAsUpdate(ydoc, stateVector);
-          const encoded = encodeYUpdateForBroadcast(update);
-          if (!encoded.ok) {
-            console.warn(
-              '[collab] skipped y-sync-response (too large)',
-              encoded.byteLength
-            );
-            return;
-          }
-          void ch.send({
-            type: 'broadcast',
-            event: 'y-update',
-            payload: {
-              from: selfKeyRef.current,
-              update: encoded.base64,
-            },
-          });
-        });
-
-        ch.on('presence', { event: 'sync' }, () => syncCursorsFromPresence(ch));
-        ch.on('presence', { event: 'join' }, () => syncCursorsFromPresence(ch));
-        ch.on('presence', { event: 'leave' }, () => syncCursorsFromPresence(ch));
-
-        clearWatchdog();
-        watchdogTimer = setTimeout(() => {
-          watchdogTimer = null;
-          if (cancelled || subscribed) return;
-          readyRef.current = false;
-          markError();
-          console.warn('[collab] subscribe timed out', { topic, joinAttempt });
-        }, SUBSCRIBE_WATCHDOG_MS);
-
-        await new Promise<void>((resolve) => {
-          let settled = false;
-          const done = () => {
-            if (settled) return;
-            settled = true;
-            resolve();
-          };
-
-          ch.subscribe((status, err) => {
-            if (cancelled) {
-              done();
-              return;
-            }
-
-            if (status === 'SUBSCRIBED') {
-              clearWatchdog();
-              subscribed = true;
-              readyRef.current = true;
-              markSubscribed();
-
-              const u = userRef.current;
-              void ch.track({
-                user: u.name,
-                color: u.color,
-                cursor: null,
-              });
-
-              if (enableDocSyncRef.current) {
-                attachYjsRef.current(ch);
-              }
-              done();
-              return;
-            }
-
-            if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-              clearWatchdog();
-              readyRef.current = false;
-              markError();
-              console.warn(
-                '[collab] channel',
-                status,
-                err?.message ?? err ?? ''
-              );
-              done();
-              return;
-            }
-
-            // Unexpected CLOSED after we were live — one automatic rejoin
-            if (status === 'CLOSED' && subscribed) {
-              clearWatchdog();
-              subscribed = false;
-              readyRef.current = false;
-              console.warn('[collab] channel CLOSED unexpectedly — rejoining');
-              done();
-              if (!cancelled && joinAttempt < 3) {
-                rejoinTimer = setTimeout(() => {
-                  rejoinTimer = null;
-                  if (!cancelled) void join();
-                }, 350);
-              } else {
-                markError();
-              }
-            }
-          });
-        });
+    const connect = async () => {
+      if (cancelled) return;
+      queueMicrotask(() => {
+        if (!cancelled) setConnectionStatus('connecting');
       });
 
-    void join();
+      const token = await fetchRealtimeAccessToken();
+      if (cancelled) return;
+      if (!token) {
+        queueMicrotask(() => {
+          if (!cancelled) setConnectionStatus('no-token');
+        });
+        return;
+      }
+
+      try {
+        ws = new WebSocket(wsUrl);
+      } catch (err) {
+        console.warn('[collab] ws construct failed', err);
+        queueMicrotask(() => {
+          if (!cancelled) setConnectionStatus('error');
+        });
+        return;
+      }
+
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        if (cancelled || !ws) return;
+        const u = userRef.current;
+        ws.send(
+          JSON.stringify({
+            type: 'auth',
+            token,
+            selfKey: selfKeyRef.current,
+            user: u.name,
+            color: u.color,
+          })
+        );
+      };
+
+      ws.onmessage = (event) => {
+        if (cancelled) return;
+        let msg: Record<string, unknown>;
+        try {
+          msg = JSON.parse(String(event.data)) as Record<string, unknown>;
+        } catch {
+          return;
+        }
+
+        const type = msg.type;
+        if (type === 'ready') {
+          openedOnce = true;
+          attempt = 0;
+          readyRef.current = true;
+          applyPeers(
+            Array.isArray(msg.peers)
+              ? (msg.peers as Array<{
+                  selfKey?: string;
+                  user?: string;
+                  color?: string;
+                  cursor?: { x: number; y: number } | null;
+                }>)
+              : []
+          );
+          queueMicrotask(() => {
+            if (cancelled) return;
+            setIsSynced(true);
+            setConnectionStatus('subscribed');
+          });
+          return;
+        }
+
+        if (type === 'cursor' || type === 'join') {
+          const key = typeof msg.selfKey === 'string' ? msg.selfKey : '';
+          if (!key || key === selfKeyRef.current) return;
+          setCursors((prev) => ({
+            ...prev,
+            [key]: {
+              user:
+                (typeof msg.user === 'string' && msg.user) ||
+                prev[key]?.user ||
+                key,
+              color:
+                (typeof msg.color === 'string' && msg.color) ||
+                prev[key]?.color ||
+                '#6366f1',
+              cursor:
+                msg.cursor &&
+                typeof msg.cursor === 'object' &&
+                msg.cursor !== null &&
+                'x' in (msg.cursor as object) &&
+                'y' in (msg.cursor as object)
+                  ? {
+                      x: Number((msg.cursor as { x: number }).x),
+                      y: Number((msg.cursor as { y: number }).y),
+                    }
+                  : null,
+            },
+          }));
+          return;
+        }
+
+        if (type === 'leave') {
+          const key = typeof msg.selfKey === 'string' ? msg.selfKey : '';
+          if (!key) return;
+          setCursors((prev) => {
+            if (!(key in prev)) return prev;
+            const next = { ...prev };
+            delete next[key];
+            return next;
+          });
+          return;
+        }
+
+        if (type === 'error') {
+          console.warn('[collab] server error', msg.reason);
+          queueMicrotask(() => {
+            if (!cancelled) setConnectionStatus('error');
+          });
+        }
+      };
+
+      ws.onerror = () => {
+        /* onclose handles status */
+      };
+
+      ws.onclose = () => {
+        readyRef.current = false;
+        if (wsRef.current === ws) wsRef.current = null;
+        if (cancelled) return;
+
+        if (attempt < MAX_RECONNECT) {
+          attempt += 1;
+          queueMicrotask(() => {
+            if (!cancelled) setConnectionStatus('connecting');
+          });
+          clearReconnect();
+          reconnectTimer = setTimeout(() => {
+            reconnectTimer = null;
+            if (!cancelled) void connect();
+          }, RECONNECT_MS * Math.min(attempt, 4));
+          if (openedOnce) {
+            console.warn('[collab] ws closed — reconnecting', attempt);
+          }
+        } else {
+          queueMicrotask(() => {
+            if (!cancelled) setConnectionStatus('error');
+          });
+          console.warn('[collab] ws give up after reconnects');
+        }
+      };
+    };
+
+    void connect();
 
     return () => {
       cancelled = true;
-      clearWatchdog();
-      if (rejoinTimer != null) {
-        clearTimeout(rejoinTimer);
-        rejoinTimer = null;
-      }
+      clearReconnect();
       readyRef.current = false;
-      detachYjsRef.current();
-      channelRef.current = null;
-      const ch = channel;
-      void enqueueTopicTask(topic, async () => {
-        if (ch) {
-          try {
-            await client.removeChannel(ch);
-          } catch {
-            /* ignore */
-          }
+      const socket = ws;
+      wsRef.current = null;
+      if (socket && socket.readyState <= WebSocket.OPEN) {
+        try {
+          socket.close(1000, 'unmount');
+        } catch {
+          /* ignore */
         }
-      });
+      }
       queueMicrotask(() => {
         setIsSynced(false);
         setCursors({});
@@ -457,17 +295,6 @@ export function useCanvasCollaboration(
       });
     };
   }, [roomId]);
-
-  useEffect(() => {
-    const channel = channelRef.current;
-    if (!readyRef.current || !channel) return;
-
-    if (enableDocSync) {
-      attachYjsImpl(channel);
-    } else {
-      detachYjsImpl();
-    }
-  }, [enableDocSync, attachYjsImpl, detachYjsImpl]);
 
   return {
     doc,

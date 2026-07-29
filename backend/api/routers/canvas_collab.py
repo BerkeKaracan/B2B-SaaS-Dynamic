@@ -1,0 +1,215 @@
+"""Ephemeral canvas live-cursor rooms over WebSocket (no Supabase Realtime)."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+from dataclasses import dataclass, field
+from typing import Any
+
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import status as http_status
+
+from core.auth_jwt import verify_access_token
+
+logger = logging.getLogger("saas_engine.canvas_ws")
+
+router = APIRouter(tags=["canvas-collab"])
+
+AUTH_TIMEOUT_SEC = 8.0
+MAX_ROOMS = 500
+MAX_CLIENTS_PER_ROOM = 40
+
+
+@dataclass
+class Peer:
+    ws: WebSocket
+    self_key: str
+    user: str
+    color: str
+    cursor: dict[str, float] | None = None
+
+
+@dataclass
+class Room:
+    peers: dict[str, Peer] = field(default_factory=dict)
+
+
+class CanvasHub:
+    def __init__(self) -> None:
+        self._rooms: dict[str, Room] = {}
+        self._lock = asyncio.Lock()
+
+    async def join(self, room_id: str, peer: Peer) -> list[dict[str, Any]]:
+        async with self._lock:
+            if room_id not in self._rooms and len(self._rooms) >= MAX_ROOMS:
+                raise RuntimeError("too_many_rooms")
+            room = self._rooms.setdefault(room_id, Room())
+            if len(room.peers) >= MAX_CLIENTS_PER_ROOM:
+                raise RuntimeError("room_full")
+            # Replace same self_key (refresh / Strict Mode remount)
+            room.peers[peer.self_key] = peer
+            return [
+                {
+                    "selfKey": p.self_key,
+                    "user": p.user,
+                    "color": p.color,
+                    "cursor": p.cursor,
+                }
+                for k, p in room.peers.items()
+                if k != peer.self_key
+            ]
+
+    async def leave(self, room_id: str, self_key: str) -> None:
+        async with self._lock:
+            room = self._rooms.get(room_id)
+            if not room:
+                return
+            room.peers.pop(self_key, None)
+            if not room.peers:
+                self._rooms.pop(room_id, None)
+
+    async def update_cursor(
+        self, room_id: str, self_key: str, cursor: dict[str, float] | None
+    ) -> None:
+        async with self._lock:
+            room = self._rooms.get(room_id)
+            peer = room.peers.get(self_key) if room else None
+            if peer:
+                peer.cursor = cursor
+
+    async def broadcast(
+        self,
+        room_id: str,
+        message: dict[str, Any],
+        *,
+        exclude: str | None = None,
+    ) -> None:
+        async with self._lock:
+            room = self._rooms.get(room_id)
+            peers = list(room.peers.values()) if room else []
+
+        dead: list[str] = []
+        for peer in peers:
+            if exclude and peer.self_key == exclude:
+                continue
+            try:
+                await peer.ws.send_json(message)
+            except Exception:
+                dead.append(peer.self_key)
+
+        for key in dead:
+            await self.leave(room_id, key)
+
+
+hub = CanvasHub()
+
+
+def _safe_str(value: Any, *, max_len: int = 80) -> str:
+    if not isinstance(value, str):
+        return ""
+    return value.strip()[:max_len]
+
+
+@router.websocket("/ws/canvas/{room_id}")
+async def canvas_collab_ws(websocket: WebSocket, room_id: str):
+    room_id = (room_id or "").strip()[:120]
+    if not room_id or room_id == "default-room":
+        await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
+        return
+
+    await websocket.accept()
+
+    self_key = ""
+    try:
+        raw = await asyncio.wait_for(websocket.receive_text(), timeout=AUTH_TIMEOUT_SEC)
+        msg = json.loads(raw)
+        if not isinstance(msg, dict) or msg.get("type") != "auth":
+            await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
+            return
+
+        token = _safe_str(msg.get("token"), max_len=4096)
+        self_key = _safe_str(msg.get("selfKey"), max_len=64)
+        user = _safe_str(msg.get("user"), max_len=64) or "User"
+        color = _safe_str(msg.get("color"), max_len=32) or "#6366f1"
+        if not token or not self_key:
+            await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
+            return
+
+        try:
+            verify_access_token(token)
+        except Exception:
+            await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
+            return
+
+        peer = Peer(ws=websocket, self_key=self_key, user=user, color=color)
+        try:
+            others = await hub.join(room_id, peer)
+        except RuntimeError as exc:
+            await websocket.send_json({"type": "error", "reason": str(exc)})
+            await websocket.close(code=http_status.WS_1013_TRY_AGAIN_LATER)
+            return
+
+        await websocket.send_json({"type": "ready", "peers": others})
+        await hub.broadcast(
+            room_id,
+            {
+                "type": "join",
+                "selfKey": self_key,
+                "user": user,
+                "color": color,
+                "cursor": None,
+            },
+            exclude=self_key,
+        )
+
+        while True:
+            payload = await websocket.receive_json()
+            if not isinstance(payload, dict):
+                continue
+            kind = payload.get("type")
+
+            if kind == "cursor":
+                cursor_raw = payload.get("cursor")
+                cursor: dict[str, float] | None = None
+                if isinstance(cursor_raw, dict):
+                    try:
+                        x = float(cursor_raw.get("x"))
+                        y = float(cursor_raw.get("y"))
+                        if abs(x) < 1_000_000 and abs(y) < 1_000_000:
+                            cursor = {"x": x, "y": y}
+                    except (TypeError, ValueError):
+                        cursor = None
+                await hub.update_cursor(room_id, self_key, cursor)
+                await hub.broadcast(
+                    room_id,
+                    {
+                        "type": "cursor",
+                        "selfKey": self_key,
+                        "user": user,
+                        "color": color,
+                        "cursor": cursor,
+                    },
+                    exclude=self_key,
+                )
+            elif kind == "ping":
+                await websocket.send_json({"type": "pong"})
+
+    except WebSocketDisconnect:
+        pass
+    except asyncio.TimeoutError:
+        try:
+            await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
+        except Exception:
+            pass
+    except Exception:
+        logger.exception("canvas ws error room=%s", room_id)
+    finally:
+        if self_key:
+            await hub.leave(room_id, self_key)
+            await hub.broadcast(
+                room_id,
+                {"type": "leave", "selfKey": self_key},
+                exclude=self_key,
+            )
