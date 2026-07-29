@@ -139,9 +139,16 @@ async def canvas_collab_ws(websocket: WebSocket, room_id: str):
 
         try:
             verify_access_token(token)
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "canvas ws auth failed room=%s err=%s",
+                room_id,
+                type(exc).__name__,
+            )
             await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
             return
+
+        logger.info("canvas ws authenticated room=%s peer=%s", room_id, self_key)
 
         peer = Peer(ws=websocket, self_key=self_key, user=user, color=color)
         try:
@@ -190,6 +197,37 @@ async def canvas_collab_ws(websocket: WebSocket, room_id: str):
                         "user": user,
                         "color": color,
                         "cursor": cursor,
+                    },
+                    exclude=self_key,
+                )
+            elif kind == "y-update":
+                # Relay CRDT bytes to peers (size-capped)
+                update = payload.get("update")
+                from_key = _safe_str(payload.get("from"), max_len=64) or self_key
+                if not isinstance(update, str) or len(update) > 600_000:
+                    continue
+                await hub.broadcast(
+                    room_id,
+                    {
+                        "type": "y-update",
+                        "from": from_key,
+                        "update": update,
+                    },
+                    exclude=self_key,
+                )
+            elif kind == "y-sync-request":
+                state_vector = payload.get("stateVector")
+                from_key = _safe_str(payload.get("from"), max_len=64) or self_key
+                if state_vector is not None and not isinstance(state_vector, str):
+                    continue
+                if isinstance(state_vector, str) and len(state_vector) > 50_000:
+                    continue
+                await hub.broadcast(
+                    room_id,
+                    {
+                        "type": "y-sync-request",
+                        "from": from_key,
+                        "stateVector": state_vector,
                     },
                     exclude=self_key,
                 )

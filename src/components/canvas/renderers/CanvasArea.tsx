@@ -99,10 +99,14 @@ export default function CanvasArea() {
   const [hasLoadedPos, setHasLoadedPos] = useState(false);
 
   const authUser = useAuthStore((s) => s.user);
-  const { enabled: canvasSyncEnabled } = useFeatureFlag(
+  const { enabled: canvasSyncFlag } = useFeatureFlag(
     COLLAB_CANVAS_SYNC,
     tenantId
   );
+  // Local Docker: NEXT_PUBLIC_COLLAB_DOC_SYNC=true enables co-edit without Pulse
+  const canvasSyncEnabled =
+    canvasSyncFlag ||
+    process.env.NEXT_PUBLIC_COLLAB_DOC_SYNC === 'true';
 
   const pages = useCanvasStore((s) => s.pages) as PageWithSettings[];
   const connections = useCanvasStore((s) => s.connections);
