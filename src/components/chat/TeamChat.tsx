@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { fetchAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Loader2, Send } from 'lucide-react';
-import { getSharedRealtimeClient } from '@/lib/realtimeClient';
+import { getSharedRealtimeClient, peekSharedRealtimeClient } from '@/lib/realtimeClient';
 
 interface TeamMessage {
   id: string;
@@ -83,14 +83,14 @@ export default function TeamChat({ tenantId }: { tenantId: string }) {
 
     return () => {
       cancelled = true;
-      void (async () => {
-        const client = await getSharedRealtimeClient();
-        if (client && channel) {
-          client.removeChannel(
+      const client = peekSharedRealtimeClient();
+      if (client && channel) {
+        void client
+          .removeChannel(
             channel as Parameters<typeof client.removeChannel>[0]
-          );
-        }
-      })();
+          )
+          .catch(() => undefined);
+      }
     };
   }, [tenantId]);
 

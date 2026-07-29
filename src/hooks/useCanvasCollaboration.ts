@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import * as Y from 'yjs';
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
-import { getSharedRealtimeClient } from '@/lib/realtimeClient';
+import { getSharedRealtimeClient, peekSharedRealtimeClient } from '@/lib/realtimeClient';
 import {
   decodeYUpdateFromBroadcast,
   encodeYUpdateForBroadcast,
@@ -319,6 +319,7 @@ export function useCanvasCollaboration(
 
       channel = client.channel(topic, {
         config: {
+          private: false,
           broadcast: { self: false, ack: false },
           presence: { key: selfKeyRef.current },
         },
@@ -450,19 +451,14 @@ export function useCanvasCollaboration(
       detachYjsRef.current();
       const ch = channel;
       channelRef.current = null;
-      void (async () => {
-        const client = await getSharedRealtimeClient();
-        if (client && ch) {
-          try {
-            await client.removeChannel(ch);
-          } catch {
-            /* ignore */
-          }
-        }
-        setIsSynced(false);
-        setCursors({});
-        setConnectionStatus('idle');
-      })();
+      // Peek only — never re-fetch token / setAuth during cleanup (kills sockets)
+      const client = peekSharedRealtimeClient();
+      if (client && ch) {
+        void client.removeChannel(ch).catch(() => undefined);
+      }
+      setIsSynced(false);
+      setCursors({});
+      setConnectionStatus('idle');
     };
   }, [roomId]);
 

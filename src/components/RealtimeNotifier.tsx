@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { getSharedRealtimeClient } from '@/lib/realtimeClient';
+import { getSharedRealtimeClient, peekSharedRealtimeClient } from '@/lib/realtimeClient';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface NotificationPayload {
@@ -63,12 +63,10 @@ export default function RealtimeNotifier({ userEmail }: { userEmail: string }) {
 
     return () => {
       cancelled = true;
-      void (async () => {
-        const client = await getSharedRealtimeClient();
-        if (client && channel) {
-          client.removeChannel(channel);
-        }
-      })();
+      const client = peekSharedRealtimeClient();
+      if (client && channel) {
+        void client.removeChannel(channel).catch(() => undefined);
+      }
     };
   }, [userEmail]);
 
