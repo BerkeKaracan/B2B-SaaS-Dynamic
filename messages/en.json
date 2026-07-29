@@ -5,18 +5,18 @@
   "LandingPage": {
     "nav": {
       "platform": "Platform",
-      "coreCapabilities": "Core Capabilities",
-      "spatialCanvas": "Spatial Canvas Engine",
-      "spatialCanvasDesc": "Infinite vector grids for dynamic block orchestration and infinite workflow mapping.",
-      "realTimeSync": "Real-Time Sync (JSONB)",
-      "realTimeSyncDesc": "Zero-latency background data streaming utilizing advanced PostgreSQL primitives.",
-      "securityData": "Security & Data",
-      "enterpriseRbac": "Enterprise RBAC",
-      "enterpriseRbacDesc": "Granular Row-Level Security.",
-      "cloudStorage": "Cloud Storage",
-      "cloudStorageDesc": "Protected Supabase buckets.",
+      "coreCapabilities": "Core capabilities",
+      "spatialCanvas": "Infinite canvas",
+      "spatialCanvasDesc": "Blank spatial workspace plus board frames — blocks, links, and templates on one plane.",
+      "realTimeSync": "Live collaboration",
+      "realTimeSyncDesc": "Live cursors and Yjs co-edit over FastAPI WebSockets — not Presence storms.",
+      "securityData": "Security & access",
+      "enterpriseRbac": "Security & RBAC",
+      "enterpriseRbacDesc": "HttpOnly session, Next BFF, tenant ACL — RLS as defense-in-depth.",
+      "cloudStorage": "Boards & assets",
+      "cloudStorageDesc": "Kanban, docs, timelines, and protected uploads tied to the workspace.",
       "solutions": "Solutions",
-      "industryUseCases": "Industry Use Cases",
+      "industryUseCases": "Industry use cases",
       "engineeringProduct": "Engineering & Product",
       "engineeringProductDesc": "Sprint planning & bug tracking.",
       "humanResources": "Human Resources",
@@ -25,20 +25,37 @@
       "salesCrmDesc": "Deal pipelines & conversion grids.",
       "strategyOps": "Strategy & Ops",
       "strategyOpsDesc": "OKRs and executive timelines.",
-      "developers": "Developers",
+      "resources": "Resources",
+      "company": "Company",
       "documentation": "Documentation",
       "changelog": "Changelog",
+      "features": "Features",
+      "templates": "Templates",
+      "integrations": "Integrations",
+      "templateHub": "Template hub",
+      "about": "About",
+      "careers": "Careers",
+      "blog": "Blog",
+      "contact": "Contact",
+      "community": "Community",
       "new": "New",
-      "communityHub": "Community Hub",
       "pricing": "Pricing",
       "signIn": "Sign In",
       "deployWorkspace": "Deploy Workspace",
       "exploreDocs": "Explore documentation",
-      "exploreDocsDesc": "Architecture, APIs, and canvas guides.",
-      "viewAllSolutions": "Browse all solutions",
-      "docsDesc": "Guides, references, and SDK notes.",
-      "changelogDesc": "What shipped recently.",
-      "hubDesc": "Live public frameworks to explore.",
+      "exploreDocsDesc": "Architecture notes for the current stack.",
+      "browseTemplates": "Browse board templates",
+      "docsDesc": "How WORKSPACE OS is wired today.",
+      "changelogDesc": "What shipped in recent releases.",
+      "featuresDesc": "Canvas, AI, RBAC, and workspace surfaces.",
+      "templatesDesc": "Kanban, notepad, whiteboard, and more.",
+      "integrationsDesc": "How WORKSPACE OS connects to your tools.",
+      "hubDesc": "Public templates you can open and explore.",
+      "aboutDesc": "Why this portfolio product exists.",
+      "careersDesc": "Roles and how we build.",
+      "blogDesc": "Notes from the build log.",
+      "contactDesc": "Reach the author.",
+      "communityDesc": "Shared feedback and demos.",
       "featured": "Featured",
       "open": "Open",
       "livePreview": "Live preview",
@@ -199,18 +216,18 @@
       "button": "Start free"
     },
     "canvas": {
-      "badge": "Spatial Canvas",
+      "badge": "Infinite canvas",
       "title": "An infinite canvas built for real company work.",
-      "subtitle": "Orchestrate blocks, workflows, and living documents on a vector grid — not another linear doc.",
-      "body": "Spatial Canvas replaces rigid pages with a freeform workspace. Drop text, databases, kanban, timelines, and assets onto one surface, then connect them so context stays visible while teams move.",
+      "subtitle": "Orchestrate blocks, board frames, and living documents on a spatial plane — not another linear doc.",
+      "body": "Infinite canvas replaces rigid pages with a freeform workspace. Drop text, databases, kanban, timelines, and assets onto one surface, then connect them so context stays visible while teams move.",
       "features": {
         "0": {
           "title": "Dynamic block orchestration",
           "desc": "Compose text, forms, boards, and data blocks on an infinite vector plane."
         },
         "1": {
-          "title": "Visual workflow mapping",
-          "desc": "Link related work so dependencies and ownership stay obvious at a glance."
+          "title": "Board frames inside Blank",
+          "desc": "Embed Kanban, docs, and more as frames — or open them as standalone projects."
         },
         "2": {
           "title": "Project-ready layouts",
@@ -219,62 +236,62 @@
       }
     },
     "sync": {
-      "badge": "Real-Time Sync",
-      "title": "Zero-latency sync on PostgreSQL JSONB.",
-      "subtitle": "Every edit streams in the background so your team always shares one live source of truth.",
-      "body": "Real-Time Sync keeps canvas state durable and shared without blocking the UI. JSONB persistence plus live streaming means structure, content, and presence stay aligned across sessions and devices.",
+      "badge": "Live collaboration",
+      "title": "Cursors and co-edit on the same WebSocket.",
+      "subtitle": "Peers see each other move — and optionally share the same Yjs document — without Presence channel storms.",
+      "body": "Live collaboration rides FastAPI /ws/canvas/{room_id}. Cursors are always light; block and page co-edit uses Yjs over the same socket when LIVE is on. Project JSON still autosaves to PostgreSQL JSONB in the background.",
       "features": {
         "0": {
-          "title": "Background autosave",
-          "desc": "Structural and content changes persist continuously — no manual save rituals."
+          "title": "Live cursors",
+          "desc": "See who is on the Infinite canvas without polling or full-array broadcasts."
         },
         "1": {
-          "title": "Live collaboration stream",
-          "desc": "Teammates see updates as they happen without refresh or merge conflicts."
+          "title": "Yjs co-edit",
+          "desc": "Pages and blocks move together across tabs when doc sync is enabled."
         },
         "2": {
-          "title": "JSONB-native storage",
-          "desc": "Flexible schemas for custom blocks without sacrificing query speed."
+          "title": "Durable JSONB saves",
+          "desc": "Zustand still persists the project document to records — collab does not replace autosave."
         }
       }
     },
     "rbac": {
-      "badge": "Enterprise RBAC",
-      "title": "Granular access down to the row.",
-      "subtitle": "Owners, admins, and members see exactly what their role allows — nothing more.",
-      "body": "Enterprise RBAC pairs workspace roles with project-level permissions and row-level security. Invite people confidently: sensitive modules stay locked while collaborators still move fast where they should.",
+      "badge": "Security & RBAC",
+      "title": "Cookies, BFF, and tenant ACL — not tokens in localStorage.",
+      "subtitle": "HttpOnly session cookies, Next.js proxy auth, and application-level tenant checks. RLS stays as a second fence.",
+      "body": "WORKSPACE OS authenticates through /api/session (HttpOnly cookie). Browser calls hit the Next BFF (/api/backend/*), which attaches JWTs server-side. FastAPI enforces tenant membership and roles; Postgres RLS remains defense-in-depth.",
       "features": {
         "0": {
-          "title": "Role-based workspace control",
-          "desc": "Define who can manage billing, team, settings, and modules."
+          "title": "HttpOnly sessions",
+          "desc": "Access tokens never live in localStorage on the marketing or app surface."
         },
         "1": {
-          "title": "Project-level invites",
-          "desc": "Grant view or edit on specific projects without opening the whole tenant."
+          "title": "BFF proxy",
+          "desc": "Next attaches Authorization before FastAPI — the browser talks same-origin."
         },
         "2": {
-          "title": "Row-level security",
-          "desc": "Database policies enforce boundaries even when the UI is bypassed."
+          "title": "Tenant ACL + RLS",
+          "desc": "App logic gates records and members; database policies backstop isolation."
         }
       }
     },
     "storage": {
-      "badge": "Cloud Storage",
-      "title": "Protected asset buckets for every workspace.",
-      "subtitle": "Store files, previews, and canvas assets in secured cloud storage tied to your tenant.",
-      "body": "Cloud Storage keeps uploads close to the work that needs them. Assets attach to canvas blocks and projects, with bucket isolation and access rules that match your RBAC model.",
+      "badge": "Boards & assets",
+      "title": "Board templates and protected uploads in one workspace.",
+      "subtitle": "Kanban, documents, whiteboards, timelines — plus tenant-scoped file storage when you attach assets.",
+      "body": "Projects can be Infinite blank canvases or dedicated boards. Uploads sit in protected Supabase storage scoped to the tenant, attachable to canvas blocks without a separate asset CMS.",
       "features": {
         "0": {
+          "title": "Board templates",
+          "desc": "Ship Kanban, notepad, whiteboard, timeline, and more as first-class surfaces."
+        },
+        "1": {
           "title": "Tenant-isolated buckets",
           "desc": "Each workspace keeps assets behind its own protected storage boundary."
         },
-        "1": {
+        "2": {
           "title": "Canvas-native attachments",
           "desc": "Drop files onto blocks and keep them discoverable inside the project."
-        },
-        "2": {
-          "title": "Secure delivery",
-          "desc": "Signed access patterns so previews and downloads stay permission-aware."
         }
       }
     }

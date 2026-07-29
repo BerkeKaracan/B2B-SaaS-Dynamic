@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
   Layers,
-  Database,
+  Radio,
   Lock,
   Cloud,
   Users,
@@ -21,12 +21,29 @@ import {
   ChevronDown,
   Sparkles,
   BookOpen,
-  ExternalLink,
+  LayoutGrid,
+  Puzzle,
+  Building2,
+  Newspaper,
+  Mail,
+  HeartHandshake,
+  type LucideIcon,
 } from 'lucide-react';
 import BrandLogo from '@/components/brand/BrandLogo';
 
 const megaPanel =
   'absolute top-[calc(100%+8px)] bg-white/95 backdrop-blur-xl border border-zinc-200/80 shadow-[0_28px_70px_-20px_rgba(24,24,27,0.28)] rounded-3xl opacity-0 scale-[0.98] pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-300 ease-out origin-top z-50 overflow-hidden';
+
+const navTrigger =
+  'text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-2 rounded-xl hover:bg-zinc-100/80 group-hover:bg-zinc-100/80';
+
+type ListLink = {
+  href: string;
+  icon: LucideIcon;
+  titleKey: string;
+  descKey: string;
+  tone: string;
+};
 
 export default function LandingNavbar() {
   const t = useTranslations('LandingPage');
@@ -93,6 +110,144 @@ export default function LandingNavbar() {
     },
   ];
 
+  const resourceLinks: ListLink[] = [
+    {
+      href: '/docs',
+      icon: FileText,
+      titleKey: 'documentation',
+      descKey: 'docsDesc',
+      tone: 'bg-sky-50 border-sky-100 text-sky-600',
+    },
+    {
+      href: '/changelog',
+      icon: Activity,
+      titleKey: 'changelog',
+      descKey: 'changelogDesc',
+      tone: 'bg-amber-50 border-amber-100 text-amber-600',
+    },
+    {
+      href: '/features',
+      icon: Sparkles,
+      titleKey: 'features',
+      descKey: 'featuresDesc',
+      tone: 'bg-violet-50 border-violet-100 text-violet-600',
+    },
+    {
+      href: '/templates',
+      icon: LayoutGrid,
+      titleKey: 'templates',
+      descKey: 'templatesDesc',
+      tone: 'bg-emerald-50 border-emerald-100 text-emerald-600',
+    },
+    {
+      href: '/integrations',
+      icon: Puzzle,
+      titleKey: 'integrations',
+      descKey: 'integrationsDesc',
+      tone: 'bg-teal-50 border-teal-100 text-teal-600',
+    },
+  ];
+
+  const companyLinks: ListLink[] = [
+    {
+      href: '/about',
+      icon: Building2,
+      titleKey: 'about',
+      descKey: 'aboutDesc',
+      tone: 'bg-zinc-100 border-zinc-200 text-zinc-700',
+    },
+    {
+      href: '/careers',
+      icon: Briefcase,
+      titleKey: 'careers',
+      descKey: 'careersDesc',
+      tone: 'bg-sky-50 border-sky-100 text-sky-600',
+    },
+    {
+      href: '/blog',
+      icon: Newspaper,
+      titleKey: 'blog',
+      descKey: 'blogDesc',
+      tone: 'bg-amber-50 border-amber-100 text-amber-600',
+    },
+    {
+      href: '/contact',
+      icon: Mail,
+      titleKey: 'contact',
+      descKey: 'contactDesc',
+      tone: 'bg-emerald-50 border-emerald-100 text-emerald-600',
+    },
+    {
+      href: '/community',
+      icon: HeartHandshake,
+      titleKey: 'community',
+      descKey: 'communityDesc',
+      tone: 'bg-rose-50 border-rose-100 text-rose-600',
+    },
+  ];
+
+  const renderListMega = (links: ListLink[], featuredDemo = false) => (
+    <div className="p-3 space-y-1">
+      {links.map((item) => {
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="group/link flex items-start gap-3 rounded-2xl p-3 border border-transparent hover:border-zinc-200 hover:bg-zinc-50/90 transition-all"
+          >
+            <div
+              className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${item.tone}`}
+            >
+              <Icon className="w-4 h-4" />
+            </div>
+            <div className="min-w-0 pt-0.5">
+              <p className="text-[13px] font-bold text-zinc-900">
+                {t(`nav.${item.titleKey}`)}
+              </p>
+              <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
+                {t(`nav.${item.descKey}`)}
+              </p>
+            </div>
+          </Link>
+        );
+      })}
+      {featuredDemo ? (
+        <div className="pt-1">
+          <Link
+            href="/demo"
+            className="group/hub relative block overflow-hidden rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-4 hover:shadow-md transition-all"
+          >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-400/10 rounded-full blur-2xl" />
+            <div className="relative flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100/80 border border-emerald-200 px-2 py-0.5 rounded-full">
+                <Sparkles className="w-2.5 h-2.5" />
+                {t('nav.featured')}
+              </span>
+            </div>
+            <div className="relative flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white border border-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm shrink-0">
+                <Rocket className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-black text-zinc-900 group-hover/hub:text-emerald-800 transition-colors">
+                  {t('nav.templateHub')}
+                </p>
+                <p className="text-[11px] font-medium text-zinc-500 mt-0.5 leading-relaxed">
+                  {t('nav.hubDesc')}
+                </p>
+                <span className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-emerald-700">
+                  {t('nav.livePreview')}
+                  <ArrowRight className="w-3 h-3" />
+                </span>
+              </div>
+            </div>
+          </Link>
+        </div>
+      ) : null}
+    </div>
+  );
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 px-3 sm:px-4 md:px-6 pt-3 pointer-events-none">
       <div
@@ -110,12 +265,9 @@ export default function LandingNavbar() {
           />
 
           <nav className="hidden lg:flex items-center gap-0.5 h-full">
-            {/* Platform mega */}
+            {/* Platform */}
             <div className="relative group h-full flex items-center">
-              <button
-                type="button"
-                className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-2 rounded-xl hover:bg-zinc-100/80 group-hover:bg-zinc-100/80"
-              >
+              <button type="button" className={navTrigger}>
                 {t('nav.platform')}
                 <ChevronDown className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-700 group-hover:rotate-180 transition-transform duration-300" />
               </button>
@@ -125,19 +277,15 @@ export default function LandingNavbar() {
               >
                 <div className="flex">
                   <div className="flex-1 p-5 space-y-3">
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                        {t('nav.coreCapabilities')}
-                      </span>
-                    </div>
+                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">
+                      {t('nav.coreCapabilities')}
+                    </span>
 
                     <Link
                       href="/platform/canvas"
                       className="group/feature relative flex overflow-hidden rounded-2xl border border-zinc-200/80 bg-white hover:border-sky-200 hover:shadow-md transition-all"
                     >
-                      <div
-                        className={`w-[88px] shrink-0 bg-gradient-to-br from-sky-100 to-sky-50 border-r border-sky-100/80 relative`}
-                      >
+                      <div className="w-[88px] shrink-0 bg-gradient-to-br from-sky-100 to-sky-50 border-r border-sky-100/80 relative">
                         <div className="absolute inset-0 opacity-50 p-3">
                           <div className="h-1.5 w-3/4 rounded-full bg-white/80 mb-2" />
                           <div className="h-1.5 w-1/2 rounded-full bg-white/60 mb-3" />
@@ -179,7 +327,7 @@ export default function LandingNavbar() {
                       <div className="flex-1 p-4 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center group-hover/feature:scale-110 transition-transform">
-                            <Database className="w-3.5 h-3.5" />
+                            <Radio className="w-3.5 h-3.5" />
                           </div>
                           <h4 className="text-sm font-black text-zinc-900 group-hover/feature:text-emerald-700 transition-colors">
                             {t('nav.realTimeSync')}
@@ -256,12 +404,9 @@ export default function LandingNavbar() {
               </div>
             </div>
 
-            {/* Solutions mega */}
+            {/* Solutions */}
             <div className="relative group h-full flex items-center">
-              <button
-                type="button"
-                className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-2 rounded-xl hover:bg-zinc-100/80 group-hover:bg-zinc-100/80"
-              >
+              <button type="button" className={navTrigger}>
                 {t('nav.solutions')}
                 <ChevronDown className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-700 group-hover:rotate-180 transition-transform duration-300" />
               </button>
@@ -270,13 +415,10 @@ export default function LandingNavbar() {
                 className={`${megaPanel} left-1/2 -translate-x-1/2 w-[560px] -translate-y-1 group-hover:translate-y-0`}
               >
                 <div className="p-5">
-                  <div className="flex items-center justify-between mb-4 px-0.5">
-                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                      {t('nav.industryUseCases')}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
+                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                    {t('nav.industryUseCases')}
+                  </span>
+                  <div className="grid grid-cols-2 gap-3 mt-4">
                     {solutions.map((item) => {
                       const Icon = item.icon;
                       return (
@@ -288,10 +430,6 @@ export default function LandingNavbar() {
                           <div
                             className={`relative h-16 bg-gradient-to-br ${item.soft} border-b border-zinc-100`}
                           >
-                            <div className="absolute inset-0 opacity-40 p-3">
-                              <div className="h-1.5 w-2/3 rounded-full bg-white/80 mb-2" />
-                              <div className="h-1.5 w-1/2 rounded-full bg-white/50" />
-                            </div>
                             <div
                               className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-xl border flex items-center justify-center bg-white/90 backdrop-blur ${item.iconBg}`}
                             >
@@ -316,13 +454,12 @@ export default function LandingNavbar() {
                     })}
                   </div>
                 </div>
-
                 <div className="border-t border-zinc-100 bg-zinc-50/80 px-5 py-3 flex items-center justify-between">
                   <p className="text-xs font-bold text-zinc-700">
-                    {t('nav.viewAllSolutions')}
+                    {t('nav.browseTemplates')}
                   </p>
                   <Link
-                    href="/solutions/engineering"
+                    href="/templates"
                     className="inline-flex items-center gap-1 text-xs font-bold text-sky-700 hover:text-sky-800"
                   >
                     {t('nav.open')}
@@ -332,91 +469,31 @@ export default function LandingNavbar() {
               </div>
             </div>
 
-            {/* Developers mega */}
+            {/* Resources */}
             <div className="relative group h-full flex items-center">
-              <button
-                type="button"
-                className="text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-2 rounded-xl hover:bg-zinc-100/80 group-hover:bg-zinc-100/80"
+              <button type="button" className={navTrigger}>
+                {t('nav.resources')}
+                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-700 group-hover:rotate-180 transition-transform duration-300" />
+              </button>
+              <div className="absolute top-full inset-x-0 h-3 z-40" />
+              <div
+                className={`${megaPanel} left-0 w-[360px] -translate-y-1 group-hover:translate-y-0`}
               >
-                {t('nav.developers')}
+                {renderListMega(resourceLinks, true)}
+              </div>
+            </div>
+
+            {/* Company */}
+            <div className="relative group h-full flex items-center">
+              <button type="button" className={navTrigger}>
+                {t('nav.company')}
                 <ChevronDown className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-700 group-hover:rotate-180 transition-transform duration-300" />
               </button>
               <div className="absolute top-full inset-x-0 h-3 z-40" />
               <div
                 className={`${megaPanel} left-0 w-[340px] -translate-y-1 group-hover:translate-y-0`}
               >
-                <div className="p-3 space-y-1">
-                  <Link
-                    href="/docs"
-                    className="group/link flex items-start gap-3 rounded-2xl p-3 hover:bg-sky-50/80 border border-transparent hover:border-sky-100 transition-all"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shrink-0">
-                      <FileText className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 pt-0.5">
-                      <p className="text-[13px] font-bold text-zinc-900 group-hover/link:text-sky-700">
-                        {t('nav.documentation')}
-                      </p>
-                      <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
-                        {t('nav.docsDesc')}
-                      </p>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/changelog"
-                    className="group/link flex items-start gap-3 rounded-2xl p-3 hover:bg-amber-50/70 border border-transparent hover:border-amber-100 transition-all"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
-                      <Activity className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 pt-0.5 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[13px] font-bold text-zinc-900 group-hover/link:text-amber-700">
-                          {t('nav.changelog')}
-                        </p>
-                        <span className="inline-flex items-center gap-0.5 text-[9px] font-black uppercase tracking-widest bg-sky-50 border border-sky-100 text-sky-700 px-1.5 py-0.5 rounded-md">
-                          {t('nav.new')}
-                        </span>
-                      </div>
-                      <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
-                        {t('nav.changelogDesc')}
-                      </p>
-                    </div>
-                  </Link>
-                </div>
-
-                <div className="px-3 pb-3">
-                  <Link
-                    href="/demo"
-                    className="group/hub relative block overflow-hidden rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-4 hover:shadow-md transition-all"
-                  >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-400/10 rounded-full blur-2xl" />
-                    <div className="relative flex items-center gap-2 mb-2">
-                      <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100/80 border border-emerald-200 px-2 py-0.5 rounded-full">
-                        <Sparkles className="w-2.5 h-2.5" />
-                        {t('nav.featured')}
-                      </span>
-                    </div>
-                    <div className="relative flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white border border-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm shrink-0">
-                        <Rocket className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-black text-zinc-900 group-hover/hub:text-emerald-800 transition-colors">
-                          {t('nav.communityHub')}
-                        </p>
-                        <p className="text-[11px] font-medium text-zinc-500 mt-0.5 leading-relaxed">
-                          {t('nav.hubDesc')}
-                        </p>
-                        <span className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-emerald-700">
-                          <ExternalLink className="w-3 h-3" />
-                          {t('nav.livePreview')}
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
+                {renderListMega(companyLinks, false)}
               </div>
             </div>
 
@@ -470,84 +547,74 @@ export default function LandingNavbar() {
         <div
           className={`lg:hidden overflow-hidden transition-[max-height,opacity] duration-300 ease-out ${
             isMobileMenuOpen
-              ? 'max-h-[min(78vh,640px)] opacity-100'
+              ? 'max-h-[min(82vh,720px)] opacity-100'
               : 'max-h-0 opacity-0'
           }`}
         >
-          <div className="border-t border-zinc-100 px-4 py-5 overflow-y-auto max-h-[min(78vh,640px)]">
+          <div className="border-t border-zinc-100 px-4 py-5 overflow-y-auto max-h-[min(82vh,720px)]">
             <div className="flex flex-col gap-5">
               <div className="rounded-2xl border border-zinc-200/80 overflow-hidden bg-white">
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-3.5 pt-3 pb-2">
                   {t('nav.platform')}
                 </p>
-                <Link
-                  href="/platform/canvas"
-                  onClick={closeMobile}
-                  className="flex items-center gap-3 px-3.5 py-3 hover:bg-sky-50 border-t border-zinc-100"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center">
-                    <Layers className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-zinc-900 truncate">
-                      {t('nav.spatialCanvas')}
-                    </p>
-                    <p className="text-[11px] text-zinc-500 truncate">
-                      {t('nav.spatialCanvasDesc')}
-                    </p>
-                  </div>
-                </Link>
-                <Link
-                  href="/platform/sync"
-                  onClick={closeMobile}
-                  className="flex items-center gap-3 px-3.5 py-3 hover:bg-emerald-50 border-t border-zinc-100"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center">
-                    <Database className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-zinc-900 truncate">
-                      {t('nav.realTimeSync')}
-                    </p>
-                    <p className="text-[11px] text-zinc-500 truncate">
-                      {t('nav.realTimeSyncDesc')}
-                    </p>
-                  </div>
-                </Link>
-                <Link
-                  href="/platform/rbac"
-                  onClick={closeMobile}
-                  className="flex items-center gap-3 px-3.5 py-3 hover:bg-teal-50 border-t border-zinc-100"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-100 text-teal-600 flex items-center justify-center">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-zinc-900 truncate">
-                      {t('nav.enterpriseRbac')}
-                    </p>
-                    <p className="text-[11px] text-zinc-500 truncate">
-                      {t('nav.enterpriseRbacDesc')}
-                    </p>
-                  </div>
-                </Link>
-                <Link
-                  href="/platform/storage"
-                  onClick={closeMobile}
-                  className="flex items-center gap-3 px-3.5 py-3 hover:bg-amber-50 border-t border-zinc-100"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center">
-                    <Cloud className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-zinc-900 truncate">
-                      {t('nav.cloudStorage')}
-                    </p>
-                    <p className="text-[11px] text-zinc-500 truncate">
-                      {t('nav.cloudStorageDesc')}
-                    </p>
-                  </div>
-                </Link>
+                {[
+                  {
+                    href: '/platform/canvas',
+                    icon: Layers,
+                    title: 'spatialCanvas',
+                    desc: 'spatialCanvasDesc',
+                    hover: 'hover:bg-sky-50',
+                    iconBg: 'bg-sky-50 border-sky-100 text-sky-600',
+                  },
+                  {
+                    href: '/platform/sync',
+                    icon: Radio,
+                    title: 'realTimeSync',
+                    desc: 'realTimeSyncDesc',
+                    hover: 'hover:bg-emerald-50',
+                    iconBg: 'bg-emerald-50 border-emerald-100 text-emerald-600',
+                  },
+                  {
+                    href: '/platform/rbac',
+                    icon: Lock,
+                    title: 'enterpriseRbac',
+                    desc: 'enterpriseRbacDesc',
+                    hover: 'hover:bg-teal-50',
+                    iconBg: 'bg-teal-50 border-teal-100 text-teal-600',
+                  },
+                  {
+                    href: '/platform/storage',
+                    icon: Cloud,
+                    title: 'cloudStorage',
+                    desc: 'cloudStorageDesc',
+                    hover: 'hover:bg-amber-50',
+                    iconBg: 'bg-amber-50 border-amber-100 text-amber-600',
+                  },
+                ].map((row) => {
+                  const Icon = row.icon;
+                  return (
+                    <Link
+                      key={row.href}
+                      href={row.href}
+                      onClick={closeMobile}
+                      className={`flex items-center gap-3 px-3.5 py-3 border-t border-zinc-100 ${row.hover}`}
+                    >
+                      <div
+                        className={`w-9 h-9 rounded-xl border flex items-center justify-center ${row.iconBg}`}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-zinc-900 truncate">
+                          {t(`nav.${row.title}`)}
+                        </p>
+                        <p className="text-[11px] text-zinc-500 truncate">
+                          {t(`nav.${row.desc}`)}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
 
               <div>
@@ -587,35 +654,77 @@ export default function LandingNavbar() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <Link
-                  href="/docs"
-                  onClick={closeMobile}
-                  className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-bold text-zinc-900 hover:bg-zinc-50"
-                >
-                  {t('nav.developers')}
-                  <ArrowRight className="w-4 h-4 text-zinc-300" />
-                </Link>
-                <Link
-                  href="/pricing"
-                  onClick={closeMobile}
-                  className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-bold text-zinc-900 hover:bg-zinc-50"
-                >
-                  {t('nav.pricing')}
-                  <ArrowRight className="w-4 h-4 text-zinc-300" />
-                </Link>
-                <Link
-                  href="/demo"
-                  onClick={closeMobile}
-                  className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-bold text-zinc-900 hover:bg-emerald-50"
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <Rocket className="w-4 h-4 text-emerald-600" />
-                    {t('nav.communityHub')}
-                  </span>
-                  <ArrowRight className="w-4 h-4 text-zinc-300" />
-                </Link>
+              <div>
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1 mb-2">
+                  {t('nav.resources')}
+                </p>
+                <div className="flex flex-col gap-0.5 rounded-2xl border border-zinc-200/80 bg-white overflow-hidden">
+                  {[
+                    ...resourceLinks,
+                    {
+                      href: '/demo',
+                      icon: Rocket,
+                      titleKey: 'templateHub',
+                      descKey: 'hubDesc',
+                      tone: '',
+                    },
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={closeMobile}
+                        className="flex items-center justify-between px-3.5 py-3 text-sm font-bold text-zinc-900 hover:bg-zinc-50 border-t border-zinc-100 first:border-t-0"
+                      >
+                        <span className="inline-flex items-center gap-2 min-w-0">
+                          <Icon className="w-4 h-4 text-zinc-400 shrink-0" />
+                          <span className="truncate">
+                            {t(`nav.${item.titleKey}`)}
+                          </span>
+                        </span>
+                        <ArrowRight className="w-4 h-4 text-zinc-300 shrink-0" />
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
+
+              <div>
+                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1 mb-2">
+                  {t('nav.company')}
+                </p>
+                <div className="flex flex-col gap-0.5 rounded-2xl border border-zinc-200/80 bg-white overflow-hidden">
+                  {companyLinks.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={closeMobile}
+                        className="flex items-center justify-between px-3.5 py-3 text-sm font-bold text-zinc-900 hover:bg-zinc-50 border-t border-zinc-100 first:border-t-0"
+                      >
+                        <span className="inline-flex items-center gap-2 min-w-0">
+                          <Icon className="w-4 h-4 text-zinc-400 shrink-0" />
+                          <span className="truncate">
+                            {t(`nav.${item.titleKey}`)}
+                          </span>
+                        </span>
+                        <ArrowRight className="w-4 h-4 text-zinc-300 shrink-0" />
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Link
+                href="/pricing"
+                onClick={closeMobile}
+                className="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-bold text-zinc-900 hover:bg-zinc-50"
+              >
+                {t('nav.pricing')}
+                <ArrowRight className="w-4 h-4 text-zinc-300" />
+              </Link>
 
               <div className="flex flex-col gap-2 pt-1">
                 <Link
