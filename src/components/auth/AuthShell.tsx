@@ -2,8 +2,9 @@
 
 import React from 'react';
 import { Syne, DM_Sans, JetBrains_Mono } from 'next/font/google';
-import BrandLogo, { BrandMark } from '@/components/brand/BrandLogo';
+import BrandLogo from '@/components/brand/BrandLogo';
 import { Loader2 } from 'lucide-react';
+import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
 
 const syne = Syne({
   subsets: ['latin'],
@@ -118,7 +119,7 @@ export default function AuthShell({
             className="text-[11px] uppercase tracking-[0.28em] text-sky-300/80 mb-5"
             style={{ fontFamily: 'var(--font-auth-mono), monospace' }}
           >
-            B2 SaaS Engine
+            {BRAND_NAME}
           </p>
           <h1
             className="text-[2.75rem] xl:text-5xl font-semibold leading-[1.05] tracking-tight text-white mb-5"
@@ -137,7 +138,7 @@ export default function AuthShell({
           style={{ fontFamily: 'var(--font-auth-mono), monospace' }}
         >
           <span>© {new Date().getFullYear()} Portfolio demo</span>
-          <span className="text-sky-400/70">Workspace OS</span>
+          <span className="text-sky-400/70">{BRAND_TAGLINE}</span>
         </div>
       </aside>
 
@@ -152,7 +153,7 @@ export default function AuthShell({
         />
         <div className={`relative z-10 w-full ${formMaxWidthClassName} auth-rise`}>
           <div className="lg:hidden flex justify-center mb-8">
-            <BrandMark size="lg" />
+            <BrandLogo size="lg" href={false} showTagline={false} />
           </div>
           <div className="rounded-2xl border border-zinc-200/80 bg-white/95 p-7 sm:p-9 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.35)]">
             {children}

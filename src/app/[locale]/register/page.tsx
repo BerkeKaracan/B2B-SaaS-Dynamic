@@ -168,7 +168,7 @@ export default function RegisterPage() {
             Create account
           </h2>
           <p className="text-sm text-zinc-500 leading-relaxed">
-            Set up your B2 SaaS Engine profile to continue to onboarding.
+            Set up your WORKSPACE OS profile to continue to onboarding.
           </p>
         </div>
 

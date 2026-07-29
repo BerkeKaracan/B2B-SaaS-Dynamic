@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { BrandMark } from '@/components/brand/BrandLogo';
+import BrandLogo from '@/components/brand/BrandLogo';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import CanvasArea from '@/components/canvas/renderers/CanvasArea';
 import { BoardFromProjectTemplate } from '@/components/workspace/BoardRenderer';
@@ -209,7 +209,7 @@ export default function PublicSharePage() {
     <div className="min-h-screen bg-[#f7f9fb] text-zinc-900 font-sans selection:bg-sky-200/50 flex flex-col overflow-hidden relative antialiased">
       <header className="relative z-50 h-14 border-b border-zinc-200 bg-white/95 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shadow-xs shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <BrandMark size="sm" />
+          <BrandLogo size="sm" href="/" showTagline={false} />
           <div className="h-4 w-px bg-zinc-200 shrink-0" />
           <div className="flex flex-col min-w-0">
             <h1 className="text-xs font-semibold text-zinc-950 truncate max-w-40 sm:max-w-xs leading-none">

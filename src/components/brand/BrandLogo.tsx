@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { BRAND_MARK, BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
 
 type BrandSize = 'sm' | 'md' | 'lg';
 
@@ -30,7 +31,7 @@ export type BrandMarkProps = {
   className?: string;
 };
 
-/** Symbol only — sky-tinted B2 mark from the landing navbar. */
+/** Symbol only — zinc + sky glow + B2 monogram (same as /logo.svg + favicon). */
 export function BrandMark({
   size = 'md',
   inverted = false,
@@ -43,6 +44,7 @@ export function BrandMark({
           ? 'bg-white border-white/80'
           : 'bg-zinc-950 border-zinc-800'
       } ${className}`}
+      aria-hidden
     >
       <div
         className={`absolute inset-0 opacity-80 ${
@@ -56,7 +58,7 @@ export function BrandMark({
           inverted ? 'text-zinc-950' : 'text-white'
         }`}
       >
-        B2
+        {BRAND_MARK}
       </span>
     </div>
   );
@@ -74,7 +76,7 @@ export type BrandLogoProps = {
   onClick?: () => void;
 };
 
-/** Brand mark + optional wordmark / “Workspace OS” tagline. */
+/** Brand mark + WORKSPACE OS wordmark (optional portfolio tagline). */
 export default function BrandLogo({
   size = 'md',
   inverted = false,
@@ -95,7 +97,7 @@ export default function BrandLogo({
               inverted ? 'text-white' : 'text-zinc-950'
             }`}
           >
-            SaaS Engine
+            {BRAND_NAME}
           </span>
           {showTagline && (
             <span
@@ -103,7 +105,7 @@ export default function BrandLogo({
                 inverted ? 'text-sky-300/90' : 'text-sky-600/80'
               }`}
             >
-              Workspace OS
+              {BRAND_TAGLINE}
             </span>
           )}
         </div>

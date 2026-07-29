@@ -1,6 +1,6 @@
 {
   "Welcome": {
-    "title": "SaaS Engine'e Hoş Geldiniz"
+    "title": "WORKSPACE OS'a Hoş Geldiniz"
   },
   "LandingPage": {
     "nav": {
@@ -45,7 +45,7 @@
       "docsShort": "Docs"
     },
     "hero": {
-      "versionLive": "SaaS Engine v1.4 Yayında",
+      "versionLive": "WORKSPACE OS v1.4 Yayında",
       "title1": "Şirketiniz için",
       "title2": "Yönetim Sistemi.",
       "subtitle": "Projelerinizi yönetin, dinamik bloklarla özel iş akışınızı tasarlayın ve role dayalı erişimle ekibinizi saniyeler içinde organize edin.",
@@ -87,7 +87,7 @@
     "architecture": {
       "title1": "Kurumsal düzey mimari.",
       "title2": "Sıfır taviz.",
-      "desc": "SaaS Engine sıradan bir arayüz değildir. Gerçek dünya performansı için tasarlanmış modern, ölçeklenebilir ve güvenli bir teknoloji yığını kullanılarak sıfırdan inşa edilmiştir.",
+      "desc": "WORKSPACE OS sıradan bir arayüz değildir. Gerçek dünya performansı için tasarlanmış modern, ölçeklenebilir ve güvenli bir teknoloji yığını kullanılarak sıfırdan inşa edilmiştir.",
       "t1": "Next.js 16 ve Zustand",
       "d1": "Tuvaliniz genelinde sıfır gecikmeli senkron durum yönetimi için Zustand ile birleştirilmiş, uç noktalarda (edge) ışık hızında React renderleme.",
       "dd1": "Sunucu Eylemleri (Server Actions) entegrasyonu, istemci tarafı şelale istekleri olmadan anlık veri mutasyonları sağlar.",
@@ -173,7 +173,7 @@
     },
     "bottom": {
       "rights": "Tüm hakları saklıdır.",
-      "attribution": "B2 SaaS Engine · Portföy demosu.",
+      "attribution": "WORKSPACE OS · Portföy demosu.",
       "privacy": "Gizlilik Politikası",
       "terms": "Hizmet Şartları"
     }
@@ -194,7 +194,7 @@
       "all": "Tüm özellikler"
     },
     "bottomCta": {
-      "title": "SaaS Engine ile çalışmaya hazır mısın?",
+      "title": "WORKSPACE OS ile çalışmaya hazır mısın?",
       "desc": "Bir dakikadan kısa sürede workspace aç; canvas, sync, RBAC ve storage’ı birlikte kullan.",
       "button": "Ücretsiz başla"
     },
@@ -283,7 +283,7 @@
     "back": "Geri Dön",
     "badge": "Platform Özellikleri",
     "title": "Ölçeklenmek için yapıldı. Hız için tasarlandı.",
-    "subtitle": "SaaS Engine'i şirketiniz için nihai işletim sistemi yapan güçlü araçları keşfedin.",
+    "subtitle": "WORKSPACE OS'u şirketiniz için nihai işletim sistemi yapan güçlü araçları keşfedin.",
     "canvas": {
       "title": "Sonsuz Uzamsal Tuval",
       "desc": "Doğrusal belgelerden kurtulun. Sonsuz bir vektör ızgarasında metinleri, görselleri, veritabanlarını ve kanban panolarını sürükleyin, bırakın ve bağlayın."
@@ -356,7 +356,7 @@
       "1": {
         "category": "Ürün",
         "date": "15 Haz 2026",
-        "title": "SaaS Engine v1.4'a Hoş Geldiniz",
+        "title": "WORKSPACE OS v1.4'a Hoş Geldiniz",
         "desc": "Son sürümümüz ve yeni sonsuz uzamsal tuvalimiz hakkında bilmeniz gereken her şey."
       },
       "2": {
@@ -376,7 +376,7 @@
   "CommunityPage": {
     "back": "Geri Dön",
     "badge": "Topluluk Merkezi",
-    "title": "SaaS Engine Geliştirici Ağına Katılın",
+    "title": "WORKSPACE OS Geliştirici Ağına Katılın",
     "subtitle": "Binlerce geliştiriciyle bağlantı kurun, iş akışlarınızı paylaşın ve işin geleceğini inşa etmemize yardımcı olun.",
     "cards": {
       "feedback": {
@@ -429,7 +429,7 @@
     "back": "Geri Dön",
     "badge": "Entegrasyonlar",
     "title": "Favori araçlarınızı bağlayın.",
-    "subtitle": "SaaS Engine, ekibinizin halihazırda kullandığı araçlarla sorunsuz çalışır. Karmaşık kurulum gerektirmez.",
+    "subtitle": "WORKSPACE OS, ekibinizin halihazırda kullandığı araçlarla sorunsuz çalışır. Karmaşık kurulum gerektirmez.",
     "cards": {
       "notion": {
         "title": "Notion",
@@ -446,7 +446,7 @@
     },
     "cta": {
       "title": "Özel bir entegrasyona mı ihtiyacınız var?",
-      "subtitle": "Güçlü API ve webhook sistemimiz, SaaS Engine'i herhangi bir iç aracınıza bağlamanıza olanak tanır.",
+      "subtitle": "Güçlü API ve webhook sistemimiz, WORKSPACE OS'u herhangi bir iç aracınıza bağlamanıza olanak tanır.",
       "button": "API Dokümanlarını Oku"
     }
   },
@@ -458,7 +458,7 @@
     "story": {
       "title": "Her şey nasıl başladı?",
       "p1": "2026'nın başlarında, geleneksel belgelerin ve doğrusal proje yönetim araçlarının temelden kusurlu olduğunu fark ettik. İnsan düşüncesini katı kalıplara zorluyor ve departmanlar arasında görünmez duvarlar örüyorlardı.",
-      "p2": "Bu sınırları yıkmak için SaaS Engine'i kurduk. Sonsuz bir uzamsal tuvali gerçek zamanlı ilişkisel veritabanlarıyla birleştirerek; fikirlerinizin, verilerinizin ve iş akışlarınızın sınırlamalar olmadan bir arada nefes alabileceği merkezi bir sinir sistemi yarattık."
+      "p2": "Bu sınırları yıkmak için WORKSPACE OS'u kurduk. Sonsuz bir uzamsal tuvali gerçek zamanlı ilişkisel veritabanlarıyla birleştirerek; fikirlerinizin, verilerinizin ve iş akışlarınızın sınırlamalar olmadan bir arada nefes alabileceği merkezi bir sinir sistemi yarattık."
     },
     "stats": {
       "1": { "value": "2026", "label": "Kuruluş" },
@@ -592,7 +592,7 @@
     "badge": "Yasal",
     "title": "Gizlilik Politikası",
     "lastUpdated": "Son Güncelleme: Haziran 2026",
-    "disclaimer": "PORTFOLYO BİLDİRİMİ: Bu web sitesi (SaaS Engine), Berke Karacan tarafından oluşturulmuş bir yazılım mühendisliği portfolyo projesidir. Gerçek bir ticari kuruluş değildir ve gerçek bir ticari hizmet sunulmamaktadır. Aşağıdaki politika, full-stack geliştirme yeteneklerini sergilemek ve demonstrasyon amacıyla hazırlanmıştır.",
+    "disclaimer": "PORTFOLYO BİLDİRİMİ: Bu web sitesi (WORKSPACE OS), Berke Karacan tarafından oluşturulmuş bir yazılım mühendisliği portfolyo projesidir. Gerçek bir ticari kuruluş değildir ve gerçek bir ticari hizmet sunulmamaktadır. Aşağıdaki politika, full-stack geliştirme yeteneklerini sergilemek ve demonstrasyon amacıyla hazırlanmıştır.",
     "sections": {
       "1": {
         "title": "1. Topladığımız Bilgiler",
@@ -618,7 +618,7 @@
     "badge": "Yasal",
     "title": "Kullanım Koşulları",
     "lastUpdated": "Son Güncelleme: Haziran 2026",
-    "disclaimer": "PORTFOLYO BİLDİRİMİ: Bu web sitesi (SaaS Engine), Berke Karacan tarafından oluşturulmuş bir yazılım mühendisliği portfolyo projesidir. Gerçek bir ticari kuruluş değildir. Bu siteyi kullanarak, sitenin yalnızca demonstrasyon amaçlı olduğunu ve gerçek bir hizmet sunulmadığını kabul etmiş olursunuz.",
+    "disclaimer": "PORTFOLYO BİLDİRİMİ: Bu web sitesi (WORKSPACE OS), Berke Karacan tarafından oluşturulmuş bir yazılım mühendisliği portfolyo projesidir. Gerçek bir ticari kuruluş değildir. Bu siteyi kullanarak, sitenin yalnızca demonstrasyon amaçlı olduğunu ve gerçek bir hizmet sunulmadığını kabul etmiş olursunuz.",
     "sections": {
       "1": {
         "title": "1. Koşulların Kabulü",
@@ -626,7 +626,7 @@
       },
       "2": {
         "title": "2. Hizmetin Tanımı",
-        "content": "SaaS Engine; gerçek zamanlı PostgreSQL senkronizasyonu, uzamsal tuval işleme ve modern kimlik doğrulama akışları gibi gelişmiş mimari konseptleri sergileyen bir full-stack portfolyo çalışmasıdır. Herhangi bir garanti olmaksızın 'olduğu gibi' sunulmaktadır."
+        "content": "WORKSPACE OS; gerçek zamanlı PostgreSQL senkronizasyonu, uzamsal tuval işleme ve modern kimlik doğrulama akışları gibi gelişmiş mimari konseptleri sergileyen bir full-stack portfolyo çalışmasıdır. Herhangi bir garanti olmaksızın 'olduğu gibi' sunulmaktadır."
       },
       "3": {
         "title": "3. Kullanıcı Hesapları ve Test Verileri",
@@ -1117,7 +1117,7 @@
   },
   "chatbot": {
     "title": "Yapay Zekaya Sorun",
-    "desc": "SaaS Engine'in nasıl çalıştığını merak mı ediyorsunuz? Yapay zekamız tüm dokümantasyonumuzla eğitildi. Hesap oluşturmadan önce 10'a kadar soruyu ücretsiz sorabilirsiniz!",
+    "desc": "WORKSPACE OS'un nasıl çalıştığını merak mı ediyorsunuz? Yapay zekamız tüm dokümantasyonumuzla eğitildi. Hesap oluşturmadan önce 10'a kadar soruyu ücretsiz sorabilirsiniz!",
     "poweredBy": "Altyapı",
     "engine": "GPT-OSS 120B Engine",
     "emptyState": "Merhaba! Bana özellikler, fiyatlandırma veya nasıl başlanacağı hakkında sorular sorabilirsiniz.",

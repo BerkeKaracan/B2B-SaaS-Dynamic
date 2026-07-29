@@ -725,7 +725,7 @@ export default function LandingPage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src="/dashboard.png"
-                      alt="SaaS Engine Workspace Dashboard"
+                      alt="WORKSPACE OS dashboard"
                       className="w-full h-auto block"
                     />
                   </div>

@@ -7,6 +7,7 @@ import { useTenantStore } from '@/store/useTenantStore';
 import NotificationBell from '@/components/layout/NotificationBell';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BrandMark } from '@/components/brand/BrandLogo';
+import { BRAND_NAME } from '@/lib/brand';
 import {
   User,
   Shield,
@@ -111,11 +112,11 @@ export default function Navbar({
           >
             <BrandMark size="sm" />
             <span className="hidden sm:block text-sm font-black tracking-tight text-zinc-950 dark:text-white">
-              SaaS Engine
+              {BRAND_NAME}
             </span>
             <span className="hidden md:flex flex-col min-w-0 leading-none border-l border-zinc-200 dark:border-zinc-800 pl-2.5">
               <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
-                Workspace
+                Tenant
               </span>
               <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 truncate max-w-[160px] group-hover:text-sky-700 dark:group-hover:text-sky-300 transition-colors">
                 {workspaceLabel}

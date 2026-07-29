@@ -75,7 +75,7 @@ const solutionRegistry: Record<SolutionSlug, SolutionContent> = {
     tagline:
       'Unify your engineering sprints, feature backlogs, and visual system flowcharts into a single, low-latency relational spatial canvas.',
     description:
-      'Traditional project management tables fail to represent complex asynchronous architecture flows. SaaS Engine allows technical product managers and engineering leaders to map technical debt, coordinate multi-team deployments, and visually connect canvas blocks directly to real-time database state rows.',
+      'Traditional project management tables fail to represent complex asynchronous architecture flows. WORKSPACE OS allows technical product managers and engineering leaders to map technical debt, coordinate multi-team deployments, and visually connect canvas blocks directly to real-time database state rows.',
     valueProposition:
       'Accelerate your product shipment velocities up to 43% while completely eliminating cross-functional alignment overhead.',
     features: [
@@ -105,7 +105,7 @@ const solutionRegistry: Record<SolutionSlug, SolutionContent> = {
     tagline:
       'Streamline complex organizational charts, cross-departmental alignment workflows, and compliance checklist frameworks seamlessly.',
     description:
-      'Managing modern remote or hybrid engineering workforces requires granular visibility. Ditch chaotic spreadsheets. SaaS Engine gives HR professionals a clear spatial area to outline strategic hiring pipelines, visualize organization charts dynamically, and enforce mandatory compliance grids.',
+      'Managing modern remote or hybrid engineering workforces requires granular visibility. Ditch chaotic spreadsheets. WORKSPACE OS gives HR professionals a clear spatial area to outline strategic hiring pipelines, visualize organization charts dynamically, and enforce mandatory compliance grids.',
     valueProposition:
       'Reduce employee onboarding operational friction by 60% and securely store identity documents under row-level database security.',
     features: [
@@ -135,7 +135,7 @@ const solutionRegistry: Record<SolutionSlug, SolutionContent> = {
     tagline:
       'Transform your static pipeline boards into dynamic spatial conversion engines. Track custom enterprise parameters dynamically.',
     description:
-      'Standard customer relationship platforms isolate deal context inside hard-to-read sub-menus. SaaS Engine brings visual layout parameters to your pipeline strategy, mapping key account touchpoints, complex contract lifecycles, and cross-functional legal review processes onto a fluid spatial interface.',
+      'Standard customer relationship platforms isolate deal context inside hard-to-read sub-menus. WORKSPACE OS brings visual layout parameters to your pipeline strategy, mapping key account touchpoints, complex contract lifecycles, and cross-functional legal review processes onto a fluid spatial interface.',
     valueProposition:
       'Empower your account executives to unlock an automatic 28% increase in contract pipeline win-rates with continuous clarity.',
     features: [
@@ -165,7 +165,7 @@ const solutionRegistry: Record<SolutionSlug, SolutionContent> = {
     tagline:
       'Synchronize company OKRs, executive task force timelines, and cross-departmental operations with complete transparency.',
     description:
-      'Corporate operational alignment cracks when execution is detached from initial planning blueprints. SaaS Engine bridges this structural gap by embedding living documents, active data metrics, and cross-functional calendars into unified infinite workspace coordinates.',
+      'Corporate operational alignment cracks when execution is detached from initial planning blueprints. WORKSPACE OS bridges this structural gap by embedding living documents, active data metrics, and cross-functional calendars into unified infinite workspace coordinates.',
     valueProposition:
       'Consolidate your disparate operational toolchains into a single operating system, reducing software licensing overheads by up to 35%.',
     features: [

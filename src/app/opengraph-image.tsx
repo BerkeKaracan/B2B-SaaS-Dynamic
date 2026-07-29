@@ -1,10 +1,11 @@
 import { ImageResponse } from 'next/og';
+import { BRAND_MARK, BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
 
-export const alt = 'B2 SaaS Engine — Workspace OS';
+export const alt = BRAND_NAME;
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-/** Default Open Graph / social share card. */
+/** Default Open Graph / social share card — same B2 mark + WORKSPACE OS wordmark. */
 export default function OpenGraphImage() {
   return new ImageResponse(
     (
@@ -16,7 +17,8 @@ export default function OpenGraphImage() {
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: 64,
-          background: 'linear-gradient(145deg, #F7F9FB 0%, #EEF6FB 45%, #E8F5F0 100%)',
+          background:
+            'linear-gradient(145deg, #F7F9FB 0%, #EEF6FB 45%, #E8F5F0 100%)',
           position: 'relative',
           overflow: 'hidden',
           fontFamily:
@@ -81,7 +83,7 @@ export default function OpenGraphImage() {
                 letterSpacing: '-0.08em',
               }}
             >
-              B2
+              {BRAND_MARK}
             </span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -93,7 +95,7 @@ export default function OpenGraphImage() {
                 letterSpacing: '-0.03em',
               }}
             >
-              SaaS Engine
+              {BRAND_NAME}
             </span>
             <span
               style={{
@@ -104,12 +106,19 @@ export default function OpenGraphImage() {
                 textTransform: 'uppercase',
               }}
             >
-              Workspace OS
+              {BRAND_TAGLINE}
             </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 920 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 18,
+            maxWidth: 920,
+          }}
+        >
           <div
             style={{
               fontSize: 56,
@@ -154,7 +163,7 @@ export default function OpenGraphImage() {
               fontWeight: 700,
             }}
           >
-            B2 SaaS Engine
+            {BRAND_NAME}
           </div>
           <span style={{ fontSize: 16, fontWeight: 600, color: '#71717a' }}>
             Multi-tenant · Canvas · AI

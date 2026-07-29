@@ -26,7 +26,7 @@ export default function ContactPage() {
       message.trim() || '—',
     ].join('\n');
     const mailto = `mailto:${contactEmail}?subject=${encodeURIComponent(
-      subject.trim() || 'SaaS Engine inquiry'
+      subject.trim() || 'WORKSPACE OS inquiry'
     )}&body=${encodeURIComponent(body)}`;
     window.location.href = mailto;
   };

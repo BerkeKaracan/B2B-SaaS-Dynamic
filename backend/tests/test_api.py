@@ -15,7 +15,7 @@ def test_root_endpoint():
     """
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"status": "alive", "message": "SaaS Engine API is running"}
+    assert response.json() == {"status": "alive", "message": "WORKSPACE OS API is running"}
 
 def test_health_check_endpoint():
     """

@@ -350,7 +350,7 @@ export default function LoginPage() {
           one canvas.
         </>
       }
-      panelSubtitle="Sign in to the B2 SaaS Engine portfolio demo — spatial projects, RBAC, and live collaboration."
+      panelSubtitle="Sign in to the WORKSPACE OS portfolio demo — spatial projects, RBAC, and live collaboration."
       panelVisual={<AuthPanelNodes />}
     >
       <div className="mb-7">

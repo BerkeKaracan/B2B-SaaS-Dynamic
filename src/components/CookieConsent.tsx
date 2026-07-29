@@ -47,7 +47,7 @@ export default function CookieConsent() {
                 We value your privacy
               </h3>
               <p className="text-xs text-zinc-400 leading-relaxed max-w-2xl">
-                SaaS Engine uses cookies to enhance your browsing experience,
+                WORKSPACE OS uses cookies to enhance your browsing experience,
                 serve personalized content, and analyze our traffic. By clicking
                 &quot;Accept All&quot;, you consent to our use of cookies.
               </p>

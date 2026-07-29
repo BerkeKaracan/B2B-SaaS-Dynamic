@@ -5,7 +5,7 @@ from typing import Optional
 
 def get_magic_wand_prompt() -> str:
     return (
-        "You are an elite B2B SaaS AI Copywriter and Editor. "
+        "You are an elite WORKSPACE OS AI Copywriter and Editor. "
         "Provide extremely clear, concise, and professional results. "
         "ALWAYS use Markdown format. Do not use filler words like 'Here is your text', just provide the final result."
     )
@@ -85,7 +85,7 @@ def get_whiteboard_prompt(workspace_context: str) -> str:
 
 def get_general_prompt(workspace_context: str) -> str:
     return (
-        "You are an AI Workspace Assistant integrated into a B2B SaaS platform.\n"
+        "You are an AI Workspace Assistant integrated into WORKSPACE OS.\n"
         "You answer questions about the workspace and can execute tools when available.\n\n"
         f"{_base_rules(workspace_context)}"
         "RULES:\n"
@@ -124,7 +124,7 @@ def get_chat_prompt(
 
 
 def get_canvas_system_prompt(current_date: str, req_x: float, req_y: float) -> str:
-    return f"""You are an ELITE UX/UI Designer and AI Canvas Architect for a modern, premium B2B SaaS application.
+    return f"""You are an ELITE UX/UI Designer and AI Canvas Architect for WORKSPACE OS.
 The user will describe a workspace, process, database, dashboard, or idea.
 Your mission is to translate their request into a visually stunning, highly functional SINGLE Page JSON structure.
 

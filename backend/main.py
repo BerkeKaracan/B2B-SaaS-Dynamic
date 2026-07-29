@@ -42,7 +42,7 @@ REDOC_URL = None if IS_PRODUCTION else "/redoc"
 OPENAPI_URL = None if IS_PRODUCTION else "/openapi.json"
 
 app = FastAPI(
-    title="SaaS Engine API",
+    title="WORKSPACE OS API",
     description="B2B Multi-tenant SaaS API with flexible JSONB architecture",
     version="1.4.0",
     # Behind Next.js reverse proxy — never 307 to internal Docker hostnames.
@@ -122,7 +122,7 @@ app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 @app.get("/")
 async def root():
-    return {"status": "alive", "message": "SaaS Engine API is running"}
+    return {"status": "alive", "message": "WORKSPACE OS API is running"}
 
 @app.get("/health")
 @app.get("/api/health")

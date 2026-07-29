@@ -1,11 +1,11 @@
-# Workspace OS - B2B SaaS Architecture Demonstration
+# WORKSPACE OS
 
 **Version:** 1.4.0  
 **Repository:** BerkeKaracan/B2B-SaaS-Dynamic
 
 ## Overview
 
-This repository contains the source code for a multi-tenant workspace operating system. It is engineered as a portfolio demonstration to showcase a production-grade Full-Stack architecture handling tenancy, real-time synchronization, and containerized deployments.
+This repository contains the source code for **WORKSPACE OS** — a multi-tenant workspace operating system engineered as a portfolio demonstration of production-grade full-stack architecture (tenancy, real-time sync, containerized deploys).
 
 Please note: This is a technical demonstration. There is no commercial entity, and billing/payment gateways are mocked.
 
@@ -84,4 +84,4 @@ Cloud Run must accept WebSocket upgrades on `/ws/canvas/{room_id}` (same service
 
 ## License / attribution
 
-Built by **Berke Karacan** as an engineering portfolio project. Not affiliated with a real commercial “SaaS Engine Inc.” entity.
+Built by **Berke Karacan** as an engineering portfolio project. Not affiliated with a real commercial “WORKSPACE OS Inc.” entity.

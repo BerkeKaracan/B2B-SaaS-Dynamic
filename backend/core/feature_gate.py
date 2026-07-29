@@ -1,4 +1,4 @@
-"""Feature-flag consumer for SaaS Engine.
+"""Feature-flag consumer for WORKSPACE OS.
 
 Flag management lives in Pulse Flag (multi-tenant by project delivery key).
 This module evaluates whether a feature is enabled for a tenant.

@@ -1,7 +1,7 @@
 {
-  "name": "B2B SaaS Engine",
-  "short_name": "SaaS Engine",
-  "description": "Dynamic B2B Workspace Application",
+  "name": "WORKSPACE OS",
+  "short_name": "WORKSPACE OS",
+  "description": "The operating system for your company — spatial canvas, real-time sync, and team workspaces.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fafafb",

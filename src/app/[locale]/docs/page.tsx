@@ -12,7 +12,7 @@ import {
   Terminal,
   Cpu,
 } from "lucide-react";
-import { BrandMark } from "@/components/brand/BrandLogo";
+import BrandLogo from "@/components/brand/BrandLogo";
 
 export default function DocsAndArchitecturePage() {
   return (
@@ -20,7 +20,7 @@ export default function DocsAndArchitecturePage() {
       <header className="border-b border-zinc-200 bg-white sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <BrandMark size="sm" />
+            <BrandLogo size="sm" href="/" showTagline={false} />
             <span className="font-extrabold text-sm tracking-tight uppercase text-zinc-900">
               Architecture & Docs
             </span>
@@ -43,7 +43,7 @@ export default function DocsAndArchitecturePage() {
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-zinc-950 tracking-tight leading-[1.1] mb-6">
             Building a Scalable <br />
-            <span className="text-zinc-400">B2B SaaS Architecture.</span>
+            <span className="text-zinc-400">WORKSPACE OS architecture.</span>
           </h1>
           <p className="text-base font-medium text-zinc-500 leading-relaxed">
             Welcome to the developer documentation. This platform is built on a

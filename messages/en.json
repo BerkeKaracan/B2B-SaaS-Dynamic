@@ -1,6 +1,6 @@
 {
   "Welcome": {
-    "title": "Welcome to SaaS Engine"
+    "title": "Welcome to WORKSPACE OS"
   },
   "LandingPage": {
     "nav": {
@@ -45,7 +45,7 @@
       "docsShort": "Docs"
     },
     "hero": {
-      "versionLive": "SaaS Engine v1.4 is Live",
+      "versionLive": "WORKSPACE OS v1.4 is Live",
       "title1": "The Operating System for",
       "title2": "your Company.",
       "subtitle": "Manage your projects, design your custom workflow with dynamic blocks, and organize your team in seconds with role-based access.",
@@ -87,7 +87,7 @@
     "architecture": {
       "title1": "Enterprise-grade architecture.",
       "title2": "Zero compromises.",
-      "desc": "SaaS Engine isn't just another wrapper. It's built from the ground up using a modern, scalable, and secure technology stack designed for real-world performance.",
+      "desc": "WORKSPACE OS isn't just another wrapper. It's built from the ground up using a modern, scalable, and secure technology stack designed for real-world performance.",
       "t1": "Next.js 16 & Zustand",
       "d1": "Lightning-fast React rendering on the edge, combined with Zustand for zero-lag synchronous state management across your canvas.",
       "dd1": "Server Actions integration ensures instant data mutations with zero client-side waterfall requests.",
@@ -173,7 +173,7 @@
     },
     "bottom": {
       "rights": "All rights reserved.",
-      "attribution": "B2 SaaS Engine · Portfolio demo.",
+      "attribution": "WORKSPACE OS · Portfolio demo.",
       "privacy": "Privacy Policy",
       "terms": "Terms of Service"
     }
@@ -194,7 +194,7 @@
       "all": "All features"
     },
     "bottomCta": {
-      "title": "Ready to run on SaaS Engine?",
+      "title": "Ready to run on WORKSPACE OS?",
       "desc": "Spin up a workspace in under a minute and put canvas, sync, RBAC, and storage to work together.",
       "button": "Start free"
     },
@@ -283,7 +283,7 @@
     "back": "Go Back",
     "badge": "Platform Features",
     "title": "Built for scale. Designed for speed.",
-    "subtitle": "Discover the powerful tools that make SaaS Engine the ultimate operating system for your company.",
+    "subtitle": "Discover the powerful tools that make WORKSPACE OS the ultimate operating system for your company.",
     "canvas": {
       "title": "Infinite Spatial Canvas",
       "desc": "Break free from linear documents. Drag, drop, and connect text, images, databases, and kanban boards on an infinite vector grid."
@@ -356,7 +356,7 @@
       "1": {
         "category": "Product",
         "date": "Jun 15, 2026",
-        "title": "Welcome to SaaS Engine v1.4",
+        "title": "Welcome to WORKSPACE OS v1.4",
         "desc": "Everything you need to know about our latest release and the new infinite spatial canvas."
       },
       "2": {
@@ -376,7 +376,7 @@
   "CommunityPage": {
     "back": "Go Back",
     "badge": "Community Hub",
-    "title": "Join the SaaS Engine Developer Network",
+    "title": "Join the WORKSPACE OS Developer Network",
     "subtitle": "Connect with thousands of developers, share your workflows, and help us build the future of work.",
     "cards": {
       "feedback": {
@@ -428,7 +428,7 @@
     "back": "Go Back",
     "badge": "Integrations",
     "title": "Connect your favorite tools.",
-    "subtitle": "SaaS Engine works seamlessly with the tools your team already uses. No complex setup required.",
+    "subtitle": "WORKSPACE OS works seamlessly with the tools your team already uses. No complex setup required.",
     "cards": {
       "notion": {
         "title": "Notion",
@@ -445,7 +445,7 @@
     },
     "cta": {
       "title": "Need a custom integration?",
-      "subtitle": "Our robust API and webhook system allows you to connect SaaS Engine to any internal tool.",
+      "subtitle": "Our robust API and webhook system allows you to connect WORKSPACE OS to any internal tool.",
       "button": "Read API Docs"
     }
   },
@@ -457,7 +457,7 @@
     "story": {
       "title": "How it all started",
       "p1": "In early 2026, we realized that traditional documents and linear project management tools were fundamentally broken. They forced human thoughts into rigid boxes and created invisible silos across departments.",
-      "p2": "We built SaaS Engine to break those boundaries. By combining an infinite spatial canvas with real-time relational databases, we've created a central nervous system where your ideas, data, and workflows can live and breathe together without limitations."
+      "p2": "We built WORKSPACE OS to break those boundaries. By combining an infinite spatial canvas with real-time relational databases, we've created a central nervous system where your ideas, data, and workflows can live and breathe together without limitations."
     },
     "stats": {
       "1": { "value": "2026", "label": "Founded" },
@@ -591,7 +591,7 @@
     "badge": "Legal",
     "title": "Privacy Policy",
     "lastUpdated": "Last Updated: June 2026",
-    "disclaimer": "PORTFOLIO NOTICE: This website (SaaS Engine) is a software engineering portfolio project created by Berke Karacan. It is not a real commercial entity, and no real commercial services are offered. The following policy is provided for demonstration purposes to showcase full-stack development capabilities.",
+    "disclaimer": "PORTFOLIO NOTICE: This website (WORKSPACE OS) is a software engineering portfolio project created by Berke Karacan. It is not a real commercial entity, and no real commercial services are offered. The following policy is provided for demonstration purposes to showcase full-stack development capabilities.",
     "sections": {
       "1": {
         "title": "1. Information We Collect",
@@ -617,7 +617,7 @@
     "badge": "Legal",
     "title": "Terms of Service",
     "lastUpdated": "Last Updated: June 2026",
-    "disclaimer": "PORTFOLIO NOTICE: This website (SaaS Engine) is a software engineering portfolio project created by Berke Karacan. It is not a real commercial entity. By using this site, you acknowledge that it is for demonstration purposes only and no real services are provided.",
+    "disclaimer": "PORTFOLIO NOTICE: This website (WORKSPACE OS) is a software engineering portfolio project created by Berke Karacan. It is not a real commercial entity. By using this site, you acknowledge that it is for demonstration purposes only and no real services are provided.",
     "sections": {
       "1": {
         "title": "1. Acceptance of Terms",
@@ -625,7 +625,7 @@
       },
       "2": {
         "title": "2. Description of Service",
-        "content": "SaaS Engine is a full-stack portfolio piece demonstrating advanced architectural concepts, including real-time PostgreSQL synchronization, spatial canvas rendering, and modern authentication flows. It is provided 'as is' without any warranty."
+        "content": "WORKSPACE OS is a full-stack portfolio piece demonstrating advanced architectural concepts, including real-time PostgreSQL synchronization, spatial canvas rendering, and modern authentication flows. It is provided 'as is' without any warranty."
       },
       "3": {
         "title": "3. User Accounts & Dummy Data",
@@ -1116,7 +1116,7 @@
   },
   "chatbot": {
     "title": "Ask AI Anything",
-    "desc": "Curious about how SaaS Engine works? Our AI is trained on all our documentation. Ask up to 10 questions for free before creating your account!",
+    "desc": "Curious about how WORKSPACE OS works? Our AI is trained on all our documentation. Ask up to 10 questions for free before creating your account!",
     "poweredBy": "Powered by",
     "engine": "GPT-OSS 120B Engine",
     "emptyState": "Hello! Ask me about features, pricing, or how to get started.",

@@ -10,6 +10,12 @@ import { getMessages } from 'next-intl/server';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import WakeUpBackend from '@/components/WakeUpBackend';
 import { getSiteUrl } from '@/lib/siteUrl';
+import {
+  BRAND_DESCRIPTION,
+  BRAND_NAME,
+  BRAND_TITLE,
+  BRAND_TITLE_TEMPLATE,
+} from '@/lib/brand';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,25 +26,28 @@ const enableVercelMetrics = process.env.VERCEL === '1';
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'B2 SaaS Engine — Workspace OS',
-    template: '%s · B2 SaaS Engine',
+    default: BRAND_TITLE,
+    template: BRAND_TITLE_TEMPLATE,
   },
-  description:
-    'The operating system for your company. Spatial canvas, real-time sync, enterprise RBAC, and workspace AI — multi-tenant SaaS built for teams.',
-  applicationName: 'B2 SaaS Engine',
+  description: BRAND_DESCRIPTION,
+  applicationName: BRAND_NAME,
   keywords: [
-    'B2B SaaS',
+    'WORKSPACE OS',
     'workspace OS',
     'spatial canvas',
     'multi-tenant',
     'project management',
     'RBAC',
   ],
-  authors: [{ name: 'B2 SaaS Engine' }],
-  creator: 'B2 SaaS Engine',
+  authors: [{ name: BRAND_NAME }],
+  creator: BRAND_NAME,
   manifest: '/manifest.json',
   icons: {
-    icon: [{ url: '/logo.svg', type: 'image/svg+xml' }],
+    // Prefer App Router generated icons (same B2 mark as BrandMark / logo.svg)
+    icon: [
+      { url: '/icon', type: 'image/png', sizes: '32x32' },
+      { url: '/logo.svg', type: 'image/svg+xml' },
+    ],
     apple: [{ url: '/apple-icon', sizes: '180x180', type: 'image/png' }],
   },
   openGraph: {
@@ -46,16 +55,16 @@ export const metadata: Metadata = {
     locale: 'en_US',
     alternateLocale: ['tr_TR'],
     url: siteUrl,
-    siteName: 'B2 SaaS Engine',
-    title: 'B2 SaaS Engine — Workspace OS',
+    siteName: BRAND_NAME,
+    title: BRAND_TITLE,
     description:
       'Spatial canvas, real-time sync, and enterprise RBAC. Ship company workflows without rebuilding your stack.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'B2 SaaS Engine — Workspace OS',
+    title: BRAND_TITLE,
     description:
-      'Spatial canvas, real-time sync, and enterprise RBAC for modern B2B teams.',
+      'Spatial canvas, real-time sync, and enterprise RBAC for modern teams.',
   },
   robots: {
     index: true,
