@@ -1,24 +1,124 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { Send, Bot, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getApiBaseUrl } from '@/lib/apiBase';
 import { MarkdownContent } from '@/components/ui/MarkdownContent';
 
+/** Landing marketing chatbot only — not the workspace AiChatbot. */
+const FREE_QUESTION_LIMIT = 10;
+const GUEST_ID_KEY = 'wsos-public-ai-guest-id';
+const LIMIT_REACHED_KEY = 'wsos-public-ai-limit-reached';
+const QUESTION_COUNT_KEY = 'wsos-public-ai-question-count';
+
+function ensureGuestId(): string {
+  try {
+    let id = localStorage.getItem(GUEST_ID_KEY);
+    if (!id || id.length < 8) {
+      id =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `g-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      localStorage.setItem(GUEST_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return `ephemeral-${Date.now()}`;
+  }
+}
+
+function readStoredLimitReached(): boolean {
+  try {
+    if (localStorage.getItem(LIMIT_REACHED_KEY) === '1') return true;
+    const count = Number(localStorage.getItem(QUESTION_COUNT_KEY) || '0');
+    return Number.isFinite(count) && count >= FREE_QUESTION_LIMIT;
+  } catch {
+    return false;
+  }
+}
+
+function readQuestionCount(): number {
+  try {
+    const count = Number(localStorage.getItem(QUESTION_COUNT_KEY) || '0');
+    return Number.isFinite(count) && count > 0 ? count : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function persistLimitReached() {
+  try {
+    localStorage.setItem(LIMIT_REACHED_KEY, '1');
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function persistQuestionCount(count: number) {
+  try {
+    localStorage.setItem(QUESTION_COUNT_KEY, String(count));
+    if (count >= FREE_QUESTION_LIMIT) {
+      localStorage.setItem(LIMIT_REACHED_KEY, '1');
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function subscribeStorage(onStoreChange: () => void) {
+  window.addEventListener('storage', onStoreChange);
+  return () => window.removeEventListener('storage', onStoreChange);
+}
+
 export default function LandingChatbot() {
   const [messages, setMessages] = useState<
     { role: 'user' | 'ai'; text: string }[]
   >([]);
   const [input, setInput] = useState('');
-  const [isLimitReached, setIsLimitReached] = useState(false);
+  const [localLimitLocked, setLocalLimitLocked] = useState(false);
+  const [localQuestionCount, setLocalQuestionCount] = useState<number | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(false);
+  const guestIdRef = useRef('');
+
+  const storedLimitReached = useSyncExternalStore(
+    subscribeStorage,
+    readStoredLimitReached,
+    () => false
+  );
+  const storedQuestionCount = useSyncExternalStore(
+    subscribeStorage,
+    readQuestionCount,
+    () => 0
+  );
+
+  const questionCount = localQuestionCount ?? storedQuestionCount;
+  const isLimitReached =
+    localLimitLocked ||
+    storedLimitReached ||
+    questionCount >= FREE_QUESTION_LIMIT;
 
   const t = useTranslations('chatbot');
 
+  const markLimitReached = useCallback(() => {
+    setLocalLimitLocked(true);
+    persistLimitReached();
+  }, []);
+
   const handleSendMessage = async () => {
     if (!input.trim() || isLimitReached || isLoading) return;
+    if (questionCount >= FREE_QUESTION_LIMIT) {
+      markLimitReached();
+      return;
+    }
+
+    if (!guestIdRef.current) {
+      guestIdRef.current = ensureGuestId();
+    }
+    const guestId = guestIdRef.current;
 
     const userMessage = input;
     const chatHistory = [...messages];
@@ -31,16 +131,20 @@ export default function LandingChatbot() {
       const response = await fetch(
         `${getApiBaseUrl()}/api/public-ai/public-chat`,
         {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userMessage,
-          history: chatHistory,
-        }),
-      });
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(guestId ? { 'X-WSOS-Guest-Id': guestId } : {}),
+          },
+          body: JSON.stringify({
+            message: userMessage,
+            history: chatHistory,
+          }),
+        }
+      );
 
       if (response.status === 429) {
-        setIsLimitReached(true);
+        markLimitReached();
         return;
       }
 
@@ -49,6 +153,12 @@ export default function LandingChatbot() {
       }
 
       const data = await response.json();
+      const nextCount = questionCount + 1;
+      setLocalQuestionCount(nextCount);
+      persistQuestionCount(nextCount);
+      if (nextCount >= FREE_QUESTION_LIMIT) {
+        setLocalLimitLocked(true);
+      }
       setMessages((prev) => [...prev, { role: 'ai', text: data.reply }]);
     } catch (error) {
       console.error('Chatbot API Error:', error);
