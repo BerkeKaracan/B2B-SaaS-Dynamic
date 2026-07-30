@@ -2,6 +2,8 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from fastapi import Request
 
+from core.config import settings
+
 
 def get_real_ip(request: Request) -> str:
     """Client IP behind Cloud Run / reverse proxies (X-Forwarded-For aware).
@@ -26,4 +28,11 @@ def get_real_ip(request: Request) -> str:
     return get_remote_address(request)
 
 
-limiter = Limiter(key_func=get_real_ip)
+# Redis-backed so limits survive multi-instance / restarts (Cloud Run).
+# In-memory fallback if Redis is briefly unreachable.
+limiter = Limiter(
+    key_func=get_real_ip,
+    storage_uri=settings.REDIS_URL,
+    key_prefix="wsos",
+    in_memory_fallback_enabled=True,
+)

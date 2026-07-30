@@ -1,17 +1,36 @@
 import os
+import re
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from groq import Groq
-from core.limiter import limiter
+from core.limiter import limiter, get_real_ip
 
 router = APIRouter(
     prefix="/api/public-ai",
     tags=["Public AI Marketing"]
 )
 
+# Landing marketing chatbot only — do not reuse for workspace /api/ai.
+PUBLIC_CHAT_LIMIT = "10/month"
+_GUEST_ID_RE = re.compile(r"^[A-Za-z0-9_-]{8,80}$")
+
+
 class PublicChatRequest(BaseModel):
     message: str
     history: list[dict] = []
+
+
+def get_public_chat_visitor_key(request: Request) -> str:
+    """Rate-limit landing public chat per browser guest, else per IP.
+
+    Guest id is set by LandingChatbot (localStorage) so Next.js rewrites /
+    shared egress IPs do not collapse every visitor into one bucket.
+    """
+    guest = (request.headers.get("x-wsos-guest-id") or "").strip()
+    if guest and _GUEST_ID_RE.match(guest):
+        return f"public-chat:guest:{guest}"
+    return f"public-chat:ip:{get_real_ip(request)}"
+
 
 MARKETING_SYSTEM_PROMPT = """
 You are the Lead Growth Consultant and Top Sales Closer for 'WORKSPACE OS v1.4'.
@@ -55,8 +74,9 @@ YOUR STYLE GUIDELINES:
 - PERSONALITY: Charismatic, urgent, professional, and slightly aggressive in closing the sale.
 """
 
+
 @router.post("/public-chat")
-@limiter.limit("10/month")
+@limiter.limit(PUBLIC_CHAT_LIMIT, key_func=get_public_chat_visitor_key)
 async def public_landing_chat(request: Request, req: PublicChatRequest):
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
@@ -64,13 +84,13 @@ async def public_landing_chat(request: Request, req: PublicChatRequest):
 
     client = Groq(api_key=api_key)
     groq_messages = [{"role": "system", "content": MARKETING_SYSTEM_PROMPT}]
-    
+
     for msg in req.history:
         role = msg.get("role", "user")
-        if role == "ai": 
+        if role == "ai":
             role = "assistant"
         groq_messages.append({"role": role, "content": msg.get("text", "")})
-        
+
     groq_messages.append({"role": "user", "content": req.message})
 
     try:
