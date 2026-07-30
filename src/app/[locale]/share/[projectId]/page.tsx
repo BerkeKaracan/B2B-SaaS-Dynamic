@@ -13,6 +13,7 @@ import { useCanvasStore } from '@/store/useCanvasStore';
 import { useProjectEditMode } from '@/hooks/useProjectEditMode';
 import { isStandaloneBoardTemplate } from '@/lib/templates';
 import { ArrowLeft, Copy, ShieldAlert } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/loading';
 
 type CustomModule = {
   name: string;
@@ -170,14 +171,7 @@ export default function PublicSharePage() {
   const showBoard = isStandaloneBoardTemplate(template);
 
   if (!hasLoaded || isLoading) {
-    return (
-      <div className="min-h-screen bg-[#fafafb] flex flex-col items-center justify-center gap-3">
-        <div className="w-5 h-5 border-2 border-zinc-200 border-t-zinc-950 rounded-full animate-spin" />
-        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-          Loading workspace
-        </span>
-      </div>
-    );
+    return <LoadingScreen label="Loading workspace" />;
   }
 
   if (error) {

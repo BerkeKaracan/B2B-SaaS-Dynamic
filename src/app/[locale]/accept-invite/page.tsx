@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/apiBase";
 import { establishClientSession } from "@/lib/authCookies";
+import { LoadingSpinner } from "@/components/ui/loading";
 
 function AcceptInviteContent() {
   const router = useRouter();
@@ -205,7 +206,7 @@ export default function AcceptInvitePage() {
         <Suspense
           fallback={
             <div className="flex justify-center py-10">
-              <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+              <LoadingSpinner size="md" text="Loading invite" />
             </div>
           }
         >

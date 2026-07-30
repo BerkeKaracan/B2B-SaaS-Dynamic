@@ -5,7 +5,6 @@ import {
   Bell,
   Check,
   CheckCheck,
-  Loader2,
   ExternalLink,
   Inbox,
 } from 'lucide-react';
@@ -13,6 +12,7 @@ import { fetchAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useTenantStore } from '@/store/useTenantStore';
 import Link from 'next/link';
+import { LoadingDots } from '@/components/ui/loading';
 
 interface NotificationItem {
   id: string;
@@ -180,10 +180,10 @@ export default function NotificationBell() {
 
           <div className="max-h-[26rem] overflow-y-auto custom-scrollbar bg-zinc-50/30 dark:bg-zinc-950/30">
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 text-zinc-400 dark:text-zinc-500">
-                <Loader2 className="w-6 h-6 animate-spin mb-3 text-indigo-500 dark:text-indigo-400" />
-                <span className="text-[11px] font-medium tracking-wide">
-                  Loading your updates...
+              <div className="flex flex-col items-center justify-center py-12 gap-3 ws-load-enter">
+                <LoadingDots tone="indigo" />
+                <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                  Loading updates
                 </span>
               </div>
             ) : notifications.length === 0 ? (

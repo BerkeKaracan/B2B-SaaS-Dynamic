@@ -21,6 +21,7 @@ import {
   ArrowLeft,
   Users,
 } from 'lucide-react';
+import { LoadingSkeletonGrid } from '@/components/ui/loading';
 
 type PublicRecord = {
   id: string;
@@ -255,14 +256,7 @@ export default function DemoHubPage() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-64 rounded-2xl bg-white/60 border border-zinc-200/60 animate-pulse"
-              />
-            ))}
-          </div>
+          <LoadingSkeletonGrid count={8} />
         ) : filtered.length === 0 ? (
           <div className="relative overflow-hidden bg-white/90 border border-zinc-200 rounded-3xl p-12 text-center shadow-sm max-w-2xl mx-auto">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(14,165,233,0.08),_transparent_60%)] pointer-events-none" />

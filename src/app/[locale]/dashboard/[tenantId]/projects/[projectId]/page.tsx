@@ -18,7 +18,7 @@ import {
   normalizeProjectTemplate,
 } from '@/lib/templates';
 import { Check, Copy, Globe2, Lock, Share2, X } from 'lucide-react';
-
+import { LoadingMark, LoadingDots } from '@/components/ui/loading';
 type Collaborator = {
   email: string;
   role: string;
@@ -345,8 +345,14 @@ export default function ProjectDesignPage() {
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden relative z-0">
         <ErrorBoundary moduleName="Workspace">
           {isLoadingPage ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="w-8 h-8 border-4 border-zinc-200 dark:border-zinc-800 border-t-zinc-950 dark:border-t-white rounded-full animate-spin" />
+            <div className="flex flex-col items-center justify-center gap-4 h-full ws-load-enter">
+              <LoadingMark size="md" />
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+                  Opening workspace
+                </span>
+                <LoadingDots />
+              </div>
             </div>
           ) : !showStandaloneBoard ? (
             <CanvasArea />
@@ -390,8 +396,9 @@ export default function ProjectDesignPage() {
             </div>
 
             {isLoadingRecord ? (
-              <div className="p-10 flex justify-center shrink-0">
-                <div className="w-6 h-6 border-2 border-zinc-200 border-t-zinc-950 dark:border-zinc-700 dark:border-t-white rounded-full animate-spin" />
+              <div className="p-10 flex flex-col items-center justify-center gap-3 shrink-0 ws-load-enter">
+                <LoadingMark size="sm" />
+                <LoadingDots />
               </div>
             ) : (
               <div className="p-4 md:p-6 space-y-6 bg-white dark:bg-zinc-900 flex-1 overflow-y-auto custom-scrollbar pb-8">
