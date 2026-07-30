@@ -10,7 +10,6 @@ import {
   ArrowLeft,
   ArrowUpRight,
   GitCommitHorizontal,
-  Loader2,
   Radio,
   RefreshCw,
   Sparkles,
@@ -19,6 +18,7 @@ import {
   Palette,
   Cog,
 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading';
 
 const GITHUB_REPO = 'https://github.com/BerkeKaracan/B2B-SaaS-Dynamic';
 
@@ -356,16 +356,11 @@ export default function ChangelogPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-zinc-400">
-            <Loader2 className="w-8 h-8 animate-spin mb-4 text-zinc-800" />
-            <p className="text-sm font-semibold tracking-wide uppercase">
-              {isRetrying ? t('waking') : t('loading')}
-            </p>
-            {isRetrying && (
-              <p className="mt-2 text-xs font-medium text-zinc-400 max-w-sm text-center">
-                {t('wakingHint')}
-              </p>
-            )}
+          <div className="flex justify-center py-20">
+            <LoadingSpinner
+              size="lg"
+              text={isRetrying ? t('waking') : t('loading')}
+            />
           </div>
         ) : hasError ? (
           <div className="rounded-2xl border border-rose-100 bg-white p-8 text-center shadow-sm">

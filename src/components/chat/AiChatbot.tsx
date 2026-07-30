@@ -3,9 +3,10 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { fetchAPI } from '@/services/api';
-import { Send, Loader2, Database, CheckCircle2 } from 'lucide-react';
+import { Send, Database, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MarkdownContent } from '@/components/ui/MarkdownContent';
+import { LoadingDots } from '@/components/ui/loading';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -527,8 +528,8 @@ export default function AiChatbot() {
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white dark:bg-[#1E1E20] border border-zinc-200/60 dark:border-zinc-800 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-              <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+            <div className="bg-white dark:bg-[#1E1E20] border border-zinc-200/60 dark:border-zinc-800 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm flex items-center gap-2 ws-load-enter">
+              <LoadingDots tone="indigo" />
             </div>
           </div>
         )}

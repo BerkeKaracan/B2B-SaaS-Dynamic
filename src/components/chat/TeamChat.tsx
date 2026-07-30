@@ -4,6 +4,7 @@ import { fetchAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Loader2, Send } from 'lucide-react';
 import { getSharedRealtimeClient, peekSharedRealtimeClient } from '@/lib/realtimeClient';
+import { LoadingSpinner } from '@/components/ui/loading';
 
 interface TeamMessage {
   id: string;
@@ -132,8 +133,8 @@ export default function TeamChat({ tenantId }: { tenantId: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center text-zinc-500">
-        <Loader2 className="w-6 h-6 animate-spin" />
+      <div className="flex-1 flex items-center justify-center">
+        <LoadingSpinner size="md" text="Loading chat" />
       </div>
     );
   }

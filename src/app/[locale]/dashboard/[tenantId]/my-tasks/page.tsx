@@ -6,7 +6,6 @@ import { fetchAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
   CheckCircle2,
-  Loader2,
   FolderKanban,
   Square,
   CheckSquare,
@@ -25,6 +24,7 @@ import {
   AlertCircle,
   Filter,
 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading';
 
 type TaskStatus = 'todo' | 'in_progress' | 'done';
 type SortKey = 'title' | 'project' | 'priority' | 'status' | 'dueDate' | 'updated';
@@ -587,11 +587,8 @@ export default function MyTasksPage({
           )}
 
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-24 text-zinc-400">
-              <Loader2 className="w-8 h-8 animate-spin mb-4 text-zinc-500" />
-              <span className="text-xs font-bold uppercase tracking-widest">
-                Loading tasks…
-              </span>
+            <div className="flex justify-center py-20">
+              <LoadingSpinner size="lg" text="Loading tasks" />
             </div>
           ) : filteredTasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 px-6 text-center">

@@ -10,6 +10,7 @@ import WorkspaceSidebar from './WorkspaceSidebar';
 import ItemSidebar from './ItemSidebar';
 import { Toaster } from 'sonner';
 import RealtimeNotifier from '@/components/RealtimeNotifier';
+import { LoadingScreen } from '@/components/ui/loading';
 
 export default function DashboardClientWrapper({
   children,
@@ -67,16 +68,7 @@ export default function DashboardClientWrapper({
   useAutoSave(tenantId, recordId);
 
   if (isCheckingAuth || isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-white dark:bg-black">
-        <div className="flex flex-col items-center gap-3">
-          <span className="w-10 h-10 border-4 border-zinc-200 dark:border-zinc-800 border-t-zinc-900 dark:border-t-white rounded-full animate-spin" />
-          <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider animate-pulse">
-            Starting Engine...
-          </span>
-        </div>
-      </div>
-    );
+    return <LoadingScreen label="Starting engine" />;
   }
 
   if (!isAuthenticated) return null;

@@ -16,6 +16,7 @@ import {
   RefreshCw,
   ShieldAlert,
 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/loading';
 import {
   BarChart,
   Bar,
@@ -300,7 +301,7 @@ export default function AnalyticsDashboardPage({
   if (isLoading) {
     return (
       <div className="h-full flex justify-center items-center p-10">
-        <div className="w-8 h-8 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin" />
+        <LoadingSpinner size="lg" text="Loading analytics" />
       </div>
     );
   }

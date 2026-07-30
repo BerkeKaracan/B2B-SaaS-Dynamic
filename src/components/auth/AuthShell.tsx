@@ -3,7 +3,7 @@
 import React from 'react';
 import { Syne, DM_Sans, JetBrains_Mono } from 'next/font/google';
 import BrandLogo from '@/components/brand/BrandLogo';
-import { Loader2 } from 'lucide-react';
+import { LoadingMark, LoadingDots } from '@/components/ui/loading';
 import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
 
 const syne = Syne({
@@ -37,20 +37,21 @@ export type AuthShellProps = {
 export function AuthCheckingScreen({ label = 'Checking session' }: { label?: string }) {
   return (
     <div
-      className={`${syne.variable} ${dmSans.variable} ${jetbrains.variable} min-h-screen flex items-center justify-center bg-[#eef2f6]`}
+      className={`${syne.variable} ${dmSans.variable} ${jetbrains.variable} min-h-screen flex items-center justify-center bg-[#eef2f6] relative overflow-hidden`}
       style={{ fontFamily: 'var(--font-auth-body), system-ui, sans-serif' }}
     >
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative">
-          <div className="absolute inset-0 rounded-full bg-sky-400/20 blur-xl animate-pulse" />
-          <Loader2 className="relative w-9 h-9 text-zinc-800 animate-spin" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(56,189,248,0.14),transparent_50%)]" />
+      <div className="relative z-10 flex flex-col items-center gap-5 ws-load-enter">
+        <LoadingMark size="lg" />
+        <div className="flex flex-col items-center gap-2">
+          <span
+            className="text-[11px] uppercase tracking-[0.22em] text-zinc-500"
+            style={{ fontFamily: 'var(--font-auth-mono), monospace' }}
+          >
+            {label}
+          </span>
+          <LoadingDots tone="sky" />
         </div>
-        <span
-          className="text-[11px] uppercase tracking-[0.22em] text-zinc-500"
-          style={{ fontFamily: 'var(--font-auth-mono), monospace' }}
-        >
-          {label}
-        </span>
       </div>
     </div>
   );

@@ -2,10 +2,11 @@
 
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { Send, Bot, AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { Send, Bot, AlertCircle, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getApiBaseUrl } from '@/lib/apiBase';
 import { MarkdownContent } from '@/components/ui/MarkdownContent';
+import { LoadingDots } from '@/components/ui/loading';
 
 /** Landing marketing chatbot only — not the workspace AiChatbot. */
 const FREE_QUESTION_LIMIT = 10;
@@ -238,9 +239,9 @@ export default function LandingChatbot() {
 
             {isLoading && (
               <div className="flex justify-start animate-in fade-in duration-300">
-                <div className="px-5 py-3.5 rounded-2xl bg-white border border-zinc-200/80 text-zinc-500 rounded-bl-sm shadow-sm flex items-center gap-2.5 text-[13px] font-medium">
-                  <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />{' '}
-                  {t('thinking')}
+                <div className="px-5 py-3.5 rounded-2xl bg-white border border-zinc-200/80 text-zinc-500 rounded-bl-sm shadow-sm flex items-center gap-3 text-[13px] font-medium ws-load-enter">
+                  <LoadingDots tone="indigo" />
+                  <span>{t('thinking')}</span>
                 </div>
               </div>
             )}

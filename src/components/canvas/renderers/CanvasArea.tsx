@@ -47,6 +47,7 @@ import {
 } from '@/hooks/useVisibleWorldRect';
 import { LiveCursors } from '../LiveCursors';
 import { useAuthStore } from '@/store/useAuthStore';
+import { LoadingScreen } from '@/components/ui/loading';
 
 const MIN_ZOOM = 10;
 const MAX_ZOOM = 400;
@@ -1646,11 +1647,7 @@ export default function CanvasArea() {
   ]);
 
   if (isLoading) {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center bg-[#F9F9FB] dark:bg-zinc-950 z-50 transition-colors duration-300">
-        <span className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 dark:border-zinc-700 border-t-indigo-600 dark:border-t-indigo-500" />
-      </div>
-    );
+    return <LoadingScreen label="Opening canvas" fullScreen={false} />;
   }
 
   let cursorStyle = 'cursor-default';

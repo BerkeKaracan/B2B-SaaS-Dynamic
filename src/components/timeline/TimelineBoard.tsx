@@ -26,10 +26,10 @@ import {
   BookmarkPlus,
   LayoutDashboard,
   X,
-  Loader2,
   ChevronRight,
   CalendarDays,
 } from 'lucide-react';
+import { LoadingMark, LoadingDots } from '@/components/ui/loading';
 import toast from 'react-hot-toast';
 import TimelineColumn from './TimelineColumn';
 import {
@@ -690,14 +690,14 @@ function TimelineBoard({ projectId }: { projectId: string }) {
       <div
         className={`absolute inset-0 flex items-center justify-center ${SURFACE.stage} z-50`}
       >
-        <div className="flex flex-col items-center gap-3 text-zinc-400 animate-in fade-in zoom-in-95 duration-300">
-          <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-sky-400/20 blur-md animate-pulse" />
-            <Loader2 className="relative w-7 h-7 animate-spin text-sky-600 dark:text-sky-400" />
+        <div className="flex flex-col items-center gap-4 ws-load-enter">
+          <LoadingMark size="md" />
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+              {t('loading')}
+            </span>
+            <LoadingDots tone="sky" />
           </div>
-          <span className="text-xs font-semibold tracking-wide text-zinc-500 dark:text-zinc-400">
-            {t('loading')}
-          </span>
         </div>
       </div>
     );

@@ -326,6 +326,145 @@
   }
 }
 
+/* ——— Shared loading motion ——— */
+@layer utilities {
+  .ws-load-spin {
+    animation: wsLoadSpin 0.85s linear infinite;
+  }
+  .ws-load-spin-rev {
+    animation: wsLoadSpin 1.35s linear infinite reverse;
+  }
+  .ws-load-ring {
+    animation: wsLoadPulse 2.4s ease-in-out infinite;
+  }
+  .ws-load-glow {
+    animation: wsLoadGlow 2.2s ease-in-out infinite;
+  }
+  .ws-load-mark {
+    animation: wsLoadMark 2.8s ease-in-out infinite;
+  }
+  .ws-load-label {
+    animation: wsLoadLabel 1.6s ease-in-out infinite;
+  }
+  .ws-load-enter {
+    animation: wsLoadEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .ws-load-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    animation: wsLoadDot 1.05s ease-in-out infinite;
+  }
+  .ws-load-dot-d2 {
+    animation-delay: 0.15s;
+  }
+  .ws-load-dot-d3 {
+    animation-delay: 0.3s;
+  }
+  .ws-load-shimmer {
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.55) 50%,
+      transparent 65%
+    );
+    background-size: 200% 100%;
+    animation: wsLoadShimmer 1.6s ease-in-out infinite;
+  }
+  .dark .ws-load-shimmer {
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 65%
+    );
+    background-size: 200% 100%;
+  }
+}
+
+@keyframes wsLoadSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wsLoadPulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes wsLoadGlow {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes wsLoadMark {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes wsLoadLabel {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes wsLoadEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes wsLoadDot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0) scale(0.9);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.05);
+  }
+}
+
+@keyframes wsLoadShimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -40% 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lp-reveal,
   .lp-hero-enter,
@@ -341,7 +480,16 @@
   .lp-float-d,
   .lp-cursor-ghost,
   .lp-pulse-ring,
-  .lp-btn-shine::after {
+  .lp-btn-shine::after,
+  .ws-load-spin,
+  .ws-load-spin-rev,
+  .ws-load-ring,
+  .ws-load-glow,
+  .ws-load-mark,
+  .ws-load-label,
+  .ws-load-enter,
+  .ws-load-dot,
+  .ws-load-shimmer {
     animation: none !important;
     transition: none !important;
     opacity: 1 !important;
