@@ -154,6 +154,32 @@ const nextConfig: NextConfig = {
     return buildBackendRewrites();
   },
   async headers() {
+    const marketingCache = {
+      key: 'Cache-Control',
+      value: 'public, s-maxage=60, stale-while-revalidate=300',
+    };
+
+    // Locale-prefixed public marketing pages only — never dashboard/auth.
+    const marketingSources = [
+      '/:locale(en|tr)',
+      '/:locale(en|tr)/demo',
+      '/:locale(en|tr)/pricing',
+      '/:locale(en|tr)/docs',
+      '/:locale(en|tr)/changelog',
+      '/:locale(en|tr)/blog',
+      '/:locale(en|tr)/community',
+      '/:locale(en|tr)/integrations',
+      '/:locale(en|tr)/about',
+      '/:locale(en|tr)/careers',
+      '/:locale(en|tr)/contact',
+      '/:locale(en|tr)/privacy',
+      '/:locale(en|tr)/terms',
+      '/:locale(en|tr)/features',
+      '/:locale(en|tr)/templates',
+      '/:locale(en|tr)/solutions/:path*',
+      '/:locale(en|tr)/platform/:path*',
+    ];
+
     return [
       {
         source: '/(.*)',
@@ -185,6 +211,10 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      ...marketingSources.map((source) => ({
+        source,
+        headers: [marketingCache],
+      })),
     ];
   },
 };
