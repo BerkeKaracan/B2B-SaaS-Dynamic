@@ -37,12 +37,16 @@ const megaPanel =
 const navTrigger =
   'text-[13px] font-bold text-zinc-500 group-hover:text-zinc-950 transition-colors flex items-center gap-1 px-3 py-2 rounded-xl hover:bg-zinc-100/80 group-hover:bg-zinc-100/80';
 
+const megaLabel =
+  'text-[10px] font-black text-zinc-400 uppercase tracking-[0.14em]';
+
 type ListLink = {
   href: string;
   icon: LucideIcon;
   titleKey: string;
   descKey: string;
   tone: string;
+  accent: string;
 };
 
 export default function LandingNavbar() {
@@ -73,40 +77,44 @@ export default function LandingNavbar() {
       icon: GitMerge,
       title: t('nav.engineeringProduct'),
       desc: t('nav.engineeringProductDesc'),
-      soft: 'from-sky-100 to-sky-50',
-      bar: 'bg-sky-500',
-      iconBg: 'bg-sky-50 border-sky-100 text-sky-600',
+      soft: 'from-sky-100/80 via-sky-50/40 to-transparent',
+      ring: 'group-hover/sol:ring-sky-200/80',
+      iconBg: 'bg-sky-50 text-sky-600 ring-sky-100',
       titleHover: 'group-hover/sol:text-sky-700',
+      dot: 'bg-sky-500',
     },
     {
       href: '/solutions/hr',
       icon: Users,
       title: t('nav.humanResources'),
       desc: t('nav.humanResourcesDesc'),
-      soft: 'from-rose-100 to-rose-50',
-      bar: 'bg-rose-500',
-      iconBg: 'bg-rose-50 border-rose-100 text-rose-600',
+      soft: 'from-rose-100/80 via-rose-50/40 to-transparent',
+      ring: 'group-hover/sol:ring-rose-200/80',
+      iconBg: 'bg-rose-50 text-rose-600 ring-rose-100',
       titleHover: 'group-hover/sol:text-rose-700',
+      dot: 'bg-rose-500',
     },
     {
       href: '/solutions/sales',
       icon: TrendingUp,
       title: t('nav.salesCrm'),
       desc: t('nav.salesCrmDesc'),
-      soft: 'from-emerald-100 to-emerald-50',
-      bar: 'bg-emerald-500',
-      iconBg: 'bg-emerald-50 border-emerald-100 text-emerald-600',
+      soft: 'from-emerald-100/80 via-emerald-50/40 to-transparent',
+      ring: 'group-hover/sol:ring-emerald-200/80',
+      iconBg: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
       titleHover: 'group-hover/sol:text-emerald-700',
+      dot: 'bg-emerald-500',
     },
     {
       href: '/solutions/operations',
       icon: Briefcase,
       title: t('nav.strategyOps'),
       desc: t('nav.strategyOpsDesc'),
-      soft: 'from-amber-100 to-amber-50',
-      bar: 'bg-amber-500',
-      iconBg: 'bg-amber-50 border-amber-100 text-amber-600',
+      soft: 'from-amber-100/80 via-amber-50/40 to-transparent',
+      ring: 'group-hover/sol:ring-amber-200/80',
+      iconBg: 'bg-amber-50 text-amber-600 ring-amber-100',
       titleHover: 'group-hover/sol:text-amber-700',
+      dot: 'bg-amber-500',
     },
   ];
 
@@ -116,35 +124,40 @@ export default function LandingNavbar() {
       icon: FileText,
       titleKey: 'documentation',
       descKey: 'docsDesc',
-      tone: 'bg-sky-50 border-sky-100 text-sky-600',
+      tone: 'bg-sky-50 text-sky-600 ring-sky-100',
+      accent: 'group-hover/link:bg-sky-50/70',
     },
     {
       href: '/changelog',
       icon: Activity,
       titleKey: 'changelog',
       descKey: 'changelogDesc',
-      tone: 'bg-amber-50 border-amber-100 text-amber-600',
+      tone: 'bg-amber-50 text-amber-600 ring-amber-100',
+      accent: 'group-hover/link:bg-amber-50/70',
     },
     {
       href: '/features',
       icon: Sparkles,
       titleKey: 'features',
       descKey: 'featuresDesc',
-      tone: 'bg-violet-50 border-violet-100 text-violet-600',
+      tone: 'bg-zinc-100 text-zinc-700 ring-zinc-200',
+      accent: 'group-hover/link:bg-zinc-50',
     },
     {
       href: '/templates',
       icon: LayoutGrid,
       titleKey: 'templates',
       descKey: 'templatesDesc',
-      tone: 'bg-emerald-50 border-emerald-100 text-emerald-600',
+      tone: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+      accent: 'group-hover/link:bg-emerald-50/70',
     },
     {
       href: '/integrations',
       icon: Puzzle,
       titleKey: 'integrations',
       descKey: 'integrationsDesc',
-      tone: 'bg-teal-50 border-teal-100 text-teal-600',
+      tone: 'bg-teal-50 text-teal-600 ring-teal-100',
+      accent: 'group-hover/link:bg-teal-50/70',
     },
   ];
 
@@ -154,91 +167,100 @@ export default function LandingNavbar() {
       icon: Building2,
       titleKey: 'about',
       descKey: 'aboutDesc',
-      tone: 'bg-zinc-100 border-zinc-200 text-zinc-700',
+      tone: 'bg-zinc-100 text-zinc-700 ring-zinc-200',
+      accent: 'group-hover/link:bg-zinc-50',
     },
     {
       href: '/careers',
       icon: Briefcase,
       titleKey: 'careers',
       descKey: 'careersDesc',
-      tone: 'bg-sky-50 border-sky-100 text-sky-600',
+      tone: 'bg-sky-50 text-sky-600 ring-sky-100',
+      accent: 'group-hover/link:bg-sky-50/70',
     },
     {
       href: '/blog',
       icon: Newspaper,
       titleKey: 'blog',
       descKey: 'blogDesc',
-      tone: 'bg-amber-50 border-amber-100 text-amber-600',
+      tone: 'bg-amber-50 text-amber-600 ring-amber-100',
+      accent: 'group-hover/link:bg-amber-50/70',
     },
     {
       href: '/contact',
       icon: Mail,
       titleKey: 'contact',
       descKey: 'contactDesc',
-      tone: 'bg-emerald-50 border-emerald-100 text-emerald-600',
+      tone: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+      accent: 'group-hover/link:bg-emerald-50/70',
     },
     {
       href: '/community',
       icon: HeartHandshake,
       titleKey: 'community',
       descKey: 'communityDesc',
-      tone: 'bg-rose-50 border-rose-100 text-rose-600',
+      tone: 'bg-rose-50 text-rose-600 ring-rose-100',
+      accent: 'group-hover/link:bg-rose-50/70',
     },
   ];
 
   const renderListMega = (links: ListLink[], featuredDemo = false) => (
-    <div className="p-3 space-y-1">
-      {links.map((item) => {
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="group/link flex items-start gap-3 rounded-2xl p-3 border border-transparent hover:border-zinc-200 hover:bg-zinc-50/90 transition-all"
-          >
-            <div
-              className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${item.tone}`}
+    <div className="p-2.5">
+      <div className="space-y-0.5">
+        {links.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`group/link flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors ${item.accent}`}
             >
-              <Icon className="w-4 h-4" />
-            </div>
-            <div className="min-w-0 pt-0.5">
-              <p className="text-[13px] font-bold text-zinc-900">
-                {t(`nav.${item.titleKey}`)}
-              </p>
-              <p className="text-[11px] font-medium text-zinc-500 mt-0.5">
-                {t(`nav.${item.descKey}`)}
-              </p>
-            </div>
-          </Link>
-        );
-      })}
+              <div
+                className={`w-9 h-9 rounded-xl ring-1 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover/link:scale-105 ${item.tone}`}
+              >
+                <Icon className="w-4 h-4" strokeWidth={2} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-bold text-zinc-900 leading-tight">
+                  {t(`nav.${item.titleKey}`)}
+                </p>
+                <p className="text-[11px] font-medium text-zinc-500 mt-0.5 leading-snug truncate">
+                  {t(`nav.${item.descKey}`)}
+                </p>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-zinc-300 opacity-0 -translate-x-1 group-hover/link:opacity-100 group-hover/link:translate-x-0 transition-all shrink-0" />
+            </Link>
+          );
+        })}
+      </div>
       {featuredDemo ? (
-        <div className="pt-1">
+        <div className="pt-2 mt-1.5 border-t border-zinc-100">
           <Link
             href="/demo"
-            className="group/hub relative block overflow-hidden rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-4 hover:shadow-md transition-all"
+            className="group/hub relative block overflow-hidden rounded-2xl bg-zinc-950 p-4 transition-transform duration-300 hover:-translate-y-0.5"
           >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-400/10 rounded-full blur-2xl" />
-            <div className="relative flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-100/80 border border-emerald-200 px-2 py-0.5 rounded-full">
-                <Sparkles className="w-2.5 h-2.5" />
-                {t('nav.featured')}
-              </span>
-            </div>
+            <div className="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full bg-emerald-400/25 blur-2xl" />
+            <div className="pointer-events-none absolute -left-4 bottom-0 h-20 w-20 rounded-full bg-sky-500/20 blur-2xl" />
             <div className="relative flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white border border-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-white/10 ring-1 ring-white/15 text-emerald-300 flex items-center justify-center shrink-0">
                 <Rocket className="w-4 h-4" />
               </div>
-              <div className="min-w-0">
-                <p className="text-sm font-black text-zinc-900 group-hover/hub:text-emerald-800 transition-colors">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-300/90">
+                    <Sparkles className="w-2.5 h-2.5" />
+                    {t('nav.featured')}
+                  </span>
+                </div>
+                <p className="text-sm font-black text-white tracking-tight">
                   {t('nav.templateHub')}
                 </p>
-                <p className="text-[11px] font-medium text-zinc-500 mt-0.5 leading-relaxed">
+                <p className="text-[11px] font-medium text-zinc-400 mt-0.5 leading-relaxed">
                   {t('nav.hubDesc')}
                 </p>
-                <span className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-emerald-700">
+                <span className="inline-flex items-center gap-1 mt-2.5 text-[11px] font-bold text-emerald-300">
                   {t('nav.livePreview')}
-                  <ArrowRight className="w-3 h-3" />
+                  <ArrowRight className="w-3 h-3 transition-transform group-hover/hub:translate-x-0.5" />
                 </span>
               </div>
             </div>
@@ -273,130 +295,136 @@ export default function LandingNavbar() {
               </button>
               <div className="absolute top-full inset-x-0 h-3 z-40" />
               <div
-                className={`${megaPanel} left-1/2 -translate-x-1/2 w-[700px] -translate-y-1 group-hover:translate-y-0`}
+                className={`${megaPanel} left-1/2 -translate-x-1/2 w-[720px] -translate-y-1 group-hover:translate-y-0`}
               >
                 <div className="flex">
-                  <div className="flex-1 p-5 space-y-3">
-                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">
+                  <div className="flex-1 p-5">
+                    <span className={megaLabel}>
                       {t('nav.coreCapabilities')}
                     </span>
 
-                    <Link
-                      href="/platform/canvas"
-                      className="group/feature relative flex overflow-hidden rounded-2xl border border-zinc-200/80 bg-white hover:border-sky-200 hover:shadow-md transition-all"
-                    >
-                      <div className="w-[88px] shrink-0 bg-gradient-to-br from-sky-100 to-sky-50 border-r border-sky-100/80 relative">
-                        <div className="absolute inset-0 opacity-50 p-3">
-                          <div className="h-1.5 w-3/4 rounded-full bg-white/80 mb-2" />
-                          <div className="h-1.5 w-1/2 rounded-full bg-white/60 mb-3" />
-                          <div className="grid grid-cols-2 gap-1">
-                            <div className="h-6 rounded-md bg-white/70" />
-                            <div className="h-6 rounded-md bg-white/50" />
+                    <div className="mt-4 space-y-2">
+                      <Link
+                        href="/platform/canvas"
+                        className="group/feature relative flex items-stretch gap-4 rounded-2xl p-3 -mx-1 transition-colors hover:bg-sky-50/60"
+                      >
+                        <div className="relative w-[92px] h-[78px] shrink-0 rounded-xl overflow-hidden bg-gradient-to-br from-sky-100 to-sky-50 ring-1 ring-sky-100/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                          <div className="absolute inset-2.5 flex flex-col gap-1.5 opacity-70">
+                            <div className="h-1.5 w-3/4 rounded-full bg-white/90" />
+                            <div className="h-1.5 w-1/2 rounded-full bg-white/70" />
+                            <div className="mt-auto grid grid-cols-2 gap-1">
+                              <div className="h-5 rounded-md bg-white/80 shadow-sm" />
+                              <div className="h-5 rounded-md bg-white/55" />
+                            </div>
                           </div>
+                          <div className="absolute bottom-0 inset-x-0 h-0.5 bg-sky-500" />
                         </div>
-                        <div className="absolute bottom-0 inset-x-0 h-1 bg-sky-500" />
-                      </div>
-                      <div className="flex-1 p-4 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="w-7 h-7 rounded-lg bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center group-hover/feature:scale-110 transition-transform">
-                            <Layers className="w-3.5 h-3.5" />
+                        <div className="flex-1 min-w-0 py-0.5">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-7 h-7 rounded-lg bg-sky-50 ring-1 ring-sky-100 text-sky-600 flex items-center justify-center transition-transform duration-300 group-hover/feature:scale-110">
+                              <Layers className="w-3.5 h-3.5" />
+                            </div>
+                            <h4 className="text-sm font-black text-zinc-900 tracking-tight group-hover/feature:text-sky-700 transition-colors">
+                              {t('nav.spatialCanvas')}
+                            </h4>
                           </div>
-                          <h4 className="text-sm font-black text-zinc-900 group-hover/feature:text-sky-700 transition-colors">
-                            {t('nav.spatialCanvas')}
-                          </h4>
+                          <p className="text-[12px] text-zinc-500 font-medium leading-relaxed pr-6">
+                            {t('nav.spatialCanvasDesc')}
+                          </p>
                         </div>
-                        <p className="text-[11px] text-zinc-500 font-medium leading-relaxed">
-                          {t('nav.spatialCanvasDesc')}
-                        </p>
-                      </div>
-                      <ArrowRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300 opacity-0 group-hover/feature:opacity-100 group-hover/feature:translate-x-0.5 transition-all" />
-                    </Link>
+                        <ArrowRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sky-400 opacity-0 translate-x-[-4px] group-hover/feature:opacity-100 group-hover/feature:translate-x-0 transition-all" />
+                      </Link>
 
-                    <Link
-                      href="/platform/sync"
-                      className="group/feature relative flex overflow-hidden rounded-2xl border border-zinc-200/80 bg-white hover:border-emerald-200 hover:shadow-md transition-all"
-                    >
-                      <div className="w-[88px] shrink-0 bg-gradient-to-br from-emerald-100 to-emerald-50 border-r border-emerald-100/80 relative">
-                        <div className="absolute inset-0 opacity-50 p-3 flex flex-col justify-center gap-1.5">
-                          <div className="h-2 rounded-full bg-white/80 w-full" />
-                          <div className="h-2 rounded-full bg-white/60 w-4/5" />
-                          <div className="h-2 rounded-full bg-white/40 w-3/5" />
-                        </div>
-                        <div className="absolute bottom-0 inset-x-0 h-1 bg-emerald-500" />
-                      </div>
-                      <div className="flex-1 p-4 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center group-hover/feature:scale-110 transition-transform">
-                            <Radio className="w-3.5 h-3.5" />
+                      <Link
+                        href="/platform/sync"
+                        className="group/feature relative flex items-stretch gap-4 rounded-2xl p-3 -mx-1 transition-colors hover:bg-emerald-50/60"
+                      >
+                        <div className="relative w-[92px] h-[78px] shrink-0 rounded-xl overflow-hidden bg-gradient-to-br from-emerald-100 to-emerald-50 ring-1 ring-emerald-100/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                          <div className="absolute inset-0 flex flex-col justify-center gap-1.5 px-3 opacity-70">
+                            <div className="h-2 rounded-full bg-white/90 w-full" />
+                            <div className="h-2 rounded-full bg-white/70 w-4/5" />
+                            <div className="h-2 rounded-full bg-white/50 w-3/5" />
                           </div>
-                          <h4 className="text-sm font-black text-zinc-900 group-hover/feature:text-emerald-700 transition-colors">
-                            {t('nav.realTimeSync')}
-                          </h4>
+                          <div className="absolute bottom-0 inset-x-0 h-0.5 bg-emerald-500" />
                         </div>
-                        <p className="text-[11px] text-zinc-500 font-medium leading-relaxed">
-                          {t('nav.realTimeSyncDesc')}
-                        </p>
-                      </div>
-                      <ArrowRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300 opacity-0 group-hover/feature:opacity-100 transition-all" />
-                    </Link>
+                        <div className="flex-1 min-w-0 py-0.5">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-7 h-7 rounded-lg bg-emerald-50 ring-1 ring-emerald-100 text-emerald-600 flex items-center justify-center transition-transform duration-300 group-hover/feature:scale-110">
+                              <Radio className="w-3.5 h-3.5" />
+                            </div>
+                            <h4 className="text-sm font-black text-zinc-900 tracking-tight group-hover/feature:text-emerald-700 transition-colors">
+                              {t('nav.realTimeSync')}
+                            </h4>
+                          </div>
+                          <p className="text-[12px] text-zinc-500 font-medium leading-relaxed pr-6">
+                            {t('nav.realTimeSyncDesc')}
+                          </p>
+                        </div>
+                        <ArrowRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400 opacity-0 translate-x-[-4px] group-hover/feature:opacity-100 group-hover/feature:translate-x-0 transition-all" />
+                      </Link>
+                    </div>
                   </div>
 
-                  <div className="w-[240px] relative border-l border-zinc-100 p-5 flex flex-col gap-3 bg-[#F7F9FB]">
-                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(20,184,166,0.10),_transparent_60%)]" />
-                    <span className="relative text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                  <div className="w-[248px] relative border-l border-zinc-100/90 p-5 flex flex-col gap-2.5 bg-[linear-gradient(180deg,#F8FAFB_0%,#F3F6F8_100%)]">
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(20,184,166,0.09),_transparent_55%)]" />
+                    <span className={`relative ${megaLabel}`}>
                       {t('nav.securityData')}
                     </span>
 
                     <Link
                       href="/platform/rbac"
-                      className="relative group/item rounded-2xl border border-zinc-200/70 bg-white/90 p-3.5 hover:border-teal-200 hover:shadow-sm transition-all"
+                      className="relative group/item rounded-2xl bg-white/80 ring-1 ring-zinc-200/60 p-3.5 hover:ring-teal-200 hover:shadow-[0_8px_24px_-12px_rgba(13,148,136,0.35)] transition-all"
                     >
                       <div className="flex items-center gap-2.5 mb-1.5">
-                        <div className="w-8 h-8 rounded-xl bg-teal-50 border border-teal-100 text-teal-600 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-xl bg-teal-50 ring-1 ring-teal-100 text-teal-600 flex items-center justify-center">
                           <Lock className="w-3.5 h-3.5" />
                         </div>
                         <h4 className="text-[13px] font-bold text-zinc-900 group-hover/item:text-teal-700 transition-colors">
                           {t('nav.enterpriseRbac')}
                         </h4>
                       </div>
-                      <p className="text-[10px] text-zinc-500 font-medium leading-relaxed">
+                      <p className="text-[11px] text-zinc-500 font-medium leading-relaxed">
                         {t('nav.enterpriseRbacDesc')}
                       </p>
                     </Link>
 
                     <Link
                       href="/platform/storage"
-                      className="relative group/item rounded-2xl border border-zinc-200/70 bg-white/90 p-3.5 hover:border-amber-200 hover:shadow-sm transition-all"
+                      className="relative group/item rounded-2xl bg-white/80 ring-1 ring-zinc-200/60 p-3.5 hover:ring-amber-200 hover:shadow-[0_8px_24px_-12px_rgba(217,119,6,0.28)] transition-all"
                     >
                       <div className="flex items-center gap-2.5 mb-1.5">
-                        <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-xl bg-amber-50 ring-1 ring-amber-100 text-amber-600 flex items-center justify-center">
                           <Cloud className="w-3.5 h-3.5" />
                         </div>
                         <h4 className="text-[13px] font-bold text-zinc-900 group-hover/item:text-amber-700 transition-colors">
                           {t('nav.cloudStorage')}
                         </h4>
                       </div>
-                      <p className="text-[10px] text-zinc-500 font-medium leading-relaxed">
+                      <p className="text-[11px] text-zinc-500 font-medium leading-relaxed">
                         {t('nav.cloudStorageDesc')}
                       </p>
                     </Link>
                   </div>
                 </div>
 
-                <div className="border-t border-zinc-100 bg-zinc-50/80 px-5 py-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-zinc-800 truncate">
-                      {t('nav.exploreDocs')}
-                    </p>
-                    <p className="text-[10px] font-medium text-zinc-500 truncate">
-                      {t('nav.exploreDocsDesc')}
-                    </p>
+                <div className="border-t border-zinc-100 bg-zinc-50/70 px-5 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex items-center gap-3">
+                    <div className="hidden sm:flex w-8 h-8 rounded-lg bg-white ring-1 ring-zinc-200 text-zinc-500 items-center justify-center shrink-0">
+                      <BookOpen className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-zinc-800 truncate">
+                        {t('nav.exploreDocs')}
+                      </p>
+                      <p className="text-[10px] font-medium text-zinc-500 truncate">
+                        {t('nav.exploreDocsDesc')}
+                      </p>
+                    </div>
                   </div>
                   <Link
                     href="/docs"
                     className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-950 text-white text-xs font-bold hover:bg-sky-600 transition-colors"
                   >
-                    <BookOpen className="w-3.5 h-3.5" />
                     {t('nav.docsShort')}
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
@@ -412,55 +440,58 @@ export default function LandingNavbar() {
               </button>
               <div className="absolute top-full inset-x-0 h-3 z-40" />
               <div
-                className={`${megaPanel} left-1/2 -translate-x-1/2 w-[560px] -translate-y-1 group-hover:translate-y-0`}
+                className={`${megaPanel} left-1/2 -translate-x-1/2 w-[580px] -translate-y-1 group-hover:translate-y-0`}
               >
                 <div className="p-5">
-                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                  <span className={megaLabel}>
                     {t('nav.industryUseCases')}
                   </span>
-                  <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className="grid grid-cols-2 gap-2.5 mt-4">
                     {solutions.map((item) => {
                       const Icon = item.icon;
                       return (
                         <Link
                           key={item.href}
                           href={item.href}
-                          className="group/sol relative flex flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white hover:shadow-md hover:-translate-y-0.5 hover:border-zinc-300 transition-all"
+                          className={`group/sol relative overflow-hidden rounded-2xl bg-white ring-1 ring-zinc-200/70 p-3.5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-20px_rgba(24,24,27,0.28)] ${item.ring}`}
                         >
                           <div
-                            className={`relative h-16 bg-gradient-to-br ${item.soft} border-b border-zinc-100`}
-                          >
+                            className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${item.soft} opacity-80`}
+                          />
+                          <div className="relative flex items-start gap-3">
                             <div
-                              className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-xl border flex items-center justify-center bg-white/90 backdrop-blur ${item.iconBg}`}
+                              className={`w-9 h-9 rounded-xl ring-1 flex items-center justify-center shrink-0 bg-white/90 shadow-sm transition-transform duration-300 group-hover/sol:scale-105 ${item.iconBg}`}
                             >
-                              <Icon className="w-3.5 h-3.5" />
+                              <Icon className="w-4 h-4" />
                             </div>
-                            <div
-                              className={`absolute bottom-0 inset-x-0 h-1 ${item.bar} opacity-80`}
-                            />
-                          </div>
-                          <div className="p-3.5">
-                            <h4
-                              className={`text-xs font-black text-zinc-900 transition-colors ${item.titleHover}`}
-                            >
-                              {item.title}
-                            </h4>
-                            <p className="text-[11px] text-zinc-500 font-medium mt-1 leading-relaxed">
-                              {item.desc}
-                            </p>
+                            <div className="min-w-0 flex-1 pt-0.5">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${item.dot}`}
+                                />
+                                <h4
+                                  className={`text-[13px] font-black text-zinc-900 tracking-tight transition-colors ${item.titleHover}`}
+                                >
+                                  {item.title}
+                                </h4>
+                              </div>
+                              <p className="text-[11px] text-zinc-500 font-medium leading-relaxed">
+                                {item.desc}
+                              </p>
+                            </div>
                           </div>
                         </Link>
                       );
                     })}
                   </div>
                 </div>
-                <div className="border-t border-zinc-100 bg-zinc-50/80 px-5 py-3 flex items-center justify-between">
+                <div className="border-t border-zinc-100 bg-zinc-50/70 px-5 py-3 flex items-center justify-between">
                   <p className="text-xs font-bold text-zinc-700">
                     {t('nav.browseTemplates')}
                   </p>
                   <Link
                     href="/templates"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-sky-700 hover:text-sky-800"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-sky-700 hover:text-sky-800 transition-colors"
                   >
                     {t('nav.open')}
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -618,7 +649,7 @@ export default function LandingNavbar() {
               </div>
 
               <div>
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1 mb-2">
+                <p className={`${megaLabel} px-1 mb-2`}>
                   {t('nav.solutions')}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -629,22 +660,18 @@ export default function LandingNavbar() {
                         key={item.href}
                         href={item.href}
                         onClick={closeMobile}
-                        className="rounded-2xl border border-zinc-200/80 overflow-hidden bg-white"
+                        className="relative overflow-hidden rounded-2xl ring-1 ring-zinc-200/80 bg-white p-3"
                       >
                         <div
-                          className={`h-10 bg-gradient-to-br ${item.soft} relative`}
-                        >
+                          className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${item.soft}`}
+                        />
+                        <div className="relative flex items-center gap-2">
                           <div
-                            className={`absolute bottom-0 inset-x-0 h-0.5 ${item.bar}`}
-                          />
-                          <div
-                            className={`absolute right-2 top-2 w-6 h-6 rounded-lg border flex items-center justify-center bg-white/90 ${item.iconBg}`}
+                            className={`w-7 h-7 rounded-lg ring-1 flex items-center justify-center bg-white/90 shrink-0 ${item.iconBg}`}
                           >
-                            <Icon className="w-3 h-3" />
+                            <Icon className="w-3.5 h-3.5" />
                           </div>
-                        </div>
-                        <div className="p-2.5">
-                          <p className="text-[11px] font-bold text-zinc-900 leading-snug">
+                          <p className="text-[11px] font-bold text-zinc-900 leading-snug min-w-0">
                             {item.title}
                           </p>
                         </div>
