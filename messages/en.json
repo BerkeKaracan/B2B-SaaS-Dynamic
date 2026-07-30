@@ -416,38 +416,63 @@
   "TemplatesPage": {
     "back": "Go Back",
     "badge": "Template Gallery",
-    "title": "Start instantly with pre-built workflows.",
-    "subtitle": "Don't build from scratch. Choose a template designed for your industry and customize it in seconds.",
-    "cards": {
-      "agile": {
-        "title": "Agile Sprint Board",
-        "desc": "Perfect for dev teams. Includes backlog, active sprint, and bug tracking kanban views."
+    "title": "Real project templates you can create today.",
+    "subtitle": "These are the same templates in WORKSPACE OS project creation — infinite canvas plus standalone boards. No industry packs, no invented workflows.",
+    "kind": {
+      "canvas": "Infinite canvas",
+      "board": "Standalone board"
+    },
+    "openCta": "Create workspace",
+    "items": {
+      "blank": {
+        "title": "Blank",
+        "desc": "Infinite spatial canvas for freeform blocks, connections, and embedded board frames."
       },
-      "onboarding": {
-        "title": "Employee Onboarding",
-        "desc": "A step-by-step spatial canvas to get new hires up to speed with company policies."
+      "kanban": {
+        "title": "Kanban",
+        "desc": "Task board with columns, priorities, assignees, dates, saved views, and optional GitHub linking."
       },
-      "crm": {
-        "title": "Sales CRM Pipeline",
-        "desc": "Track deals, calculate win rates, and manage client contacts with dynamic databases."
+      "document": {
+        "title": "Document",
+        "desc": "Long-form notes and writing surface for specs, handoffs, and living docs."
       },
-      "roadmap": {
-        "title": "Product Roadmap",
-        "desc": "A high-level timeline view to align stakeholders on Q1-Q4 deliverables."
+      "whiteboard": {
+        "title": "Whiteboard",
+        "desc": "Freehand pen, highlighter, and eraser with floating text for sketches and workshops."
       },
-      "okr": {
-        "title": "Company OKRs",
-        "desc": "Keep track of objectives and key results with connected progress blocks."
+      "timeline": {
+        "title": "Timeline",
+        "desc": "Day-lane schedule with drag events, filters, and saved views."
       },
-      "content": {
-        "title": "Content Calendar",
-        "desc": "Plan, draft, and publish your marketing content with collaborative text blocks."
+      "database": {
+        "title": "Database",
+        "desc": "Typed columns and rows with filter, sort, saved views, and export."
+      },
+      "mindmap": {
+        "title": "Mindmap",
+        "desc": "Hierarchical idea nodes with pan/zoom and PNG export."
+      },
+      "retrospective": {
+        "title": "Retrospective",
+        "desc": "Glad / Sad / Mad columns with votes for sprint retros."
       }
     },
     "cta": {
-      "title": "Can't find what you need?",
-      "subtitle": "Start with a blank canvas and let our AI generate a custom workflow for you.",
-      "button": "Create Custom Workspace"
+      "title": "Ready to open a workspace?",
+      "subtitle": "Register, create a project, and pick any of these templates — the same list you see here.",
+      "button": "Create free workspace",
+      "demo": "View live demo"
+    },
+    "related": {
+      "title": "Related",
+      "demo": "Live demo",
+      "demoDesc": "Browse public shared workspaces without an account.",
+      "features": "Features",
+      "featuresDesc": "Canvas, sync, RBAC, and storage at a glance.",
+      "docs": "Docs",
+      "docsDesc": "Architecture and how the product is put together.",
+      "canvas": "Spatial canvas",
+      "canvasDesc": "How the infinite Blank canvas works."
     }
   },
   "BlogPage": {

@@ -416,38 +416,63 @@
   "TemplatesPage": {
     "back": "Geri Dön",
     "badge": "Şablon Galerisi",
-    "title": "Hazır iş akışlarıyla anında başlayın.",
-    "subtitle": "Sıfırdan inşa etmeyin. Sektörünüz için tasarlanmış bir şablon seçin ve saniyeler içinde özelleştirin.",
-    "cards": {
-      "agile": {
-        "title": "Çevik (Agile) Sprint Panosu",
-        "desc": "Geliştirici ekipler için idealdir. Backlog, aktif sprint ve hata takibi görünümlerini içerir."
+    "title": "Bugün oluşturabileceğiniz gerçek proje şablonları.",
+    "subtitle": "Bunlar WORKSPACE OS’ta proje oluştururken gördüğünüz aynı şablonlar — sonsuz tuval ve bağımsız panolar. Sektör paketi veya uydurma iş akışı yok.",
+    "kind": {
+      "canvas": "Sonsuz tuval",
+      "board": "Bağımsız pano"
+    },
+    "openCta": "Çalışma alanı oluştur",
+    "items": {
+      "blank": {
+        "title": "Blank",
+        "desc": "Serbest bloklar, bağlantılar ve gömülü pano çerçeveleri için sonsuz uzamsal tuval."
       },
-      "onboarding": {
-        "title": "Personel İşe Alımı",
-        "desc": "Yeni çalışanların şirket politikalarına hızla alışması için adım adım uzamsal tuval."
+      "kanban": {
+        "title": "Kanban",
+        "desc": "Sütunlar, öncelikler, atananlar, tarihler, kayıtlı görünümler ve isteğe bağlı GitHub bağlantısı."
       },
-      "crm": {
-        "title": "Satış CRM Hunisi",
-        "desc": "Anlaşmaları takip edin, kazanma oranlarını hesaplayın ve dinamik veritabanlarıyla müşterileri yönetin."
+      "document": {
+        "title": "Document",
+        "desc": "Spesifikasyonlar, aktarımlar ve yaşayan dokümanlar için uzun metin yüzeyi."
       },
-      "roadmap": {
-        "title": "Ürün Yol Haritası",
-        "desc": "Tüm paydaşları hedeflerde hizalamak için üst düzey bir zaman çizelgesi (timeline) görünümü."
+      "whiteboard": {
+        "title": "Whiteboard",
+        "desc": "Kalem, fosforlu ve silgi ile serbest çizim; kayan metin ile eskiz ve workshop."
       },
-      "okr": {
-        "title": "Şirket OKR'ları",
-        "desc": "Bağlantılı ilerleme bloklarıyla hedefleri ve kilit sonuçları takip edin."
+      "timeline": {
+        "title": "Timeline",
+        "desc": "Sürükle-bırak etkinlikler, filtreler ve kayıtlı görünümlerle gün şeritli takvim."
       },
-      "content": {
-        "title": "İçerik Takvimi",
-        "desc": "Ortak çalışma bloklarıyla pazarlama içeriklerinizi planlayın, taslağını çıkarın ve yayınlayın."
+      "database": {
+        "title": "Database",
+        "desc": "Tipli sütunlar ve satırlar; filtre, sıralama, kayıtlı görünümler ve dışa aktarma."
+      },
+      "mindmap": {
+        "title": "Mindmap",
+        "desc": "Hiyerarşik fikir düğümleri; kaydır/yakınlaştır ve PNG dışa aktarma."
+      },
+      "retrospective": {
+        "title": "Retrospective",
+        "desc": "Sprint retros için Glad / Sad / Mad sütunları ve oylama."
       }
     },
     "cta": {
-      "title": "Aradığınızı bulamadınız mı?",
-      "subtitle": "Boş bir tuvalle başlayın ve yapay zekamızın size özel bir iş akışı oluşturmasına izin verin.",
-      "button": "Özel Çalışma Alanı Oluştur"
+      "title": "Çalışma alanı açmaya hazır mısınız?",
+      "subtitle": "Kayıt olun, proje oluşturun ve buradaki listeden bir şablon seçin — ürün içindeki listeyle aynı.",
+      "button": "Ücretsiz çalışma alanı oluştur",
+      "demo": "Canlı demoyu gör"
+    },
+    "related": {
+      "title": "İlgili",
+      "demo": "Canlı demo",
+      "demoDesc": "Hesap olmadan herkese açık paylaşılan çalışma alanlarına bakın.",
+      "features": "Özellikler",
+      "featuresDesc": "Tuval, senkron, RBAC ve depolamaya genel bakış.",
+      "docs": "Dokümantasyon",
+      "docsDesc": "Mimari ve ürünün nasıl kurulduğu.",
+      "canvas": "Uzamsal tuval",
+      "canvasDesc": "Sonsuz Blank tuvalin nasıl çalıştığı."
     }
   },
   "BlogPage": {
