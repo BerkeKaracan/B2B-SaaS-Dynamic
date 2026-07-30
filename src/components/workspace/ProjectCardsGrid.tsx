@@ -37,7 +37,10 @@ import {
   Star,
   Filter,
   X,
-  ArrowUpDown,
+  ArrowDownAZ,
+  ArrowUpAZ,
+  Check,
+  type LucideIcon,
 } from 'lucide-react';
 import { logActivity } from '@/lib/activityLogger';
 
@@ -58,9 +61,124 @@ type ProjectRecord = {
 
 type VisibilityFilter = 'all' | 'public' | 'just_admin';
 type SortOption = 'recent' | 'name_asc' | 'name_desc';
+type FilterMenuId = 'template' | 'visibility' | 'sort';
 
-const selectClassName =
-  'appearance-none h-10 pl-9 pr-8 bg-white/90 dark:bg-zinc-950/80 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-[13px] font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 transition-all cursor-pointer min-w-[9.5rem] hover:border-zinc-300 dark:hover:border-zinc-700';
+type FilterOption = {
+  value: string;
+  label: string;
+  icon: LucideIcon;
+  iconClassName?: string;
+};
+
+const filterTriggerClassName =
+  'appearance-none h-10 pl-2.5 pr-8 bg-white/90 dark:bg-zinc-950/80 border border-zinc-200/90 dark:border-zinc-800 rounded-xl text-[13px] font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 transition-all cursor-pointer min-w-[9.5rem] hover:border-zinc-300 dark:hover:border-zinc-700 inline-flex items-center gap-2 w-full text-left';
+
+function FilterIconSelect({
+  menuId,
+  openMenu,
+  setOpenMenu,
+  value,
+  onChange,
+  options,
+  ariaLabel,
+}: {
+  menuId: FilterMenuId;
+  openMenu: FilterMenuId | null;
+  setOpenMenu: (id: FilterMenuId | null) => void;
+  value: string;
+  onChange: (value: string) => void;
+  options: FilterOption[];
+  ariaLabel: string;
+}) {
+  const open = openMenu === menuId;
+  const selected = options.find((o) => o.value === value) ?? options[0];
+  const SelectedIcon = selected.icon;
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpenMenu(open ? null : menuId)}
+        className={filterTriggerClassName}
+      >
+        <span
+          className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+            open
+              ? 'bg-sky-50 dark:bg-sky-500/15 text-sky-600 dark:text-sky-400'
+              : 'bg-zinc-100/90 dark:bg-zinc-800/80 text-zinc-500 dark:text-zinc-400'
+          }`}
+        >
+          <SelectedIcon
+            className={`w-3.5 h-3.5 ${selected.iconClassName ?? ''}`}
+          />
+        </span>
+        <span className="truncate flex-1">{selected.label}</span>
+      </button>
+      <ChevronDown
+        className={`absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none transition-transform duration-200 ${
+          open ? 'rotate-180 text-sky-500' : ''
+        }`}
+      />
+      {open ? (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setOpenMenu(null)}
+            aria-hidden
+          />
+          <div
+            role="listbox"
+            aria-label={ariaLabel}
+            className="absolute left-0 top-[calc(100%+6px)] z-50 min-w-full w-max max-w-[18rem] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-zinc-200/90 dark:border-zinc-800 rounded-xl shadow-[0_16px_40px_-18px_rgba(24,24,27,0.35)] py-1 max-h-64 overflow-y-auto animate-in fade-in zoom-in-95 duration-150 origin-top"
+          >
+            {options.map((opt) => {
+              const Icon = opt.icon;
+              const active = opt.value === value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpenMenu(null);
+                  }}
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 text-left text-[13px] transition-colors ${
+                    active
+                      ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-800 dark:text-sky-300 font-semibold'
+                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 font-medium'
+                  }`}
+                >
+                  <span
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                      active
+                        ? 'bg-white dark:bg-zinc-950 text-sky-600 dark:text-sky-400 shadow-sm ring-1 ring-sky-100 dark:ring-sky-500/20'
+                        : 'bg-zinc-100/80 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'
+                    }`}
+                  >
+                    <Icon
+                      className={`w-3.5 h-3.5 ${!active && opt.iconClassName ? opt.iconClassName : ''}`}
+                    />
+                  </span>
+                  <span className="flex-1 truncate pr-1">{opt.label}</span>
+                  {active ? (
+                    <Check className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
+                  ) : (
+                    <span className="w-3.5 h-3.5 shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
+    </>
+  );
+}
 
 const formatTimeAgo = (dateStr?: string) => {
   if (!dateStr) return 'Just now';
@@ -104,6 +222,9 @@ export default function ProjectCardsGrid({
   const [visibilityFilter, setVisibilityFilter] =
     useState<VisibilityFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('recent');
+  const [openFilterMenu, setOpenFilterMenu] = useState<FilterMenuId | null>(
+    null
+  );
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectFolder, setNewProjectFolder] = useState('');
   const [newProjectVisibility, setNewProjectVisibility] = useState('public');
@@ -700,6 +821,7 @@ export default function ProjectCardsGrid({
     setTemplateFilter('all');
     setVisibilityFilter('all');
     setSortBy('recent');
+    setOpenFilterMenu(null);
   };
 
   return (
@@ -758,7 +880,11 @@ export default function ProjectCardsGrid({
         )}
       </div>
 
-      <div className="relative z-10 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div
+        className={`relative mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500 ${
+          openFilterMenu ? 'z-40' : 'z-20'
+        }`}
+      >
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
           <div className="relative group min-w-0 flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none group-focus-within:text-sky-600 transition-colors" />
@@ -790,54 +916,93 @@ export default function ProjectCardsGrid({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <div className="relative">
-              <LayoutTemplate className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-              <select
+            <div
+              className={`relative ${openFilterMenu === 'template' ? 'z-50' : 'z-0'}`}
+            >
+              <FilterIconSelect
+                menuId="template"
+                openMenu={openFilterMenu}
+                setOpenMenu={setOpenFilterMenu}
                 value={templateFilter}
-                onChange={(e) => setTemplateFilter(e.target.value)}
-                className={selectClassName}
-                aria-label={t('filters.template')}
-              >
-                <option value="all">{t('filters.allTemplates')}</option>
-                {TEMPLATES.map((temp) => (
-                  <option key={temp.id} value={temp.id}>
-                    {temp.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+                onChange={setTemplateFilter}
+                ariaLabel={t('filters.template')}
+                options={[
+                  {
+                    value: 'all',
+                    label: t('filters.allTemplates'),
+                    icon: LayoutTemplate,
+                  },
+                  ...TEMPLATES.map((temp) => ({
+                    value: temp.id,
+                    label: temp.label,
+                    icon: temp.icon,
+                    iconClassName: temp.color,
+                  })),
+                ]}
+              />
             </div>
 
-            <div className="relative">
-              <Shield className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-              <select
+            <div
+              className={`relative ${openFilterMenu === 'visibility' ? 'z-50' : 'z-0'}`}
+            >
+              <FilterIconSelect
+                menuId="visibility"
+                openMenu={openFilterMenu}
+                setOpenMenu={setOpenFilterMenu}
                 value={visibilityFilter}
-                onChange={(e) =>
-                  setVisibilityFilter(e.target.value as VisibilityFilter)
-                }
-                className={selectClassName}
-                aria-label={t('filters.visibility')}
-              >
-                <option value="all">{t('filters.allVisibility')}</option>
-                <option value="public">{t('teamPublic')}</option>
-                <option value="just_admin">{t('adminPrivate')}</option>
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+                onChange={(v) => setVisibilityFilter(v as VisibilityFilter)}
+                ariaLabel={t('filters.visibility')}
+                options={[
+                  {
+                    value: 'all',
+                    label: t('filters.allVisibility'),
+                    icon: Shield,
+                  },
+                  {
+                    value: 'public',
+                    label: t('teamPublic'),
+                    icon: Globe,
+                    iconClassName: 'text-emerald-600 dark:text-emerald-400',
+                  },
+                  {
+                    value: 'just_admin',
+                    label: t('adminPrivate'),
+                    icon: Lock,
+                    iconClassName: 'text-amber-600 dark:text-amber-400',
+                  },
+                ]}
+              />
             </div>
 
-            <div className="relative">
-              <ArrowUpDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
-              <select
+            <div
+              className={`relative ${openFilterMenu === 'sort' ? 'z-50' : 'z-0'}`}
+            >
+              <FilterIconSelect
+                menuId="sort"
+                openMenu={openFilterMenu}
+                setOpenMenu={setOpenFilterMenu}
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className={selectClassName}
-                aria-label={t('filters.sort')}
-              >
-                <option value="recent">{t('filters.sortRecent')}</option>
-                <option value="name_asc">{t('filters.sortNameAsc')}</option>
-                <option value="name_desc">{t('filters.sortNameDesc')}</option>
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+                onChange={(v) => setSortBy(v as SortOption)}
+                ariaLabel={t('filters.sort')}
+                options={[
+                  {
+                    value: 'recent',
+                    label: t('filters.sortRecent'),
+                    icon: Clock,
+                    iconClassName: 'text-sky-600 dark:text-sky-400',
+                  },
+                  {
+                    value: 'name_asc',
+                    label: t('filters.sortNameAsc'),
+                    icon: ArrowDownAZ,
+                  },
+                  {
+                    value: 'name_desc',
+                    label: t('filters.sortNameDesc'),
+                    icon: ArrowUpAZ,
+                  },
+                ]}
+              />
             </div>
           </div>
 
