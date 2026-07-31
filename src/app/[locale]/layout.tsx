@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   creator: BRAND_NAME,
   manifest: '/manifest.json',
   icons: {
-    // Prefer App Router generated icons (same B2 mark as BrandMark / logo.svg)
+    // App Router icons + /logo.svg (W mark + workspace blocks)
     icon: [
       { url: '/icon', type: 'image/png', sizes: '32x32' },
       { url: '/logo.svg', type: 'image/svg+xml' },

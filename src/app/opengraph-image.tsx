@@ -1,11 +1,11 @@
 import { ImageResponse } from 'next/og';
-import { BRAND_MARK, BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
+import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
 
 export const alt = BRAND_NAME;
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-/** Default Open Graph / social share card — same B2 mark + WORKSPACE OS wordmark. */
+/** Default Open Graph / social share card — W mark + WORKSPACE OS wordmark. */
 export default function OpenGraphImage() {
   return new ImageResponse(
     (
@@ -68,22 +68,50 @@ export default function OpenGraphImage() {
             <div
               style={{
                 position: 'absolute',
-                inset: 0,
-                background:
-                  'radial-gradient(circle at 30% 20%, rgba(56,189,248,0.45), transparent 55%)',
+                left: 8,
+                top: 8,
+                width: 14,
+                height: 10,
+                borderRadius: 3,
+                background: '#3f3f46',
+                opacity: 0.5,
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                right: 8,
+                top: 7,
+                width: 12,
+                height: 12,
+                borderRadius: 3,
+                background: '#3f3f46',
+                opacity: 0.5,
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                right: 10,
+                bottom: 12,
+                width: 10,
+                height: 10,
+                borderRadius: 2,
+                background: '#38bdf8',
+                opacity: 0.75,
               }}
             />
             <span
               style={{
                 position: 'relative',
-                color: '#fff',
-                fontSize: 26,
-                fontWeight: 900,
-                fontFamily: 'ui-monospace, Menlo, monospace',
-                letterSpacing: '-0.08em',
+                color: '#fafafa',
+                fontSize: 32,
+                fontWeight: 800,
+                fontFamily: 'Arial, Helvetica, sans-serif',
+                lineHeight: 1,
               }}
             >
-              {BRAND_MARK}
+              W
             </span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -95,13 +123,14 @@ export default function OpenGraphImage() {
                 letterSpacing: '-0.03em',
               }}
             >
-              {BRAND_NAME}
+              WORKSPACE{' '}
+              <span style={{ color: '#0284c7' }}>OS</span>
             </span>
             <span
               style={{
                 fontSize: 14,
                 fontWeight: 700,
-                color: '#0284c7',
+                color: '#71717a',
                 letterSpacing: '0.14em',
                 textTransform: 'uppercase',
               }}

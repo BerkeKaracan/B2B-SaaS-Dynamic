@@ -10,6 +10,16 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:load": "node load-test/run-docker.mjs --script=load",
+    "test:load:smoke": "node load-test/run-docker.mjs --script=load --profile=smoke",
+    "test:api": "node load-test/run-docker.mjs --script=api",
+    "test:api:smoke": "node load-test/run-docker.mjs --script=api --profile=smoke",
+    "test:collab": "node load-test/run-docker.mjs --script=collab",
+    "test:collab:smoke": "node load-test/run-docker.mjs --script=collab --profile=smoke",
+    "test:suite": "node load-test/run-docker.mjs --script=suite",
+    "test:suite:smoke": "node load-test/run-docker.mjs --script=suite --profile=smoke",
+    "test:public-ai": "node load-test/run-docker.mjs --script=public-ai --profile=smoke",
+    "test:load:all": "node load-test/run-docker.mjs --script=all",
     "prepare": "husky"
   },
   "dependencies": {

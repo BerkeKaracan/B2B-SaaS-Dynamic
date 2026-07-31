@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { BRAND_MARK, BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
+import { BRAND_TAGLINE } from '@/lib/brand';
 
 type BrandSize = 'sm' | 'md' | 'lg';
 
@@ -10,12 +10,6 @@ const MARK_SIZE: Record<BrandSize, string> = {
   sm: 'w-7 h-7 rounded-lg',
   md: 'w-9 h-9 rounded-xl',
   lg: 'w-12 h-12 rounded-2xl',
-};
-
-const MARK_TEXT: Record<BrandSize, string> = {
-  sm: 'text-[10px]',
-  md: 'text-xs',
-  lg: 'text-base',
 };
 
 const WORDMARK_TEXT: Record<BrandSize, string> = {
@@ -31,12 +25,15 @@ export type BrandMarkProps = {
   className?: string;
 };
 
-/** Symbol only — zinc + sky glow + B2 monogram (same as /logo.svg + favicon). */
+/** Clear stroke W over soft workspace blocks — matches /public/logo.svg */
 export function BrandMark({
   size = 'md',
   inverted = false,
   className = '',
 }: BrandMarkProps) {
+  const ink = inverted ? '#09090b' : '#fafafa';
+  const block = inverted ? '#d4d4d8' : '#3f3f46';
+
   return (
     <div
       className={`relative ${MARK_SIZE[size]} flex items-center justify-center shadow-sm border overflow-hidden shrink-0 ${
@@ -46,20 +43,68 @@ export function BrandMark({
       } ${className}`}
       aria-hidden
     >
-      <div
-        className={`absolute inset-0 opacity-80 ${
-          inverted
-            ? 'bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.45),transparent_55%)]'
-            : 'bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.35),transparent_55%)]'
-        }`}
-      />
-      <span
-        className={`relative font-black font-mono tracking-tighter ${MARK_TEXT[size]} ${
-          inverted ? 'text-zinc-950' : 'text-white'
-        }`}
+      <svg
+        viewBox="0 0 32 32"
+        className="absolute inset-0 h-full w-full"
+        xmlns="http://www.w3.org/2000/svg"
       >
-        {BRAND_MARK}
-      </span>
+        {/* Soft blocks behind */}
+        <rect
+          x="3.5"
+          y="4"
+          width="7.5"
+          height="5.5"
+          rx="1.2"
+          fill={block}
+          opacity="0.45"
+        />
+        <rect
+          x="21"
+          y="3.5"
+          width="6.5"
+          height="6.5"
+          rx="1.3"
+          fill={block}
+          opacity="0.45"
+        />
+        <rect
+          x="4"
+          y="22.5"
+          width="6"
+          height="4.5"
+          rx="1.1"
+          fill={block}
+          opacity="0.4"
+        />
+        <rect
+          x="22"
+          y="22"
+          width="5.5"
+          height="5.5"
+          rx="1.2"
+          fill={block}
+          opacity="0.4"
+        />
+        <rect
+          x="18.5"
+          y="18.5"
+          width="4.2"
+          height="4.2"
+          rx="0.9"
+          fill="#38bdf8"
+          opacity={inverted ? 0.85 : 0.7}
+        />
+
+        {/* Stroke W — peaks at top, clearly not an M */}
+        <path
+          d="M6 7.5 L10.5 24.5 L16 11 L21.5 24.5 L26 7.5"
+          fill="none"
+          stroke={ink}
+          strokeWidth="2.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
     </div>
   );
 }
@@ -97,13 +142,14 @@ export default function BrandLogo({
               inverted ? 'text-white' : 'text-zinc-950'
             }`}
           >
-            {BRAND_NAME}
+            WORKSPACE{' '}
+            <span className={inverted ? 'text-sky-300' : 'text-sky-600'}>
+              OS
+            </span>
           </span>
           {showTagline && (
             <span
-              className={`hidden sm:block text-[10px] font-bold uppercase tracking-widest ${
-                inverted ? 'text-sky-300/90' : 'text-sky-600/80'
-              }`}
+              className={`hidden sm:block text-[10px] font-bold uppercase tracking-widest text-zinc-400`}
             >
               {BRAND_TAGLINE}
             </span>

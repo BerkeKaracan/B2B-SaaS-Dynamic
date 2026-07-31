@@ -3,7 +3,7 @@ import { ImageResponse } from 'next/og';
 export const size = { width: 32, height: 32 };
 export const contentType = 'image/png';
 
-/** Browser tab favicon — matches BrandMark (zinc + sky glow + B2). */
+/** Favicon — stroke W over soft blocks. */
 export default function Icon() {
   return new ImageResponse(
     (
@@ -21,26 +21,55 @@ export default function Icon() {
           border: '1px solid #27272a',
         }}
       >
+        {/* soft blocks */}
         <div
           style={{
             position: 'absolute',
-            inset: 0,
-            background:
-              'radial-gradient(circle at 30% 20%, rgba(56,189,248,0.45), transparent 55%)',
+            left: 4,
+            top: 4,
+            width: 8,
+            height: 6,
+            borderRadius: 2,
+            background: '#3f3f46',
+            opacity: 0.45,
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            right: 4,
+            top: 3,
+            width: 7,
+            height: 7,
+            borderRadius: 2,
+            background: '#3f3f46',
+            opacity: 0.45,
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            right: 6,
+            bottom: 7,
+            width: 5,
+            height: 5,
+            borderRadius: 1,
+            background: '#38bdf8',
+            opacity: 0.7,
           }}
         />
         <span
           style={{
             position: 'relative',
-            color: '#fff',
-            fontSize: 15,
-            fontWeight: 900,
-            fontFamily: 'ui-monospace, Menlo, monospace',
-            letterSpacing: '-0.08em',
+            color: '#fafafa',
+            fontSize: 20,
+            fontWeight: 800,
+            fontFamily: 'Arial, Helvetica, sans-serif',
             lineHeight: 1,
+            marginTop: -1,
           }}
         >
-          B2
+          W
         </span>
       </div>
     ),
