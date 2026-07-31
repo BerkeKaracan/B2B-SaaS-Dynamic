@@ -1,13 +1,8 @@
 'use client';
-import React, { useState, useEffect, use, useMemo } from 'react';
+import React, { useState, useEffect, use } from 'react';
+import { useTranslations } from 'next-intl';
 import { fetchAPI } from '@/services/api';
-import {
-  CreditCard,
-  CheckCircle2,
-  Receipt,
-  Download,
-  AlertCircle,
-} from 'lucide-react';
+import { CreditCard, CheckCircle2, Receipt, AlertCircle } from 'lucide-react';
 import BillingPlanCards from '@/components/billing/BillingPlanCards';
 import { getPlan, type PlanId } from '@/lib/plans';
 import {
@@ -26,12 +21,6 @@ interface TenantData {
   currency?: string;
 }
 
-const MOCK_INVOICE_META = [
-  { id: 'INV-2026-004', date: 'Jul 01, 2026', amountUsd: 49 },
-  { id: 'INV-2026-003', date: 'Jun 01, 2026', amountUsd: 49 },
-  { id: 'INV-2026-002', date: 'May 01, 2026', amountUsd: 49 },
-] as const;
-
 const FALLBACK_RATES: FxRatesMap = {
   USD: 1,
   EUR: 0.88,
@@ -44,9 +33,11 @@ export default function BillingPage({
 }: {
   params: Promise<{ tenantId: string }>;
 }) {
+  const t = useTranslations('BillingPage');
   const resolvedParams = use(params);
   const tenantId = resolvedParams.tenantId;
   const updateTenantState = useTenantStore((state) => state.updateTenantState);
+  const storeTenant = useTenantStore((state) => state.tenant);
 
   const [tenant, setTenant] = useState<TenantData | null>(null);
   const [teamMemberCount, setTeamMemberCount] = useState<number>(0);
@@ -60,7 +51,10 @@ export default function BillingPage({
     msg: string;
   } | null>(null);
 
-  const currency: SupportedCurrency = normalizeCurrency(tenant?.currency);
+  // Prefer live workspace settings currency (settings page updates the store).
+  const currency: SupportedCurrency = normalizeCurrency(
+    storeTenant?.currency || tenant?.currency
+  );
 
   /** Demo self-upgrade only when explicitly enabled for local/dev UI. */
   const allowDemoTierSwitch =
@@ -145,18 +139,6 @@ export default function BillingPage({
   const formatUsdPrice = (amountUsd: number) =>
     formatMoney(convertFromUsd(amountUsd, currency, fxRates), currency);
 
-  const invoices = useMemo(
-    () =>
-      MOCK_INVOICE_META.map((invoice) => ({
-        ...invoice,
-        amount: formatUsdPrice(invoice.amountUsd),
-        status: 'Paid' as const,
-      })),
-    // formatUsdPrice closes over currency + fxRates
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currency, fxRates]
-  );
-
   const showNotification = (type: 'success' | 'error', msg: string) => {
     setNotification({ type, msg });
     setTimeout(() => setNotification(null), 4000);
@@ -166,7 +148,6 @@ export default function BillingPage({
     if (!tenant) return;
     if (tenant.tier === selectedTier) return;
 
-    // Production: no self-service switch — send a request to the platform admin.
     if (!allowDemoTierSwitch) {
       setIsUpdating(true);
       try {
@@ -232,20 +213,6 @@ export default function BillingPage({
     }
   };
 
-  const getNextBillingDate = () => {
-    const nextDate = new Date();
-    if (isAnnual) {
-      nextDate.setFullYear(nextDate.getFullYear() + 1);
-    } else {
-      nextDate.setMonth(nextDate.getMonth() + 1);
-    }
-    return nextDate.toLocaleDateString('en-US', {
-      month: 'long',
-      day: '2-digit',
-      year: 'numeric',
-    });
-  };
-
   const rawTier = tenant?.tier || 'basic';
   const currentTier: PlanId =
     rawTier === 'advanced' || rawTier === 'pro' || rawTier === 'basic'
@@ -264,37 +231,44 @@ export default function BillingPage({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#FAFAFB] h-full min-h-dvh font-sans">
+    // Scroll lives on DashboardClientWrapper <main> — do not nest overflow here.
+    <div className="bg-[#FAFAFB] font-sans">
       <div className="max-w-300 mx-auto w-full p-6 md:p-10 pb-32">
         <div className="mb-10">
-          <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-amber-900">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-sky-200/80 bg-sky-50 px-4 py-3 text-sky-950">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-sky-600" />
             <p className="text-sm font-medium leading-relaxed">
-              <span className="font-bold">No self-service billing</span> — plans
-              are managed by your administrator. There are no charges, Stripe,
-              or payment methods on this page.
+              <span className="font-bold">{t('demoBannerTitle')}</span>
+              {' — '}
+              {t('demoBannerBody')}
             </p>
           </div>
-          <h1 className="text-3xl font-black text-zinc-900 tracking-tight flex items-center gap-3">
-            <CreditCard className="w-8 h-8 text-zinc-900" />
-            Billing & Plans
-          </h1>
-          <p className="text-sm text-zinc-500 mt-1 font-medium">
-            View your current plan and seat usage. Plan changes are
-            administrator-managed.
-          </p>
-          {fxSource === 'fallback' && (
-            <p className="text-xs text-amber-600 mt-2 font-medium flex items-center gap-1.5">
-              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-              Approximate rates (live FX unavailable). Prices shown in{' '}
-              {currency}.
-            </p>
-          )}
-          {fxSource === 'live' && (
-            <p className="text-xs text-zinc-400 mt-2 font-medium">
-              Prices converted from USD to {currency} using live ECB rates.
-            </p>
-          )}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-3xl font-black text-zinc-900 tracking-tight flex items-center gap-3">
+                <CreditCard className="w-8 h-8 text-zinc-900" />
+                {t('title')}
+              </h1>
+              <p className="text-sm text-zinc-500 mt-1 font-medium">
+                {t('subtitle')}
+              </p>
+            </div>
+            <div className="flex flex-col items-end gap-1">
+              <span className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-bold tracking-wide text-zinc-800 shadow-sm">
+                {t('displayCurrency')}: {currency}
+              </span>
+              {fxSource === 'fallback' ? (
+                <p className="text-xs text-amber-600 font-medium flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  {t('fxFallback', { currency })}
+                </p>
+              ) : (
+                <p className="text-xs text-zinc-400 font-medium">
+                  {t('fxLive', { currency })}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {notification && (
@@ -311,23 +285,23 @@ export default function BillingPage({
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
               <div>
                 <h3 className="text-sm font-bold text-zinc-500 uppercase tracking-widest mb-1">
-                  Current Subscription
+                  {t('currentSubscription')}
                 </h3>
                 <div className="flex items-center gap-3">
                   <span className="text-2xl font-black text-zinc-900 capitalize">
-                    {currentTier} Plan
+                    {currentTier} {t('planSuffix')}
                   </span>
                   <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
-                    Active
+                    {t('active')}
                   </span>
                 </div>
               </div>
               <div className="text-left md:text-right">
                 <p className="text-sm font-medium text-zinc-500">
-                  Next billing date
+                  {t('nextReview')}
                 </p>
                 <p className="text-base font-bold text-zinc-900">
-                  {getNextBillingDate()}
+                  {t('nextReviewHint')}
                 </p>
               </div>
             </div>
@@ -335,23 +309,22 @@ export default function BillingPage({
             <div>
               <div className="flex justify-between items-end mb-2">
                 <span className="text-sm font-bold text-zinc-700">
-                  Team Seats Usage
+                  {t('teamSeatsUsage')}
                 </span>
                 <span className="text-sm font-medium text-zinc-500">
                   {teamMemberCount} /{' '}
-                  {seatLimit === 999 ? 'Unlimited' : seatLimit} seats
+                  {seatLimit === 999 ? t('unlimited') : seatLimit} {t('seats')}
                 </span>
               </div>
               <div className="w-full h-2 bg-zinc-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${usagePercentage >= 90 ? 'bg-red-500' : 'bg-indigo-600'}`}
+                  className={`h-full rounded-full transition-all duration-500 ${usagePercentage >= 90 ? 'bg-red-500' : 'bg-sky-600'}`}
                   style={{ width: `${usagePercentage}%` }}
                 ></div>
               </div>
               {usagePercentage >= 100 && currentTier !== 'pro' && (
                 <p className="text-xs text-red-600 font-medium mt-2 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" /> You have reached your seat
-                  limit. Upgrade to add more members.
+                  <AlertCircle className="w-3 h-3" /> {t('seatLimitReached')}
                 </p>
               )}
             </div>
@@ -361,23 +334,22 @@ export default function BillingPage({
             <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
             <div>
               <h3 className="text-sm font-medium text-zinc-400 mb-4">
-                Payment Method
+                {t('paymentMethod')}
               </h3>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-8 bg-white/10 rounded flex items-center justify-center border border-white/20">
-                  <span className="text-xs font-black italic">VISA</span>
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-8 bg-white/10 rounded flex items-center justify-center border border-white/20 shrink-0">
+                  <CreditCard className="w-4 h-4 text-zinc-300" />
                 </div>
                 <div>
-                  <p className="text-base font-bold tracking-widest">
-                    •••• •••• •••• 4242
+                  <p className="text-base font-bold tracking-tight">
+                    {t('paymentEmptyTitle')}
                   </p>
-                  <p className="text-xs text-zinc-400">Expires 12/28</p>
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                    {t('paymentEmptyBody')}
+                  </p>
                 </div>
               </div>
             </div>
-            <button className="text-sm font-medium text-indigo-400 hover:text-indigo-300 w-max mt-6 transition-colors">
-              Update payment method
-            </button>
           </div>
         </div>
 
@@ -389,9 +361,7 @@ export default function BillingPage({
           isUpdating={isUpdating}
           requestMode={!allowDemoTierSwitch}
           upgradesDisabledReason={
-            allowDemoTierSwitch
-              ? undefined
-              : 'Plan changes are applied by the platform administrator after your request.'
+            allowDemoTierSwitch ? undefined : t('upgradesDisabledReason')
           }
           isAnnual={isAnnual}
           onAnnualChange={setIsAnnual}
@@ -401,44 +371,20 @@ export default function BillingPage({
           <div className="p-6 border-b border-zinc-100/80 flex items-center justify-between bg-zinc-50/50">
             <div>
               <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-zinc-500" /> Invoice History
+                <Receipt className="w-4 h-4 text-zinc-500" /> {t('invoiceHistory')}
               </h3>
-              <p className="text-sm text-zinc-500 mt-1">
-                Download past invoices for your accounting department.
-              </p>
             </div>
           </div>
-
-          <div className="divide-y divide-zinc-100">
-            {invoices.map((invoice) => (
-              <div
-                key={invoice.id}
-                className="flex items-center justify-between p-4 px-6 hover:bg-zinc-50/50 transition-colors"
-              >
-                <div className="flex items-center gap-6">
-                  <span className="text-sm font-bold text-zinc-900">
-                    {invoice.id}
-                  </span>
-                  <span className="text-sm font-medium text-zinc-500">
-                    {invoice.date}
-                  </span>
-                </div>
-                <div className="flex items-center gap-6">
-                  <span className="text-sm font-bold text-zinc-900">
-                    {invoice.amount}
-                  </span>
-                  <span className="px-2 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-md">
-                    {invoice.status}
-                  </span>
-                  <button
-                    className="p-2 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                    title="Download PDF"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="p-10 flex flex-col items-center justify-center text-center gap-2">
+            <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center mb-1">
+              <Receipt className="w-5 h-5 text-zinc-400" />
+            </div>
+            <p className="text-sm font-bold text-zinc-900">
+              {t('invoiceEmptyTitle')}
+            </p>
+            <p className="text-sm text-zinc-500 max-w-md">
+              {t('invoiceEmptyBody')}
+            </p>
           </div>
         </div>
       </div>
