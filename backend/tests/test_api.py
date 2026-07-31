@@ -7,7 +7,7 @@ from main import app
 from conftest import DUMMY_JWT_SECRET
 
 client = TestClient(app)
-
+## revision for GCP
 def test_root_endpoint():
     """
     Test the root endpoint to ensure the API is accessible and returning the correct alive status.
