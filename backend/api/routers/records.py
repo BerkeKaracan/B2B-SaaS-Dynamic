@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Depends, Header, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Query, Depends, Header, BackgroundTasks, Request
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, timezone
@@ -12,6 +12,7 @@ from core.auth_jwt import (
     blacklist_auth_token as blacklist_auth_token,
     verify_access_token,
 )
+from core.limiter import limiter, get_real_ip
 from models.record import RecordCreate, RecordUpdate, RecordResponse
 
 router = APIRouter(
@@ -102,7 +103,8 @@ def get_user_role(authorization: str = Header(None)) -> dict:
         raise HTTPException(status_code=401, detail="Invalid token or session expired")
 
 @router.post("/", response_model=RecordResponse)
-def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
+@limiter.limit("20/minute", key_func=lambda r, u: f"db:write:tenant:{list(u['tenant_roles'].keys())[0] if u['tenant_roles'] else 'unknown'}")
+def create_record(record: RecordCreate, request: Request, user: dict = Depends(get_user_role)):
     try:
         data = record.model_dump(mode='json')
         req_tenant = str(data.get("tenant_id"))
@@ -168,7 +170,9 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
 
 
 @router.get("/", response_model=List[RecordResponse])
+@limiter.limit("60/minute", key_func=lambda r, tid: f"db:read:tenant:{tid}")
 def get_records(
+    request: Request,
     tenant_id: UUID = Query(...), 
     module_name: Optional[str] = Query(None), 
     limit: int = Query(100, ge=1, le=1000), 
@@ -221,7 +225,8 @@ def get_records(
 
 
 @router.get("/{record_id}", response_model=RecordResponse)
-def get_record(record_id: UUID, user: dict = Depends(get_user_role)):
+@limiter.limit("60/minute", key_func=lambda r, rid: f"db:read:record:{rid}")
+def get_record(request: Request, record_id: UUID, user: dict = Depends(get_user_role)):
     try:
         response = user["client"].table("custom_records").select("*").eq("id", str(record_id)).execute()
         if not response.data:
@@ -253,7 +258,8 @@ def get_record(record_id: UUID, user: dict = Depends(get_user_role)):
 
 
 @router.patch("/{record_id}", response_model=RecordResponse)
-def update_record(record_id: UUID, payload: RecordUpdate, background_tasks: BackgroundTasks, user: dict = Depends(get_user_role)):
+@limiter.limit("30/minute", key_func=lambda r, rid: f"db:write:record:{rid}")
+def update_record(request: Request, record_id: UUID, payload: RecordUpdate, background_tasks: BackgroundTasks, user: dict = Depends(get_user_role)):
     try:
         existing_res = user["client"].table("custom_records").select("record_data, tenant_id").eq("id", str(record_id)).execute()
         if not existing_res.data:
@@ -325,7 +331,8 @@ def update_record(record_id: UUID, payload: RecordUpdate, background_tasks: Back
 
 
 @router.delete("/{record_id}")
-def delete_record(record_id: UUID, user: dict = Depends(get_user_role)):
+@limiter.limit("10/minute", key_func=lambda r, rid: f"db:write:record:{rid}")
+def delete_record(request: Request, record_id: UUID, user: dict = Depends(get_user_role)):
     try:
         res = user["client"].table("custom_records").select("tenant_id").eq("id", str(record_id)).execute()
         if not res.data:

@@ -4,13 +4,15 @@ import logging
 import re
 import uuid
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from groq import AsyncGroq
 from datetime import datetime
 
 from core.database import supabase, supabase_admin
+from core.limiter import limiter, get_real_ip
+from core.feature_gate import get_tenant_tier, normalize_tier
 
 logger = logging.getLogger("saas_engine")
 from core.ai_prompts import (
@@ -182,6 +184,64 @@ def verify_user(creds: HTTPAuthorizationCredentials = Depends(security)):
         return user_res.user
     except Exception:
         raise HTTPException(status_code=401, detail="Unauthorized: Session not found")
+
+
+def require_premium_or_admin_role(tenant_id: str, user_id: str) -> None:
+    """Role whitelisting: Only admin and premium (pro/advanced) users can access AI history.
+    
+    Args:
+        tenant_id: The tenant ID to check
+        user_id: The user ID to check
+        
+    Raises:
+        HTTPException: 403 if user is not admin or tenant is not premium tier
+    """
+    # Check user role in tenant
+    member_check = (
+        supabase_admin.table("tenant_users")
+        .select("role")
+        .eq("tenant_id", tenant_id)
+        .eq("user_id", user_id)
+        .limit(1)
+        .execute()
+    )
+    
+    if not member_check.data:
+        raise HTTPException(status_code=403, detail="Workspace access denied.")
+    
+    user_role = str(member_check.data[0].get("role", "employee")).lower()
+    
+    # Admins always have access
+    if user_role == "admin" or user_role == "owner":
+        return
+    
+    # Check tenant tier for premium access
+    tier = normalize_tier(get_tenant_tier(tenant_id))
+    
+    # Only advanced and pro tiers are considered premium
+    if tier not in ("advanced", "pro"):
+        raise HTTPException(
+            status_code=403,
+            detail="AI history access requires admin role or premium workspace tier (Advanced/Pro)."
+        )
+
+
+def get_ai_rate_limit_key(request: Request, tenant_id: Optional[str] = None) -> str:
+    """Generate rate limit key for AI requests.
+    
+    Priority: tenant_id > IP address
+    This ensures per-tenant limits are enforced when authenticated.
+    
+    Args:
+        request: FastAPI request object
+        tenant_id: Optional tenant ID for tenant-based limiting
+        
+    Returns:
+        Rate limit key string
+    """
+    if tenant_id:
+        return f"ai:tenant:{tenant_id}"
+    return f"ai:ip:{get_real_ip(request)}"
 
 
 def assert_tenant_access(tenant_id: str, user_id: str) -> None:
@@ -926,8 +986,19 @@ class ChatRequest(BaseModel):
     board_id: Optional[str] = None
 
 
+class AIHistoryEntry(BaseModel):
+    id: str
+    tenant_id: str
+    user_id: str
+    endpoint: str
+    request_data: dict
+    response_summary: str
+    created_at: str
+
+
 @router.post("/magic-wand")
-async def magic_wand(req: MagicWandRequest, user=Depends(verify_user)):
+@limiter.limit("10/minute", key_func=lambda r: get_ai_rate_limit_key(r))
+async def magic_wand(req: MagicWandRequest, request: Request, user=Depends(verify_user)):
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing in backend")
@@ -961,7 +1032,8 @@ async def magic_wand(req: MagicWandRequest, user=Depends(verify_user)):
 
 
 @router.post("/generate-canvas")
-async def generate_canvas(req: GenerateCanvasRequest, user=Depends(verify_user)):
+@limiter.limit("10/minute", key_func=lambda r, req: get_ai_rate_limit_key(r, req.tenant_id))
+async def generate_canvas(req: GenerateCanvasRequest, request: Request, user=Depends(verify_user)):
     from core.feature_gate import AI_CANVAS_GENERATOR, require_feature
 
     require_feature(AI_CANVAS_GENERATOR, req.tenant_id, user.id)
@@ -1018,7 +1090,8 @@ async def generate_canvas(req: GenerateCanvasRequest, user=Depends(verify_user))
 
 
 @router.post("/chat")
-async def chat_with_canvas(req: ChatRequest, user=Depends(verify_user)):
+@limiter.limit("10/minute", key_func=lambda r, req: get_ai_rate_limit_key(r, req.tenant_id))
+async def chat_with_canvas(req: ChatRequest, request: Request, user=Depends(verify_user)):
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing")
@@ -1266,3 +1339,67 @@ async def chat_with_canvas(req: ChatRequest, user=Depends(verify_user)):
             status_code=500,
             detail="An internal error occurred. Please try again later.",
         )
+
+
+@router.get("/history/{tenant_id}")
+@limiter.limit("30/minute", key_func=lambda r, tid: get_ai_rate_limit_key(r, tid))
+async def get_ai_history(tenant_id: str, request: Request, user=Depends(verify_user)):
+    """Get AI request history for a tenant.
+    
+    Role whitelisting: Only admin and premium (advanced/pro) users can access.
+    Rate limited: 30 requests per minute per tenant/IP.
+    """
+    # Apply role whitelisting
+    require_premium_or_admin_role(tenant_id, user.id)
+    
+    try:
+        # Query AI history from database (assuming ai_history table exists)
+        # If table doesn't exist, return empty list for now
+        history_res = (
+            supabase_admin.table("ai_history")
+            .select("*")
+            .eq("tenant_id", tenant_id)
+            .order("created_at", desc=True)
+            .limit(100)
+            .execute()
+        )
+        
+        return {
+            "history": history_res.data or [],
+            "count": len(history_res.data) if history_res.data else 0
+        }
+    except Exception as e:
+        # If table doesn't exist, return empty history
+        if "does not exist" in str(e).lower() or "relation" in str(e).lower():
+            return {"history": [], "count": 0}
+        logger.error("AI history fetch error: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to fetch AI history")
+
+
+@router.delete("/history/{tenant_id}")
+@limiter.limit("10/minute", key_func=lambda r, tid: get_ai_rate_limit_key(r, tid))
+async def clear_ai_history(tenant_id: str, request: Request, user=Depends(verify_user)):
+    """Clear AI request history for a tenant.
+    
+    Role whitelisting: Only admin and premium (advanced/pro) users can access.
+    Rate limited: 10 requests per minute per tenant/IP.
+    """
+    # Apply role whitelisting
+    require_premium_or_admin_role(tenant_id, user.id)
+    
+    try:
+        # Delete AI history for tenant
+        delete_res = (
+            supabase_admin.table("ai_history")
+            .delete()
+            .eq("tenant_id", tenant_id)
+            .execute()
+        )
+        
+        return {"message": "AI history cleared successfully"}
+    except Exception as e:
+        # If table doesn't exist, consider it already cleared
+        if "does not exist" in str(e).lower() or "relation" in str(e).lower():
+            return {"message": "AI history cleared successfully"}
+        logger.error("AI history clear error: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to clear AI history")
