@@ -1,8 +1,8 @@
 /**
  * Single source of truth for product branding (UI + metadata).
- * Mark monogram stays "B2"; public product name is WORKSPACE OS.
+ * Mark is the geometric W (BrandMark / logo); public product name is WORKSPACE OS.
  */
-export const BRAND_MARK = 'B2';
+export const BRAND_MARK = 'W';
 export const BRAND_NAME = 'WORKSPACE OS';
 export const BRAND_TAGLINE = 'Portfolio demo';
 export const BRAND_TITLE = 'WORKSPACE OS';

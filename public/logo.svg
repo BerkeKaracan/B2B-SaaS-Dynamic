@@ -1,30 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="WORKSPACE OS">
   <defs>
-    <linearGradient id="markBg" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#18181b"/>
       <stop offset="100%" stop-color="#09090b"/>
     </linearGradient>
-    <radialGradient id="skyGlow" cx="30%" cy="20%" r="55%">
-      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45"/>
-      <stop offset="55%" stop-color="#38bdf8" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
-    </radialGradient>
   </defs>
 
-  <!-- Squircle mark (matches in-app BrandMark) -->
-  <rect width="512" height="512" rx="128" fill="url(#markBg)"/>
-  <rect width="512" height="512" rx="128" fill="url(#skyGlow)"/>
-  <rect x="10" y="10" width="492" height="492" rx="118" fill="none" stroke="#27272a" stroke-width="12"/>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="14" y="14" width="484" height="484" rx="100" fill="none" stroke="#27272a" stroke-width="10"/>
 
-  <text
-    x="50%"
-    y="54%"
-    font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-    font-size="248"
-    font-weight="900"
-    fill="#ffffff"
-    text-anchor="middle"
-    dominant-baseline="middle"
-    letter-spacing="-18"
-  >B2</text>
+  <!-- Soft workspace blocks behind the W -->
+  <g opacity="0.35">
+    <rect x="72" y="88" width="120" height="88" rx="20" fill="#3f3f46"/>
+    <rect x="320" y="72" width="104" height="104" rx="22" fill="#3f3f46"/>
+    <rect x="86" y="340" width="96" height="72" rx="18" fill="#3f3f46"/>
+    <rect x="340" y="348" width="88" height="88" rx="20" fill="#3f3f46"/>
+  </g>
+  <g opacity="0.55">
+    <rect x="286" y="300" width="64" height="64" rx="14" fill="#38bdf8"/>
+  </g>
+
+  <!--
+    Clear stroke W (peaks up) — cannot read as M.
+    Top points at y=128, valleys at y=360, outer feet at bottom.
+  -->
+  <path
+    d="M96 128 L160 360 L256 168 L352 360 L416 128"
+    fill="none"
+    stroke="#fafafa"
+    stroke-width="44"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
 </svg>

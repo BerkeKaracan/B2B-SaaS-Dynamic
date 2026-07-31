@@ -1,20 +1,20 @@
 'use client';
 
 import React from 'react';
-import { BRAND_MARK } from '@/lib/brand';
+import { BrandMark } from '@/components/brand/BrandLogo';
 
 type LoadSize = 'sm' | 'md' | 'lg';
-
-const MARK_BOX: Record<LoadSize, string> = {
-  sm: 'w-8 h-8 rounded-lg text-[9px]',
-  md: 'w-11 h-11 rounded-xl text-[11px]',
-  lg: 'w-14 h-14 rounded-2xl text-sm',
-};
 
 const RING_BOX: Record<LoadSize, string> = {
   sm: 'w-12 h-12',
   md: 'w-[3.75rem] h-[3.75rem]',
   lg: 'w-[4.75rem] h-[4.75rem]',
+};
+
+const MARK_SIZE: Record<LoadSize, 'sm' | 'md' | 'lg'> = {
+  sm: 'sm',
+  md: 'md',
+  lg: 'lg',
 };
 
 export type LoadingMarkProps = {
@@ -42,11 +42,8 @@ export function LoadingMark({
       <div className="absolute inset-0 rounded-full border border-zinc-200/80 dark:border-zinc-700/80 ws-load-ring" />
       <div className="absolute inset-[3px] rounded-full border border-transparent border-t-sky-500 border-r-sky-400/40 ws-load-spin" />
       <div className="absolute inset-[7px] rounded-full border border-transparent border-b-emerald-500/70 border-l-emerald-400/30 ws-load-spin-rev" />
-      <div
-        className={`relative z-10 flex items-center justify-center bg-zinc-950 text-white font-black font-mono tracking-tighter shadow-sm border border-zinc-800 overflow-hidden ws-load-mark ${MARK_BOX[size]}`}
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.4),transparent_55%)]" />
-        <span className="relative">{BRAND_MARK}</span>
+      <div className="relative z-10 ws-load-mark">
+        <BrandMark size={MARK_SIZE[size]} />
       </div>
     </div>
   );
