@@ -37,9 +37,7 @@ export function BrandMark({
   return (
     <div
       className={`relative ${MARK_SIZE[size]} flex items-center justify-center shadow-sm border overflow-hidden shrink-0 ${
-        inverted
-          ? 'bg-white border-white/80'
-          : 'bg-zinc-950 border-zinc-800'
+        inverted ? 'bg-white border-white/80' : 'bg-zinc-950 border-zinc-800'
       } ${className}`}
       aria-hidden
     >
