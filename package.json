@@ -20,7 +20,7 @@
     "test:suite:smoke": "node load-test/run-docker.mjs --script=suite --profile=smoke",
     "test:public-ai": "node load-test/run-docker.mjs --script=public-ai --profile=smoke",
     "test:load:all": "node load-test/run-docker.mjs --script=all",
-    "prepare": "husky"
+    "prepare": "husky || true "
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
