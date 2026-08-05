@@ -1,13 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Bell,
-  Check,
-  CheckCheck,
-  ExternalLink,
-  Inbox,
-} from 'lucide-react';
+import { Bell, Check, CheckCheck, ExternalLink, Inbox } from 'lucide-react';
 import { fetchAPI } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useTenantStore } from '@/store/useTenantStore';
@@ -29,8 +23,8 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { user } = useAuthStore();
-  const { tenant } = useTenantStore();
+  const userId = useAuthStore((state) => state.user?.id);
+  const tenantId = useTenantStore((state) => state.tenant?.id);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,7 +41,7 @@ export default function NotificationBell() {
   }, []);
 
   useEffect(() => {
-    if (!user || !tenant) return;
+    if (!userId || !tenantId) return;
 
     let cancelled = false;
     let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -55,7 +49,7 @@ export default function NotificationBell() {
     const loadNotifications = async (showLoader = false) => {
       if (showLoader) setIsLoading(true);
       try {
-        const res = await fetchAPI(`/api/notifications?tenant_id=${tenant.id}`);
+        const res = await fetchAPI(`/api/notifications?tenant_id=${tenantId}`);
         if (!res.ok || cancelled) return;
         const data: NotificationItem[] = await res.json();
         if (!cancelled) setNotifications(data);
@@ -103,7 +97,7 @@ export default function NotificationBell() {
       stopPolling();
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [user, tenant]);
+  }, [userId, tenantId]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
