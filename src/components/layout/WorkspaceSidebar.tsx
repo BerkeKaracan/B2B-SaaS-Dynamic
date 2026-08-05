@@ -213,7 +213,11 @@ export default function WorkspaceSidebar() {
     return `${base} text-zinc-500 dark:text-zinc-400 font-medium hover:bg-zinc-200/40 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-100`;
   };
 
-  const sectionHeader = (label: string, isOpen: boolean, onToggle: () => void) => (
+  const sectionHeader = (
+    label: string,
+    isOpen: boolean,
+    onToggle: () => void
+  ) => (
     <button
       type="button"
       onClick={onToggle}
@@ -280,7 +284,8 @@ export default function WorkspaceSidebar() {
                     onClick={() => {
                       setIsWorkspaceDropdownOpen(false);
                       if (workspace.id !== tenantId) {
-                        router.push(`/dashboard/${workspace.id}`);
+                        useTenantStore.getState().clearTenant();
+                        window.location.href = `/dashboard/${workspace.id}`;
                       }
                     }}
                     className={`flex items-center gap-2.5 w-full text-left px-2 py-2 rounded-lg transition-colors ${
@@ -475,9 +480,7 @@ export default function WorkspaceSidebar() {
 
               <div
                 className={`space-y-0.5 overflow-hidden transition-all duration-200 ${
-                  isModulesOpen
-                    ? 'max-h-125 opacity-100'
-                    : 'max-h-0 opacity-0'
+                  isModulesOpen ? 'max-h-125 opacity-100' : 'max-h-0 opacity-0'
                 }`}
               >
                 {customModules.map((mod) => (
@@ -505,9 +508,7 @@ export default function WorkspaceSidebar() {
 
             <div
               className={`space-y-0.5 overflow-hidden transition-all duration-200 ${
-                isStorageOpen
-                  ? 'max-h-37.5 opacity-100'
-                  : 'max-h-0 opacity-0'
+                isStorageOpen ? 'max-h-37.5 opacity-100' : 'max-h-0 opacity-0'
               }`}
             >
               <Link
