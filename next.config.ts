@@ -125,8 +125,6 @@ function buildBackendRewrites() {
 }
 
 const nextConfig: NextConfig = {
-  cleanDistDir: true,
-
   output: 'standalone',
   poweredByHeader: false,
   images: {
