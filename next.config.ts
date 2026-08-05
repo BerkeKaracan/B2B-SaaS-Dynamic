@@ -125,7 +125,7 @@ function buildBackendRewrites() {
 }
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  output: process.env.VERCEL ? undefined : 'standalone',
   poweredByHeader: false,
   images: {
     remotePatterns: [
