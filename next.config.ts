@@ -70,7 +70,7 @@ function buildContentSecurityPolicy(): string {
   // Explicit WS origins from env are defense-in-depth for the LIVE canvas socket.
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; worker-src 'self' blob:;",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: blob:",
     `connect-src 'self' https: wss:${getExplicitWsConnectSrc()}${getLocalConnectSrc()}`,
