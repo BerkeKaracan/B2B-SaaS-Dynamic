@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Network,
   PenTool,
+  CalendarDays,
 } from 'lucide-react';
 import type { PageContent } from '@/types/record';
 
@@ -20,7 +21,8 @@ export type ProjectTemplateId =
   | 'timeline'
   | 'database'
   | 'mindmap'
-  | 'retrospective';
+  | 'retrospective'
+  | 'calendar';
 
 /** Page frame types inside Blank canvas (`PageContent.type`). */
 export type PageTypeId = PageContent['type'];
@@ -141,6 +143,17 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     glow: 'radial-gradient(circle at 20% 30%, rgba(244,63,94,0.32), transparent 42%), radial-gradient(circle at 80% 70%, rgba(251,113,133,0.14), transparent 36%)',
     isStandaloneBoard: true,
   },
+  {
+    id: 'calendar',
+    label: 'Calendar',
+    icon: CalendarDays,
+    color: 'text-red-500 dark:text-red-400',
+    rail: 'bg-red-400/80 group-hover:bg-red-500',
+    headerBg:
+      'bg-[linear-gradient(135deg,#fef2f2_0%,#fee2e2_45%,#fafafa_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#7f1d1d_50%,#09090b_100%)]',
+    glow: 'radial-gradient(circle at 20% 30%, rgba(239,68,68,0.34), transparent 42%), radial-gradient(circle at 80% 70%, rgba(248,113,113,0.14), transparent 36%)',
+    isStandaloneBoard: true,
+  },
 ];
 
 /** Page types that host a board component (not freeform blocks). */
@@ -153,6 +166,7 @@ export const BOARD_PAGE_TYPES = new Set<PageTypeId>([
   'timeline',
   'database',
   'retrospective',
+  'calendar',
 ]);
 
 /** Frame palette order for ItemSidebar (i18n keys stay `frames.<id>`). */
@@ -165,6 +179,7 @@ export const FRAME_PAGE_TYPES: PageTypeId[] = [
   'whiteboard',
   'mindmap',
   'retrospective',
+  'calendar',
 ];
 
 const PAGE_DEFAULTS: Record<PageTypeId, PageFrameDefaults> = {
@@ -222,6 +237,12 @@ const PAGE_DEFAULTS: Record<PageTypeId, PageFrameDefaults> = {
     title: 'Retrospective',
     backgroundColor: '#ffffff',
   },
+  calendar: {
+    width: 1200,
+    height: 800,
+    title: 'Calendar',
+    backgroundColor: '#fafafa',
+  },
 };
 
 const TEMPLATE_BY_ID = new Map<string, ProjectTemplateMeta>();
@@ -273,6 +294,7 @@ export const TEMPLATE_LABELS: Record<string, string> = {
   database: 'Database',
   mindmap: 'Mindmap',
   retrospective: 'Retrospective',
+  calendar: 'Calendar',
 };
 
 /** Map project template → board component key used by BoardRenderer. */

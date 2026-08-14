@@ -455,6 +455,10 @@
       "retrospective": {
         "title": "Retrospective",
         "desc": "Sprint retros için Glad / Sad / Mad sütunları ve oylama."
+      },
+      "calendar": {
+        "title": "Calendar",
+        "desc": "Gün etkinlikleri, ajanda ve WORKSPACE OS’taki tarih seçiciyle ay panosu."
       }
     },
     "cta": {
@@ -890,6 +894,32 @@
     "toastViewSaved": "\"{name}\" görünümü kaydedildi!",
     "toastViewDeleted": "Görünüm silindi."
   },
+  "CalendarBoard": {
+    "title": "Takvim",
+    "subtitle": "Ay görünümü · gün ajandası",
+    "today": "Bugün",
+    "addEvent": "Etkinlik ekle",
+    "prevMonth": "Önceki ay",
+    "nextMonth": "Sonraki ay",
+    "agenda": "Ajanda",
+    "emptyDay": "Bu günde etkinlik yok",
+    "more": "+{count} daha",
+    "eventCount": "{count} etkinlik",
+    "allDay": "Tüm gün",
+    "modalAdd": "Yeni etkinlik",
+    "modalEdit": "Etkinliği düzenle",
+    "modalTitle": "Başlık",
+    "titlePlaceholder": "örn. Takım toplantısı",
+    "date": "Tarih",
+    "start": "Başlangıç",
+    "end": "Bitiş",
+    "notes": "Notlar",
+    "notesPlaceholder": "İsteğe bağlı ayrıntılar…",
+    "color": "Renk",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "delete": "Sil"
+  },
   "EngineToolkit": {
     "title": "Motor Araç Kutusu",
     "search": "Blok veya şablon ara...",
@@ -966,6 +996,10 @@
       "retrospective": {
         "label": "Çevik Retrospektif",
         "desc": "Glad, Sad, Mad ile sprint değerlendirmesi"
+      },
+      "calendar": {
+        "label": "Takvim",
+        "desc": "Etkinlikler, saatler ve gün ajandası ile ay görünümü"
       }
     }
   },
@@ -1176,7 +1210,8 @@
       "timeline": "Zaman Çizelgesi",
       "database": "Veritabanı / Tablo",
       "mindmap": "Zihin Haritası / Akış",
-      "retrospective": "Çevik Retrospektif"
+      "retrospective": "Çevik Retrospektif",
+      "calendar": "Takvim"
     },
     "menus": {
       "makePublic": "Çalışma Alanını Herkese Aç",

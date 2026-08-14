@@ -70,13 +70,19 @@ const TONE_BY_ID: Record<ProjectTemplateId, SoftTone> = {
     bar: 'bg-orange-500',
     hover: 'hover:border-orange-200',
   },
-  retrospective: {
-    soft: 'from-rose-100 to-rose-50',
-    iconWrap: 'bg-rose-50 border-rose-100 text-rose-600',
-    bar: 'bg-rose-500',
-    hover: 'hover:border-rose-200',
-  },
-};
+      retrospective: {
+        soft: 'from-rose-100 to-rose-50',
+        iconWrap: 'bg-rose-50 border-rose-100 text-rose-600',
+        bar: 'bg-rose-500',
+        hover: 'hover:border-rose-200',
+      },
+      calendar: {
+        soft: 'from-red-100 to-red-50',
+        iconWrap: 'bg-red-50 border-red-100 text-red-600',
+        bar: 'bg-red-500',
+        hover: 'hover:border-red-200',
+      },
+    };
 
 function TemplatePreview({ id }: { id: ProjectTemplateId }) {
   switch (id) {
@@ -170,6 +176,19 @@ function TemplatePreview({ id }: { id: ProjectTemplateId }) {
               <div className="h-4 rounded bg-white/90" />
               <div className="h-4 rounded bg-white/70" />
             </div>
+          ))}
+        </div>
+      );
+    case 'calendar':
+      return (
+        <div className="absolute inset-3 grid grid-cols-7 gap-px opacity-80">
+          {Array.from({ length: 21 }).map((_, i) => (
+            <div
+              key={i}
+              className={`rounded-[3px] ${
+                i === 10 ? 'bg-white shadow-sm' : 'bg-white/55'
+              }`}
+            />
           ))}
         </div>
       );

@@ -30,7 +30,8 @@ export interface PageContent {
     | 'database'
     | 'whiteboard'
     | 'mindmap'
-    | 'retrospective';
+    | 'retrospective'
+    | 'calendar';
   title: string;
   x: number;
   y: number;

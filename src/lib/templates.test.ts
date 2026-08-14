@@ -44,6 +44,8 @@ describe('templates', () => {
     expect(isStandaloneBoardTemplate('blank')).toBe(false);
     expect(isStandaloneBoardTemplate('kanban')).toBe(true);
     expect(isStandaloneBoardTemplate('document')).toBe(true);
+    expect(isStandaloneBoardTemplate('calendar')).toBe(true);
+    expect(projectTemplateToBoardKey('calendar')).toBe('calendar');
     expect(projectTemplateToBoardKey('blank')).toBeNull();
     expect(projectTemplateToBoardKey('kanban')).toBe('kanban');
     expect(projectTemplateToBoardKey('notepad')).toBe('document');
