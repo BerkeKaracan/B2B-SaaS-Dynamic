@@ -8,6 +8,7 @@ import DatabaseBoard from '@/components/database/DatabaseBoard';
 import WhiteboardBoard from '@/components/whiteboard/WhiteBoard';
 import MindMapBoard from '@/components/mindmap/MindMapBoard';
 import RetrospectiveBoard from '@/components/retrospective/RetrospectiveBoard';
+import CalendarBoard from '@/components/calendar/CalendarBoard';
 import {
   normalizeProjectTemplate,
   pageTypeToBoardKey,
@@ -15,7 +16,7 @@ import {
 } from '@/lib/templates';
 
 type BoardRendererProps = {
-  /** Board key: kanban | document | whiteboard | … */
+      /** Board key: kanban | document | whiteboard | … | calendar */
   boardKey: string;
   projectId: string;
 };
@@ -41,6 +42,8 @@ export function BoardRenderer({ boardKey, projectId }: BoardRendererProps) {
       return <DatabaseBoard projectId={projectId} />;
     case 'retrospective':
       return <RetrospectiveBoard projectId={projectId} />;
+    case 'calendar':
+      return <CalendarBoard projectId={projectId} />;
     default:
       return null;
   }

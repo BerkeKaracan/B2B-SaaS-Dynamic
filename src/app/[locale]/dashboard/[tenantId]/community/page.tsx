@@ -14,6 +14,7 @@ import {
   Database,
   Network,
   MessageSquare,
+  CalendarDays,
   Users,
   Sparkles,
   ExternalLink,
@@ -97,6 +98,13 @@ const TEMPLATE_META: Record<
     accent: 'text-orange-700 dark:text-orange-300',
     soft: 'from-orange-100 to-orange-50 dark:from-orange-950/40 dark:to-zinc-900',
     bar: 'bg-orange-500',
+  },
+  calendar: {
+    label: 'Calendar',
+    icon: CalendarDays,
+    accent: 'text-red-700 dark:text-red-300',
+    soft: 'from-red-100 to-red-50 dark:from-red-950/40 dark:to-zinc-900',
+    bar: 'bg-red-500',
   },
 };
 

@@ -112,6 +112,7 @@ export default function AiChatbot() {
       notepad: ['notes', 'document'],
       document: ['document', 'notes'],
       whiteboard: ['whiteboard'],
+      calendar: ['calendar'],
     };
     const wanted = typeMap[currentModule] || [];
     return pages.find((p) => wanted.includes(p.type))?.id;

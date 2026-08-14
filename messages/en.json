@@ -455,6 +455,10 @@
       "retrospective": {
         "title": "Retrospective",
         "desc": "Glad / Sad / Mad columns with votes for sprint retros."
+      },
+      "calendar": {
+        "title": "Calendar",
+        "desc": "Month board with day events, agenda, and the same date picker used across WORKSPACE OS."
       }
     },
     "cta": {
@@ -881,6 +885,32 @@
     "toastViewSaved": "View \"{name}\" saved!",
     "toastViewDeleted": "View deleted."
   },
+  "CalendarBoard": {
+    "title": "Calendar",
+    "subtitle": "Month view · day agenda",
+    "today": "Today",
+    "addEvent": "Add event",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "agenda": "Agenda",
+    "emptyDay": "No events on this day",
+    "more": "+{count} more",
+    "eventCount": "{count} events",
+    "allDay": "All day",
+    "modalAdd": "New event",
+    "modalEdit": "Edit event",
+    "modalTitle": "Title",
+    "titlePlaceholder": "e.g. Team sync",
+    "date": "Date",
+    "start": "Start",
+    "end": "End",
+    "notes": "Notes",
+    "notesPlaceholder": "Optional details…",
+    "color": "Color",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete"
+  },
   "EngineToolkit": {
     "title": "Engine Toolkit",
     "search": "Search blocks or frames...",
@@ -957,6 +987,10 @@
       "retrospective": {
         "label": "Agile Retrospective",
         "desc": "Sprint evaluation with Glad, Sad, Mad"
+      },
+      "calendar": {
+        "label": "Calendar",
+        "desc": "Month view with events, times, and a day agenda"
       }
     }
   },
@@ -1167,7 +1201,8 @@
       "timeline": "Timeline",
       "database": "Database / Table",
       "mindmap": "Mind Map / Flowchart",
-      "retrospective": "Agile Retrospective"
+      "retrospective": "Agile Retrospective",
+      "calendar": "Calendar"
     },
     "menus": {
       "makePublic": "Make Workspace Public",
