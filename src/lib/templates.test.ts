@@ -25,6 +25,7 @@ describe('templates', () => {
       expect(meta.rail.length).toBeGreaterThan(0);
       expect(meta.headerBg.length).toBeGreaterThan(0);
       expect(meta.glow.length).toBeGreaterThan(0);
+      expect(meta.chip.length).toBeGreaterThan(0);
       expect(getProjectTemplateMeta(meta.id)?.id).toBe(meta.id);
     }
   });
@@ -37,6 +38,7 @@ describe('templates', () => {
       if (meta.id === 'blank') continue;
       expect(meta.rail).not.toMatch(/sky|blue/);
       expect(meta.color).not.toMatch(/\b(sky|blue)-/);
+      expect(meta.chip).not.toMatch(/sky|blue/);
     }
   });
 

@@ -894,6 +894,7 @@
     "nextMonth": "Next month",
     "agenda": "Agenda",
     "emptyDay": "No events on this day",
+    "emptyHint": "Double-click a day to add one",
     "more": "+{count} more",
     "eventCount": "{count} events",
     "allDay": "All day",

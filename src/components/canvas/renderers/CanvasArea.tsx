@@ -36,6 +36,7 @@ import BlockResizer from './BlockResizer';
 import { Minus, Plus, Maximize, MousePointer2 } from 'lucide-react';
 
 import { BoardFromPageType } from '@/components/workspace/BoardRenderer';
+import PageColorPicker from '@/components/workspace/PageColorPicker';
 import { isBoardPageType } from '@/lib/templates';
 
 import { useCanvasCollaboration } from '@/hooks/useCanvasCollaboration';
@@ -1240,59 +1241,14 @@ export default function CanvasArea() {
                 }`}
               />
               <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
-              <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700 mx-1" />
 
-              <div
-                tabIndex={0}
-                className="relative group flex items-center justify-center focus:outline-none"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <div
-                  className={`w-7 h-7 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm transition-transform ${
-                    mode === 'readonly'
-                      ? 'cursor-default'
-                      : 'cursor-pointer hover:scale-105 group-focus:ring-2 group-focus:ring-indigo-500/50'
-                  }`}
-                  style={{ backgroundColor: pageBgColor }}
-                />
-
-                {mode !== 'readonly' && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus:opacity-100 group-focus:visible transition-all duration-200 z-100">
-                    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-2 grid grid-cols-5 gap-1.5 w-max">
-                      {[
-                        '#ffffff',
-                        '#f87171',
-                        '#fb923c',
-                        '#facc15',
-                        '#4ade80',
-                        '#2dd4bf',
-                        '#60a5fa',
-                        '#a855f7',
-                        '#f472b6',
-                        '#18181b',
-                      ].map((color) => (
-                        <button
-                          key={color}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updatePageSettings(page.id, {
-                              backgroundColor: color,
-                            });
-                          }}
-                          className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
-                            pageBgColor === color
-                              ? 'border-indigo-500 scale-110 shadow-sm'
-                              : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-400'
-                          }`}
-                          style={{ backgroundColor: color }}
-                          title={color}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <PageColorPicker
+                value={pageBgColor}
+                disabled={mode === 'readonly'}
+                onChange={(color) =>
+                  updatePageSettings(page.id, { backgroundColor: color })
+                }
+              />
             </div>
           ) : (
             <div

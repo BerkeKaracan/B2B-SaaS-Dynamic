@@ -9,12 +9,14 @@ import {
   useProjectToolbarPortal,
 } from '@/components/workspace/ProjectToolbarSlot';
 import EventEditor from './EventEditor';
-import { EVENT_UI, SURFACE } from './calendarStyles';
+import { EventChip } from './EventChip';
+import { SURFACE } from './calendarStyles';
+import PageColorPicker from '@/components/workspace/PageColorPicker';
+import { themeFromPageColor } from '@/lib/pageTheme';
 import {
   buildMonthCells,
   dayTitle,
   eventsOnDay,
-  formatEventTime,
   monthTitle,
   todayKey,
   weekStartsOn,
@@ -26,13 +28,15 @@ function CalendarBoard({ projectId }: { projectId: string }) {
   const t = useTranslations('CalendarBoard');
   const locale = useLocale();
   const dateLocale = locale === 'tr' ? 'tr-TR' : 'en-US';
-  const { isReadonly, dataSource, persist, migrateLegacyKeys } =
+  const { isReadonly, dataSource, persist, migrateLegacyKeys, isPageScoped } =
     useBoardPersistence(projectId);
 
   const events = useMemo(
     () => (dataSource.calendarEvents as CalendarEvent[] | undefined) || [],
     [dataSource.calendarEvents]
   );
+  const pageColor = String(dataSource.backgroundColor || '#ffffff');
+  const theme = useMemo(() => themeFromPageColor(pageColor), [pageColor]);
 
   const now = new Date();
   const [cursor, setCursor] = useState({
@@ -44,7 +48,7 @@ function CalendarBoard({ projectId }: { projectId: string }) {
   const [isNew, setIsNew] = useState(false);
 
   useEffect(() => {
-    migrateLegacyKeys(['calendarEvents']);
+    migrateLegacyKeys(['calendarEvents', 'backgroundColor']);
   }, [migrateLegacyKeys]);
 
   const weekStart = weekStartsOn(locale);
@@ -82,7 +86,7 @@ function CalendarBoard({ projectId }: { projectId: string }) {
   const openEdit = useCallback((event: CalendarEvent) => {
     setSelectedKey(event.date);
     setIsNew(false);
-    setDraft({ ...event });
+    setDraft({ ...event, color: event.color || 'red' });
   }, []);
 
   const goToday = useCallback(() => {
@@ -100,7 +104,11 @@ function CalendarBoard({ projectId }: { projectId: string }) {
 
   const handleSave = useCallback(() => {
     if (!draft || !draft.title.trim()) return;
-    const nextEvent = { ...draft, title: draft.title.trim() };
+    const nextEvent: CalendarEvent = {
+      ...draft,
+      title: draft.title.trim(),
+      color: draft.color || 'red',
+    };
     const exists = events.some((event) => event.id === nextEvent.id);
     saveEvents(
       exists
@@ -130,7 +138,7 @@ function CalendarBoard({ projectId }: { projectId: string }) {
       <button
         type="button"
         onClick={() => shiftMonth(-1)}
-        className={`p-1.5 rounded-lg ${SURFACE.ghost}`}
+        className={`p-1.5 rounded-full ${SURFACE.ghost}`}
         aria-label={t('prevMonth')}
       >
         <ChevronLeft className="w-4 h-4" />
@@ -141,7 +149,7 @@ function CalendarBoard({ projectId }: { projectId: string }) {
       <button
         type="button"
         onClick={() => shiftMonth(1)}
-        className={`p-1.5 rounded-lg ${SURFACE.ghost}`}
+        className={`p-1.5 rounded-full ${SURFACE.ghost}`}
         aria-label={t('nextMonth')}
       >
         <ChevronRight className="w-4 h-4" />
@@ -149,15 +157,22 @@ function CalendarBoard({ projectId }: { projectId: string }) {
       <button
         type="button"
         onClick={goToday}
-        className="ml-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        className="ml-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide bg-white/80 dark:bg-zinc-800/80 border border-zinc-200/70 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800 shadow-sm"
       >
         {t('today')}
       </button>
+      {!isPageScoped && (
+        <PageColorPicker
+          value={pageColor}
+          disabled={isReadonly}
+          onChange={(color) => persist({ backgroundColor: color })}
+        />
+      )}
       {!isReadonly && (
         <button
           type="button"
           onClick={() => openCreate(selectedKey)}
-          className={`ml-1 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold ${SURFACE.primary}`}
+          className={`ml-1 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold ${SURFACE.primary}`}
         >
           <Plus className="w-3.5 h-3.5" />
           {t('addEvent')}
@@ -172,6 +187,10 @@ function CalendarBoard({ projectId }: { projectId: string }) {
   return (
     <div
       className={`absolute inset-0 flex flex-col h-full min-h-0 overflow-hidden ${SURFACE.stage}`}
+      style={{
+        backgroundColor: theme.stage,
+        ['--cal-accent' as string]: theme.accent,
+      }}
     >
       {portaledToolbar}
       {!hasToolbarSlot && (
@@ -179,7 +198,14 @@ function CalendarBoard({ projectId }: { projectId: string }) {
           className={`h-14 px-4 sm:px-5 flex items-center justify-between gap-3 shrink-0 z-10 ${SURFACE.chrome}`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-1.5 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 rounded-lg border border-red-100 dark:border-red-900/50">
+            <div
+              className="p-1.5 rounded-xl border shadow-sm"
+              style={{
+                backgroundColor: theme.wash === 'transparent' ? '#fff' : theme.wash,
+                color: theme.accent,
+                borderColor: `${theme.accent}33`,
+              }}
+            >
               <CalendarDays className="w-4 h-4" />
             </div>
             <div className="min-w-0">
@@ -196,18 +222,18 @@ function CalendarBoard({ projectId }: { projectId: string }) {
       )}
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-0">
-        <div className="flex-1 min-h-0 min-w-0 p-3 sm:p-4 flex flex-col">
-          <div className="grid grid-cols-7 mb-1">
-            {weekdays.map((label) => (
+        <div className="flex-1 min-h-0 min-w-0 p-3 sm:p-5 flex flex-col">
+          <div className="grid grid-cols-7 mb-2 px-0.5">
+            {weekdays.map((label, i) => (
               <div
-                key={label}
-                className="text-center text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-1.5"
+                key={`${label}-${i}`}
+                className="text-center text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400 py-1"
               >
                 {label}
               </div>
             ))}
           </div>
-          <div className="flex-1 min-h-0 grid grid-cols-7 grid-rows-6 gap-px rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-200 dark:bg-zinc-800">
+          <div className="flex-1 min-h-0 grid grid-cols-7 grid-rows-6 gap-1.5 sm:gap-2">
             {cells.map((cell) => {
               const dayEvents = eventsOnDay(events, cell.key);
               const visible = dayEvents.slice(0, 3);
@@ -226,36 +252,42 @@ function CalendarBoard({ projectId }: { projectId: string }) {
                       setSelectedKey(cell.key);
                     }
                   }}
-                  className={`min-h-0 text-left p-1 sm:p-1.5 flex flex-col gap-0.5 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors cursor-pointer ${
-                    cell.inMonth ? '' : 'bg-zinc-50/80 dark:bg-zinc-950/60'
-                  } ${selected ? 'ring-2 ring-inset ring-red-400/80' : ''}`}
+                  className={`min-h-0 rounded-2xl p-1.5 sm:p-2 flex flex-col gap-1 cursor-pointer transition-all duration-150 ${
+                    selected
+                      ? 'bg-white dark:bg-zinc-900'
+                      : cell.isToday
+                        ? 'bg-white/90 dark:bg-zinc-900/80 shadow-sm ring-1 ring-zinc-900/10 dark:ring-white/10'
+                        : cell.isWeekend
+                          ? 'bg-white/45 dark:bg-zinc-900/35 hover:bg-white/80 dark:hover:bg-zinc-900/70'
+                          : 'bg-white/70 dark:bg-zinc-900/50 hover:bg-white dark:hover:bg-zinc-900 hover:shadow-sm'
+                  } ${cell.inMonth ? '' : 'opacity-40'}`}
+                  style={
+                    selected
+                      ? {
+                          boxShadow: `0 10px 28px -18px rgba(24,24,27,0.55), inset 0 0 0 2px ${theme.accent}`,
+                        }
+                      : undefined
+                  }
                 >
                   <span
-                    className={`self-end sm:self-start inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-semibold tabular-nums ${
+                    className={`self-end sm:self-start inline-flex items-center justify-center w-7 h-7 rounded-full text-[12px] font-semibold tabular-nums ${
                       cell.isToday
-                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm'
                         : cell.inMonth
                           ? 'text-zinc-700 dark:text-zinc-200'
-                          : 'text-zinc-300 dark:text-zinc-600'
+                          : 'text-zinc-400 dark:text-zinc-600'
                     }`}
                   >
                     {cell.date.getDate()}
                   </span>
-                  <div className="flex-1 min-h-0 space-y-0.5 overflow-hidden">
+                  <div className="flex-1 min-h-0 space-y-1 overflow-hidden">
                     {visible.map((event) => (
-                      <button
+                      <EventChip
                         key={event.id}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEdit(event);
-                        }}
-                        className={`block w-full truncate rounded px-1 py-0.5 text-[10px] font-semibold leading-tight text-left ${EVENT_UI[event.color].chip}`}
-                      >
-                        {event.allDay
-                          ? event.title
-                          : `${event.startTime || ''} ${event.title}`}
-                      </button>
+                        event={event}
+                        allDayLabel={t('allDay')}
+                        onClick={openEdit}
+                      />
                     ))}
                     {extra > 0 && (
                       <span className="block text-[10px] font-semibold text-zinc-400 px-1">
@@ -269,8 +301,8 @@ function CalendarBoard({ projectId }: { projectId: string }) {
           </div>
         </div>
 
-        <aside className="lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/50 flex flex-col min-h-48 lg:min-h-0">
-          <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-2">
+        <aside className="lg:w-80 shrink-0 lg:m-4 lg:ml-0 lg:rounded-2xl border-t lg:border border-zinc-200/70 dark:border-zinc-800 bg-white/70 dark:bg-zinc-950/55 backdrop-blur-md shadow-sm flex flex-col min-h-48 lg:min-h-0 overflow-hidden">
+          <div className="px-4 py-3.5 border-b border-zinc-100/80 dark:border-zinc-800 flex items-center justify-between gap-2">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                 {t('agenda')}
@@ -283,7 +315,7 @@ function CalendarBoard({ projectId }: { projectId: string }) {
               <button
                 type="button"
                 onClick={() => openCreate(selectedKey)}
-                className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                className="p-1.5 rounded-full text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                 aria-label={t('addEvent')}
               >
                 <Plus className="w-4 h-4" />
@@ -292,36 +324,19 @@ function CalendarBoard({ projectId }: { projectId: string }) {
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {selectedEvents.length === 0 ? (
-              <p className="text-xs text-zinc-400 px-1 py-6 text-center">
+              <p className="text-xs text-zinc-400 px-1 py-8 text-center leading-relaxed">
                 {t('emptyDay')}
+                <span className="block mt-1 text-[11px]">{t('emptyHint')}</span>
               </p>
             ) : (
               selectedEvents.map((event) => (
-                <button
+                <EventChip
                   key={event.id}
-                  type="button"
-                  onClick={() => openEdit(event)}
-                  className="w-full text-left rounded-xl border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
-                >
-                  <div className="flex items-start gap-2">
-                    <span
-                      className={`mt-1 w-2 h-2 rounded-full shrink-0 ${EVENT_UI[event.color].dot}`}
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                        {event.title}
-                      </p>
-                      <p className="text-[11px] text-zinc-500 mt-0.5">
-                        {formatEventTime(event, t('allDay'))}
-                      </p>
-                      {event.notes ? (
-                        <p className="text-[11px] text-zinc-400 mt-1 line-clamp-2">
-                          {event.notes}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                </button>
+                  event={event}
+                  allDayLabel={t('allDay')}
+                  onClick={openEdit}
+                  compact={false}
+                />
               ))
             )}
           </div>

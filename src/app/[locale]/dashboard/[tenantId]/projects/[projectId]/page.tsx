@@ -17,6 +17,7 @@ import {
   isStandaloneBoardTemplate,
   normalizeProjectTemplate,
 } from '@/lib/templates';
+import { themeFromPageColor, isLightPageColor } from '@/lib/pageTheme';
 import { Check, Copy, Globe2, Lock, Share2, X } from 'lucide-react';
 import { LoadingMark, LoadingDots } from '@/components/ui/loading';
 type Collaborator = {
@@ -55,6 +56,9 @@ export default function ProjectDesignPage() {
 
   const recordId = useCanvasStore((state) => state.recordId);
   const updateMetadata = useCanvasStore((state) => state.updateMetadata);
+  const metadataBackground = useCanvasStore(
+    (state) => state.metadata.backgroundColor
+  );
 
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin' || user?.role === 'owner';
@@ -264,16 +268,50 @@ export default function ProjectDesignPage() {
     typeof window !== 'undefined'
       ? `${window.location.origin}/share/${projectId}`
       : `/share/${projectId}`;
+  const templateChip =
+    templateMeta?.chip ||
+    'bg-sky-50 dark:bg-sky-500/10 border-sky-100 dark:border-sky-500/20';
+  const templateIconClass =
+    templateMeta?.color || 'text-sky-700 dark:text-sky-300';
   const showStandaloneBoard = isStandaloneBoardTemplate(projectTemplate);
+  const pageTheme = themeFromPageColor(
+    String(metadataBackground || recordData?.backgroundColor || '#ffffff')
+  );
+  const hasCustomPageColor = pageTheme.color !== '#ffffff';
+  const chipIconOnLight = isLightPageColor(pageTheme.color);
 
   return (
-    <div className="flex flex-col h-full w-full min-w-0 bg-[#f7f9fb] dark:bg-zinc-950 relative selection:bg-sky-200/50 overscroll-none touch-none">
+    <div
+      className="flex flex-col h-full w-full min-w-0 relative selection:bg-zinc-300/50 dark:selection:bg-zinc-600/40 overscroll-none touch-none dark:bg-zinc-950"
+      style={{
+        backgroundColor: showStandaloneBoard
+          ? pageTheme.stage
+          : '#f7f9fb',
+      }}
+    >
       <div className="h-12 md:h-14 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl px-3 md:px-5 flex items-center justify-between gap-3 shrink-0 relative z-30 overflow-visible">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="hidden sm:flex items-center gap-2 min-w-0 pl-0.5">
-            <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20 flex items-center justify-center shrink-0">
+            <div
+              className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${
+                hasCustomPageColor ? 'border-transparent' : templateChip
+              }`}
+              style={
+                hasCustomPageColor
+                  ? { backgroundColor: pageTheme.color }
+                  : undefined
+              }
+            >
               {TemplateIcon ? (
-                <TemplateIcon className="w-3.5 h-3.5 text-sky-700 dark:text-sky-300" />
+                <TemplateIcon
+                  className={`w-3.5 h-3.5 ${
+                    hasCustomPageColor
+                      ? chipIconOnLight
+                        ? 'text-zinc-900'
+                        : 'text-white'
+                      : templateIconClass
+                  }`}
+                />
               ) : null}
             </div>
             <div className="min-w-0 leading-tight">
@@ -288,7 +326,7 @@ export default function ProjectDesignPage() {
 
           <div className="sm:hidden inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600 dark:text-zinc-300">
             {TemplateIcon ? (
-              <TemplateIcon className="w-3 h-3 text-sky-600" />
+              <TemplateIcon className={`w-3 h-3 ${templateIconClass}`} />
             ) : null}
             {templateLabel}
           </div>
@@ -311,7 +349,7 @@ export default function ProjectDesignPage() {
                 onClick={() => setMode('readonly')}
                 className={`px-2.5 md:px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] rounded-md transition-all ${
                   mode === 'readonly'
-                    ? 'bg-white dark:bg-zinc-800 text-sky-700 dark:text-sky-300 shadow-sm'
+                    ? 'bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
                 }`}
               >

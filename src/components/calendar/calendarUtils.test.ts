@@ -5,6 +5,7 @@ import {
   toDateKey,
   weekStartsOn,
 } from './calendarUtils';
+import { EVENT_PALETTE, eventPalette } from './calendarStyles';
 import type { CalendarEvent } from './types';
 
 describe('calendarUtils', () => {
@@ -18,6 +19,7 @@ describe('calendarUtils', () => {
     expect(cells).toHaveLength(42);
     expect(cells.some((c) => c.key === '2026-08-01' && c.inMonth)).toBe(true);
     expect(cells[0].date.getDay()).toBe(1);
+    expect(cells.some((c) => c.isWeekend)).toBe(true);
   });
 
   it('sorts all-day events before timed events on a day', () => {
@@ -41,5 +43,13 @@ describe('calendarUtils', () => {
     const day = eventsOnDay(events, '2026-08-14');
     expect(day.map((e) => e.id)).toEqual(['1', '2']);
     expect(toDateKey(new Date(2026, 7, 14))).toBe('2026-08-14');
+  });
+});
+
+describe('eventPalette', () => {
+  it('falls back to red when color is missing or unknown', () => {
+    expect(eventPalette(undefined)).toEqual(EVENT_PALETTE.red);
+    expect(eventPalette('nope')).toEqual(EVENT_PALETTE.red);
+    expect(eventPalette('emerald').dot).toBe('#10b981');
   });
 });

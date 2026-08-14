@@ -1,50 +1,80 @@
 import type { CalendarEventColor } from './types';
 
 export const SURFACE = {
-  stage:
-    'bg-[linear-gradient(168deg,#fafafa_0%,#f4f4f5_42%,#fafafa_100%)] dark:bg-[linear-gradient(168deg,#09090b_0%,#18181b_48%,#0c0c0e_100%)]',
+  stage: 'bg-[#f4f4f5] dark:bg-[#09090b]',
   chrome:
-    'bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-b border-zinc-200/90 dark:border-zinc-800',
+    'bg-white/75 dark:bg-zinc-950/70 backdrop-blur-xl border-b border-zinc-200/60 dark:border-zinc-800/80',
   toolbarChip:
-    'text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 tabular-nums px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700',
+    'text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 tabular-nums px-2 py-1 rounded-full bg-white/80 dark:bg-zinc-800/80 border border-zinc-200/70 dark:border-zinc-700/70 shadow-sm',
   primary:
     'bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 shadow-sm',
   ghost:
-    'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-transparent',
+    'text-zinc-600 dark:text-zinc-300 hover:bg-white/80 dark:hover:bg-zinc-800/80 border border-transparent',
 } as const;
 
-export const EVENT_UI: Record<
-  CalendarEventColor,
-  { chip: string; bar: string; dot: string }
-> = {
+export type EventPalette = {
+  bar: string;
+  fill: string;
+  text: string;
+  darkFill: string;
+  darkText: string;
+  dot: string;
+};
+
+export const EVENT_PALETTE: Record<CalendarEventColor, EventPalette> = {
   zinc: {
-    chip: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100',
-    bar: 'bg-zinc-500',
-    dot: 'bg-zinc-500',
+    bar: '#52525b',
+    fill: '#f4f4f5',
+    text: '#27272a',
+    darkFill: '#27272a',
+    darkText: '#f4f4f5',
+    dot: '#71717a',
   },
   red: {
-    chip: 'bg-red-50 text-red-800 dark:bg-red-950/50 dark:text-red-200',
-    bar: 'bg-red-500',
-    dot: 'bg-red-500',
+    bar: '#e11d48',
+    fill: '#ffe4e6',
+    text: '#9f1239',
+    darkFill: '#4c0519',
+    darkText: '#fecdd3',
+    dot: '#e11d48',
   },
   amber: {
-    chip: 'bg-amber-50 text-amber-800 dark:bg-amber-950/45 dark:text-amber-200',
-    bar: 'bg-amber-500',
-    dot: 'bg-amber-500',
+    bar: '#d97706',
+    fill: '#fef3c7',
+    text: '#92400e',
+    darkFill: '#451a03',
+    darkText: '#fde68a',
+    dot: '#f59e0b',
   },
   emerald: {
-    chip: 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-200',
-    bar: 'bg-emerald-500',
-    dot: 'bg-emerald-500',
+    bar: '#059669',
+    fill: '#d1fae5',
+    text: '#065f46',
+    darkFill: '#022c22',
+    darkText: '#a7f3d0',
+    dot: '#10b981',
   },
   violet: {
-    chip: 'bg-violet-50 text-violet-800 dark:bg-violet-950/45 dark:text-violet-200',
-    bar: 'bg-violet-500',
-    dot: 'bg-violet-500',
+    bar: '#7c3aed',
+    fill: '#ede9fe',
+    text: '#5b21b6',
+    darkFill: '#2e1065',
+    darkText: '#ddd6fe',
+    dot: '#8b5cf6',
   },
   rose: {
-    chip: 'bg-rose-50 text-rose-800 dark:bg-rose-950/45 dark:text-rose-200',
-    bar: 'bg-rose-500',
-    dot: 'bg-rose-500',
+    bar: '#db2777',
+    fill: '#fce7f3',
+    text: '#9d174d',
+    darkFill: '#500724',
+    darkText: '#fbcfe8',
+    dot: '#ec4899',
   },
 };
+
+export function eventPalette(color?: string | null): EventPalette {
+  if (color && color in EVENT_PALETTE) {
+    return EVENT_PALETTE[color as CalendarEventColor];
+  }
+  return EVENT_PALETTE.red;
+}

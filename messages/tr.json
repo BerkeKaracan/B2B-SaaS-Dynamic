@@ -903,6 +903,7 @@
     "nextMonth": "Sonraki ay",
     "agenda": "Ajanda",
     "emptyDay": "Bu günde etkinlik yok",
+    "emptyHint": "Eklemek için bir güne çift tıklayın",
     "more": "+{count} daha",
     "eventCount": "{count} etkinlik",
     "allDay": "Tüm gün",
