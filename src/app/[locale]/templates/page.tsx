@@ -15,7 +15,10 @@ import MarketingPageChrome, {
   MarketingBreadcrumb,
   MarketingRelatedGrid,
 } from '@/components/landing/MarketingPageChrome';
-import { PROJECT_TEMPLATES, type ProjectTemplateId } from '@/lib/templates';
+import {
+  PROJECT_TEMPLATES,
+  type ProjectTemplateId,
+} from '@/lib/templates';
 
 type SoftTone = {
   soft: string;
@@ -72,12 +75,6 @@ const TONE_BY_ID: Record<ProjectTemplateId, SoftTone> = {
     iconWrap: 'bg-rose-50 border-rose-100 text-rose-600',
     bar: 'bg-rose-500',
     hover: 'hover:border-rose-200',
-  },
-  calendar: {
-    soft: 'bg-blue-50 dark:bg-blue-950/30',
-    iconWrap: 'text-blue-500 dark:text-blue-400',
-    bar: 'bg-blue-500',
-    hover: 'hover:border-blue-500/30',
   },
 };
 
@@ -176,22 +173,6 @@ function TemplatePreview({ id }: { id: ProjectTemplateId }) {
           ))}
         </div>
       );
-    case 'calendar':
-      return (
-        <div className="absolute inset-0 opacity-70">
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded shadow-sm flex flex-col overflow-hidden bg-white/20 border border-white/30">
-            <div className="w-full h-3 bg-white/80" />
-            <div className="grid grid-cols-3 gap-[2px] p-1.5 flex-1">
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className={`rounded-[1px] ${i === 4 ? 'bg-white/90 shadow-sm' : 'bg-white/50'}`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      );
     default:
       return null;
   }
@@ -281,7 +262,9 @@ export default function TemplatesPage() {
                     </h3>
                   </div>
                   <span className="inline-flex self-start text-[9px] font-black uppercase tracking-[0.12em] text-zinc-400 mb-2">
-                    {tpl.isStandaloneBoard ? t('kind.board') : t('kind.canvas')}
+                    {tpl.isStandaloneBoard
+                      ? t('kind.board')
+                      : t('kind.canvas')}
                   </span>
                   <p className="text-[12px] text-zinc-500 font-medium leading-relaxed flex-1">
                     {t(`items.${tpl.id}.desc`)}

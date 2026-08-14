@@ -1,6 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-  CalendarDays,
   Clock,
   Database,
   FileText,
@@ -21,8 +20,7 @@ export type ProjectTemplateId =
   | 'timeline'
   | 'database'
   | 'mindmap'
-  | 'retrospective'
-  | 'calendar';
+  | 'retrospective';
 
 /** Page frame types inside Blank canvas (`PageContent.type`). */
 export type PageTypeId = PageContent['type'];
@@ -143,17 +141,6 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     glow: 'radial-gradient(circle at 20% 30%, rgba(244,63,94,0.32), transparent 42%), radial-gradient(circle at 80% 70%, rgba(251,113,133,0.14), transparent 36%)',
     isStandaloneBoard: true,
   },
-  {
-    id: 'calendar',
-    label: 'Calendar',
-    icon: CalendarDays,
-    color: 'text-blue-500 dark:text-blue-400',
-    rail: 'bg-blue-400/80 group-hover:bg-blue-500',
-    headerBg:
-      'bg-[linear-gradient(135deg,#eff6ff_0%,#dbeafe_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#1e3a8a_50%,#09090b_100%)]',
-    glow: 'radial-gradient(circle at 20% 30%, rgba(59,130,246,0.36), transparent 42%), radial-gradient(circle at 80% 70%, rgba(96,165,250,0.16), transparent 36%)',
-    isStandaloneBoard: true,
-  },
 ];
 
 /** Page types that host a board component (not freeform blocks). */
@@ -166,7 +153,6 @@ export const BOARD_PAGE_TYPES = new Set<PageTypeId>([
   'timeline',
   'database',
   'retrospective',
-  'calendar',
 ]);
 
 /** Frame palette order for ItemSidebar (i18n keys stay `frames.<id>`). */
@@ -179,7 +165,6 @@ export const FRAME_PAGE_TYPES: PageTypeId[] = [
   'whiteboard',
   'mindmap',
   'retrospective',
-  'calendar',
 ];
 
 const PAGE_DEFAULTS: Record<PageTypeId, PageFrameDefaults> = {
@@ -237,12 +222,6 @@ const PAGE_DEFAULTS: Record<PageTypeId, PageFrameDefaults> = {
     title: 'Retrospective',
     backgroundColor: '#ffffff',
   },
-  calendar: {
-    width: 1200,
-    height: 800,
-    title: 'Calendar',
-    backgroundColor: '#ffffff',
-  },
 };
 
 const TEMPLATE_BY_ID = new Map<string, ProjectTemplateMeta>();
@@ -257,18 +236,14 @@ for (const meta of PROJECT_TEMPLATES) {
 export function normalizeProjectTemplate(
   raw: string | null | undefined
 ): ProjectTemplateId | string {
-  const key = String(raw || 'blank')
-    .toLowerCase()
-    .trim();
+  const key = String(raw || 'blank').toLowerCase().trim();
   return TEMPLATE_BY_ID.get(key)?.id ?? key;
 }
 
 export function getProjectTemplateMeta(
   raw: string | null | undefined
 ): ProjectTemplateMeta | undefined {
-  const key = String(raw || 'blank')
-    .toLowerCase()
-    .trim();
+  const key = String(raw || 'blank').toLowerCase().trim();
   return TEMPLATE_BY_ID.get(key);
 }
 
@@ -298,7 +273,6 @@ export const TEMPLATE_LABELS: Record<string, string> = {
   database: 'Database',
   mindmap: 'Mindmap',
   retrospective: 'Retrospective',
-  calendar: 'Calendar',
 };
 
 /** Map project template → board component key used by BoardRenderer. */
@@ -311,9 +285,7 @@ export function projectTemplateToBoardKey(
 }
 
 /** Map page type → board component key. */
-export function pageTypeToBoardKey(
-  type: string | null | undefined
-): string | null {
+export function pageTypeToBoardKey(type: string | null | undefined): string | null {
   if (!type || type === 'empty') return null;
   if (type === 'notes' || type === 'document') return 'document';
   if (isBoardPageType(type)) return type;
