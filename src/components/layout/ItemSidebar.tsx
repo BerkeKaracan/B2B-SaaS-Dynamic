@@ -13,16 +13,21 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
-  ChevronLeft,
-  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   Sparkles,
   GripVertical,
+  X,
 } from 'lucide-react';
+import { AI, RAIL, ROW, SECTION, SURFACE } from './itemSidebarStyles';
 
 /** Default top clears the project toolbar (~3.5rem) + padding. */
 const DEFAULT_PANEL_X = 16;
 const DEFAULT_PANEL_Y = 72;
 const PANEL_MAX_H = 'min(560px, calc(100% - 5.5rem))';
+/** Rail tooltip geometry — matches RAIL.tooltip max width + offset. */
+const TOOLTIP_W = 208;
+const TOOLTIP_GAP = 10;
 interface SidebarItem {
   type: BlockType;
   label: string;
@@ -37,6 +42,43 @@ interface TemplateItem {
   icon: React.ReactNode;
 }
 
+/** Collapsible group header shared by the AI, blocks and frames sections. */
+function SectionHeader({
+  label,
+  count,
+  isOpen,
+  onToggle,
+  tone = 'default',
+}: {
+  label: string;
+  count?: number;
+  isOpen: boolean;
+  onToggle: () => void;
+  tone?: 'default' | 'ai';
+}) {
+  const isAi = tone === 'ai';
+  const Chevron = isOpen ? ChevronUp : ChevronDown;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={isOpen}
+      className={SECTION.toggle}
+    >
+      <span className="flex items-center gap-1.5 min-w-0">
+        {isAi && (
+          <Sparkles className="w-3 h-3 shrink-0 text-indigo-500 dark:text-indigo-400" />
+        )}
+        <span className={isAi ? SECTION.labelAi : SECTION.label}>{label}</span>
+        {typeof count === 'number' && (
+          <span className={SECTION.chip}>{count}</span>
+        )}
+      </span>
+      <Chevron className={isAi ? SECTION.chevronAi : SECTION.chevron} />
+    </button>
+  );
+}
+
 export default function ItemSidebar() {
   const t = useTranslations('EngineToolkit');
   const params = useParams();
@@ -44,11 +86,7 @@ export default function ItemSidebar() {
   const { enabled: canUseAiGenerator, isLoading: isFlagLoading } =
     useFeatureFlag(AI_CANVAS_GENERATOR, tenantId);
   const showEngineToolkit = useLayoutStore((s) => s.showEngineToolkit);
-  const {
-    addPage,
-    addBlockToPage,
-    setActivePage,
-  } = useCanvasStore();
+  const { addPage, addBlockToPage, setActivePage } = useCanvasStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isBlocksOpen, setIsBlocksOpen] = useState(true);
@@ -60,6 +98,14 @@ export default function ItemSidebar() {
     y: DEFAULT_PANEL_Y,
   });
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const [railTip, setRailTip] = useState<{
+    label: string;
+    description?: string;
+    x: number;
+    y: number;
+    flip: boolean;
+  } | null>(null);
   const panelDragRef = useRef<{
     startX: number;
     startY: number;
@@ -734,6 +780,73 @@ export default function ItemSidebar() {
         item.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const isSearching = searchQuery.trim().length > 0;
+  const hasResults = filteredBlocks.length > 0 || filteredTemplates.length > 0;
+
+  const collapsePanel = () => {
+    setSearchQuery('');
+    setRailTip(null);
+    setIsCollapsed(true);
+  };
+
+  const expandPanel = (focusSearch = false) => {
+    setRailTip(null);
+    setIsCollapsed(false);
+    if (focusSearch) {
+      window.setTimeout(() => searchInputRef.current?.focus(), 240);
+    }
+  };
+
+  /**
+   * Rail tooltips render outside the clipped panel, so they are anchored in the
+   * panel's own coordinate space (its offset parent) instead of the viewport.
+   */
+  const showRailTip = (
+    e: React.MouseEvent<HTMLElement> | React.FocusEvent<HTMLElement>,
+    label: string,
+    description?: string
+  ) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const parent = panelRef.current?.offsetParent as HTMLElement | null;
+    const base = parent?.getBoundingClientRect();
+    const left = rect.left - (base?.left ?? 0);
+    const right = rect.right - (base?.left ?? 0);
+    const flip = base ? right + TOOLTIP_GAP + TOOLTIP_W > base.width : false;
+    setRailTip({
+      label,
+      description,
+      x: flip ? left - TOOLTIP_GAP : right + TOOLTIP_GAP,
+      y: rect.top - (base?.top ?? 0) + rect.height / 2,
+      flip,
+    });
+  };
+
+  const renderRailTile = (
+    item: SidebarItem | TemplateItem,
+    isBlock: boolean
+  ) => (
+    <button
+      key={`${isBlock ? 'block' : 'frame'}-${item.type}`}
+      type="button"
+      onPointerDown={(e) => handlePointerDown(e, item, isBlock)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (isBlock) handleTapToAddBlock(item.type as BlockType);
+          else handleTapToAddPage(item.type as PageContent['type']);
+        }
+      }}
+      onMouseEnter={(e) => showRailTip(e, item.label, item.description)}
+      onMouseLeave={() => setRailTip(null)}
+      onFocus={(e) => showRailTip(e, item.label, item.description)}
+      onBlur={() => setRailTip(null)}
+      aria-label={item.label}
+      className={RAIL.tile}
+    >
+      {item.icon}
+    </button>
+  );
+
   const clampPanelPos = (x: number, y: number) => {
     const el = panelRef.current;
     const parent = el?.offsetParent as HTMLElement | null;
@@ -779,8 +892,8 @@ export default function ItemSidebar() {
   return (
     <>
       {/*
-        Floating, draggable toolkit — shorter than full viewport so the
-        project toolbar stays clickable. Outer width clips; inner stays w-72.
+        Floating, draggable toolkit — collapses to a slim icon rail so the
+        canvas stays clear while blocks and frames remain one click away.
       */}
       <div
         ref={panelRef}
@@ -788,240 +901,287 @@ export default function ItemSidebar() {
         style={{
           left: panelPos.x,
           top: panelPos.y,
-          height: PANEL_MAX_H,
+          height: isCollapsed ? undefined : PANEL_MAX_H,
           maxHeight: 'calc(100% - 5.5rem)',
         }}
-        className={`absolute rounded-2xl overflow-hidden bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-600 shadow-[0_0_0_1px_rgba(24,24,27,0.06),0_18px_50px_rgba(15,23,42,0.14)] transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] contain-paint ${
+        className={`absolute flex flex-col overflow-hidden ${SURFACE.panel} transition-[width] duration-300 ease-out ${
           showEngineToolkit ? 'pointer-events-auto' : 'pointer-events-none'
         } ${isCollapsed ? 'w-16' : 'w-72'}`}
       >
-        <div className="flex h-full w-72 flex-col">
-          <div className="p-3 border-b border-zinc-200 dark:border-zinc-800 flex flex-col gap-2 shrink-0">
-            <div className="flex items-center gap-1 w-full min-h-7">
+        {isCollapsed ? (
+          <div className="flex min-h-0 w-16 flex-1 flex-col">
+            <div
+              className={`shrink-0 flex items-center justify-center gap-0.5 px-1 py-1.5 ${SURFACE.header}`}
+            >
               <button
                 type="button"
                 onPointerDown={handlePanelDragStart}
-                className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-grab active:cursor-grabbing shrink-0 touch-none"
-                aria-label="Drag toolkit"
-                title="Drag"
+                className={`w-7 h-7 shrink-0 touch-none cursor-grab active:cursor-grabbing ${SURFACE.iconButton}`}
+                aria-label={t('dragHandle')}
               >
-                <GripVertical className="w-4 h-4" />
+                <GripVertical className="w-3.5 h-3.5" />
               </button>
               <button
                 type="button"
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 rounded-md text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors shrink-0"
-                aria-label={isCollapsed ? 'Expand toolkit' : 'Collapse toolkit'}
+                onClick={() => expandPanel()}
+                onMouseEnter={(e) => showRailTip(e, t('expand'))}
+                onMouseLeave={() => setRailTip(null)}
+                onFocus={(e) => showRailTip(e, t('expand'))}
+                onBlur={() => setRailTip(null)}
+                className={`w-7 h-7 shrink-0 ${SURFACE.iconButton} text-zinc-700 dark:text-zinc-200 bg-zinc-100/80 dark:bg-zinc-800/80`}
+                aria-label={t('expand')}
+                aria-expanded={false}
               >
-                {isCollapsed ? (
-                  <ChevronRight className="w-4 h-4" />
-                ) : (
-                  <ChevronLeft className="w-4 h-4" />
-                )}
+                <PanelLeftOpen className="w-3.5 h-3.5" />
               </button>
-              <span
-                className={`text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest whitespace-nowrap overflow-hidden transition-opacity duration-200 ${
-                  isCollapsed ? 'opacity-0' : 'opacity-100'
-                }`}
-              >
-                {t('title')}
-              </span>
             </div>
 
-            <div
-              className={`relative flex items-center transition-opacity duration-200 ${
-                isCollapsed
-                  ? 'opacity-0 pointer-events-none h-0 overflow-hidden'
-                  : 'opacity-100'
-              }`}
-            >
-              <Search className="w-3.5 h-3.5 absolute left-3 text-zinc-400 dark:text-zinc-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('search')}
-                tabIndex={isCollapsed ? -1 : 0}
-                className="w-full pl-9 pr-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-950 dark:focus:ring-white focus:bg-white dark:focus:bg-zinc-950 text-zinc-900 dark:text-zinc-100"
-              />
+            <div className="flex-1 min-h-0 flex flex-col items-center gap-1 overflow-y-auto overflow-x-hidden no-scrollbar px-1.5 py-1.5 select-none touch-pan-y">
+              <button
+                type="button"
+                onClick={() => expandPanel(true)}
+                onMouseEnter={(e) => showRailTip(e, t('search'))}
+                onMouseLeave={() => setRailTip(null)}
+                onFocus={(e) => showRailTip(e, t('search'))}
+                onBlur={() => setRailTip(null)}
+                className={RAIL.action}
+                aria-label={t('search')}
+              >
+                <Search className="w-4 h-4" />
+              </button>
+
+              {!isFlagLoading && canUseAiGenerator && (
+                <button
+                  type="button"
+                  onClick={() => setIsAiModalOpen(true)}
+                  onMouseEnter={(e) =>
+                    showRailTip(e, t('aiGenerator'), t('generatePrompt'))
+                  }
+                  onMouseLeave={() => setRailTip(null)}
+                  onFocus={(e) =>
+                    showRailTip(e, t('aiGenerator'), t('generatePrompt'))
+                  }
+                  onBlur={() => setRailTip(null)}
+                  className={AI.railTile}
+                  aria-label={t('aiGenerator')}
+                >
+                  <Sparkles className="w-4 h-4" />
+                </button>
+              )}
+
+              <span className={RAIL.divider} aria-hidden="true" />
+              {filteredBlocks.map((item) => renderRailTile(item, true))}
+              <span className={RAIL.divider} aria-hidden="true" />
+              {filteredTemplates.map((template) =>
+                renderRailTile(template, false)
+              )}
             </div>
           </div>
+        ) : (
+          <div className="flex h-full w-72 flex-col">
+            <div className={`shrink-0 ${SURFACE.header}`}>
+              <div className="flex items-center gap-1.5 px-2.5 pt-2">
+                <button
+                  type="button"
+                  onPointerDown={handlePanelDragStart}
+                  className={`w-7 h-7 shrink-0 touch-none cursor-grab active:cursor-grabbing ${SURFACE.iconButton}`}
+                  aria-label={t('dragHandle')}
+                >
+                  <GripVertical className="w-4 h-4" />
+                </button>
+                <span className={`${SURFACE.title} truncate`}>
+                  {t('title')}
+                </span>
+                <button
+                  type="button"
+                  onClick={collapsePanel}
+                  className={`w-7 h-7 shrink-0 ml-auto ${SURFACE.iconButton}`}
+                  aria-label={t('collapse')}
+                  aria-expanded={true}
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </button>
+              </div>
 
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2 select-none custom-scrollbar touch-pan-y">
-            {!isFlagLoading && canUseAiGenerator && (
-              <>
-                <div className="space-y-1">
+              <div className="relative flex items-center px-2.5 pt-2 pb-2.5">
+                <Search className="w-3.5 h-3.5 absolute left-5.5 text-zinc-400 dark:text-zinc-500 pointer-events-none" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t('search')}
+                  className={SURFACE.search}
+                />
+                {isSearching && (
                   <button
                     type="button"
-                    onClick={() => setIsAiOpen(!isAiOpen)}
-                    className={`w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left transition-opacity duration-200 whitespace-nowrap overflow-hidden ${
-                      isCollapsed ? 'opacity-0 h-0 p-0 pointer-events-none' : ''
-                    }`}
+                    onClick={() => setSearchQuery('')}
+                    className={`absolute right-4 w-6 h-6 ${SURFACE.iconButton}`}
+                    aria-label={t('clearSearch')}
                   >
-                    <span className="text-[10px] font-extrabold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="w-3 h-3" /> {t('intelligence')}
-                    </span>
-                    {isAiOpen ? (
-                      <ChevronUp className="w-3 h-3 text-indigo-400 shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-3 h-3 text-indigo-400 shrink-0" />
-                    )}
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                  {isCollapsed && (
-                    <div className="h-px bg-zinc-200 dark:bg-zinc-800 w-6 mx-auto my-2" />
-                  )}
+                )}
+              </div>
+            </div>
 
-                  {(isAiOpen || isCollapsed) && (
-                    <div className="space-y-0.5">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 py-2 space-y-1.5 select-none custom-scrollbar touch-pan-y">
+              {!isFlagLoading && canUseAiGenerator && (
+                <>
+                  <div className="space-y-1">
+                    <SectionHeader
+                      tone="ai"
+                      label={t('intelligence')}
+                      isOpen={isAiOpen}
+                      onToggle={() => setIsAiOpen(!isAiOpen)}
+                    />
+
+                    {isAiOpen && (
                       <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setIsAiModalOpen(true)}
-                        className="w-full flex items-center justify-start gap-3 p-2 rounded-xl text-left hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/40 group shrink-0 cursor-pointer"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setIsAiModalOpen(true);
+                          }
+                        }}
+                        className={AI.card}
                       >
-                        <div className="p-1.5 bg-indigo-100/50 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 dark:group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-600 dark:group-hover:border-indigo-500 transition-colors shrink-0">
+                        <div className={AI.icon}>
                           <Sparkles className="w-4 h-4" />
                         </div>
-                        <div
-                          className={`space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap flex-1 transition-opacity duration-200 ${
-                            isCollapsed ? 'opacity-0' : 'opacity-100'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <p className="text-[12px] font-bold text-indigo-700 dark:text-indigo-300 tracking-tight group-hover:text-indigo-900 dark:group-hover:text-indigo-100">
-                              {t('aiGenerator')}
-                            </p>
-                            <span className="text-[9px] font-mono font-bold text-indigo-400/70 dark:text-indigo-500/70 bg-indigo-100/50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded">
-                              ⌘J
-                            </span>
+                        <div className="min-w-0 flex-1 pointer-events-none">
+                          <div className="flex items-center gap-2">
+                            <p className={AI.title}>{t('aiGenerator')}</p>
+                            <span className={`ml-auto ${AI.kbd}`}>⌘J</span>
                           </div>
-                          <p className="text-[10px] text-indigo-500/80 dark:text-indigo-400/80 leading-tight truncate">
-                            {t('generatePrompt')}
-                          </p>
+                          <p className={AI.desc}>{t('generatePrompt')}</p>
                         </div>
                       </div>
+                    )}
+                  </div>
+
+                  <div className={`mx-2 ${SURFACE.divider}`} />
+                </>
+              )}
+
+              {/* Building Blocks */}
+              {(!isSearching || filteredBlocks.length > 0) && (
+                <div className="space-y-1">
+                  <SectionHeader
+                    label={t('buildingBlocks')}
+                    count={filteredBlocks.length}
+                    isOpen={isBlocksOpen}
+                    onToggle={() => setIsBlocksOpen(!isBlocksOpen)}
+                  />
+
+                  {isBlocksOpen && (
+                    <div className="space-y-0.5">
+                      {filteredBlocks.map((item) => (
+                        <div
+                          key={item.type}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={item.label}
+                          onPointerDown={(e) =>
+                            handlePointerDown(e, item, true)
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleTapToAddBlock(item.type);
+                            }
+                          }}
+                          className={ROW.base}
+                        >
+                          <div className={ROW.icon}>{item.icon}</div>
+                          <div className="min-w-0 flex-1 pointer-events-none">
+                            <p className={ROW.title}>{item.label}</p>
+                            <p className={ROW.desc}>{item.description}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
-
-                <div
-                  className={`h-px bg-zinc-200 dark:bg-zinc-800 my-1 mx-2 transition-opacity duration-200 ${
-                    isCollapsed ? 'opacity-0' : 'opacity-100'
-                  }`}
-                />
-              </>
-            )}
-
-            {/* Building Blocks */}
-            <div className="space-y-1">
-              <button
-                type="button"
-                onClick={() => setIsBlocksOpen(!isBlocksOpen)}
-                className={`w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left whitespace-nowrap overflow-hidden transition-opacity duration-200 ${
-                  isCollapsed ? 'opacity-0 h-0 p-0 pointer-events-none' : ''
-                }`}
-              >
-                <span className="text-[10px] font-extrabold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-                  {t('buildingBlocks')} ({filteredBlocks.length})
-                </span>
-                {isBlocksOpen ? (
-                  <ChevronUp className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
-                ) : (
-                  <ChevronDown className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
-                )}
-              </button>
-              {isCollapsed && (
-                <div className="h-px bg-zinc-200 dark:bg-zinc-800 w-6 mx-auto my-2" />
               )}
 
-              {(isBlocksOpen || isCollapsed) && (
-                <div className="space-y-0.5">
-                  {filteredBlocks.map((item) => (
-                    <div
-                      key={item.type}
-                      onPointerDown={(e) => handlePointerDown(e, item, true)}
-                      className="w-full flex items-center justify-start gap-3 p-2 rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border border-transparent group shrink-0 cursor-grab active:cursor-grabbing"
-                    >
-                      <div className="p-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-950 dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-zinc-950 transition-colors shrink-0 pointer-events-none">
-                        {item.icon}
-                      </div>
-                      <div
-                        className={`space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap transition-opacity duration-200 ${
-                          isCollapsed ? 'opacity-0' : 'opacity-100'
-                        }`}
-                      >
-                        <p className="text-[12px] font-bold text-zinc-800 dark:text-zinc-200 tracking-tight group-hover:text-zinc-950 dark:group-hover:text-white">
-                          {item.label}
-                        </p>
-                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-tight truncate">
-                          {item.description}
-                        </p>
-                      </div>
+              {!isSearching && <div className={`mx-2 ${SURFACE.divider}`} />}
+
+              {/* Page Frames */}
+              {(!isSearching || filteredTemplates.length > 0) && (
+                <div className="space-y-1">
+                  <SectionHeader
+                    label={t('pageFrames')}
+                    count={filteredTemplates.length}
+                    isOpen={isTemplatesOpen}
+                    onToggle={() => setIsTemplatesOpen(!isTemplatesOpen)}
+                  />
+
+                  {isTemplatesOpen && (
+                    <div className="space-y-0.5">
+                      {filteredTemplates.map((template) => (
+                        <div
+                          key={template.type}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={template.label}
+                          onPointerDown={(e) =>
+                            handlePointerDown(e, template, false)
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleTapToAddPage(template.type);
+                            }
+                          }}
+                          className={ROW.base}
+                        >
+                          <div className={ROW.icon}>{template.icon}</div>
+                          <div className="min-w-0 flex-1 pointer-events-none">
+                            <p className={ROW.title}>{template.label}</p>
+                            <p className={ROW.desc}>{template.description}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+                </div>
+              )}
+
+              {isSearching && !hasResults && (
+                <div className="px-3 py-10 text-center space-y-1">
+                  <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
+                    {t('noResults')}
+                  </p>
+                  <p className={SURFACE.hint}>{t('noResultsHint')}</p>
                 </div>
               )}
             </div>
 
-            <div
-              className={`h-px bg-zinc-200 dark:bg-zinc-800 my-1 mx-2 transition-opacity duration-200 ${
-                isCollapsed ? 'opacity-0' : 'opacity-100'
-              }`}
-            />
-
-            {/* Page Frames */}
-            <div className="space-y-1">
-              <button
-                type="button"
-                onClick={() => setIsTemplatesOpen(!isTemplatesOpen)}
-                className={`w-full flex items-center justify-between px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 rounded-lg text-left whitespace-nowrap overflow-hidden transition-opacity duration-200 ${
-                  isCollapsed ? 'opacity-0 h-0 p-0 pointer-events-none' : ''
-                }`}
-              >
-                <span className="text-[10px] font-extrabold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-                  {t('pageFrames')} ({filteredTemplates.length})
-                </span>
-                {isTemplatesOpen ? (
-                  <ChevronUp className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
-                ) : (
-                  <ChevronDown className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
-                )}
-              </button>
-              {isCollapsed && (
-                <div className="h-px bg-zinc-200 dark:bg-zinc-800 w-6 mx-auto my-3" />
-              )}
-
-              {(isTemplatesOpen || isCollapsed) && (
-                <div className="space-y-0.5">
-                  {filteredTemplates.map((template) => (
-                    <div
-                      key={template.type}
-                      onPointerDown={(e) =>
-                        handlePointerDown(e, template, false)
-                      }
-                      className="w-full flex items-center justify-start gap-3 p-2 rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/50 border border-transparent group shrink-0 cursor-grab active:cursor-grabbing"
-                    >
-                      <div className="p-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-500 dark:text-zinc-400 group-hover:bg-zinc-950 dark:group-hover:bg-white group-hover:text-white dark:group-hover:text-zinc-950 transition-colors shrink-0 pointer-events-none">
-                        {template.icon}
-                      </div>
-                      <div
-                        className={`space-y-0.5 min-w-0 pointer-events-none whitespace-nowrap transition-opacity duration-200 ${
-                          isCollapsed ? 'opacity-0' : 'opacity-100'
-                        }`}
-                      >
-                        <p className="text-[12px] font-bold text-zinc-800 dark:text-zinc-200 tracking-tight group-hover:text-zinc-950 dark:group-hover:text-white">
-                          {template.label}
-                        </p>
-                        <p className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-tight truncate">
-                          {template.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className={`shrink-0 px-3 py-2 ${SURFACE.footer}`}>
+              <p className={`${SURFACE.hint} truncate`}>{t('dragHint')}</p>
             </div>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* Rail tooltip — rendered outside the clipped panel */}
+      {isCollapsed && railTip && !activeDrag && (
+        <div
+          className={`${RAIL.tooltip} ${railTip.flip ? '-translate-x-full' : ''}`}
+          style={{ left: railTip.x, top: railTip.y }}
+          role="tooltip"
+        >
+          <p className={RAIL.tooltipTitle}>{railTip.label}</p>
+          {railTip.description && (
+            <p className={RAIL.tooltipDesc}>{railTip.description}</p>
+          )}
+        </div>
+      )}
 
       {/* AI Modal */}
       {canUseAiGenerator && isAiModalOpen && (

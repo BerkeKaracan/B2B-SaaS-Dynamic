@@ -30,11 +30,13 @@
   }
 
   /*
-   * Prevent the text caret (I-beam) from appearing next to labels,
-   * cards, and empty padding — only real fields stay selectable.
+   * Prevent the text caret from blinking next to chrome (menu buttons,
+   * labels, empty padding). user-select alone is not enough in Chrome:
+   * focused buttons still show a caret on leftover text nodes.
    */
   .ui-chrome {
     user-select: none;
+    caret-color: transparent;
   }
 
   .ui-chrome
@@ -45,11 +47,19 @@
   .ui-chrome [contenteditable='true'],
   .ui-chrome .allow-text-select {
     user-select: text;
+    caret-color: auto;
   }
 }
 
 /* ——— Landing page motion ——— */
 @layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .lp-reveal {
     opacity: 0;
     transition:

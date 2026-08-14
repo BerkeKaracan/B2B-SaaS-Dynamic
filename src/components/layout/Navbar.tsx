@@ -99,11 +99,9 @@ export default function Navbar({
           <button
             type="button"
             onClick={onMenuToggle}
-            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors active:scale-95"
+            className="inline-flex items-center justify-center p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors active:scale-95 select-none caret-transparent"
             aria-label="Toggle sidebar"
-          >
-            <Menu className="w-[18px] h-[18px]" strokeWidth={2.25} />
-          </button>
+          ><Menu className="w-[18px] h-[18px]" strokeWidth={2.25} /></button>
 
           <Link
             href={`/dashboard/${tenantId}/projects`}
