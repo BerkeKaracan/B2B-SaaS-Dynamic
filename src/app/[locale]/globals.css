@@ -50,6 +50,13 @@
 
 /* ——— Landing page motion ——— */
 @layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .lp-reveal {
     opacity: 0;
     transition:

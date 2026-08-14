@@ -935,6 +935,13 @@
     "cancel": "İptal",
     "generate": "Oluştur",
     "building": "İnşa ediliyor...",
+    "collapse": "Araç kutusunu daralt",
+    "expand": "Araç kutusunu genişlet",
+    "dragHandle": "Araç kutusunu taşı",
+    "clearSearch": "Aramayı temizle",
+    "noResults": "Eşleşen blok veya şablon yok",
+    "noResultsHint": "Başka bir kelime deneyin.",
+    "dragHint": "Tuvale sürükleyin veya tıklayarak ekleyin",
     "blocks": {
       "text": {
         "label": "Metin Bloğu",

@@ -926,6 +926,13 @@
     "cancel": "Cancel",
     "generate": "Generate",
     "building": "Building...",
+    "collapse": "Collapse toolkit",
+    "expand": "Expand toolkit",
+    "dragHandle": "Move toolkit",
+    "clearSearch": "Clear search",
+    "noResults": "No matching blocks or frames",
+    "noResultsHint": "Try another keyword.",
+    "dragHint": "Drag to the canvas, or click to add",
     "blocks": {
       "text": {
         "label": "Text Block",
