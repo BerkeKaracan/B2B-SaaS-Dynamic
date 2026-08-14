@@ -12,6 +12,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi import status as http_status
 
 from core.auth_jwt import verify_access_token
+from core.database import supabase_admin
 import os
 
 logger = logging.getLogger("saas_engine.canvas_ws")
@@ -24,15 +25,30 @@ MAX_CLIENTS_PER_ROOM = 40
 
 
 def _allow_insecure_canvas_ws() -> bool:
-    """Local Docker: skip JWT verify so LIVE works without SUPABASE_JWT_SECRET."""
+    """Local Docker: skip JWT verify so LIVE works without SUPABASE_JWT_SECRET.
+    
+    PRODUCTION IS FAIL-CLOSED: JWT validation is always required in production.
+    Only allows insecure mode in explicit development environments.
+    """
+    env = (os.getenv("ENVIRONMENT") or os.getenv("APP_ENV") or "").strip().lower()
+    
+    # Fail-closed in production - always require JWT regardless of other settings
+    if env in {"production", "prod"}:
+        return False
+    
+    # Explicit false overrides everything else
     raw = (os.getenv("ALLOW_INSECURE_CANVAS_WS") or "").strip().lower()
-    if raw in {"1", "true", "yes", "on"}:
-        return True
     if raw in {"0", "false", "no", "off"}:
         return False
-    env = (os.getenv("ENVIRONMENT") or os.getenv("APP_ENV") or "").strip().lower()
+    
+    # Explicit true allows insecure in non-production environments
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    
+    # Only allow insecure in development environments by default
     if env in {"development", "dev", "local"}:
         return True
+    
     # No JWT secret configured → treat as local/dev (Cloud Run should set the secret)
     secret = (os.getenv("SUPABASE_JWT_SECRET") or "").strip()
     return not secret
@@ -136,6 +152,38 @@ def _safe_str(value: Any, *, max_len: int = 80) -> str:
     return value.strip()[:max_len]
 
 
+def _validate_room_tenant_access(room_id: str, user_id: str) -> bool:
+    """Validate that the user has access to the tenant that owns this room.
+    
+    Rooms are project IDs (custom_records.id). Each record has a tenant_id.
+    Users can only join rooms for tenants they belong to.
+    
+    Returns True if user has access, False otherwise.
+    """
+    try:
+        # Get the tenant_id for this room (project)
+        record_res = supabase_admin.table("custom_records").select("tenant_id").eq("id", room_id).execute()
+        if not record_res.data:
+            logger.warning("Room %s not found in custom_records", room_id)
+            return False
+        
+        tenant_id = record_res.data[0].get("tenant_id")
+        if not tenant_id:
+            logger.warning("Room %s has no tenant_id", room_id)
+            return False
+        
+        # Check if user belongs to this tenant
+        membership_res = supabase_admin.table("tenant_users").select("role").eq("tenant_id", tenant_id).eq("user_id", user_id).execute()
+        if not membership_res.data:
+            logger.warning("User %s not a member of tenant %s for room %s", user_id, tenant_id, room_id)
+            return False
+        
+        return True
+    except Exception as exc:
+        logger.error("Error validating room tenant access for room %s, user %s: %s", room_id, user_id, exc)
+        return False
+
+
 @router.websocket("/ws/canvas/{room_id}")
 async def canvas_collab_ws(websocket: WebSocket, room_id: str):
     room_id = (room_id or "").strip()[:120]
@@ -172,7 +220,19 @@ async def canvas_collab_ws(websocket: WebSocket, room_id: str):
                 await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
                 return
             try:
-                verify_access_token(token)
+                identity = verify_access_token(token)
+                user_id = identity.get("user_id")
+                
+                # Validate room-tenant binding
+                if not _validate_room_tenant_access(room_id, user_id):
+                    logger.warning(
+                        "canvas ws room-tenant access denied room=%s user=%s",
+                        room_id,
+                        user_id,
+                    )
+                    await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
+                    return
+                    
             except Exception as exc:
                 logger.warning(
                     "canvas ws auth failed room=%s err=%s",

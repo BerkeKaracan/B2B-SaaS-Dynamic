@@ -371,8 +371,7 @@ export default function BillingPage({
           <div className="p-6 border-b border-zinc-100/80 flex items-center justify-between bg-zinc-50/50">
             <div>
               <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-zinc-500" />{' '}
-                {t('invoiceHistory')}
+                <Receipt className="w-4 h-4 text-zinc-500" /> {t('invoiceHistory')}
               </h3>
             </div>
           </div>
