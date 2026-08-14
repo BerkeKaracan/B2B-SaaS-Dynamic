@@ -4,13 +4,14 @@ import logging
 import re
 import uuid
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from groq import AsyncGroq
 from datetime import datetime
 
 from core.database import supabase, supabase_admin
+from core.limiter import limiter, get_real_ip
 
 logger = logging.getLogger("saas_engine")
 from core.ai_prompts import (
@@ -21,6 +22,33 @@ from core.ai_prompts import (
 
 router = APIRouter(prefix="/api/ai", tags=["AI Support"])
 security = HTTPBearer()
+
+# Client-supplied history may only use these Groq roles (never "system").
+ALLOWED_CHAT_ROLES = frozenset({"user", "assistant", "tool"})
+_TENANT_ID_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
+
+def get_ai_rate_limit_key(request: Request) -> str:
+    """SlowAPI key_func — Request only. Prefer workspace header, else IP."""
+    tenant = (request.headers.get("x-tenant-id") or "").strip()
+    if tenant and _TENANT_ID_RE.match(tenant):
+        return f"ai:tenant:{tenant}"
+    return f"ai:ip:{get_real_ip(request)}"
+
+
+def sanitize_chat_messages(messages: List[Any]) -> List[Dict[str, Any]]:
+    """Drop/rewrite client roles so callers cannot inject a system prompt."""
+    out: List[Dict[str, Any]] = []
+    for msg in messages:
+        role = str(getattr(msg, "role", "") or "").strip().lower()
+        if role not in ALLOWED_CHAT_ROLES:
+            role = "user"
+        raw = getattr(msg, "content", "")
+        content = raw if isinstance(raw, str) else str(raw or "")
+        out.append({"role": role, "content": content})
+    return out
 
 # ---------------------------------------------------------------------------
 # Tool schemas (module-specific toolsets selected at runtime)
@@ -927,7 +955,10 @@ class ChatRequest(BaseModel):
 
 
 @router.post("/magic-wand")
-async def magic_wand(req: MagicWandRequest, user=Depends(verify_user)):
+@limiter.limit("10/minute", key_func=get_ai_rate_limit_key)
+async def magic_wand(
+    request: Request, req: MagicWandRequest, user=Depends(verify_user)
+):
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing in backend")
@@ -961,7 +992,10 @@ async def magic_wand(req: MagicWandRequest, user=Depends(verify_user)):
 
 
 @router.post("/generate-canvas")
-async def generate_canvas(req: GenerateCanvasRequest, user=Depends(verify_user)):
+@limiter.limit("10/minute", key_func=get_ai_rate_limit_key)
+async def generate_canvas(
+    request: Request, req: GenerateCanvasRequest, user=Depends(verify_user)
+):
     from core.feature_gate import AI_CANVAS_GENERATOR, require_feature
 
     require_feature(AI_CANVAS_GENERATOR, req.tenant_id, user.id)
@@ -1018,7 +1052,10 @@ async def generate_canvas(req: GenerateCanvasRequest, user=Depends(verify_user))
 
 
 @router.post("/chat")
-async def chat_with_canvas(req: ChatRequest, user=Depends(verify_user)):
+@limiter.limit("10/minute", key_func=get_ai_rate_limit_key)
+async def chat_with_canvas(
+    request: Request, req: ChatRequest, user=Depends(verify_user)
+):
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing")
@@ -1034,8 +1071,7 @@ async def chat_with_canvas(req: ChatRequest, user=Depends(verify_user)):
     system_prompt = get_chat_prompt(req.workspace_context, current_module)
 
     groq_messages: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt}]
-    for msg in req.messages:
-        groq_messages.append({"role": msg.role, "content": msg.content})
+    groq_messages.extend(sanitize_chat_messages(req.messages))
 
     last_user_text = ""
     for msg in reversed(req.messages):

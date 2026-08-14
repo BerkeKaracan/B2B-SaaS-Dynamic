@@ -23,11 +23,21 @@ interface TextBlockProps {
   onSettingsChange?: (settings: Record<string, unknown>) => void;
 }
 
+function autosize(el: HTMLTextAreaElement) {
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+}
+
 function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isEditingRef = useRef(false);
+  const placeCaretOnEditRef = useRef(false);
+
   const textValue = typeof block.value === "string" ? block.value : "";
-  const [text, setText] = useState(textValue);
+  const [draft, setDraft] = useState(textValue);
+  const [editorGen, setEditorGen] = useState(0);
+  const [editorSeed, setEditorSeed] = useState(textValue);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
@@ -41,18 +51,34 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
   const textAlign =
     (block.settings?.textAlign as "left" | "center" | "right") || "left";
 
+  const setEditing = (next: boolean) => {
+    isEditingRef.current = next;
+    setIsEditing(next);
+  };
+
+  // Store/Yjs may echo block.value after every keystroke. Never copy that
+  // into the editor while it is focused — that is what reset the caret.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (textValue !== text) setText(textValue);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (isEditingRef.current) return;
+    setDraft(textValue);
+    const el = textareaRef.current;
+    if (el && el.value !== textValue) {
+      el.value = textValue;
+      autosize(el);
+    }
   }, [textValue]);
 
   useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    const el = textareaRef.current;
+    if (!isEditing || !el) return;
+    autosize(el);
+    if (placeCaretOnEditRef.current) {
+      placeCaretOnEditRef.current = false;
+      el.focus();
+      const len = el.value.length;
+      el.setSelectionRange(len, len);
     }
-  }, [text, fontSize, isEditing]);
+  }, [isEditing, fontSize]);
 
   const toggleSetting = (key: string, currentValue: unknown) => {
     if (onSettingsChange)
@@ -63,20 +89,27 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
     if (onSettingsChange) onSettingsChange({ ...block.settings, [key]: value });
   };
 
+  const applyExternalText = (next: string) => {
+    setDraft(next);
+    onUpdate(next);
+    const el = textareaRef.current;
+    if (el) {
+      el.value = next;
+      autosize(el);
+    }
+  };
+
   const handleAiAction = async (action: string) => {
-    if (!text.trim() || !action) return;
+    if (!draft.trim() || !action) return;
     setIsAiLoading(true);
     try {
       const res = await fetchAPI("/api/ai/magic-wand", {
         method: "POST",
-        body: JSON.stringify({ text, action }),
+        body: JSON.stringify({ text: draft, action }),
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.result) {
-          setText(data.result);
-          onUpdate(data.result);
-        }
+        if (data.result) applyExternalText(data.result);
       }
     } catch (error) {
       console.error("AI Action Error:", error);
@@ -87,9 +120,16 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
 
   const handleBlur = (e: React.FocusEvent) => {
     if (!containerRef.current?.contains(e.relatedTarget as Node)) {
-      setIsEditing(false);
+      setEditing(false);
       setIsToolbarOpen(false);
     }
+  };
+
+  const beginEditFromPreview = () => {
+    placeCaretOnEditRef.current = true;
+    setEditorSeed(draft);
+    setEditorGen((g) => g + 1);
+    setEditing(true);
   };
 
   return (
@@ -214,14 +254,17 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
         </div>
       )}
 
-      {isEditing || text.length === 0 ? (
+      {isEditing || draft.length === 0 ? (
         <textarea
+          key={editorGen}
           ref={textareaRef}
-          value={text}
-          autoFocus
+          defaultValue={editorSeed}
+          onFocus={() => setEditing(true)}
           onChange={(e) => {
-            setText(e.target.value);
-            onUpdate(e.target.value);
+            const val = e.target.value;
+            setDraft(val);
+            onUpdate(val);
+            autosize(e.target);
           }}
           style={{
             fontSize,
@@ -237,7 +280,7 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
         />
       ) : (
         <div
-          onClick={() => setIsEditing(true)}
+          onClick={beginEditFromPreview}
           className={`w-full h-full cursor-text p-1 leading-relaxed allow-text-select ${isAiLoading ? "opacity-50 animate-pulse" : ""}`}
           style={{
             fontSize,
@@ -248,7 +291,7 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
             textDecoration: isUnderline ? "underline" : "none",
           }}
         >
-          <MarkdownContent variant="compact">{text}</MarkdownContent>
+          <MarkdownContent variant="compact">{draft}</MarkdownContent>
         </div>
       )}
 
