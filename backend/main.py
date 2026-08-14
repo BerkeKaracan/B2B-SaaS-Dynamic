@@ -44,7 +44,7 @@ OPENAPI_URL = None if IS_PRODUCTION else "/openapi.json"
 app = FastAPI(
     title="WORKSPACE OS API",
     description="B2B Multi-tenant SaaS API with flexible JSONB architecture",
-    version="1.4.0",
+    version="1.5.0",
     # Behind Next.js reverse proxy — never 307 to internal Docker hostnames.
     redirect_slashes=False,
     docs_url=DOCS_URL,

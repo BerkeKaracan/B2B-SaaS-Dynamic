@@ -62,7 +62,7 @@
       "docsShort": "Docs"
     },
     "hero": {
-      "versionLive": "WORKSPACE OS v1.4 Yayında",
+      "versionLive": "WORKSPACE OS v1.5 Yayında",
       "title1": "Şirketiniz için",
       "title2": "Yönetim Sistemi.",
       "subtitle": "Projelerinizi yönetin, dinamik bloklarla özel iş akışınızı tasarlayın ve role dayalı erişimle ekibinizi saniyeler içinde organize edin.",
@@ -488,9 +488,9 @@
     "posts": {
       "1": {
         "category": "Ürün",
-        "date": "15 Haz 2026",
-        "title": "WORKSPACE OS v1.4'a Hoş Geldiniz",
-        "desc": "Son sürümümüz ve yeni sonsuz uzamsal tuvalimiz hakkında bilmeniz gereken her şey."
+        "date": "14 Ağu 2026",
+        "title": "WORKSPACE OS v1.5'e Hoş Geldiniz",
+        "desc": "Takvim panoları, yenilenen Engine Toolkit rayı ve WORKSPACE OS tuvali."
       },
       "2": {
         "category": "Mühendislik",
