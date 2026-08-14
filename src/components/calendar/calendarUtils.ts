@@ -39,11 +39,13 @@ export function buildMonthCells(
       start.getDate() + i
     );
     const key = toDateKey(date);
+    const dow = date.getDay();
     cells.push({
       key,
       date,
       inMonth: date.getMonth() === month,
       isToday: key === today,
+      isWeekend: dow === 0 || dow === 6,
     });
   }
 

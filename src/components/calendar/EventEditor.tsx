@@ -1,11 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, type CSSProperties } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { Calendar as DatePicker } from '@/components/ui/calendar';
 import { Calendar as CalendarIcon, X } from 'lucide-react';
-import { EVENT_COLORS, type CalendarEvent, type CalendarEventColor } from './types';
-import { EVENT_UI, SURFACE } from './calendarStyles';
+import {
+  EVENT_COLORS,
+  type CalendarEvent,
+  type CalendarEventColor,
+} from './types';
+import { EVENT_PALETTE, SURFACE, eventPalette } from './calendarStyles';
 import { parseDateKey, toDateKey } from './calendarUtils';
 
 type EventEditorProps = {
@@ -46,14 +50,31 @@ export default function EventEditor({
 }: EventEditorProps) {
   const [dateOpen, setDateOpen] = useState(false);
   const selected = parseDateKey(event.date);
+  const palette = eventPalette(event.color);
+  const accent = {
+    '--ev-bar': palette.bar,
+    '--ev-fill': palette.fill,
+    '--ev-text': palette.text,
+    '--ev-fill-dark': palette.darkFill,
+    '--ev-text-dark': palette.darkText,
+  } as CSSProperties;
+
+  const setColor = (color: CalendarEventColor) => {
+    onChange({ ...event, color });
+  };
 
   return (
-    <div className="fixed inset-0 z-80 flex items-center justify-center p-4 bg-zinc-950/35 backdrop-blur-sm">
+    <div className="fixed inset-0 z-80 flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm">
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-md rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)]"
+        className="w-full max-w-md rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)] overflow-hidden"
+        style={accent}
       >
+        <div
+          className="h-1.5 w-full"
+          style={{ backgroundColor: palette.bar }}
+        />
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
             {isNew ? labels.add : labels.edit}
@@ -79,7 +100,7 @@ export default function EventEditor({
               value={event.title}
               onChange={(e) => onChange({ ...event, title: e.target.value })}
               placeholder={labels.titlePlaceholder}
-              className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-400/60 disabled:opacity-60"
+              className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--ev-bar)_20%,transparent)] focus:border-[var(--ev-bar)] disabled:opacity-60"
             />
           </label>
 
@@ -129,8 +150,12 @@ export default function EventEditor({
                 onChange({
                   ...event,
                   allDay: e.target.checked,
-                  startTime: e.target.checked ? undefined : event.startTime || '09:00',
-                  endTime: e.target.checked ? undefined : event.endTime || '10:00',
+                  startTime: e.target.checked
+                    ? undefined
+                    : event.startTime || '09:00',
+                  endTime: e.target.checked
+                    ? undefined
+                    : event.endTime || '10:00',
                 })
               }
               className="rounded border-zinc-300"
@@ -176,20 +201,35 @@ export default function EventEditor({
               {labels.color}
             </span>
             <div className="flex items-center gap-2">
-              {EVENT_COLORS.map((color: CalendarEventColor) => (
-                <button
-                  key={color}
-                  type="button"
-                  disabled={isReadonly}
-                  onClick={() => onChange({ ...event, color })}
-                  className={`w-6 h-6 rounded-full ${EVENT_UI[color].dot} ${
-                    event.color === color
-                      ? 'ring-2 ring-offset-2 ring-zinc-900 dark:ring-zinc-100'
-                      : 'opacity-70 hover:opacity-100'
-                  }`}
-                  aria-label={color}
-                />
-              ))}
+              {EVENT_COLORS.map((color) => {
+                const swatch = EVENT_PALETTE[color];
+                const active = event.color === color;
+                return (
+                  <button
+                    key={color}
+                    type="button"
+                    disabled={isReadonly}
+                    aria-pressed={active}
+                    aria-label={color}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!isReadonly) setColor(color);
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!isReadonly) setColor(color);
+                    }}
+                    className={`w-7 h-7 rounded-full border-2 transition-transform ${
+                      active
+                        ? 'scale-110 border-zinc-900 dark:border-white'
+                        : 'border-white/80 dark:border-zinc-900 opacity-80 hover:opacity-100 hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: swatch.dot }}
+                  />
+                );
+              })}
             </div>
           </div>
 
@@ -203,7 +243,7 @@ export default function EventEditor({
               onChange={(e) => onChange({ ...event, notes: e.target.value })}
               placeholder={labels.notesPlaceholder}
               rows={3}
-              className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-sm resize-none focus:outline-none focus:ring-4 focus:ring-red-500/10"
+              className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-sm resize-none focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--ev-bar)_20%,transparent)]"
             />
           </label>
         </div>
@@ -233,7 +273,8 @@ export default function EventEditor({
                 type="button"
                 onClick={onSave}
                 disabled={!event.title.trim()}
-                className={`px-3.5 py-2 rounded-xl text-sm font-semibold disabled:opacity-40 ${SURFACE.primary}`}
+                className="px-3.5 py-2 rounded-xl text-sm font-semibold disabled:opacity-40 text-white shadow-sm"
+                style={{ backgroundColor: palette.bar }}
               >
                 {labels.save}
               </button>

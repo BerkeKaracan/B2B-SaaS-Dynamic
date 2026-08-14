@@ -33,6 +33,7 @@ export interface MonthCell {
   date: Date;
   inMonth: boolean;
   isToday: boolean;
+  isWeekend: boolean;
 }
 
 export function generateEventId(): string {

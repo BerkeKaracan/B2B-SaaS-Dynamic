@@ -48,6 +48,8 @@ export type ProjectTemplateMeta = {
   headerBg: string;
   /** Radial glow overlay for the card header (CSS backgroundImage). */
   glow: string;
+  /** Icon tile on the project chrome (not the Blank sky chip). */
+  chip: string;
   /** Full-bleed board (not infinite canvas). */
   isStandaloneBoard: boolean;
 };
@@ -63,6 +65,7 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     headerBg:
       'bg-[linear-gradient(135deg,#f0f9ff_0%,#e0f2fe_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#0c4a6e_50%,#09090b_100%)]',
     glow: 'radial-gradient(circle at 20% 30%, rgba(56,189,248,0.38), transparent 42%), radial-gradient(circle at 80% 70%, rgba(14,165,233,0.16), transparent 36%)',
+    chip: 'bg-sky-50 dark:bg-sky-500/10 border-sky-100 dark:border-sky-500/20',
     isStandaloneBoard: false,
   },
   {
@@ -74,6 +77,7 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     headerBg:
       'bg-[linear-gradient(135deg,#eef2ff_0%,#e0e7ff_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#312e81_50%,#09090b_100%)]',
     glow: 'radial-gradient(circle at 20% 30%, rgba(99,102,241,0.36), transparent 42%), radial-gradient(circle at 80% 70%, rgba(129,140,248,0.16), transparent 36%)',
+    chip: 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/20',
     isStandaloneBoard: true,
   },
   {
@@ -86,6 +90,7 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     headerBg:
       'bg-[linear-gradient(135deg,#fffbeb_0%,#fef3c7_45%,#fafaf9_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#78350f_50%,#09090b_100%)]',
     glow: 'radial-gradient(circle at 20% 30%, rgba(245,158,11,0.34), transparent 42%), radial-gradient(circle at 80% 70%, rgba(251,191,36,0.14), transparent 36%)',
+    chip: 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20',
     isStandaloneBoard: true,
   },
   {
@@ -97,6 +102,7 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     headerBg:
       'bg-[linear-gradient(135deg,#ecfdf5_0%,#d1fae5_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#064e3b_50%,#09090b_100%)]',
     glow: 'radial-gradient(circle at 20% 30%, rgba(16,185,129,0.34), transparent 42%), radial-gradient(circle at 80% 70%, rgba(52,211,153,0.14), transparent 36%)',
+    chip: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20',
     isStandaloneBoard: true,
   },
   {
@@ -108,6 +114,7 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     headerBg:
       'bg-[linear-gradient(135deg,#f5f3ff_0%,#ede9fe_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#4c1d95_50%,#09090b_100%)]',
     glow: 'radial-gradient(circle at 20% 30%, rgba(139,92,246,0.34), transparent 42%), radial-gradient(circle at 80% 70%, rgba(167,139,250,0.14), transparent 36%)',
+    chip: 'bg-violet-50 dark:bg-violet-500/10 border-violet-100 dark:border-violet-500/20',
     isStandaloneBoard: true,
   },
   {
@@ -119,6 +126,7 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     headerBg:
       'bg-[linear-gradient(135deg,#f0fdfa_0%,#ccfbf1_45%,#f8fafc_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#134e4a_50%,#09090b_100%)]',
     glow: 'radial-gradient(circle at 20% 30%, rgba(20,184,166,0.34), transparent 42%), radial-gradient(circle at 80% 70%, rgba(45,212,191,0.14), transparent 36%)',
+    chip: 'bg-teal-50 dark:bg-teal-500/10 border-teal-100 dark:border-teal-500/20',
     isStandaloneBoard: true,
   },
   {
@@ -130,6 +138,7 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     headerBg:
       'bg-[linear-gradient(135deg,#fff7ed_0%,#ffedd5_45%,#fafaf9_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#7c2d12_50%,#09090b_100%)]',
     glow: 'radial-gradient(circle at 20% 30%, rgba(249,115,22,0.34), transparent 42%), radial-gradient(circle at 80% 70%, rgba(251,146,60,0.14), transparent 36%)',
+    chip: 'bg-orange-50 dark:bg-orange-500/10 border-orange-100 dark:border-orange-500/20',
     isStandaloneBoard: true,
   },
   {
@@ -141,6 +150,7 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     headerBg:
       'bg-[linear-gradient(135deg,#fff1f2_0%,#ffe4e6_45%,#fafaf9_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#881337_50%,#09090b_100%)]',
     glow: 'radial-gradient(circle at 20% 30%, rgba(244,63,94,0.32), transparent 42%), radial-gradient(circle at 80% 70%, rgba(251,113,133,0.14), transparent 36%)',
+    chip: 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20',
     isStandaloneBoard: true,
   },
   {
@@ -152,6 +162,7 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     headerBg:
       'bg-[linear-gradient(135deg,#fef2f2_0%,#fee2e2_45%,#fafafa_100%)] dark:bg-[linear-gradient(135deg,#18181b_0%,#7f1d1d_50%,#09090b_100%)]',
     glow: 'radial-gradient(circle at 20% 30%, rgba(239,68,68,0.34), transparent 42%), radial-gradient(circle at 80% 70%, rgba(248,113,113,0.14), transparent 36%)',
+    chip: 'bg-red-50 dark:bg-red-500/10 border-red-100 dark:border-red-500/20',
     isStandaloneBoard: true,
   },
 ];
