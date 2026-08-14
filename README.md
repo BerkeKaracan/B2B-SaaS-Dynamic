@@ -1,6 +1,6 @@
 # WORKSPACE OS
 
-**Version:** 1.4.0  
+**Version:** 1.5.0  
 **Repository:** BerkeKaracan/B2B-SaaS-Dynamic
 
 ## Overview

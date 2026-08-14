@@ -62,7 +62,7 @@
       "docsShort": "Docs"
     },
     "hero": {
-      "versionLive": "WORKSPACE OS v1.4 is Live",
+      "versionLive": "WORKSPACE OS v1.5 is Live",
       "title1": "The Operating System for",
       "title2": "your Company.",
       "subtitle": "Manage your projects, design your custom workflow with dynamic blocks, and organize your team in seconds with role-based access.",
@@ -488,9 +488,9 @@
     "posts": {
       "1": {
         "category": "Product",
-        "date": "Jun 15, 2026",
-        "title": "Welcome to WORKSPACE OS v1.4",
-        "desc": "Everything you need to know about our latest release and the new infinite spatial canvas."
+        "date": "Aug 14, 2026",
+        "title": "Welcome to WORKSPACE OS v1.5",
+        "desc": "Calendar boards, a rebuilt Engine Toolkit rail, and the WORKSPACE OS canvas."
       },
       "2": {
         "category": "Engineering",
