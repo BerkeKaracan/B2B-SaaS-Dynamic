@@ -1,8 +1,8 @@
-'use client';
-import React, { useRef, useEffect, useState, memo } from 'react';
-import { BlockContent } from '@/types/record';
-import { fetchAPI } from '@/services/api';
-import { MarkdownContent } from '@/components/ui/MarkdownContent';
+"use client";
+import React, { useRef, useEffect, useState, memo } from "react";
+import { BlockContent } from "@/types/record";
+import { fetchAPI } from "@/services/api";
+import { MarkdownContent } from "@/components/ui/MarkdownContent";
 import {
   MoreHorizontal,
   X,
@@ -15,7 +15,7 @@ import {
   AlignRight,
   Palette,
   Type,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface TextBlockProps {
   block: BlockContent;
@@ -23,12 +23,21 @@ interface TextBlockProps {
   onSettingsChange?: (settings: Record<string, unknown>) => void;
 }
 
+function autosize(el: HTMLTextAreaElement) {
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+}
+
 function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const cursorPositionRef = useRef<number | null>(null);
-  const textValue = typeof block.value === 'string' ? block.value : '';
-  const [text, setText] = useState(textValue);
+  const isEditingRef = useRef(false);
+  const placeCaretOnEditRef = useRef(false);
+
+  const textValue = typeof block.value === "string" ? block.value : "";
+  const [draft, setDraft] = useState(textValue);
+  const [editorGen, setEditorGen] = useState(0);
+  const [editorSeed, setEditorSeed] = useState(textValue);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isToolbarOpen, setIsToolbarOpen] = useState(false);
@@ -37,38 +46,39 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
   const isBold = block.settings?.isBold as boolean;
   const isItalic = block.settings?.isItalic as boolean;
   const isUnderline = block.settings?.isUnderline as boolean;
-  const fontSize = (block.settings?.fontSize as string) || '15px';
-  const color = (block.settings?.color as string) || '#27272a';
+  const fontSize = (block.settings?.fontSize as string) || "15px";
+  const color = (block.settings?.color as string) || "#27272a";
   const textAlign =
-    (block.settings?.textAlign as 'left' | 'center' | 'right') || 'left';
+    (block.settings?.textAlign as "left" | "center" | "right") || "left";
+
+  const setEditing = (next: boolean) => {
+    isEditingRef.current = next;
+    setIsEditing(next);
+  };
+
+  // Store/Yjs may echo block.value after every keystroke. Never copy that
+  // into the editor while it is focused — that is what reset the caret.
+  useEffect(() => {
+    if (isEditingRef.current) return;
+    setDraft(textValue);
+    const el = textareaRef.current;
+    if (el && el.value !== textValue) {
+      el.value = textValue;
+      autosize(el);
+    }
+  }, [textValue]);
 
   useEffect(() => {
-    // Sync textValue to text only when not editing to avoid cursor jumping
-    if (!isEditing) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setText(textValue);
+    const el = textareaRef.current;
+    if (!isEditing || !el) return;
+    autosize(el);
+    if (placeCaretOnEditRef.current) {
+      placeCaretOnEditRef.current = false;
+      el.focus();
+      const len = el.value.length;
+      el.setSelectionRange(len, len);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textValue, isEditing]);
-
-  useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-
-      // Restore cursor position after render with requestAnimationFrame to ensure DOM is updated
-      if (cursorPositionRef.current !== null) {
-        requestAnimationFrame(() => {
-          if (textareaRef.current) {
-            textareaRef.current.setSelectionRange(
-              cursorPositionRef.current,
-              cursorPositionRef.current
-            );
-          }
-        });
-      }
-    }
-  }, [text, fontSize, isEditing]);
+  }, [isEditing, fontSize]);
 
   const toggleSetting = (key: string, currentValue: unknown) => {
     if (onSettingsChange)
@@ -79,23 +89,30 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
     if (onSettingsChange) onSettingsChange({ ...block.settings, [key]: value });
   };
 
+  const applyExternalText = (next: string) => {
+    setDraft(next);
+    onUpdate(next);
+    const el = textareaRef.current;
+    if (el) {
+      el.value = next;
+      autosize(el);
+    }
+  };
+
   const handleAiAction = async (action: string) => {
-    if (!text.trim() || !action) return;
+    if (!draft.trim() || !action) return;
     setIsAiLoading(true);
     try {
-      const res = await fetchAPI('/api/ai/magic-wand', {
-        method: 'POST',
-        body: JSON.stringify({ text, action }),
+      const res = await fetchAPI("/api/ai/magic-wand", {
+        method: "POST",
+        body: JSON.stringify({ text: draft, action }),
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.result) {
-          setText(data.result);
-          onUpdate(data.result);
-        }
+        if (data.result) applyExternalText(data.result);
       }
     } catch (error) {
-      console.error('AI Action Error:', error);
+      console.error("AI Action Error:", error);
     } finally {
       setIsAiLoading(false);
     }
@@ -103,9 +120,16 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
 
   const handleBlur = (e: React.FocusEvent) => {
     if (!containerRef.current?.contains(e.relatedTarget as Node)) {
-      setIsEditing(false);
+      setEditing(false);
       setIsToolbarOpen(false);
     }
+  };
+
+  const beginEditFromPreview = () => {
+    placeCaretOnEditRef.current = true;
+    setEditorSeed(draft);
+    setEditorGen((g) => g + 1);
+    setEditing(true);
   };
 
   return (
@@ -137,18 +161,18 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
             </span>
             <div className="grid grid-cols-2 gap-1.5">
               <button
-                onClick={() => handleAiAction('improve')}
+                onClick={() => handleAiAction("improve")}
                 disabled={isAiLoading}
                 className="bg-zinc-100 hover:bg-zinc-200 text-zinc-700 disabled:opacity-50 text-[11px] font-semibold py-1.5 rounded-lg transition-colors flex justify-center items-center"
               >
-                {isAiLoading ? 'Thinking...' : 'Improve'}
+                {isAiLoading ? "Thinking..." : "Improve"}
               </button>
               <button
-                onClick={() => handleAiAction('summarize')}
+                onClick={() => handleAiAction("summarize")}
                 disabled={isAiLoading}
                 className="bg-zinc-100 hover:bg-zinc-200 text-zinc-700 disabled:opacity-50 text-[11px] font-semibold py-1.5 rounded-lg transition-colors flex justify-center items-center"
               >
-                {isAiLoading ? 'Thinking...' : 'Summarize'}
+                {isAiLoading ? "Thinking..." : "Summarize"}
               </button>
             </div>
           </div>
@@ -159,20 +183,20 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
             </span>
             <div className="flex bg-zinc-100 p-1 rounded-lg">
               <button
-                onClick={() => toggleSetting('isBold', isBold)}
-                className={`flex-1 flex justify-center items-center py-1.5 rounded-md transition-colors ${isBold ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:bg-zinc-200/60'}`}
+                onClick={() => toggleSetting("isBold", isBold)}
+                className={`flex-1 flex justify-center items-center py-1.5 rounded-md transition-colors ${isBold ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200/60"}`}
               >
                 <Bold className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => toggleSetting('isItalic', isItalic)}
-                className={`flex-1 flex justify-center items-center py-1.5 rounded-md transition-colors ${isItalic ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:bg-zinc-200/60'}`}
+                onClick={() => toggleSetting("isItalic", isItalic)}
+                className={`flex-1 flex justify-center items-center py-1.5 rounded-md transition-colors ${isItalic ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200/60"}`}
               >
                 <Italic className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => toggleSetting('isUnderline', isUnderline)}
-                className={`flex-1 flex justify-center items-center py-1.5 rounded-md transition-colors ${isUnderline ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:bg-zinc-200/60'}`}
+                onClick={() => toggleSetting("isUnderline", isUnderline)}
+                className={`flex-1 flex justify-center items-center py-1.5 rounded-md transition-colors ${isUnderline ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200/60"}`}
               >
                 <Underline className="w-3.5 h-3.5" />
               </button>
@@ -181,20 +205,20 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
 
           <div className="flex bg-zinc-100 p-1 rounded-lg">
             <button
-              onClick={() => setSetting('textAlign', 'left')}
-              className={`flex-1 flex justify-center items-center py-1.5 rounded-md transition-colors ${textAlign === 'left' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:bg-zinc-200/60'}`}
+              onClick={() => setSetting("textAlign", "left")}
+              className={`flex-1 flex justify-center items-center py-1.5 rounded-md transition-colors ${textAlign === "left" ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200/60"}`}
             >
               <AlignLeft className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={() => setSetting('textAlign', 'center')}
-              className={`flex-1 flex justify-center items-center py-1.5 rounded-md transition-colors ${textAlign === 'center' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:bg-zinc-200/60'}`}
+              onClick={() => setSetting("textAlign", "center")}
+              className={`flex-1 flex justify-center items-center py-1.5 rounded-md transition-colors ${textAlign === "center" ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200/60"}`}
             >
               <AlignCenter className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={() => setSetting('textAlign', 'right')}
-              className={`flex-1 flex justify-center items-center py-1.5 rounded-md transition-colors ${textAlign === 'right' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:bg-zinc-200/60'}`}
+              onClick={() => setSetting("textAlign", "right")}
+              className={`flex-1 flex justify-center items-center py-1.5 rounded-md transition-colors ${textAlign === "right" ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:bg-zinc-200/60"}`}
             >
               <AlignRight className="w-3.5 h-3.5" />
             </button>
@@ -205,7 +229,7 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
               <Type className="w-3.5 h-3.5 text-zinc-400 mr-2 shrink-0" />
               <select
                 value={fontSize}
-                onChange={(e) => setSetting('fontSize', e.target.value)}
+                onChange={(e) => setSetting("fontSize", e.target.value)}
                 className="w-full bg-transparent text-[11px] font-semibold text-zinc-700 outline-none cursor-pointer appearance-none"
               >
                 <option value="12px">Small text</option>
@@ -222,7 +246,7 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
               <input
                 type="color"
                 value={color}
-                onChange={(e) => setSetting('color', e.target.value)}
+                onChange={(e) => setSetting("color", e.target.value)}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
             </div>
@@ -230,45 +254,44 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
         </div>
       )}
 
-      {isEditing || text.length === 0 ? (
+      {isEditing || draft.length === 0 ? (
         <textarea
+          key={editorGen}
           ref={textareaRef}
-          value={text}
-          autoFocus
+          defaultValue={editorSeed}
+          onFocus={() => setEditing(true)}
           onChange={(e) => {
-            // Save cursor position before state update
-            if (textareaRef.current) {
-              cursorPositionRef.current = textareaRef.current.selectionStart;
-            }
-            setText(e.target.value);
-            onUpdate(e.target.value);
+            const val = e.target.value;
+            setDraft(val);
+            onUpdate(val);
+            autosize(e.target);
           }}
           style={{
             fontSize,
             color,
             textAlign,
-            fontWeight: isBold ? 'bold' : 'normal',
-            fontStyle: isItalic ? 'italic' : 'normal',
-            textDecoration: isUnderline ? 'underline' : 'none',
+            fontWeight: isBold ? "bold" : "normal",
+            fontStyle: isItalic ? "italic" : "normal",
+            textDecoration: isUnderline ? "underline" : "none",
           }}
-          className={`w-full h-full bg-transparent resize-none overflow-hidden focus:outline-none leading-relaxed p-1 placeholder-zinc-300 transition-all allow-text-select ${isAiLoading ? 'opacity-50 animate-pulse' : ''}`}
+          className={`w-full h-full bg-transparent resize-none overflow-hidden focus:outline-none leading-relaxed p-1 placeholder-zinc-300 transition-all allow-text-select ${isAiLoading ? "opacity-50 animate-pulse" : ""}`}
           placeholder="Type something or use AI..."
           spellCheck={false}
         />
       ) : (
         <div
-          onClick={() => setIsEditing(true)}
-          className={`w-full h-full cursor-text p-1 leading-relaxed allow-text-select ${isAiLoading ? 'opacity-50 animate-pulse' : ''}`}
+          onClick={beginEditFromPreview}
+          className={`w-full h-full cursor-text p-1 leading-relaxed allow-text-select ${isAiLoading ? "opacity-50 animate-pulse" : ""}`}
           style={{
             fontSize,
             color,
             textAlign,
-            fontWeight: isBold ? 'bold' : 'normal',
-            fontStyle: isItalic ? 'italic' : 'normal',
-            textDecoration: isUnderline ? 'underline' : 'none',
+            fontWeight: isBold ? "bold" : "normal",
+            fontStyle: isItalic ? "italic" : "normal",
+            textDecoration: isUnderline ? "underline" : "none",
           }}
         >
-          <MarkdownContent variant="compact">{text}</MarkdownContent>
+          <MarkdownContent variant="compact">{draft}</MarkdownContent>
         </div>
       )}
 
