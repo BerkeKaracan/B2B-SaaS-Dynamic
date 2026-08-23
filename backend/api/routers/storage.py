@@ -6,12 +6,12 @@ from urllib.parse import quote
 import boto3
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from core.config import settings
-from core.database import supabase
+from core.database import supabase, supabase_admin
 
 router = APIRouter(
     prefix="/api/storage",
@@ -42,15 +42,31 @@ def _safe_filename(file_name: str) -> str:
     return base or "file"
 
 
+def _assert_tenant_member(user_id: str, tenant_id: str) -> None:
+    res = (
+        supabase_admin.table("tenant_users")
+        .select("id")
+        .eq("tenant_id", tenant_id)
+        .eq("user_id", user_id)
+        .limit(1)
+        .execute()
+    )
+    if not res.data:
+        raise HTTPException(status_code=403, detail="Workspace access denied.")
+
+
 @router.post("/generate-upload-url", response_model=GenerateUploadUrlResponse)
 def generate_upload_url(
     request_data: GenerateUploadUrlRequest,
     creds: HTTPAuthorizationCredentials = Depends(security),
+    x_tenant_id: str | None = Header(default=None, alias="x-tenant-id"),
 ) -> GenerateUploadUrlResponse:
     token = creds.credentials
     user_res = supabase.auth.get_user(token)
     if not user_res or not user_res.user:
         raise HTTPException(status_code=401, detail="Invalid session")
+
+    user_id = str(user_res.user.id)
 
     if request_data.contentType not in ALLOWED_MIME_TYPES:
         raise HTTPException(
@@ -75,7 +91,19 @@ def generate_upload_url(
         )
 
     safe_name = _safe_filename(request_data.fileName)
-    file_key = f"{request_data.folder}/{uuid.uuid4()}-{safe_name}"
+
+    if request_data.folder == "avatars":
+        file_key = f"avatars/{user_id}/{uuid.uuid4()}-{safe_name}"
+    else:
+        tenant_id = (x_tenant_id or "").strip()
+        if not tenant_id or tenant_id in ("undefined", "null"):
+            raise HTTPException(
+                status_code=400,
+                detail="x-tenant-id header is required for workspace uploads.",
+            )
+        _assert_tenant_member(user_id, tenant_id)
+        file_key = f"{request_data.folder}/{tenant_id}/{uuid.uuid4()}-{safe_name}"
+
     aws_region = settings.AWS_REGION
 
     try:

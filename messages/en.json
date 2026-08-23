@@ -1200,6 +1200,24 @@
     "projectsLabel": "Projects",
     "teamPublic": "Team (Public)",
     "adminPrivate": "Admin Only (Private)",
+    "access": {
+      "private": "Private",
+      "open": "Open to team",
+      "department": "Department",
+      "adminOnly": "Admin only",
+      "visibilityTitle": "Workspace visibility",
+      "visibilityDesc": "Control who in your workspace can find and open this project.",
+      "departmentsTitle": "Departments",
+      "departmentsDesc": "Select departments and choose view or edit access.",
+      "customRolesTitle": "Custom roles",
+      "customRolesDesc": "Grant access to members with these workspace roles.",
+      "noDepartments": "No departments yet — create them under Team.",
+      "noCustomRoles": "No custom roles configured.",
+      "permissionView": "Can view",
+      "permissionEdit": "Can edit",
+      "saveAccess": "Save access settings",
+      "permissionDenied": "You do not have permission to access this project."
+    },
     "templates": {
       "blank": "Infinite Canvas",
       "kanban": "Kanban Board",
@@ -1212,6 +1230,9 @@
       "calendar": "Calendar"
     },
     "menus": {
+      "makePrivate": "Make private",
+      "makeOpen": "Open to team",
+      "makeDepartment": "Limit to departments",
       "makePublic": "Make Workspace Public",
       "makeAdminOnly": "Make Admin Only",
       "removeFromHub": "Remove from Hub",

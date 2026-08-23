@@ -160,3 +160,10 @@ def test_verify_access_token_rejects_short_token():
     with pytest.raises(HTTPException) as exc:
         auth_jwt.verify_access_token("short")
     assert exc.value.status_code == 401
+
+
+def test_blacklist_redis_outage_fails_open(monkeypatch: pytest.MonkeyPatch):
+    mock_redis = MagicMock()
+    mock_redis.get.side_effect = ConnectionError("redis down")
+    monkeypatch.setattr(auth_jwt, "redis_client", mock_redis)
+    assert auth_jwt.is_token_blacklisted("any-token") is False

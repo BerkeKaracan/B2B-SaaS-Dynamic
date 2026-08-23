@@ -14,6 +14,17 @@ import {
   isMeaningfulProjectRecord,
 } from '@/lib/projectRecord';
 import { PROJECT_TEMPLATES } from '@/lib/templates';
+import {
+  buildAccessPutBody,
+  resolveVisibilityMode as projectVisibilityMode,
+  visibilityToRecordPayload,
+  type CustomRoleGrant,
+  type DepartmentGrant,
+} from '@/lib/projectAccess';
+import {
+  CustomRoleGrantEditor,
+  DepartmentGrantEditor,
+} from '@/components/workspace/ProjectAccessEditors';
 import { RecordData } from '@/types/record';
 import { useAuthStore } from '@/store/useAuthStore';
 import { fetchAPI } from '@/services/api';
@@ -27,6 +38,7 @@ import {
   Clock,
   Shield,
   Globe,
+  Users,
   LayoutTemplate,
   Trash2,
   AlertTriangle,
@@ -59,8 +71,22 @@ type ProjectRecord = {
   };
 };
 
-type VisibilityFilter = 'all' | 'public' | 'just_admin';
+type VisibilityFilter = 'all' | 'private' | 'open' | 'admin_only' | 'department';
+
 type SortOption = 'recent' | 'name_asc' | 'name_desc';
+function visibilityFilterLabel(
+  filter: VisibilityFilter,
+  t: (key: string) => string
+): string {
+  const map: Record<Exclude<VisibilityFilter, 'all'>, string> = {
+    private: t('access.private'),
+    open: t('access.open'),
+    admin_only: t('access.adminOnly'),
+    department: t('access.department'),
+  };
+  return map[filter as Exclude<VisibilityFilter, 'all'>] ?? filter;
+}
+
 type FilterMenuId = 'template' | 'visibility' | 'sort';
 
 type FilterOption = {
@@ -227,7 +253,19 @@ export default function ProjectCardsGrid({
   );
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectFolder, setNewProjectFolder] = useState('');
-  const [newProjectVisibility, setNewProjectVisibility] = useState('public');
+  const [newProjectVisibility, setNewProjectVisibility] = useState('private');
+  const [createDepartmentGrants, setCreateDepartmentGrants] = useState<
+    DepartmentGrant[]
+  >([]);
+  const [createCustomRoleGrants, setCreateCustomRoleGrants] = useState<
+    CustomRoleGrant[]
+  >([]);
+  const [createDepartments, setCreateDepartments] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [createCustomRoles, setCreateCustomRoles] = useState<
+    { id: string; name: string }[]
+  >([]);
   const [selectedTemplate, setSelectedTemplate] = useState('blank');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{
@@ -236,6 +274,18 @@ export default function ProjectCardsGrid({
   } | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
+  const [accessEditor, setAccessEditor] = useState<{
+    projectId: string;
+    name: string;
+  } | null>(null);
+  const [accessDepartments, setAccessDepartments] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [accessDeptGrants, setAccessDeptGrants] = useState<DepartmentGrant[]>(
+    []
+  );
+  const [accessSaving, setAccessSaving] = useState(false);
+  const [accessError, setAccessError] = useState<string | null>(null);
 
   const closeProjectMenu = useCallback(() => {
     setOpenMenuId(null);
@@ -377,6 +427,33 @@ export default function ProjectCardsGrid({
     if (tenantId) fetchProjects();
   }, [tenantId, fetchProjects]);
 
+  useEffect(() => {
+    if (!isModalOpen || !tenantId || !isAdmin) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [deptRes, rolesRes] = await Promise.all([
+          fetchAPI(`/api/tenants/${tenantId}/departments`),
+          fetchAPI(`/api/tenants/${tenantId}/roles`),
+        ]);
+        if (cancelled) return;
+        if (deptRes.ok) {
+          const data = await deptRes.json();
+          setCreateDepartments(Array.isArray(data) ? data : data.items || []);
+        }
+        if (rolesRes.ok) {
+          const data = await rolesRes.json();
+          setCreateCustomRoles(Array.isArray(data) ? data : data.items || []);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isModalOpen, tenantId, isAdmin]);
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim() || !isAdmin) return;
@@ -392,7 +469,12 @@ export default function ProjectCardsGrid({
           record_data: {
             name: newProjectName,
             status: 'active',
-            visibility: newProjectVisibility,
+            ...visibilityToRecordPayload({}, newProjectVisibility),
+            department_grants:
+              newProjectVisibility === 'department'
+                ? createDepartmentGrants
+                : undefined,
+            department_ids: createDepartmentGrants.map((g) => g.department_id),
             template: selectedTemplate,
             is_locked: 'false',
             folder: newProjectFolder.trim() || undefined,
@@ -404,6 +486,23 @@ export default function ProjectCardsGrid({
       if (res.ok) {
         const newRecord = await res.json();
 
+        const needsAccessPut =
+          newProjectVisibility !== 'private' ||
+          createDepartmentGrants.length > 0 ||
+          createCustomRoleGrants.length > 0;
+        if (needsAccessPut) {
+          await fetchAPI(`/api/records/${newRecord.id}/access`, {
+            method: 'PUT',
+            body: JSON.stringify(
+              buildAccessPutBody(
+                newProjectVisibility,
+                createDepartmentGrants,
+                createCustomRoleGrants
+              )
+            ),
+          });
+        }
+
         logActivity(
           tenantId,
           getUserDisplayName(user),
@@ -414,7 +513,9 @@ export default function ProjectCardsGrid({
         setIsModalOpen(false);
         setNewProjectName('');
         setNewProjectFolder('');
-        setNewProjectVisibility('public');
+        setNewProjectVisibility('private');
+        setCreateDepartmentGrants([]);
+        setCreateCustomRoleGrants([]);
         setSelectedTemplate('blank');
         router.push(`/dashboard/${tenantId}/projects/${newRecord.id}`);
       } else {
@@ -471,6 +572,90 @@ export default function ProjectCardsGrid({
     }
   };
 
+  const applyVisibility = async (
+    projectId: string,
+    currentData: RecordData,
+    newVisibility: string,
+    departmentGrants: DepartmentGrant[] = []
+  ) => {
+    const previous = projects.find((p) => p.id === projectId)?.record_data;
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === projectId
+          ? {
+              ...p,
+              record_data: visibilityToRecordPayload(
+                { ...p.record_data },
+                newVisibility
+              ),
+            }
+          : p
+      )
+    );
+    const res = await fetchAPI(`/api/records/${projectId}/access`, {
+      method: 'PUT',
+      body: JSON.stringify(
+        buildAccessPutBody(newVisibility, departmentGrants, [])
+      ),
+    });
+    if (!res.ok) {
+      if (previous) {
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === projectId ? { ...p, record_data: previous } : p
+          )
+        );
+      }
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || t('access.permissionDenied'));
+    }
+    logActivity(
+      tenantId,
+      getUserDisplayName(user),
+      'Changed Visibility',
+      `Project: ${currentData.name} is now ${newVisibility}`
+    );
+  };
+
+  const openDepartmentEditor = async (
+    projectId: string,
+    currentData: RecordData
+  ) => {
+    setAccessEditor({
+      projectId,
+      name: String(currentData.name || 'Project'),
+    });
+    setAccessError(null);
+    const rawGrants = currentData.department_grants;
+    const rawIds = currentData.department_ids;
+    setAccessDeptGrants(
+      Array.isArray(rawGrants)
+        ? (rawGrants as DepartmentGrant[])
+        : (Array.isArray(rawIds) ? rawIds : []).map((id) => ({
+            department_id: String(id),
+            permission: 'view' as const,
+          }))
+    );
+    try {
+      const [deptRes, accessRes] = await Promise.all([
+        fetchAPI(`/api/tenants/${tenantId}/departments`),
+        fetchAPI(`/api/records/${projectId}/access`),
+      ]);
+      if (deptRes.ok) {
+        const data = await deptRes.json();
+        setAccessDepartments(Array.isArray(data) ? data : data.items || []);
+      }
+      if (accessRes.ok) {
+        const access = await accessRes.json();
+        if (access.department_grants?.length) {
+          setAccessDeptGrants(access.department_grants);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const changeVisibility = async (
     e: React.MouseEvent,
     projectId: string,
@@ -480,31 +665,38 @@ export default function ProjectCardsGrid({
     e.preventDefault();
     e.stopPropagation();
     closeProjectMenu();
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === projectId
-          ? {
-              ...p,
-              record_data: { ...p.record_data, visibility: newVisibility },
-            }
-          : p
-      )
-    );
+    if (newVisibility === 'department') {
+      await openDepartmentEditor(projectId, currentData);
+      return;
+    }
     try {
-      await fetchAPI(`/api/records/${projectId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          record_data: { ...currentData, visibility: newVisibility },
-        }),
-      });
-      logActivity(
-        tenantId,
-        getUserDisplayName(user),
-        'Changed Visibility',
-        `Project: ${currentData.name} is now ${newVisibility}`
-      );
-    } catch {
+      await applyVisibility(projectId, currentData, newVisibility);
+    } catch (err) {
+      console.error(err);
       fetchProjects();
+    }
+  };
+
+  const saveDepartmentAccess = async () => {
+    if (!accessEditor) return;
+    const project = projects.find((p) => p.id === accessEditor.projectId);
+    if (!project) return;
+    setAccessSaving(true);
+    setAccessError(null);
+    try {
+      await applyVisibility(
+        accessEditor.projectId,
+        project.record_data,
+        'department',
+        accessDeptGrants
+      );
+      setAccessEditor(null);
+    } catch (err) {
+      setAccessError(
+        err instanceof Error ? err.message : t('access.permissionDenied')
+      );
+    } finally {
+      setAccessSaving(false);
     }
   };
 
@@ -757,7 +949,7 @@ export default function ProjectCardsGrid({
       const status = p.record_data?.status || 'active';
       const folder = p.record_data?.folder;
       const template = p.record_data?.template || 'blank';
-      const visibility = p.record_data?.visibility || 'public';
+      const visibility = projectVisibilityMode(p.record_data);
 
       if (view === 'trash') {
         if (status !== 'trashed') return false;
@@ -775,13 +967,11 @@ export default function ProjectCardsGrid({
       if (visibilityFilter !== 'all' && visibility !== visibilityFilter)
         return false;
 
-      const hasPermission =
-        isAdmin || p.record_data?.visibility !== 'just_admin';
       const matchesSearch = getProjectDisplayName(p.record_data ?? {}, p.id)
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
 
-      return hasPermission && matchesSearch;
+      return matchesSearch;
     });
 
     filtered = filtered.sort((a, b) => {
@@ -959,15 +1149,25 @@ export default function ProjectCardsGrid({
                     icon: Shield,
                   },
                   {
-                    value: 'public',
-                    label: t('teamPublic'),
+                    value: 'private',
+                    label: t('access.private'),
+                    icon: Lock,
+                  },
+                  {
+                    value: 'open',
+                    label: t('access.open'),
                     icon: Globe,
                     iconClassName: 'text-emerald-600 dark:text-emerald-400',
                   },
                   {
-                    value: 'just_admin',
-                    label: t('adminPrivate'),
-                    icon: Lock,
+                    value: 'department',
+                    label: t('access.department'),
+                    icon: Users,
+                  },
+                  {
+                    value: 'admin_only',
+                    label: t('access.adminOnly'),
+                    icon: Shield,
                     iconClassName: 'text-amber-600 dark:text-amber-400',
                   },
                 ]}
@@ -1054,9 +1254,7 @@ export default function ProjectCardsGrid({
                 onClick={() => setVisibilityFilter('all')}
                 className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 transition-colors"
               >
-                {visibilityFilter === 'public'
-                  ? t('teamPublic')
-                  : t('adminPrivate')}
+                {visibilityFilterLabel(visibilityFilter, t)}
                 <X className="w-3 h-3 text-zinc-400" />
               </button>
             )}
@@ -1146,8 +1344,9 @@ export default function ProjectCardsGrid({
         <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-in fade-in duration-500">
           {displayedProjects.map((project, index) => {
             const status = project.record_data?.status || 'active';
-            const isJustAdmin =
-              project.record_data?.visibility === 'just_admin';
+            const visibilityMode = projectVisibilityMode(project.record_data);
+            const isJustAdmin = visibilityMode === 'admin_only';
+            const isTeamOpen = visibilityMode === 'open';
             const isLocked =
               project.record_data?.is_locked === 'true' ||
               project.record_data?.is_locked === true;
@@ -1287,15 +1486,29 @@ export default function ProjectCardsGrid({
                     {isJustAdmin && status === 'active' && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md">
                         <Shield className="w-3 h-3" />
-                        {t('tags.private')}
+                        {t('access.adminOnly')}
                       </span>
                     )}
-                    {status === 'active' &&
+                    {isTeamOpen && status === 'active' && !isGlobalShared && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-100/80 dark:border-emerald-500/20">
+                        <Globe className="w-3 h-3" />
+                        {t('access.open')}
+                      </span>
+                    )}
+                    {visibilityMode === 'private' &&
+                      status === 'active' &&
                       !isLocked &&
                       !isJustAdmin &&
                       !isGlobalShared && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md">
+                        <Lock className="w-3 h-3" />
+                        {t('access.private')}
+                      </span>
+                    )}
+                    {visibilityMode === 'department' && status === 'active' && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 px-1.5 py-0.5 rounded-md border border-sky-100/80 dark:border-sky-500/20">
-                        Open canvas
+                        <Users className="w-3 h-3" />
+                        {t('access.department')}
                       </span>
                     )}
                   </div>
@@ -1355,12 +1568,12 @@ export default function ProjectCardsGrid({
                             e,
                             project.id,
                             project.record_data,
-                            'public'
+                            'private'
                           )
                         }
                         className="w-full text-left px-3.5 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg mx-0"
                       >
-                        Make Public
+                        {t('menus.makePrivate')}
                       </button>
                       <button
                         onClick={(e) =>
@@ -1368,12 +1581,38 @@ export default function ProjectCardsGrid({
                             e,
                             project.id,
                             project.record_data,
-                            'just_admin'
+                            'open'
+                          )
+                        }
+                        className="w-full text-left px-3.5 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg mx-0"
+                      >
+                        {t('menus.makeOpen')}
+                      </button>
+                      <button
+                        onClick={(e) =>
+                          changeVisibility(
+                            e,
+                            project.id,
+                            project.record_data,
+                            'department'
+                          )
+                        }
+                        className="w-full text-left px-3.5 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg mx-0"
+                      >
+                        {t('menus.makeDepartment')}
+                      </button>
+                      <button
+                        onClick={(e) =>
+                          changeVisibility(
+                            e,
+                            project.id,
+                            project.record_data,
+                            'admin_only'
                           )
                         }
                         className="w-full text-left px-3.5 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                       >
-                        Make Admin Only
+                        {t('menus.makeAdminOnly')}
                       </button>
                       <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
                       <button
@@ -1479,6 +1718,56 @@ export default function ProjectCardsGrid({
           document.body
         )}
 
+      {accessEditor && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-4 bg-zinc-950/30 backdrop-blur-sm">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)] w-full max-w-md border border-zinc-200 dark:border-zinc-800">
+            <div className="p-5 border-b border-zinc-100 dark:border-zinc-800">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-400 mb-1">
+                {t('access.department')}
+              </p>
+              <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+                {accessEditor.name}
+              </h2>
+            </div>
+            <div className="p-5 space-y-4">
+              <DepartmentGrantEditor
+                departments={accessDepartments}
+                grants={accessDeptGrants}
+                onChange={setAccessDeptGrants}
+                disabled={accessSaving}
+                labels={{
+                  title: t('access.departmentsTitle'),
+                  desc: t('access.departmentsDesc'),
+                  empty: t('access.noDepartments'),
+                  view: t('access.permissionView'),
+                  edit: t('access.permissionEdit'),
+                }}
+              />
+              {accessError && (
+                <p className="text-xs text-red-600 dark:text-red-400">{accessError}</p>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setAccessEditor(null)}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold border border-zinc-200 dark:border-zinc-700"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="button"
+                  onClick={saveDepartmentAccess}
+                  disabled={accessSaving}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-zinc-950 dark:bg-white dark:text-zinc-950 disabled:opacity-50"
+                >
+                  {t('access.saveAccess')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isModalOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-zinc-950/30 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)] w-full max-w-md border border-zinc-200 dark:border-zinc-800">
@@ -1519,6 +1808,49 @@ export default function ProjectCardsGrid({
                   className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50"
                 />
               </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
+                  {t('access.visibilityTitle')}
+                </label>
+                <select
+                  value={newProjectVisibility}
+                  onChange={(e) => setNewProjectVisibility(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50"
+                >
+                  <option value="private">{t('access.private')}</option>
+                  <option value="open">{t('access.open')}</option>
+                  <option value="department">{t('access.department')}</option>
+                  <option value="admin_only">{t('access.adminOnly')}</option>
+                </select>
+              </div>
+              {newProjectVisibility === 'department' && (
+                <DepartmentGrantEditor
+                  departments={createDepartments}
+                  grants={createDepartmentGrants}
+                  onChange={setCreateDepartmentGrants}
+                  disabled={isCreating}
+                  labels={{
+                    title: t('access.departmentsTitle'),
+                    desc: t('access.departmentsDesc'),
+                    empty: t('access.noDepartments'),
+                    view: t('access.permissionView'),
+                    edit: t('access.permissionEdit'),
+                  }}
+                />
+              )}
+              <CustomRoleGrantEditor
+                roles={createCustomRoles}
+                grants={createCustomRoleGrants}
+                onChange={setCreateCustomRoleGrants}
+                disabled={isCreating}
+                labels={{
+                  title: t('access.customRolesTitle'),
+                  desc: t('access.customRolesDesc'),
+                  empty: t('access.noCustomRoles'),
+                  view: t('access.permissionView'),
+                  edit: t('access.permissionEdit'),
+                }}
+              />
               <div
                 className={`space-y-1.5 relative ${
                   isTemplateDropdownOpen ? 'z-50' : 'z-0'

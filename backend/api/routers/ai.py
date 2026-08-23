@@ -12,6 +12,11 @@ from datetime import datetime
 
 from core.database import supabase, supabase_admin
 from core.limiter import limiter, get_real_ip
+from core.project_access import (
+    Permission,
+    build_access_context_for_user,
+    assert_project_access,
+)
 
 logger = logging.getLogger("saas_engine")
 from core.ai_prompts import (
@@ -280,11 +285,16 @@ def resolve_actor(user) -> str:
     return actor
 
 
-def load_module_record(tenant_id: str, module_id: str) -> Dict[str, Any]:
-    """Fetch the custom_records row for this module, tenant-isolated."""
+def load_module_record(
+    tenant_id: str,
+    module_id: str,
+    user,
+    permission: Permission = Permission.EDIT,
+) -> Dict[str, Any]:
+    """Fetch custom_records row with project-level access check."""
     res = (
         supabase_admin.table("custom_records")
-        .select("id, tenant_id, record_data")
+        .select("*")
         .eq("id", module_id)
         .eq("tenant_id", tenant_id)
         .limit(1)
@@ -295,7 +305,12 @@ def load_module_record(tenant_id: str, module_id: str) -> Dict[str, Any]:
             status_code=404,
             detail="Module/project not found in this workspace.",
         )
-    return res.data[0]
+    row = res.data[0]
+    ctx = build_access_context_for_user(
+        str(user.id), str(getattr(user, "email", "") or ""), tenant_id
+    )
+    assert_project_access(ctx, row, permission)
+    return row
 
 
 def save_module_record_data(
@@ -497,7 +512,7 @@ def execute_create_task(
 
     try:
         if module_id:
-            row = load_module_record(tenant_id, module_id)
+            row = load_module_record(tenant_id, module_id, user, Permission.EDIT)
             record_data_preview = row.get("record_data") or {}
             if isinstance(record_data_preview, dict):
                 project_name = (
@@ -560,7 +575,7 @@ def execute_create_task(
 
         # 2) Mirror onto the project board document for Kanban UI
         if module_id:
-            row = load_module_record(tenant_id, module_id)
+            row = load_module_record(tenant_id, module_id, user, Permission.EDIT)
             record_data = row.get("record_data") or {}
             if not isinstance(record_data, dict):
                 record_data = {}
@@ -645,7 +660,7 @@ def execute_move_task(
     actor = resolve_actor(user)
 
     try:
-        row = load_module_record(tenant_id, module_id)
+        row = load_module_record(tenant_id, module_id, user, Permission.EDIT)
         record_data = row.get("record_data") or {}
         existing_tasks: List[Dict[str, Any]] = list(
             record_data.get("tasks") or record_data.get("kanbanTasks") or []
@@ -724,7 +739,7 @@ def execute_add_mindmap_node(
     node_id = f"mm-{uuid.uuid4().hex[:10]}"
 
     try:
-        row = load_module_record(tenant_id, module_id)
+        row = load_module_record(tenant_id, module_id, user, Permission.EDIT)
         record_data = row.get("record_data") or {}
         page = resolve_target_page(
             record_data, page_id, PAGE_TYPE_ALIASES["mindmap"]
@@ -794,7 +809,7 @@ def execute_format_notepad(
     title = (args.get("title") or "").strip() or None
 
     try:
-        row = load_module_record(tenant_id, module_id)
+        row = load_module_record(tenant_id, module_id, user, Permission.EDIT)
         record_data = row.get("record_data") or {}
         page = resolve_target_page(
             record_data, page_id, PAGE_TYPE_ALIASES["notepad"]
@@ -885,7 +900,7 @@ def execute_add_whiteboard_note(
     }
 
     try:
-        row = load_module_record(tenant_id, module_id)
+        row = load_module_record(tenant_id, module_id, user, Permission.EDIT)
         record_data = row.get("record_data") or {}
         page = resolve_target_page(
             record_data, page_id, PAGE_TYPE_ALIASES["whiteboard"]

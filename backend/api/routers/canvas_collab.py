@@ -13,6 +13,11 @@ from fastapi import status as http_status
 
 from core.auth_jwt import verify_access_token
 from core.database import supabase_admin
+from core.project_access import (
+    Permission,
+    build_access_context_for_user,
+    has_project_permission,
+)
 import os
 
 logger = logging.getLogger("saas_engine.canvas_ws")
@@ -152,36 +157,40 @@ def _safe_str(value: Any, *, max_len: int = 80) -> str:
     return value.strip()[:max_len]
 
 
-def _validate_room_tenant_access(room_id: str, user_id: str) -> bool:
-    """Validate that the user has access to the tenant that owns this room.
-    
-    Rooms are project IDs (custom_records.id). Each record has a tenant_id.
-    Users can only join rooms for tenants they belong to.
-    
-    Returns True if user has access, False otherwise.
-    """
+def _validate_room_project_access(room_id: str, user_id: str, email: str) -> bool:
+    """Tenant membership + project-level VIEW for live canvas rooms."""
     try:
-        # Get the tenant_id for this room (project)
-        record_res = supabase_admin.table("custom_records").select("tenant_id").eq("id", room_id).execute()
+        record_res = (
+            supabase_admin.table("custom_records")
+            .select("*")
+            .eq("id", room_id)
+            .execute()
+        )
         if not record_res.data:
             logger.warning("Room %s not found in custom_records", room_id)
             return False
-        
-        tenant_id = record_res.data[0].get("tenant_id")
+
+        record = record_res.data[0]
+        tenant_id = record.get("tenant_id")
         if not tenant_id:
             logger.warning("Room %s has no tenant_id", room_id)
             return False
-        
-        # Check if user belongs to this tenant
-        membership_res = supabase_admin.table("tenant_users").select("role").eq("tenant_id", tenant_id).eq("user_id", user_id).execute()
-        if not membership_res.data:
-            logger.warning("User %s not a member of tenant %s for room %s", user_id, tenant_id, room_id)
-            return False
-        
-        return True
+
+        ctx = build_access_context_for_user(user_id, email, str(tenant_id))
+        return has_project_permission(ctx, record, Permission.VIEW)
     except Exception as exc:
-        logger.error("Error validating room tenant access for room %s, user %s: %s", room_id, user_id, exc)
+        logger.error(
+            "Error validating room project access for room %s, user %s: %s",
+            room_id,
+            user_id,
+            exc,
+        )
         return False
+
+
+def _validate_room_tenant_access(room_id: str, user_id: str) -> bool:
+    """Deprecated alias — use _validate_room_project_access with email when available."""
+    return _validate_room_project_access(room_id, user_id, "")
 
 
 @router.websocket("/ws/canvas/{room_id}")
@@ -222,9 +231,9 @@ async def canvas_collab_ws(websocket: WebSocket, room_id: str):
             try:
                 identity = verify_access_token(token)
                 user_id = identity.get("user_id")
-                
-                # Validate room-tenant binding
-                if not _validate_room_tenant_access(room_id, user_id):
+                user_email = identity.get("email") or ""
+
+                if not _validate_room_project_access(room_id, user_id, user_email):
                     logger.warning(
                         "canvas ws room-tenant access denied room=%s user=%s",
                         room_id,
