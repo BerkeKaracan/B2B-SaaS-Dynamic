@@ -8,7 +8,7 @@ import { Reveal } from '@/components/landing/Reveal';
 import HeroCanvasPreview from '@/components/landing/HeroCanvasPreview';
 import AiChatMock from '@/components/landing/AiChatMock';
 import LandingNavbar from '@/components/landing/LandingNavbar';
-import ArchitectureSection from '@/components/landing/ArchitectureSection';
+import CollaborationSection from '@/components/landing/CollaborationSection';
 import { usePointerParallax } from '@/hooks/usePointerParallax';
 interface BackgroundShapeState {
   x: number;
@@ -628,7 +628,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <ArchitectureSection />
+        <CollaborationSection />
 
         <section className="py-12 lg:py-32 relative overflow-hidden border-t border-zinc-200/60 mt-6 md:mt-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-zinc-100 via-transparent to-transparent -z-10"></div>

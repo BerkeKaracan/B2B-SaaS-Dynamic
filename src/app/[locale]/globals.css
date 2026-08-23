@@ -177,6 +177,16 @@
     animation: lpPulseRing 2.4s ease-out infinite;
   }
 
+  .lp-collab-cursor-1 {
+    animation: lpCollabCursor1 5s ease-in-out infinite;
+  }
+  .lp-collab-cursor-2 {
+    animation: lpCollabCursor2 6s ease-in-out infinite;
+  }
+  .lp-collab-cursor-3 {
+    animation: lpCollabCursor3 5.5s ease-in-out infinite;
+  }
+
   .lp-blob {
     position: absolute;
     border-radius: 9999px;
@@ -336,6 +346,36 @@
   }
 }
 
+@keyframes lpCollabCursor1 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(12px, -8px);
+  }
+}
+
+@keyframes lpCollabCursor2 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-10px, 10px);
+  }
+}
+
+@keyframes lpCollabCursor3 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(8px, -6px);
+  }
+}
+
 /* ——— Shared loading motion ——— */
 @layer utilities {
   .ws-load-spin {
@@ -490,6 +530,9 @@
   .lp-float-d,
   .lp-cursor-ghost,
   .lp-pulse-ring,
+  .lp-collab-cursor-1,
+  .lp-collab-cursor-2,
+  .lp-collab-cursor-3,
   .lp-btn-shine::after,
   .ws-load-spin,
   .ws-load-spin-rev,
