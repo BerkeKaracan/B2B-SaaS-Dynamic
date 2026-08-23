@@ -3,109 +3,112 @@ from uuid import UUID
 import json
 import traceback
 
-from core.database import supabase, supabase_admin
+from core.database import supabase_admin
+from core.project_access import is_global_public_flags
 
 router = APIRouter(
     prefix="/api/public",
-    tags=["Public Share"]
+    tags=["Public Share"],
 )
+
 
 def sanitize_public_record(record: dict) -> dict:
     raw_data = record.get("record_data", {})
-    
+
     if isinstance(raw_data, str):
         try:
             raw_data = json.loads(raw_data)
-        except:
+        except Exception:
             raw_data = {}
-            
+
     if not isinstance(raw_data, dict):
         raw_data = {}
-        
+
     safe_data = raw_data.copy()
     safe_data.pop("owner_email", None)
     safe_data.pop("collaborators", None)
-    safe_data.pop("api_keys", None) 
-    
-    record["record_data"] = safe_data
-    return record
+    safe_data.pop("api_keys", None)
+
+    safe = {
+        "id": record.get("id"),
+        "module_name": record.get("module_name"),
+        "record_data": safe_data,
+    }
+    return safe
 
 
-def is_publicly_shared(record_data: dict) -> bool:
-    """Hub publish uses is_global_shared; older Share UI used is_global_public."""
-    shared = str(record_data.get("is_global_shared", "false")).lower()
-    public = str(record_data.get("is_global_public", "false")).lower()
-    return shared in ("true", "1") or public in ("true", "1")
+def is_public_record(record: dict) -> bool:
+    """Column + JSONB must agree for public hub exposure."""
+    if not record.get("is_global_public"):
+        return False
+    record_data = record.get("record_data") or {}
+    if isinstance(record_data, str):
+        try:
+            record_data = json.loads(record_data)
+        except Exception:
+            record_data = {}
+    if not isinstance(record_data, dict):
+        return False
+    return is_global_public_flags(record_data)
 
 
 @router.get("/records")
 def get_public_records(limit: int = Query(8, ge=1, le=20)):
     try:
-        # Fetch a wider window then filter — supports both legacy and current flags.
-        response = supabase_admin.table("custom_records")\
-            .select("id, tenant_id, module_name, record_data")\
-            .or_(
-                "record_data->>is_global_shared.eq.true,"
-                "record_data->>is_global_public.eq.true"
-            )\
-            .limit(max(limit * 3, 24))\
+        response = (
+            supabase_admin.table("custom_records")
+            .select("id, tenant_id, module_name, record_data, is_global_public")
+            .eq("is_global_public", True)
+            .limit(max(limit * 3, 24))
             .execute()
-            
+        )
+
         if not response.data:
             return []
 
         shared = []
         for record in response.data:
-            raw = record.get("record_data", {})
-            if isinstance(raw, str):
-                try:
-                    raw = json.loads(raw)
-                except Exception:
-                    raw = {}
-            if isinstance(raw, dict) and is_publicly_shared(raw):
+            if is_public_record(record):
                 shared.append(sanitize_public_record(record))
             if len(shared) >= limit:
                 break
 
         return shared
-        
+
     except Exception as e:
         print(f"Public Records List Error: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to fetch public frameworks")
 
+
 @router.get("/records/{record_id}")
 def get_public_record_by_id(record_id: UUID):
     try:
-        response = supabase_admin.table("custom_records")\
-            .select("id, tenant_id, module_name, record_data")\
-            .eq("id", str(record_id))\
+        response = (
+            supabase_admin.table("custom_records")
+            .select("id, tenant_id, module_name, record_data, is_global_public")
+            .eq("id", str(record_id))
             .execute()
-            
+        )
+
         if not response.data:
             raise HTTPException(status_code=404, detail="Framework not found")
-            
+
         record = response.data[0]
-        record_data = record.get("record_data", {})
-        
-        if isinstance(record_data, str):
-            try:
-                record_data = json.loads(record_data)
-            except:
-                record_data = {}
-        elif not isinstance(record_data, dict):
-            record_data = {}
-        
-        if not is_publicly_shared(record_data):
-            raise HTTPException(status_code=403, detail="This framework is not publicly shared.")
-            
+
+        if not is_public_record(record):
+            raise HTTPException(
+                status_code=403, detail="This framework is not publicly shared."
+            )
+
         return sanitize_public_record(record)
-        
+
     except HTTPException as he:
         raise he
     except Exception as e:
         print(f"CRITICAL ERROR in get_public_record_by_id: {str(e)}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Database or Parsing Error: {str(e)}")
+
 
 @router.get("/ping")
 async def ping():

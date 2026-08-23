@@ -5,7 +5,11 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 import pytest
 
-from api.routers.canvas_collab import _allow_insecure_canvas_ws, _validate_room_tenant_access
+from api.routers.canvas_collab import (
+    _allow_insecure_canvas_ws,
+    _validate_room_project_access,
+    _validate_room_tenant_access,
+)
 
 
 class TestAllowInsecureCanvasWs:
@@ -65,71 +69,65 @@ class TestAllowInsecureCanvasWs:
         assert _allow_insecure_canvas_ws() is False
 
 
-class TestValidateRoomTenantAccess:
-    """Test room-tenant binding validation."""
+class TestValidateRoomProjectAccess:
+    """Project-level VIEW required for canvas rooms."""
 
+    @patch("api.routers.canvas_collab.build_access_context_for_user")
+    @patch("api.routers.canvas_collab.has_project_permission")
     @patch("api.routers.canvas_collab.supabase_admin")
-    def test_valid_room_and_tenant_access(self, mock_supabase):
-        """Should return True when user belongs to the tenant that owns the room."""
-        # Mock record lookup - room exists and has tenant_id
+    def test_granted_when_user_has_project_view(
+        self, mock_supabase, mock_has_perm, mock_build_ctx
+    ):
         mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
-            {"tenant_id": "tenant-123"}
+            {"id": "room-1", "tenant_id": "tenant-123", "module_name": "projects"}
         ]
-        
-        # Mock membership lookup - user is member of tenant
-        mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = [
-            {"role": "admin"}
+        mock_build_ctx.return_value = MagicMock()
+        mock_has_perm.return_value = True
+
+        assert _validate_room_project_access("room-1", "user-1", "u@example.com") is True
+        mock_has_perm.assert_called_once()
+
+    @patch("api.routers.canvas_collab.has_project_permission")
+    @patch("api.routers.canvas_collab.supabase_admin")
+    def test_denied_without_project_permission(self, mock_supabase, mock_has_perm):
+        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+            {"id": "room-1", "tenant_id": "tenant-123", "module_name": "projects"}
         ]
-        
-        result = _validate_room_tenant_access("room-456", "user-789")
-        assert result is True
+        mock_has_perm.return_value = False
+
+        assert _validate_room_project_access("room-1", "user-1", "u@example.com") is False
 
     @patch("api.routers.canvas_collab.supabase_admin")
     def test_room_not_found(self, mock_supabase):
-        """Should return False when room doesn't exist."""
         mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
-        
+        assert _validate_room_project_access("missing", "user-1", "u@example.com") is False
+
+
+class TestValidateRoomTenantAccess:
+    """Test room-tenant binding validation."""
+
+    @patch("api.routers.canvas_collab._validate_room_project_access")
+    def test_valid_room_and_tenant_access(self, mock_project_access):
+        """Deprecated alias delegates to project access validation."""
+        mock_project_access.return_value = True
+        result = _validate_room_tenant_access("room-456", "user-789")
+        assert result is True
+        mock_project_access.assert_called_once_with("room-456", "user-789", "")
+
+    @patch("api.routers.canvas_collab._validate_room_project_access")
+    def test_room_not_found(self, mock_project_access):
+        mock_project_access.return_value = False
         result = _validate_room_tenant_access("nonexistent-room", "user-789")
         assert result is False
 
-    @patch("api.routers.canvas_collab.supabase_admin")
-    def test_room_has_no_tenant_id(self, mock_supabase):
-        """Should return False when room exists but has no tenant_id."""
-        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
-            {"tenant_id": None}
-        ]
-        
-        result = _validate_room_tenant_access("room-456", "user-789")
-        assert result is False
-
-    @patch("api.routers.canvas_collab.supabase_admin")
-    def test_user_not_tenant_member(self, mock_supabase):
-        """Should return False when user is not a member of the tenant."""
-        # Room exists with tenant
-        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
-            {"tenant_id": "tenant-123"}
-        ]
-        
-        # User not a member
-        mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value.data = []
-        
+    @patch("api.routers.canvas_collab._validate_room_project_access")
+    def test_user_not_tenant_member(self, mock_project_access):
+        mock_project_access.return_value = False
         result = _validate_room_tenant_access("room-456", "user-789")
         assert result is False
 
     @patch("api.routers.canvas_collab.supabase_admin")
     def test_database_error_returns_false(self, mock_supabase):
-        """Should return False on database errors (fail-closed)."""
         mock_supabase.table.side_effect = Exception("Database connection failed")
-        
-        result = _validate_room_tenant_access("room-456", "user-789")
-        assert result is False
-
-    @patch("api.routers.canvas_collab.supabase_admin")
-    def test_tenant_id_empty_string(self, mock_supabase):
-        """Should return False when tenant_id is empty string."""
-        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
-            {"tenant_id": ""}
-        ]
-        
-        result = _validate_room_tenant_access("room-456", "user-789")
+        result = _validate_room_project_access("room-456", "user-789", "u@example.com")
         assert result is False

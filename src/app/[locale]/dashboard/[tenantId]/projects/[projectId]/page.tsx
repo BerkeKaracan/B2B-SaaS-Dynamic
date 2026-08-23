@@ -18,15 +18,25 @@ import {
   normalizeProjectTemplate,
 } from '@/lib/templates';
 import { themeFromPageColor, isLightPageColor } from '@/lib/pageTheme';
-import { Check, Copy, Globe2, Lock, Share2, X } from 'lucide-react';
+import { Check, Copy, Globe2, Lock, Share2, Users, X } from 'lucide-react';
 import { LoadingMark, LoadingDots } from '@/components/ui/loading';
+import { useTranslations } from 'next-intl';
+
 type Collaborator = {
   email: string;
   role: string;
 };
 
+type Department = {
+  id: string;
+  name: string;
+};
+
 type RecordDataProps = {
   name?: string;
+  visibility?: string;
+  visibility_mode?: string;
+  department_ids?: string[];
   is_global_public?: boolean | string;
   is_global_shared?: boolean | string;
   collaborators?: Collaborator[];
@@ -34,6 +44,31 @@ type RecordDataProps = {
   is_locked?: string;
   [key: string]: unknown;
 };
+
+function resolveVisibilityMode(data: RecordDataProps | null | undefined): string {
+  if (!data) return 'private';
+  const raw = data.visibility_mode || data.visibility || 'private';
+  if (raw === 'public') return 'open';
+  if (raw === 'just_admin') return 'admin_only';
+  return String(raw);
+}
+
+function visibilityToRecordPayload(
+  currentData: RecordDataProps,
+  mode: string
+): RecordDataProps {
+  const legacy = {
+    private: 'private',
+    open: 'public',
+    admin_only: 'just_admin',
+    department: 'department',
+  } as const;
+  return {
+    ...currentData,
+    visibility_mode: mode,
+    visibility: legacy[mode as keyof typeof legacy] ?? mode,
+  };
+}
 
 const isHubPublished = (data: RecordDataProps | null | undefined) => {
   if (!data) return false;
@@ -49,6 +84,7 @@ export default function ProjectDesignPage() {
   const params = useParams();
   const projectId = params.projectId as string;
   const tenantId = params.tenantId as string;
+  const t = useTranslations('ProjectsPage');
 
   const setShowEngineToolkit = useLayoutStore(
     (state) => state.setShowEngineToolkit
@@ -75,6 +111,11 @@ export default function ProjectDesignPage() {
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('viewer');
+  const [visibilityMode, setVisibilityMode] = useState('private');
+  const [departmentIds, setDepartmentIds] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [canManageAccess, setCanManageAccess] = useState(false);
+  const [accessError, setAccessError] = useState<string | null>(null);
 
   const mode = useCanvasStore((state) => state.mode);
   const setMode = useCanvasStore((state) => state.setMode);
@@ -126,17 +167,88 @@ export default function ProjectDesignPage() {
   const openShareModal = async () => {
     setIsModalOpen(true);
     setIsLoadingRecord(true);
+    setAccessError(null);
     try {
-      const res = await fetchAPI(`/api/records/${projectId}`);
-      if (res.ok) {
-        const data = await res.json();
+      const [recordRes, accessRes, deptRes] = await Promise.all([
+        fetchAPI(`/api/records/${projectId}`),
+        fetchAPI(`/api/records/${projectId}/access`),
+        fetchAPI(`/api/tenants/${tenantId}/departments`),
+      ]);
+
+      if (recordRes.ok) {
+        const data = await recordRes.json();
         setRecordData(data.record_data);
+        setVisibilityMode(resolveVisibilityMode(data.record_data));
+        const deptIds = data.record_data?.department_ids;
+        setDepartmentIds(Array.isArray(deptIds) ? deptIds.map(String) : []);
+      }
+
+      if (accessRes.ok) {
+        const access = await accessRes.json();
+        setCanManageAccess(true);
+        setVisibilityMode(access.visibility_mode || 'private');
+        setDepartmentIds(
+          Array.isArray(access.department_ids)
+            ? access.department_ids.map(String)
+            : []
+        );
+      } else if (accessRes.status === 403) {
+        setCanManageAccess(false);
+      }
+
+      if (deptRes.ok) {
+        const deptData = await deptRes.json();
+        setDepartments(Array.isArray(deptData) ? deptData : deptData.items || []);
       }
     } catch (err) {
       console.error(err);
     } finally {
       setIsLoadingRecord(false);
     }
+  };
+
+  const handleSaveAccess = async () => {
+    if (!recordData || !canManageAccess) return;
+    setIsUpdating(true);
+    setAccessError(null);
+    try {
+      const res = await fetchAPI(`/api/records/${projectId}/access`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          visibility_mode: visibilityMode,
+          department_ids: departmentIds,
+          grants: [],
+        }),
+      });
+      if (res.ok) {
+        const updated = {
+          ...visibilityToRecordPayload(recordData, visibilityMode),
+          department_ids: departmentIds,
+        };
+        setRecordData(updated);
+        updateMetadata({
+          visibility_mode: visibilityMode,
+          visibility: updated.visibility,
+          department_ids: departmentIds,
+        });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setAccessError(err.detail || t('access.permissionDenied'));
+      }
+    } catch (err) {
+      console.error(err);
+      setAccessError(t('access.permissionDenied'));
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const toggleDepartment = (deptId: string) => {
+    setDepartmentIds((prev) =>
+      prev.includes(deptId)
+        ? prev.filter((id) => id !== deptId)
+        : [...prev, deptId]
+    );
   };
 
   const handleCopy = async () => {
@@ -440,6 +552,88 @@ export default function ProjectDesignPage() {
               </div>
             ) : (
               <div className="p-4 md:p-6 space-y-6 bg-white dark:bg-zinc-900 flex-1 overflow-y-auto custom-scrollbar pb-8">
+                {canManageAccess && (
+                  <div className="space-y-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-[#f7f9fb]/70 dark:bg-zinc-950/40 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center shrink-0">
+                        <Lock className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-semibold text-zinc-950 dark:text-white">
+                          {t('access.visibilityTitle')}
+                        </h4>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                          {t('access.visibilityDesc')}
+                        </p>
+                        <select
+                          value={visibilityMode}
+                          onChange={(e) => setVisibilityMode(e.target.value)}
+                          disabled={isUpdating}
+                          className="mt-3 w-full px-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-semibold text-zinc-700 dark:text-zinc-300 focus:outline-none cursor-pointer"
+                        >
+                          <option value="private">{t('access.private')}</option>
+                          <option value="open">{t('access.open')}</option>
+                          <option value="department">{t('access.department')}</option>
+                          <option value="admin_only">{t('access.adminOnly')}</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {visibilityMode === 'department' && (
+                      <div className="space-y-2 pt-1 border-t border-zinc-200/80 dark:border-zinc-800">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-zinc-500" />
+                          <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                            {t('access.departmentsTitle')}
+                          </p>
+                        </div>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {t('access.departmentsDesc')}
+                        </p>
+                        {departments.length === 0 ? (
+                          <p className="text-xs text-zinc-400 italic">
+                            No departments configured yet.
+                          </p>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {departments.map((dept) => {
+                              const selected = departmentIds.includes(dept.id);
+                              return (
+                                <button
+                                  key={dept.id}
+                                  type="button"
+                                  disabled={isUpdating}
+                                  onClick={() => toggleDepartment(dept.id)}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
+                                    selected
+                                      ? 'bg-sky-50 dark:bg-sky-500/10 border-sky-200 dark:border-sky-500/30 text-sky-800 dark:text-sky-300'
+                                      : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300'
+                                  }`}
+                                >
+                                  {dept.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {accessError && (
+                      <p className="text-xs text-red-600 dark:text-red-400">{accessError}</p>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleSaveAccess}
+                      disabled={isUpdating}
+                      className="w-full px-4 py-2.5 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 rounded-xl text-xs font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                    >
+                      {t('access.saveAccess')}
+                    </button>
+                  </div>
+                )}
+
                 <div className="space-y-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-[#f7f9fb]/70 dark:bg-zinc-950/40 p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 min-w-0">
@@ -531,6 +725,7 @@ export default function ProjectDesignPage() {
                       >
                         <option value="viewer">Viewer</option>
                         <option value="editor">Editor</option>
+                        <option value="admin">Admin</option>
                       </select>
                       <button
                         type="submit"
@@ -562,7 +757,9 @@ export default function ProjectDesignPage() {
                               className={`text-[10px] font-semibold uppercase tracking-[0.12em] px-2 py-0.5 rounded-md ${
                                 collab.role === 'editor'
                                   ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300'
-                                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
+                                  : collab.role === 'admin'
+                                    ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300'
+                                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
                               }`}
                             >
                               {collab.role}

@@ -1209,6 +1209,18 @@
     "projectsLabel": "Projeler",
     "teamPublic": "Ekip (Public)",
     "adminPrivate": "Sadece Yönetici (Private)",
+    "access": {
+      "private": "Gizli",
+      "open": "Ekibe açık",
+      "department": "Departman",
+      "adminOnly": "Sadece yönetici",
+      "visibilityTitle": "Çalışma alanı görünürlüğü",
+      "visibilityDesc": "Çalışma alanınızda bu projeyi kimlerin bulup açabileceğini belirleyin.",
+      "departmentsTitle": "Departmanlar",
+      "departmentsDesc": "Seçili departman üyeleri bu projeyi görüntüleyebilir.",
+      "saveAccess": "Erişim ayarlarını kaydet",
+      "permissionDenied": "Bu projeye erişim izniniz yok."
+    },
     "templates": {
       "blank": "Sonsuz Tuval",
       "kanban": "Kanban Panosu",
@@ -1221,6 +1233,10 @@
       "calendar": "Takvim"
     },
     "menus": {
+      "makePrivate": "Gizli yap",
+      "makeOpen": "Ekibe aç",
+      "makeDepartment": "Departmanlarla sınırla",
+      "makeAdminOnly": "Sadece yönetici",
       "makePublic": "Çalışma Alanını Herkese Aç",
       "makeAdminOnly": "Sadece Yöneticilere Özel Yap",
       "removeFromHub": "Merkezden Kaldır",

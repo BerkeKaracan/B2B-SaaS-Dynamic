@@ -27,6 +27,7 @@ import {
   Clock,
   Shield,
   Globe,
+  Users,
   LayoutTemplate,
   Trash2,
   AlertTriangle,
@@ -59,8 +60,47 @@ type ProjectRecord = {
   };
 };
 
-type VisibilityFilter = 'all' | 'public' | 'just_admin';
+type VisibilityFilter = 'all' | 'private' | 'open' | 'admin_only' | 'department';
+
+function projectVisibilityMode(
+  recordData?: { visibility?: string; visibility_mode?: string }
+): string {
+  const raw = recordData?.visibility_mode || recordData?.visibility || 'private';
+  if (raw === 'public') return 'open';
+  if (raw === 'just_admin') return 'admin_only';
+  return String(raw);
+}
+
+function visibilityToRecordPayload(
+  currentData: Record<string, unknown>,
+  mode: string
+): Record<string, unknown> {
+  const legacy = {
+    private: 'private',
+    open: 'public',
+    admin_only: 'just_admin',
+    department: 'department',
+  } as const;
+  return {
+    ...currentData,
+    visibility_mode: mode,
+    visibility: legacy[mode as keyof typeof legacy] ?? mode,
+  };
+}
 type SortOption = 'recent' | 'name_asc' | 'name_desc';
+function visibilityFilterLabel(
+  filter: VisibilityFilter,
+  t: (key: string) => string
+): string {
+  const map: Record<Exclude<VisibilityFilter, 'all'>, string> = {
+    private: t('access.private'),
+    open: t('access.open'),
+    admin_only: t('access.adminOnly'),
+    department: t('access.department'),
+  };
+  return map[filter as Exclude<VisibilityFilter, 'all'>] ?? filter;
+}
+
 type FilterMenuId = 'template' | 'visibility' | 'sort';
 
 type FilterOption = {
@@ -227,7 +267,7 @@ export default function ProjectCardsGrid({
   );
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectFolder, setNewProjectFolder] = useState('');
-  const [newProjectVisibility, setNewProjectVisibility] = useState('public');
+  const [newProjectVisibility, setNewProjectVisibility] = useState('private');
   const [selectedTemplate, setSelectedTemplate] = useState('blank');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{
@@ -392,7 +432,7 @@ export default function ProjectCardsGrid({
           record_data: {
             name: newProjectName,
             status: 'active',
-            visibility: newProjectVisibility,
+            ...visibilityToRecordPayload({}, newProjectVisibility),
             template: selectedTemplate,
             is_locked: 'false',
             folder: newProjectFolder.trim() || undefined,
@@ -414,7 +454,7 @@ export default function ProjectCardsGrid({
         setIsModalOpen(false);
         setNewProjectName('');
         setNewProjectFolder('');
-        setNewProjectVisibility('public');
+        setNewProjectVisibility('private');
         setSelectedTemplate('blank');
         router.push(`/dashboard/${tenantId}/projects/${newRecord.id}`);
       } else {
@@ -485,7 +525,10 @@ export default function ProjectCardsGrid({
         p.id === projectId
           ? {
               ...p,
-              record_data: { ...p.record_data, visibility: newVisibility },
+              record_data: visibilityToRecordPayload(
+                { ...p.record_data },
+                newVisibility
+              ),
             }
           : p
       )
@@ -494,7 +537,7 @@ export default function ProjectCardsGrid({
       await fetchAPI(`/api/records/${projectId}`, {
         method: 'PATCH',
         body: JSON.stringify({
-          record_data: { ...currentData, visibility: newVisibility },
+          record_data: visibilityToRecordPayload({ ...currentData }, newVisibility),
         }),
       });
       logActivity(
@@ -757,7 +800,7 @@ export default function ProjectCardsGrid({
       const status = p.record_data?.status || 'active';
       const folder = p.record_data?.folder;
       const template = p.record_data?.template || 'blank';
-      const visibility = p.record_data?.visibility || 'public';
+      const visibility = projectVisibilityMode(p.record_data);
 
       if (view === 'trash') {
         if (status !== 'trashed') return false;
@@ -775,13 +818,11 @@ export default function ProjectCardsGrid({
       if (visibilityFilter !== 'all' && visibility !== visibilityFilter)
         return false;
 
-      const hasPermission =
-        isAdmin || p.record_data?.visibility !== 'just_admin';
       const matchesSearch = getProjectDisplayName(p.record_data ?? {}, p.id)
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
 
-      return hasPermission && matchesSearch;
+      return matchesSearch;
     });
 
     filtered = filtered.sort((a, b) => {
@@ -959,15 +1000,25 @@ export default function ProjectCardsGrid({
                     icon: Shield,
                   },
                   {
-                    value: 'public',
-                    label: t('teamPublic'),
+                    value: 'private',
+                    label: t('access.private'),
+                    icon: Lock,
+                  },
+                  {
+                    value: 'open',
+                    label: t('access.open'),
                     icon: Globe,
                     iconClassName: 'text-emerald-600 dark:text-emerald-400',
                   },
                   {
-                    value: 'just_admin',
-                    label: t('adminPrivate'),
-                    icon: Lock,
+                    value: 'department',
+                    label: t('access.department'),
+                    icon: Users,
+                  },
+                  {
+                    value: 'admin_only',
+                    label: t('access.adminOnly'),
+                    icon: Shield,
                     iconClassName: 'text-amber-600 dark:text-amber-400',
                   },
                 ]}
@@ -1054,9 +1105,7 @@ export default function ProjectCardsGrid({
                 onClick={() => setVisibilityFilter('all')}
                 className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 transition-colors"
               >
-                {visibilityFilter === 'public'
-                  ? t('teamPublic')
-                  : t('adminPrivate')}
+                {visibilityFilterLabel(visibilityFilter, t)}
                 <X className="w-3 h-3 text-zinc-400" />
               </button>
             )}
@@ -1146,8 +1195,9 @@ export default function ProjectCardsGrid({
         <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-in fade-in duration-500">
           {displayedProjects.map((project, index) => {
             const status = project.record_data?.status || 'active';
-            const isJustAdmin =
-              project.record_data?.visibility === 'just_admin';
+            const visibilityMode = projectVisibilityMode(project.record_data);
+            const isJustAdmin = visibilityMode === 'admin_only';
+            const isTeamOpen = visibilityMode === 'open';
             const isLocked =
               project.record_data?.is_locked === 'true' ||
               project.record_data?.is_locked === true;
@@ -1287,13 +1337,30 @@ export default function ProjectCardsGrid({
                     {isJustAdmin && status === 'active' && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md">
                         <Shield className="w-3 h-3" />
-                        {t('tags.private')}
+                        {t('access.adminOnly')}
+                      </span>
+                    )}
+                    {isTeamOpen && status === 'active' && !isGlobalShared && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-100/80 dark:border-emerald-500/20">
+                        <Globe className="w-3 h-3" />
+                        {t('access.open')}
+                      </span>
+                    )}
+                    {visibilityMode === 'private' &&
+                      status === 'active' &&
+                      !isLocked &&
+                      !isJustAdmin &&
+                      !isGlobalShared && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md">
+                        <Lock className="w-3 h-3" />
+                        {t('access.private')}
                       </span>
                     )}
                     {status === 'active' &&
                       !isLocked &&
                       !isJustAdmin &&
-                      !isGlobalShared && (
+                      !isGlobalShared &&
+                      visibilityMode !== 'private' && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 px-1.5 py-0.5 rounded-md border border-sky-100/80 dark:border-sky-500/20">
                         Open canvas
                       </span>
@@ -1355,12 +1422,12 @@ export default function ProjectCardsGrid({
                             e,
                             project.id,
                             project.record_data,
-                            'public'
+                            'private'
                           )
                         }
                         className="w-full text-left px-3.5 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg mx-0"
                       >
-                        Make Public
+                        {t('menus.makePrivate')}
                       </button>
                       <button
                         onClick={(e) =>
@@ -1368,12 +1435,38 @@ export default function ProjectCardsGrid({
                             e,
                             project.id,
                             project.record_data,
-                            'just_admin'
+                            'open'
+                          )
+                        }
+                        className="w-full text-left px-3.5 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg mx-0"
+                      >
+                        {t('menus.makeOpen')}
+                      </button>
+                      <button
+                        onClick={(e) =>
+                          changeVisibility(
+                            e,
+                            project.id,
+                            project.record_data,
+                            'department'
+                          )
+                        }
+                        className="w-full text-left px-3.5 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg mx-0"
+                      >
+                        {t('menus.makeDepartment')}
+                      </button>
+                      <button
+                        onClick={(e) =>
+                          changeVisibility(
+                            e,
+                            project.id,
+                            project.record_data,
+                            'admin_only'
                           )
                         }
                         className="w-full text-left px-3.5 py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                       >
-                        Make Admin Only
+                        {t('menus.makeAdminOnly')}
                       </button>
                       <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
                       <button
