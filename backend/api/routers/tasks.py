@@ -114,8 +114,7 @@ async def sync_tasks(payload: SyncRequest, user=Depends(verify_user)):
         project = _load_project(payload.tenant_id, payload.project_id)
         assert_project_access(ctx, project, Permission.EDIT)
 
-        client = _auth_client_for_user(user)
-        client.table("records").delete().eq("tenant_id", payload.tenant_id).eq(
+        supabase_admin.table("records").delete().eq("tenant_id", payload.tenant_id).eq(
             "module_name", "tasks"
         ).eq("record_data->>project_id", payload.project_id).execute()
 
@@ -128,7 +127,7 @@ async def sync_tasks(payload: SyncRequest, user=Depends(verify_user)):
                 }
                 for t in payload.tasks
             ]
-            client.table("records").insert(inserts).execute()
+            supabase_admin.table("records").insert(inserts).execute()
 
         return {"status": "ok", "message": "Tasks synchronized successfully"}
     except HTTPException:
