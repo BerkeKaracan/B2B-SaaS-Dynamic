@@ -76,12 +76,15 @@ export default function TeamManagementPage({
   const [isCreatingDept, setIsCreatingDept] = useState(false);
   const [isCreatingRole, setIsCreatingRole] = useState(false);
 
-  const strictNoCacheHeaders = {
-    'x-tenant-id': tenantId,
-    'Cache-Control': 'no-cache, no-store, must-revalidate',
-    Pragma: 'no-cache',
-    Expires: '0',
-  };
+  const strictNoCacheHeaders = useMemo(
+    () => ({
+      'x-tenant-id': tenantId,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache',
+      Expires: '0',
+    }),
+    [tenantId]
+  );
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -153,8 +156,7 @@ export default function TeamManagementPage({
     };
 
     checkAccess();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenantId, router]);
+  }, [tenantId, router, strictNoCacheHeaders]);
 
   const showNotification = (type: 'error' | 'success', msg: string) => {
     setNotification({ type, msg });
@@ -1102,7 +1104,9 @@ function EmptyOrgState({
       <div className="w-11 h-11 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-400 flex items-center justify-center mb-3 -rotate-3">
         {icon}
       </div>
-      <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{title}</h3>
+      <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+        {title}
+      </h3>
       <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 max-w-[240px] font-medium leading-relaxed">
         {description}
       </p>

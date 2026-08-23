@@ -11,7 +11,8 @@ const IMAGE_TYPES = [
 
 export async function uploadImageViaPresignedUrl(
   file: File,
-  folder: UploadFolder
+  folder: UploadFolder,
+  tenantId?: string
 ): Promise<string> {
   if (!IMAGE_TYPES.includes(file.type as (typeof IMAGE_TYPES)[number])) {
     throw new Error(
@@ -19,8 +20,18 @@ export async function uploadImageViaPresignedUrl(
     );
   }
 
+  if (folder !== 'avatars' && !tenantId?.trim()) {
+    throw new Error('Workspace context is required for this upload.');
+  }
+
   const urlRes = await fetchAPI('/api/storage/generate-upload-url', {
     method: 'POST',
+    headers:
+      folder === 'avatars'
+        ? undefined
+        : {
+            'x-tenant-id': tenantId!.trim(),
+          },
     body: JSON.stringify({
       fileName: file.name,
       contentType: file.type,
@@ -29,7 +40,10 @@ export async function uploadImageViaPresignedUrl(
   });
 
   if (!urlRes.ok) {
-    throw new Error('Failed to generate upload URL');
+    const body = (await urlRes.json().catch(() => null)) as {
+      detail?: string;
+    } | null;
+    throw new Error(body?.detail || 'Failed to generate upload URL');
   }
 
   const { presignedUrl, fileUrl } = (await urlRes.json()) as {

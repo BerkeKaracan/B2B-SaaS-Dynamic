@@ -8,7 +8,7 @@ import {
 import { projectCanvas } from './helpers/routes';
 
 test.describe('Canvas — editor vs viewer (dual browser context)', () => {
-  test.beforeEach(({ }, testInfo) => {
+  test.beforeEach(({}, testInfo) => {
     const missing = missingEnvVars([...CANVAS_ENV_KEYS]);
     if (missing.length) {
       testInfo.skip(
@@ -38,11 +38,15 @@ test.describe('Canvas — editor vs viewer (dual browser context)', () => {
       // --- Editor: design mode shows write affordances ---
       await editorPage.goto(projectUrl);
       await editorPage.getByRole('button', { name: 'Edit' }).click();
-      await expect(editorPage.getByTitle('Undo')).toBeVisible({ timeout: 45_000 });
+      await expect(editorPage.getByTitle('Undo')).toBeVisible({
+        timeout: 45_000,
+      });
 
       // --- Viewer: may open for VIEW but has no write toolbar in View mode ---
       await viewerPage.goto(projectUrl);
-      await viewerPage.getByRole('button', { name: 'View', exact: true }).click();
+      await viewerPage
+        .getByRole('button', { name: 'View', exact: true })
+        .click();
       await expect(viewerPage.getByTitle('Undo')).toHaveCount(0);
 
       // Server RBAC must reject viewer PATCH (use BFF path + authed request context).
@@ -56,7 +60,9 @@ test.describe('Canvas — editor vs viewer (dual browser context)', () => {
       );
       expect(patchRes.status()).toBe(403);
 
-      await viewerPage.getByRole('button', { name: 'View', exact: true }).click();
+      await viewerPage
+        .getByRole('button', { name: 'View', exact: true })
+        .click();
       await expect(viewerPage.getByTitle('Undo')).toHaveCount(0);
     } finally {
       await editorContext.close();
@@ -87,6 +93,11 @@ test.describe('Canvas — editor vs viewer (dual browser context)', () => {
       await viewerPage.goto(
         projectCanvas(cfg.tenantId, cfg.viewerDeniedProjectId!)
       );
+      await expect(
+        viewerPage.getByText(
+          'You do not have permission to access this project.'
+        )
+      ).toBeVisible({ timeout: 30_000 });
     } finally {
       await viewerContext.close();
     }

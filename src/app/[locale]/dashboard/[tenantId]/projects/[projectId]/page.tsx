@@ -18,7 +18,15 @@ import {
   normalizeProjectTemplate,
 } from '@/lib/templates';
 import { themeFromPageColor, isLightPageColor } from '@/lib/pageTheme';
-import { Check, Copy, Globe2, Lock, Share2, X } from 'lucide-react';
+import {
+  Check,
+  Copy,
+  Globe2,
+  Lock,
+  Share2,
+  ShieldAlert,
+  X,
+} from 'lucide-react';
 import { LoadingMark, LoadingDots } from '@/components/ui/loading';
 import { useTranslations } from 'next-intl';
 import {
@@ -96,12 +104,21 @@ export default function ProjectDesignPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('viewer');
   const [visibilityMode, setVisibilityMode] = useState('private');
-  const [departmentGrants, setDepartmentGrants] = useState<DepartmentGrant[]>([]);
-  const [customRoleGrants, setCustomRoleGrants] = useState<CustomRoleGrant[]>([]);
-  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
-  const [customRoles, setCustomRoles] = useState<{ id: string; name: string }[]>([]);
+  const [departmentGrants, setDepartmentGrants] = useState<DepartmentGrant[]>(
+    []
+  );
+  const [customRoleGrants, setCustomRoleGrants] = useState<CustomRoleGrant[]>(
+    []
+  );
+  const [departments, setDepartments] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [customRoles, setCustomRoles] = useState<
+    { id: string; name: string }[]
+  >([]);
   const [canManageAccess, setCanManageAccess] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const mode = useCanvasStore((state) => state.mode);
   const setMode = useCanvasStore((state) => state.setMode);
@@ -123,9 +140,13 @@ export default function ProjectDesignPage() {
   }, [mode, recordData?.template, setShowEngineToolkit]);
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchInitialData = async () => {
+      setLoadError(null);
       try {
-        const res = await fetchAPI(`/api/records/${projectId}`);
+        const res = await fetchAPI(`/api/records/${projectId}`, {
+          signal: controller.signal,
+        });
         if (res.ok) {
           const data = await res.json();
           setRecordData(data.record_data);
@@ -139,20 +160,32 @@ export default function ProjectDesignPage() {
           if (isProjectLocked && !userIsAdmin) {
             setMode('readonly');
           }
+        } else {
+          const body = (await res.json().catch(() => null)) as {
+            detail?: string;
+          } | null;
+          setLoadError(body?.detail || t('access.permissionDenied'));
+          setMode('readonly');
         }
       } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         console.error(err);
+        setLoadError(t('access.permissionDenied'));
       } finally {
-        setIsLoadingPage(false);
+        if (!controller.signal.aborted) setIsLoadingPage(false);
       }
     };
     if (projectId) fetchInitialData();
-    return () => setShowEngineToolkit(true);
-  }, [projectId, setMode, setShowEngineToolkit]);
+    return () => {
+      controller.abort();
+      setShowEngineToolkit(true);
+    };
+  }, [projectId, setMode, setShowEngineToolkit, t]);
 
   const openShareModal = async () => {
     setIsModalOpen(true);
     setIsLoadingRecord(true);
+    setCanManageAccess(false);
     setAccessError(null);
     try {
       const [recordRes, accessRes, deptRes, rolesRes] = await Promise.all([
@@ -166,6 +199,11 @@ export default function ProjectDesignPage() {
         const data = await recordRes.json();
         setRecordData(data.record_data);
         setVisibilityMode(resolveVisibilityMode(data.record_data));
+      } else {
+        const body = (await recordRes.json().catch(() => null)) as {
+          detail?: string;
+        } | null;
+        setAccessError(body?.detail || t('access.permissionDenied'));
       }
 
       if (accessRes.ok) {
@@ -185,19 +223,24 @@ export default function ProjectDesignPage() {
         }
       } else if (accessRes.status === 403) {
         setCanManageAccess(false);
+        setAccessError(t('access.permissionDenied'));
       } else {
-        setCanManageAccess(isAdmin);
+        setCanManageAccess(false);
         setAccessError(t('access.permissionDenied'));
       }
 
       if (deptRes.ok) {
         const deptData = await deptRes.json();
-        setDepartments(Array.isArray(deptData) ? deptData : deptData.items || []);
+        setDepartments(
+          Array.isArray(deptData) ? deptData : deptData.items || []
+        );
       }
 
       if (rolesRes.ok) {
         const roleData = await rolesRes.json();
-        setCustomRoles(Array.isArray(roleData) ? roleData : roleData.items || []);
+        setCustomRoles(
+          Array.isArray(roleData) ? roleData : roleData.items || []
+        );
       }
     } catch (err) {
       console.error(err);
@@ -219,7 +262,10 @@ export default function ProjectDesignPage() {
       });
       if (res.ok) {
         const deptIds = departmentGrantsToIds(departmentGrants);
-        const updated = visibilityToRecordPayload(recordData, visibilityMode) as RecordDataProps;
+        const updated = visibilityToRecordPayload(
+          recordData,
+          visibilityMode
+        ) as RecordDataProps;
         updated.department_ids = deptIds;
         updated.department_grants = departmentGrants;
         setRecordData(updated);
@@ -269,7 +315,7 @@ export default function ProjectDesignPage() {
   };
 
   const handleGlobalToggle = async () => {
-    if (!recordData) return;
+    if (!recordData || !canManageAccess) return;
     setIsUpdating(true);
 
     const isCurrentlyGlobal = isHubPublished(recordData);
@@ -295,6 +341,11 @@ export default function ProjectDesignPage() {
           is_global_shared: nextShared,
           is_global_public: nextPublic,
         });
+      } else {
+        const body = (await res.json().catch(() => null)) as {
+          detail?: string;
+        } | null;
+        setAccessError(body?.detail || t('access.permissionDenied'));
       }
     } catch (err) {
       console.error(err);
@@ -305,7 +356,7 @@ export default function ProjectDesignPage() {
 
   const handleAddCollaborator = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!recordData || !inviteEmail) return;
+    if (!recordData || !inviteEmail || !canManageAccess) return;
     setIsUpdating(true);
 
     const cleanEmail = inviteEmail.toLowerCase().trim();
@@ -335,6 +386,11 @@ export default function ProjectDesignPage() {
         setRecordData(updatedData);
         updateMetadata({ collaborators: newCollabs });
         setInviteEmail('');
+      } else {
+        const body = (await res.json().catch(() => null)) as {
+          detail?: string;
+        } | null;
+        setAccessError(body?.detail || t('access.permissionDenied'));
       }
     } catch (err) {
       console.error(err);
@@ -344,7 +400,7 @@ export default function ProjectDesignPage() {
   };
 
   const handleRemoveCollaborator = async (emailToRemove: string) => {
-    if (!recordData) return;
+    if (!recordData || !canManageAccess) return;
     setIsUpdating(true);
 
     const cleanEmailToRemove = emailToRemove.toLowerCase().trim();
@@ -362,6 +418,11 @@ export default function ProjectDesignPage() {
       if (res.ok) {
         setRecordData(updatedData);
         updateMetadata({ collaborators: newCollabs });
+      } else {
+        const body = (await res.json().catch(() => null)) as {
+          detail?: string;
+        } | null;
+        setAccessError(body?.detail || t('access.permissionDenied'));
       }
     } catch (err) {
       console.error(err);
@@ -378,9 +439,7 @@ export default function ProjectDesignPage() {
   const templateMeta = getProjectTemplateMeta(projectTemplate);
   const TemplateIcon = templateMeta?.icon;
   const templateLabel =
-    projectTemplate === 'blank'
-      ? 'Canvas'
-      : templateMeta?.label || 'Canvas';
+    projectTemplate === 'blank' ? 'Canvas' : templateMeta?.label || 'Canvas';
   const projectTitle = recordData?.name || 'Untitled project';
   const shareUrl =
     typeof window !== 'undefined'
@@ -402,9 +461,7 @@ export default function ProjectDesignPage() {
     <div
       className="flex flex-col h-full w-full min-w-0 relative selection:bg-zinc-300/50 dark:selection:bg-zinc-600/40 overscroll-none touch-none dark:bg-zinc-950"
       style={{
-        backgroundColor: showStandaloneBoard
-          ? pageTheme.stage
-          : '#f7f9fb',
+        backgroundColor: showStandaloneBoard ? pageTheme.stage : '#f7f9fb',
       }}
     >
       <div className="h-12 md:h-14 border-b border-zinc-200/80 dark:border-zinc-800 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl px-3 md:px-5 flex items-center justify-between gap-3 shrink-0 relative z-30 overflow-visible">
@@ -484,14 +541,13 @@ export default function ProjectDesignPage() {
           )}
         </div>
 
-        {showStandaloneBoard && (
-          <ProjectToolbarSlot className="mx-1 md:mx-2" />
-        )}
+        {showStandaloneBoard && <ProjectToolbarSlot className="mx-1 md:mx-2" />}
 
         <button
           type="button"
           onClick={openShareModal}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all active:scale-95 shrink-0"
+          disabled={Boolean(loadError)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all active:scale-95 shrink-0 disabled:opacity-40 disabled:pointer-events-none"
         >
           <Share2 className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Share</span>
@@ -509,6 +565,15 @@ export default function ProjectDesignPage() {
                 </span>
                 <LoadingDots />
               </div>
+            </div>
+          ) : loadError ? (
+            <div className="flex flex-col items-center justify-center gap-3 h-full px-6 text-center">
+              <div className="w-11 h-11 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 flex items-center justify-center">
+                <ShieldAlert className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                {loadError}
+              </p>
             </div>
           ) : !showStandaloneBoard ? (
             <CanvasArea />
@@ -558,6 +623,12 @@ export default function ProjectDesignPage() {
               </div>
             ) : (
               <div className="p-4 md:p-6 space-y-6 bg-white dark:bg-zinc-900 flex-1 overflow-y-auto custom-scrollbar pb-8">
+                {accessError && (
+                  <p className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 px-3 py-2.5 text-xs text-red-700 dark:text-red-300">
+                    {accessError}
+                  </p>
+                )}
+
                 {canManageAccess && (
                   <div className="space-y-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-[#f7f9fb]/70 dark:bg-zinc-950/40 p-4">
                     <div className="flex items-start gap-3">
@@ -579,8 +650,12 @@ export default function ProjectDesignPage() {
                         >
                           <option value="private">{t('access.private')}</option>
                           <option value="open">{t('access.open')}</option>
-                          <option value="department">{t('access.department')}</option>
-                          <option value="admin_only">{t('access.adminOnly')}</option>
+                          <option value="department">
+                            {t('access.department')}
+                          </option>
+                          <option value="admin_only">
+                            {t('access.adminOnly')}
+                          </option>
                         </select>
                       </div>
                     </div>
@@ -602,10 +677,6 @@ export default function ProjectDesignPage() {
                       disabled={isUpdating}
                       labels={roleEditorLabels}
                     />
-
-                    {accessError && (
-                      <p className="text-xs text-red-600 dark:text-red-400">{accessError}</p>
-                    )}
 
                     <button
                       type="button"
@@ -637,7 +708,7 @@ export default function ProjectDesignPage() {
                     <button
                       type="button"
                       onClick={handleGlobalToggle}
-                      disabled={isUpdating}
+                      disabled={isUpdating || !canManageAccess}
                       className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors mt-1 ${isGlobal ? 'bg-sky-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
                     >
                       <span
@@ -679,91 +750,93 @@ export default function ProjectDesignPage() {
                   )}
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <h4 className="text-sm font-semibold text-zinc-950 dark:text-white">
-                      Invite collaborators
-                    </h4>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
-                      Grant view or edit access for this project only.
-                    </p>
-                  </div>
-
-                  <form
-                    onSubmit={handleAddCollaborator}
-                    className="flex flex-col sm:flex-row gap-2"
-                  >
-                    <input
-                      type="email"
-                      required
-                      placeholder="Email address"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      className="flex-1 px-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50"
-                    />
-                    <div className="flex gap-2">
-                      <select
-                        value={inviteRole}
-                        onChange={(e) => setInviteRole(e.target.value)}
-                        className="flex-1 sm:flex-none px-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-semibold text-zinc-700 dark:text-zinc-300 focus:outline-none cursor-pointer"
-                      >
-                        <option value="viewer">Viewer</option>
-                        <option value="editor">Editor</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                      <button
-                        type="submit"
-                        disabled={isUpdating || !inviteEmail}
-                        className="px-4 py-2.5 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 rounded-xl text-xs font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 whitespace-nowrap"
-                      >
-                        Invite
-                      </button>
+                {canManageAccess && (
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-sm font-semibold text-zinc-950 dark:text-white">
+                        Invite collaborators
+                      </h4>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                        Grant view or edit access for this project only.
+                      </p>
                     </div>
-                  </form>
 
-                  {collaborators.length > 0 && (
-                    <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800">
-                      {collaborators.map((collab, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors"
+                    <form
+                      onSubmit={handleAddCollaborator}
+                      className="flex flex-col sm:flex-row gap-2"
+                    >
+                      <input
+                        type="email"
+                        required
+                        placeholder="Email address"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        className="flex-1 px-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-medium focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50"
+                      />
+                      <div className="flex gap-2">
+                        <select
+                          value={inviteRole}
+                          onChange={(e) => setInviteRole(e.target.value)}
+                          className="flex-1 sm:flex-none px-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-semibold text-zinc-700 dark:text-zinc-300 focus:outline-none cursor-pointer"
                         >
-                          <div className="flex items-center gap-3 overflow-hidden min-w-0">
-                            <div className="w-7 h-7 shrink-0 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-600 dark:text-zinc-300 uppercase">
-                              {collab.email.charAt(0)}
+                          <option value="viewer">Viewer</option>
+                          <option value="editor">Editor</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                        <button
+                          type="submit"
+                          disabled={isUpdating || !inviteEmail}
+                          className="px-4 py-2.5 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 rounded-xl text-xs font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 whitespace-nowrap"
+                        >
+                          Invite
+                        </button>
+                      </div>
+                    </form>
+
+                    {collaborators.length > 0 && (
+                      <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800">
+                        {collaborators.map((collab, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors"
+                          >
+                            <div className="flex items-center gap-3 overflow-hidden min-w-0">
+                              <div className="w-7 h-7 shrink-0 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-600 dark:text-zinc-300 uppercase">
+                                {collab.email.charAt(0)}
+                              </div>
+                              <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                                {collab.email}
+                              </span>
                             </div>
-                            <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                              {collab.email}
-                            </span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span
+                                className={`text-[10px] font-semibold uppercase tracking-[0.12em] px-2 py-0.5 rounded-md ${
+                                  collab.role === 'editor'
+                                    ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300'
+                                    : collab.role === 'admin'
+                                      ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300'
+                                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
+                                }`}
+                              >
+                                {collab.role}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemoveCollaborator(collab.email)
+                                }
+                                disabled={isUpdating}
+                                className="p-1 text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span
-                              className={`text-[10px] font-semibold uppercase tracking-[0.12em] px-2 py-0.5 rounded-md ${
-                                collab.role === 'editor'
-                                  ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300'
-                                  : collab.role === 'admin'
-                                    ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300'
-                                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'
-                              }`}
-                            >
-                              {collab.role}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleRemoveCollaborator(collab.email)
-                              }
-                              disabled={isUpdating}
-                              className="p-1 text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

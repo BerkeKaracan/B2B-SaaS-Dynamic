@@ -3,6 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, timezone
 import json
+import logging
 import redis
 
 from core.config import settings
@@ -35,6 +36,8 @@ router = APIRouter(
 
 redis_client = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
 CACHE_TTL_SECONDS = 120
+RECORD_PAGE_SIZE = 1000
+logger = logging.getLogger(__name__)
 
 
 def _roles_cache_key(user_id: str) -> str:
@@ -192,9 +195,9 @@ def _sync_collaborator_grants(
     collaborators: list,
     created_by: str,
 ) -> None:
-    if not isinstance(collaborators, list):
-        return
-    for c in collaborators:
+    safe_collaborators = collaborators if isinstance(collaborators, list) else []
+    grants_by_user: dict[str, str] = {}
+    for c in safe_collaborators:
         if not isinstance(c, dict) or not c.get("email"):
             continue
         email = str(c.get("email")).lower().strip()
@@ -215,17 +218,28 @@ def _sync_collaborator_grants(
             perm = "view"
         elif role == "admin":
             perm = "manage"
-        supabase_admin.table("project_access_grants").upsert(
-            {
-                "tenant_id": tenant_id,
-                "project_id": project_id,
-                "subject_type": "user",
-                "subject_id": str(uid),
-                "permission": perm,
-                "created_by": created_by,
-            },
-            on_conflict="project_id,subject_type,subject_id,permission",
-        ).execute()
+        grants_by_user[str(uid)] = perm
+
+    # Collaborators are the source of truth for user grants. Replacing the full
+    # set removes access for deleted collaborators and clears higher permissions
+    # when a collaborator is demoted.
+    supabase_admin.table("project_access_grants").delete().eq(
+        "project_id", project_id
+    ).eq("subject_type", "user").execute()
+
+    rows = [
+        {
+            "tenant_id": tenant_id,
+            "project_id": project_id,
+            "subject_type": "user",
+            "subject_id": user_id,
+            "permission": permission,
+            "created_by": created_by,
+        }
+        for user_id, permission in grants_by_user.items()
+    ]
+    if rows:
+        supabase_admin.table("project_access_grants").insert(rows).execute()
 
 
 @router.post("/", response_model=RecordResponse)
@@ -355,7 +369,8 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to create record")
+        raise HTTPException(status_code=500, detail="Failed to create record") from e
 
 
 @router.get("/", response_model=List[RecordResponse])
@@ -375,23 +390,38 @@ def get_records(
             )
 
         ctx = build_access_context(user, tenant_str)
-        query = (
-            supabase_admin.table("custom_records")
-            .select("*")
-            .eq("tenant_id", tenant_str)
-        )
-        if module_name:
-            query = query.eq("module_name", module_name)
+        accessible: list[dict] = []
+        range_start = 0
+        target_count = offset + limit
 
-        response = query.order("created_at", desc=True).limit(500).execute()
-        records = response.data or []
+        while len(accessible) < target_count:
+            query = (
+                supabase_admin.table("custom_records")
+                .select("*")
+                .eq("tenant_id", tenant_str)
+            )
+            if module_name:
+                query = query.eq("module_name", module_name)
 
-        filtered = filter_accessible_projects(ctx, records, Permission.VIEW)
-        return filtered[offset : offset + limit]
+            response = (
+                query.order("created_at", desc=True)
+                .range(range_start, range_start + RECORD_PAGE_SIZE - 1)
+                .execute()
+            )
+            records = response.data or []
+            accessible.extend(
+                filter_accessible_projects(ctx, records, Permission.VIEW)
+            )
+            if len(records) < RECORD_PAGE_SIZE:
+                break
+            range_start += RECORD_PAGE_SIZE
+
+        return accessible[offset:target_count]
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to list records")
+        raise HTTPException(status_code=500, detail="Failed to list records") from e
 
 
 @router.get("/{record_id}", response_model=RecordResponse)
@@ -408,7 +438,8 @@ def get_record(record_id: UUID, user: dict = Depends(get_user_role)):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to load record %s", record_id)
+        raise HTTPException(status_code=500, detail="Failed to load record") from e
 
 
 @router.get("/{record_id}/access")
@@ -657,7 +688,8 @@ def update_record(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to update record %s", record_id)
+        raise HTTPException(status_code=500, detail="Failed to update record") from e
 
 
 @router.delete("/{record_id}")
@@ -683,7 +715,8 @@ def delete_record(record_id: UUID, user: dict = Depends(get_user_role)):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to delete record %s", record_id)
+        raise HTTPException(status_code=500, detail="Failed to delete record") from e
 
 
 def process_invite_notifications(notifications_to_insert: list):

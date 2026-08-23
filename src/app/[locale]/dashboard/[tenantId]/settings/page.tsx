@@ -94,7 +94,8 @@ export default function AdvancedSettingsPage({
       if (logoFile) {
         const fileUrl = await uploadImageViaPresignedUrl(
           logoFile,
-          'workspace-logos'
+          'workspace-logos',
+          tenantId
         );
 
         const logoRes = await fetchAPI(`/api/tenants/${tenantId}/logo`, {

@@ -63,7 +63,7 @@ function headers(extra) {
   );
 }
 
-export default function () {
+export default function apiTest() {
   group('health', () => {
     const health = http.get(`${API_URL}/health`, {
       tags: { name: 'health' },

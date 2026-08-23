@@ -29,7 +29,7 @@ export const options = {
   tags: { suite: 'landing' },
 };
 
-export default function () {
+export default function landingLoadTest() {
   const path = pickWeightedPath(LANDING_PATHS);
   const url = `${BASE_URL}${path}`;
   const res = http.get(url, {

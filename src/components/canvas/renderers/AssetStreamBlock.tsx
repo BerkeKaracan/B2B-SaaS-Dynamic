@@ -1,6 +1,7 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { BlockContent } from "@/types/record";
+'use client';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { BlockContent } from '@/types/record';
 import {
   Loader2,
   Settings2,
@@ -11,7 +12,7 @@ import {
   FileBox,
   UploadCloud,
   Trash2,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   blockRoot,
   blockLabel,
@@ -23,8 +24,8 @@ import {
   blockSettingsClose,
   blockSettingsFieldLabel,
   blockSettingsInput,
-} from "./blockStyles";
-import { uploadImageViaPresignedUrl } from "@/lib/s3Upload";
+} from './blockStyles';
+import { uploadImageViaPresignedUrl } from '@/lib/s3Upload';
 
 interface AssetStreamBlockProps {
   block: BlockContent;
@@ -39,6 +40,9 @@ export default function AssetStreamBlock({
   onSettingsChange,
   isActive,
 }: AssetStreamBlockProps) {
+  const params = useParams();
+  const tenantId =
+    typeof params.tenantId === 'string' ? params.tenantId : undefined;
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -48,23 +52,27 @@ export default function AssetStreamBlock({
     if (!isActive) setIsSettingsOpen(false);
   }, [isActive]);
 
-  const label = (block.settings?.label as string) ?? "Asset Stream";
-  const jsonKey = (block.settings?.jsonKey as string) ?? "custom_asset";
-  const currentAsset = (block.value as string) || "";
+  const label = (block.settings?.label as string) ?? 'Asset Stream';
+  const jsonKey = (block.settings?.jsonKey as string) ?? 'custom_asset';
+  const currentAsset = (block.value as string) || '';
 
   const uploadFile = async (file: File) => {
     if (!file) return;
     setIsUploading(true);
 
     try {
-      const fileUrl = await uploadImageViaPresignedUrl(file, "assets");
+      const fileUrl = await uploadImageViaPresignedUrl(
+        file,
+        'assets',
+        tenantId
+      );
       onUpdate(fileUrl);
     } catch (error) {
-      console.error("Upload exception:", error);
+      console.error('Upload exception:', error);
       alert(
         error instanceof Error
           ? error.message
-          : "An unexpected error occurred during upload."
+          : 'An unexpected error occurred during upload.'
       );
     } finally {
       setIsUploading(false);
@@ -74,7 +82,7 @@ export default function AssetStreamBlock({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) uploadFile(file);
-    e.target.value = "";
+    e.target.value = '';
   };
 
   const isImage =
@@ -185,7 +193,7 @@ export default function AssetStreamBlock({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onUpdate("");
+                      onUpdate('');
                     }}
                     className="flex flex-col items-center gap-1 text-red-300 hover:text-red-200 hover:scale-105 transition-transform"
                   >
@@ -219,7 +227,7 @@ export default function AssetStreamBlock({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onUpdate("");
+                      onUpdate('');
                     }}
                     className="p-2 bg-red-50 text-red-600 rounded-full hover:bg-red-100 transition-colors"
                     title="Remove Document"
@@ -242,7 +250,7 @@ export default function AssetStreamBlock({
               <div className="flex flex-col items-center gap-2 p-4 text-center pointer-events-none opacity-70 z-10">
                 <UploadCloud
                   className={`w-8 h-8 ${
-                    isDragging ? "text-zinc-700" : "text-zinc-400"
+                    isDragging ? 'text-zinc-700' : 'text-zinc-400'
                   }`}
                 />
                 <div className="flex flex-col">

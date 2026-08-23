@@ -24,7 +24,7 @@ export const options = {
   tags: { suite: 'public-ai-limit' },
 };
 
-export default function () {
+export default function publicAiLimitTest() {
   const guestId = `k6guest${Date.now()}${Math.floor(Math.random() * 1e6)}`;
   let sawOk = false;
   let sawLimit = false;

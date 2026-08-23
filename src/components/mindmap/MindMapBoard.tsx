@@ -75,8 +75,7 @@ function MindMapBoard({ projectId }: { projectId: string }) {
             ]
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMounted]);
+  }, [isMounted, storedNodes, t]);
 
   // Live bridge: AI chat may append nodes while local state already has a root.
   useEffect(() => {
@@ -264,21 +263,18 @@ function MindMapBoard({ projectId }: { projectId: string }) {
     setDraggingNodeId(null);
   };
 
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.08 : 0.08;
-        setZoom((z) => Math.min(2, Math.max(0.3, z + delta)));
-        return;
-      }
-      setPan((prev) => ({
-        x: prev.x - e.deltaX,
-        y: prev.y - e.deltaY,
-      }));
-    },
-    []
-  );
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.08 : 0.08;
+      setZoom((z) => Math.min(2, Math.max(0.3, z + delta)));
+      return;
+    }
+    setPan((prev) => ({
+      x: prev.x - e.deltaX,
+      y: prev.y - e.deltaY,
+    }));
+  }, []);
 
   const addChildNode = (parentId: string, parentX: number, parentY: number) => {
     if (isReadonly) return;

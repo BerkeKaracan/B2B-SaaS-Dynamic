@@ -1,3 +1,4 @@
+import logging
 import re
 import uuid
 from typing import Literal
@@ -17,6 +18,7 @@ router = APIRouter(
     prefix="/api/storage",
     tags=["Storage"],
 )
+logger = logging.getLogger(__name__)
 
 security = HTTPBearer()
 
@@ -125,9 +127,10 @@ def generate_upload_url(
             ExpiresIn=300,
         )
     except (BotoCoreError, ClientError) as exc:
+        logger.exception("Failed to generate S3 upload URL")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to generate upload URL: {exc}",
+            detail="Failed to generate upload URL",
         ) from exc
 
     encoded_key = quote(file_key, safe="/")

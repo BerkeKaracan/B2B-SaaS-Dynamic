@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, call, patch
+from uuid import UUID
 import pytest
 from fastapi import HTTPException
 
@@ -15,6 +16,11 @@ from core.project_access import (
     resolve_visibility_mode,
     sync_visibility_to_record_data,
     timeline_parent_project_id,
+)
+from api.routers.records import (
+    RECORD_PAGE_SIZE,
+    _sync_collaborator_grants,
+    get_records,
 )
 
 
@@ -263,3 +269,89 @@ class TestSyncVisibility:
         out = sync_visibility_to_record_data({}, "open")
         assert out["visibility_mode"] == "open"
         assert out["visibility"] == "public"
+
+
+class TestSyncCollaboratorGrants:
+    @patch("api.routers.records.supabase_admin")
+    def test_removing_all_collaborators_deletes_user_grants(self, mock_admin):
+        grants_table = MagicMock()
+        mock_admin.table.return_value = grants_table
+
+        _sync_collaborator_grants("tenant-1", "project-1", [], "owner-1")
+
+        grants_table.delete.assert_called_once_with()
+        grants_table.insert.assert_not_called()
+
+    @patch("api.routers.records.supabase_admin")
+    def test_demotion_replaces_existing_grants_with_view(self, mock_admin):
+        tenant_table = MagicMock()
+        grants_table = MagicMock()
+        membership_result = MagicMock()
+        membership_result.data = [{"user_id": "viewer-1"}]
+        (
+            tenant_table.select.return_value.eq.return_value.ilike.return_value.limit.return_value.execute
+        ).return_value = membership_result
+
+        def table_for(name: str):
+            return tenant_table if name == "tenant_users" else grants_table
+
+        mock_admin.table.side_effect = table_for
+
+        _sync_collaborator_grants(
+            "tenant-1",
+            "project-1",
+            [{"email": "viewer@example.com", "role": "viewer"}],
+            "owner-1",
+        )
+
+        assert mock_admin.table.call_args_list == [
+            call("tenant_users"),
+            call("project_access_grants"),
+            call("project_access_grants"),
+        ]
+        grants_table.insert.assert_called_once_with(
+            [
+                {
+                    "tenant_id": "tenant-1",
+                    "project_id": "project-1",
+                    "subject_type": "user",
+                    "subject_id": "viewer-1",
+                    "permission": "view",
+                    "created_by": "owner-1",
+                }
+            ]
+        )
+
+
+class TestRecordPagination:
+    @patch("api.routers.records.filter_accessible_projects")
+    @patch("api.routers.records.build_access_context")
+    @patch("api.routers.records.supabase_admin")
+    def test_scans_later_batches_until_accessible_page_is_filled(
+        self, mock_admin, mock_build_context, mock_filter
+    ):
+        tenant_id = UUID("00000000-0000-0000-0000-000000000001")
+        query = MagicMock()
+        ranged_query = query.select.return_value.eq.return_value.order.return_value.range
+        first_response = MagicMock()
+        first_response.data = [{"id": f"hidden-{i}"} for i in range(RECORD_PAGE_SIZE)]
+        second_response = MagicMock()
+        second_response.data = [{"id": "visible"}]
+        ranged_query.return_value.execute.side_effect = [
+            first_response,
+            second_response,
+        ]
+        mock_admin.table.return_value = query
+        mock_build_context.return_value = MagicMock()
+        mock_filter.side_effect = [[], [{"id": "visible"}]]
+
+        result = get_records(
+            tenant_id=tenant_id,
+            module_name=None,
+            limit=1,
+            offset=0,
+            user={"tenant_roles": {str(tenant_id): "employee"}},
+        )
+
+        assert result == [{"id": "visible"}]
+        assert ranged_query.call_count == 2

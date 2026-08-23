@@ -32,11 +32,7 @@ import {
 import { LoadingMark, LoadingDots } from '@/components/ui/loading';
 import toast from 'react-hot-toast';
 import TimelineColumn from './TimelineColumn';
-import {
-  PRIORITIES,
-  PRIORITY_WEIGHTS,
-  SURFACE,
-} from './timelineStyles';
+import { PRIORITIES, PRIORITY_WEIGHTS, SURFACE } from './timelineStyles';
 import type {
   TaskPriority,
   TimelineDayColumn,
@@ -201,8 +197,7 @@ function TimelineBoard({ projectId }: { projectId: string }) {
       }
     };
     fetchTimelineData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenantId, projectId]);
+  }, [tenantId, projectId, t]);
 
   // AI / store push path — page-scoped on Infinite, metadata on standalone
   useEffect(() => {
@@ -229,8 +224,7 @@ function TimelineBoard({ projectId }: { projectId: string }) {
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopedEvents]);
+  }, [scopedEvents, daysCount]);
 
   const syncDataToDB = async (
     newEvents: TimelineEvent[],
@@ -486,15 +480,16 @@ function TimelineBoard({ projectId }: { projectId: string }) {
         type="button"
         onClick={() => applyView(null)}
         className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap ${
-          activeViewId === null
-            ? SURFACE.toolbarActive
-            : SURFACE.toolbarIdle
+          activeViewId === null ? SURFACE.toolbarActive : SURFACE.toolbarIdle
         }`}
       >
         <LayoutDashboard className="w-3.5 h-3.5" /> {t('defaultView')}
       </button>
       {savedViews.map((view) => (
-        <div key={view.id} className="flex items-center group relative shrink-0">
+        <div
+          key={view.id}
+          className="flex items-center group relative shrink-0"
+        >
           <button
             type="button"
             onClick={() => applyView(view.id)}

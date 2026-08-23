@@ -80,7 +80,8 @@ export default function LandingPage() {
       return initialShapes;
     });
 
-    const intervals = shapesState.map((_, index) => {
+    const timeouts = new Set<number>();
+    const intervals = Array.from({ length: 4 }, (_, index) => {
       const cycleTime = 6000 + Math.random() * 4000;
 
       return setInterval(() => {
@@ -90,7 +91,8 @@ export default function LandingPage() {
           return next;
         });
 
-        setTimeout(() => {
+        const timeout = window.setTimeout(() => {
+          timeouts.delete(timeout);
           setShapesState((prev) => {
             const next = [...prev];
             const { x, y } = getSafePosition(index, next);
@@ -103,13 +105,14 @@ export default function LandingPage() {
             return next;
           });
         }, 1000);
+        timeouts.add(timeout);
       }, cycleTime);
     });
 
     return () => {
       intervals.forEach(clearInterval);
+      timeouts.forEach(window.clearTimeout);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

@@ -9,9 +9,7 @@ import ws from 'k6/ws';
 import { check, sleep } from 'k6';
 import { envInt, envStr, profileName, stripSlash } from './helpers.js';
 
-const WS_URL = stripSlash(
-  envStr('WS_URL', 'ws://host.docker.internal:8000')
-);
+const WS_URL = stripSlash(envStr('WS_URL', 'ws://host.docker.internal:8000'));
 const ROOM_PREFIX = envStr('ROOM_PREFIX', 'k6-collab');
 const ROOM_COUNT = envInt('ROOM_COUNT', 10);
 const COLLAB_TOKEN = envStr('COLLAB_TOKEN', 'local-dev');
@@ -57,7 +55,7 @@ function roomIdForVu(vu) {
   return `${ROOM_PREFIX}-${(vu - 1) % ROOM_COUNT}`;
 }
 
-export default function () {
+export default function collaborationTest() {
   const roomId = roomIdForVu(__VU);
   const url = `${WS_URL}/ws/canvas/${encodeURIComponent(roomId)}`;
   const selfKey = `k6-${__VU}-${__ITER}-${Date.now()}`;
