@@ -1,8 +1,4 @@
-import { RecordResponse, RecordBase } from '@/types/record';
 import { getApiBaseUrl } from '@/lib/apiBase';
-
-/** @deprecated Prefer getApiBaseUrl() — kept for existing imports. */
-export const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Browser → same-origin BFF (`/api/backend/...`) which attaches HttpOnly JWT.
@@ -83,63 +79,6 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
 
   return response;
 }
-
-export const recordService = {
-  async getRecords(
-    tenantId: string,
-    moduleName?: string
-  ): Promise<RecordResponse[]> {
-    const url = moduleName
-      ? `/api/records?tenant_id=${tenantId}&module_name=${moduleName}`
-      : `/api/records?tenant_id=${tenantId}`;
-    const response = await fetchAPI(url);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch records: ${response.statusText}`);
-    }
-
-    return response.json();
-  },
-
-  async createRecord(data: RecordBase): Promise<RecordResponse> {
-    const response = await fetchAPI('/api/records/', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to create record: ${response.statusText}`);
-    }
-
-    return response.json();
-  },
-
-  async updateRecord(
-    id: string,
-    data: Partial<RecordBase>
-  ): Promise<RecordResponse> {
-    const response = await fetchAPI(`/api/records/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to update record: ${response.statusText}`);
-    }
-
-    return response.json();
-  },
-
-  async deleteRecord(id: string): Promise<void> {
-    const response = await fetchAPI(`/api/records/${id}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to delete record: ${response.statusText}`);
-    }
-  },
-};
 
 export const authService = {
   async completeOnboarding(data: {

@@ -523,24 +523,31 @@ def execute_create_task(
 
         # 1) Prefer real INSERT into `records` — fall back to local id if it fails
         created_row: Optional[Dict[str, Any]] = None
+        project_uuid = (
+            str(module_id).strip()
+            if module_id and _TENANT_ID_RE.match(str(module_id).strip())
+            else None
+        )
         try:
+            record_data: Dict[str, Any] = {
+                "project_name": project_name,
+                "title": title,
+                "description": description,
+                "status": status,
+                "priority": priority,
+                "due_date": None,
+                "assigned_to": "Unassigned",
+                "created_by": actor,
+                "kanban_status": kanban_status,
+            }
+            if project_uuid:
+                record_data["project_id"] = project_uuid
+                record_data["module_id"] = project_uuid
             insert_res = supabase_admin.table("records").insert(
                 {
                     "tenant_id": tenant_id,
                     "module_name": "tasks",
-                    "record_data": {
-                        "project_id": module_id or "",
-                        "module_id": module_id or "",
-                        "project_name": project_name,
-                        "title": title,
-                        "description": description,
-                        "status": status,
-                        "priority": priority,
-                        "due_date": None,
-                        "assigned_to": "Unassigned",
-                        "created_by": actor,
-                        "kanban_status": kanban_status,
-                    },
+                    "record_data": record_data,
                 }
             ).execute()
             created_row = (insert_res.data or [None])[0]

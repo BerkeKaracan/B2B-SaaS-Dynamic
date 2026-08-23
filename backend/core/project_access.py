@@ -14,6 +14,9 @@ PERM_RANK = {"view": 1, "edit": 2, "manage": 3, "delete": 4}
 COLLAB_RANK = {"viewer": 1, "editor": 2, "admin": 3}
 
 SYSTEM_MODULES = frozenset({"workspace_modules", "activity_logs"})
+_TIMELINE_MODULE_PREFIX = "timeline_data_"
+_MEMBER_ROLES = frozenset({"owner", "admin", "employee"})
+_ADMIN_ROLES = frozenset({"owner", "admin"})
 
 
 class Permission(str, Enum):
@@ -38,7 +41,28 @@ def is_system_module(module_name: str | None) -> bool:
         return False
     if module_name in SYSTEM_MODULES:
         return True
-    return module_name.startswith("timeline_data_")
+    return module_name.startswith(_TIMELINE_MODULE_PREFIX)
+
+
+def timeline_parent_project_id(module_name: str | None) -> str | None:
+    """Parent project UUID encoded in `timeline_data_{projectId}` module names."""
+    if not module_name or not module_name.startswith(_TIMELINE_MODULE_PREFIX):
+        return None
+    parent = module_name[len(_TIMELINE_MODULE_PREFIX) :].strip()
+    return parent or None
+
+
+def _load_projects_by_ids(ids: list[str]) -> dict[str, dict[str, Any]]:
+    unique = [i for i in dict.fromkeys(ids) if i]
+    if not unique:
+        return {}
+    res = (
+        supabase_admin.table("custom_records")
+        .select("*")
+        .in_("id", unique)
+        .execute()
+    )
+    return {str(row["id"]): row for row in (res.data or []) if row.get("id")}
 
 
 def resolve_visibility_mode(record: dict[str, Any]) -> str:
@@ -188,9 +212,23 @@ def has_project_permission(
     if str(record.get("tenant_id")) != ctx.tenant_id:
         return False
 
-    module_name = record.get("module_name")
-    if is_system_module(str(module_name) if module_name else None):
-        return ctx.tenant_role in ("owner", "admin", "employee")
+    module_name = str(record.get("module_name") or "")
+
+    parent_id = timeline_parent_project_id(module_name)
+    if parent_id:
+        if parent_id == str(record.get("id") or ""):
+            return False
+        parent = _load_projects_by_ids([parent_id]).get(parent_id)
+        if not parent:
+            return False
+        return has_project_permission(ctx, parent, permission)
+
+    if module_name in SYSTEM_MODULES:
+        if ctx.tenant_role not in _MEMBER_ROLES:
+            return False
+        if _perm_rank(permission) <= _perm_rank(Permission.VIEW):
+            return True
+        return ctx.tenant_role in _ADMIN_ROLES
 
     need = _perm_rank(permission)
 
@@ -245,12 +283,28 @@ def filter_accessible_projects(
     records: list[dict[str, Any]],
     permission: Permission,
 ) -> list[dict[str, Any]]:
-    project_ids = [str(r.get("id")) for r in records if r.get("id")]
-    grants_map = load_grants_for_projects(project_ids)
+    parent_ids = [
+        pid
+        for record in records
+        if (pid := timeline_parent_project_id(str(record.get("module_name") or "")))
+    ]
+    parents = _load_projects_by_ids(parent_ids)
+    grant_ids = [str(r.get("id")) for r in records if r.get("id")]
+    grant_ids.extend(parents.keys())
+    grants_map = load_grants_for_projects(grant_ids)
     out: list[dict[str, Any]] = []
     for record in records:
-        pid = str(record.get("id"))
-        if has_project_permission(ctx, record, permission, grants_map.get(pid, [])):
+        parent_id = timeline_parent_project_id(str(record.get("module_name") or ""))
+        if parent_id:
+            target = parents.get(parent_id)
+            if not target:
+                continue
+        else:
+            target = record
+        tid = str(target.get("id") or "")
+        if has_project_permission(
+            ctx, target, permission, grants_map.get(tid, [])
+        ):
             out.append(record)
     return out
 

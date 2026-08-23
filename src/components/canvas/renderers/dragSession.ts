@@ -140,24 +140,6 @@ export function isDragSessionActive(): boolean {
   return session != null;
 }
 
-export function getActiveDragPageId(): string | null {
-  if (!session) return null;
-  if (
-    session.kind === 'page' ||
-    session.kind === 'resize' ||
-    session.kind === 'blockResize'
-  )
-    return session.pageId;
-  return session.primaryPageId;
-}
-
-export function getActiveDragBlockIds(): string[] {
-  if (!session) return [];
-  if (session.kind === 'block') return session.targets.map((t) => t.blockId);
-  if (session.kind === 'blockResize') return [session.blockId];
-  return [];
-}
-
 export function startPageDrag(args: {
   el: HTMLElement;
   pageId: string;
