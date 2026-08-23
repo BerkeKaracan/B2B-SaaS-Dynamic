@@ -114,7 +114,7 @@ export default function DocsAndArchitecturePage() {
       <main className="max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16 space-y-16">
         <section className="max-w-2xl">
           <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700/80 mb-4">
-            Architecture notes · v1.5
+            Architecture notes · v1.6
           </p>
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-zinc-950 leading-[1.12] mb-4">
             How {BRAND_NAME} is wired
