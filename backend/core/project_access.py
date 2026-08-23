@@ -328,9 +328,31 @@ def is_global_public_flags(record_data: dict[str, Any]) -> bool:
     return shared in ("true", "1") or public in ("true", "1")
 
 
+def sync_global_public_flags(
+    payload_data: dict[str, Any], current_data: dict[str, Any]
+) -> dict[str, Any]:
+    """Keep modern and legacy public-hub flags synchronized on updates."""
+    shared_changed = (
+        "is_global_shared" in payload_data
+        and payload_data.get("is_global_shared")
+        != current_data.get("is_global_shared")
+    )
+    public_changed = (
+        "is_global_public" in payload_data
+        and payload_data.get("is_global_public")
+        != current_data.get("is_global_public")
+    )
+    if shared_changed:
+        payload_data["is_global_public"] = payload_data.get("is_global_shared")
+    elif public_changed:
+        payload_data["is_global_shared"] = payload_data.get("is_global_public")
+    return payload_data
+
+
 def patch_changes_manage_fields(payload_data: dict[str, Any], current_data: dict[str, Any]) -> bool:
     manage_keys = {
         "collaborators",
+        "owner_email",
         "visibility",
         "visibility_mode",
         "department_ids",

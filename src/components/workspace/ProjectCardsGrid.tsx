@@ -25,6 +25,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { fetchAPI } from '@/services/api';
 import { LoadingSpinner } from '@/components/ui/loading';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 import {
   Search,
   Archive,
@@ -592,7 +593,7 @@ export default function ProjectCardsGrid({
     const res = await fetchAPI(`/api/records/${projectId}/access`, {
       method: 'PUT',
       body: JSON.stringify(
-        buildAccessPutBody(newVisibility, departmentGrants, [])
+        buildAccessPutBody(newVisibility, departmentGrants)
       ),
     });
     if (!res.ok) {
@@ -771,20 +772,40 @@ export default function ProjectCardsGrid({
           )
         );
         try {
-          await fetchAPI(`/api/records/${projectId}`, {
+          const res = await fetchAPI(`/api/records/${projectId}`, {
             method: 'PATCH',
             body: JSON.stringify({
-              record_data: { ...currentData, is_global_shared: newStatus },
+              record_data: {
+                ...currentData,
+                is_global_shared: newStatus,
+                is_global_public: newStatus,
+              },
             }),
           });
+          if (!res.ok) {
+            const body = (await res.json().catch(() => null)) as
+              | { detail?: string }
+              | null;
+            throw new Error(body?.detail || 'Failed to update hub visibility.');
+          }
           logActivity(
             tenantId,
             getUserDisplayName(user),
             newStatus === 'true' ? 'Published to Hub' : 'Removed from Hub',
             `Project: ${currentData.name}`
           );
-        } catch {
-          fetchProjects();
+        } catch (error) {
+          setProjects((prev) =>
+            prev.map((p) =>
+              p.id === projectId ? { ...p, record_data: currentData } : p
+            )
+          );
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : 'Failed to update hub visibility.'
+          );
+          void fetchProjects();
         }
       },
     });

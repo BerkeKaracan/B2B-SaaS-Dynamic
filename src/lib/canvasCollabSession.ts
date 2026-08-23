@@ -184,6 +184,8 @@ async function openSocket(s: RoomSession) {
   };
 
   ws.onclose = () => {
+    // Ignore a socket deliberately superseded by an identity refresh.
+    if (s.ws !== ws) return;
     s.ready = false;
     s.ws = null;
     if (s.refs <= 0) return;
@@ -216,6 +218,8 @@ export function acquireCanvasCollab(
   release: () => void;
 } {
   let s = sessions.get(roomId);
+  const identityChanged =
+    !!s && (s.user.name !== user.name || s.user.color !== user.color);
   if (!s) {
     s = {
       roomId,
@@ -240,6 +244,17 @@ export function acquireCanvasCollab(
   s.handlers.add(handlers);
   handlers.onStatus(s.status);
   handlers.onCursors({ ...s.cursors });
+
+  if (identityChanged && s.ws) {
+    const previousSocket = s.ws;
+    s.ws = null;
+    s.ready = false;
+    try {
+      previousSocket.close(1000, 'identity-change');
+    } catch {
+      /* ignore */
+    }
+  }
 
   if (!s.ws || s.ws.readyState === WebSocket.CLOSED) {
     void openSocket(s);

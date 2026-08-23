@@ -19,6 +19,7 @@ from core.project_access import (
     load_grants_for_projects,
     patch_changes_manage_fields,
     resolve_visibility_mode,
+    sync_global_public_flags,
     sync_visibility_to_record_data,
     timeline_parent_project_id,
 )
@@ -36,7 +37,6 @@ router = APIRouter(
 
 redis_client = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
 CACHE_TTL_SECONDS = 120
-RECORD_PAGE_SIZE = 1000
 logger = logging.getLogger(__name__)
 
 
@@ -390,33 +390,24 @@ def get_records(
             )
 
         ctx = build_access_context(user, tenant_str)
-        accessible: list[dict] = []
-        range_start = 0
-        target_count = offset + limit
+        # Query with the caller's JWT so Postgres RLS filters inaccessible
+        # projects before offset/limit are applied.
+        query = (
+            user["client"].table("custom_records")
+            .select("*")
+            .eq("tenant_id", tenant_str)
+        )
+        if module_name:
+            query = query.eq("module_name", module_name)
 
-        while len(accessible) < target_count:
-            query = (
-                supabase_admin.table("custom_records")
-                .select("*")
-                .eq("tenant_id", tenant_str)
-            )
-            if module_name:
-                query = query.eq("module_name", module_name)
-
-            response = (
-                query.order("created_at", desc=True)
-                .range(range_start, range_start + RECORD_PAGE_SIZE - 1)
-                .execute()
-            )
-            records = response.data or []
-            accessible.extend(
-                filter_accessible_projects(ctx, records, Permission.VIEW)
-            )
-            if len(records) < RECORD_PAGE_SIZE:
-                break
-            range_start += RECORD_PAGE_SIZE
-
-        return accessible[offset:target_count]
+        response = (
+            query.order("created_at", desc=True)
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
+        return filter_accessible_projects(
+            ctx, response.data or [], Permission.VIEW
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -521,31 +512,26 @@ def update_project_access(
         dept_grants,
         user["user_id"],
     )
-    supabase_admin.table("project_access_grants").delete().eq(
-        "project_id", str(record_id)
-    ).eq("subject_type", "custom_role").execute()
-    custom_rows = []
-    for g in body.grants:
-        if g.subject_type != "custom_role":
-            continue
-        custom_rows.append(
-            {
-                "tenant_id": rec_tenant,
-                "project_id": str(record_id),
-                "subject_type": g.subject_type,
-                "subject_id": str(g.subject_id),
-                "permission": g.permission,
-                "created_by": user["user_id"],
-            }
-        )
-    if custom_rows:
-        supabase_admin.table("project_access_grants").insert(custom_rows).execute()
-    _sync_collaborator_grants(
-        rec_tenant,
-        str(record_id),
-        record_data.get("collaborators") or [],
-        user["user_id"],
-    )
+    if body.grants is not None:
+        supabase_admin.table("project_access_grants").delete().eq(
+            "project_id", str(record_id)
+        ).eq("subject_type", "custom_role").execute()
+        custom_rows = []
+        for g in body.grants:
+            if g.subject_type != "custom_role":
+                continue
+            custom_rows.append(
+                {
+                    "tenant_id": rec_tenant,
+                    "project_id": str(record_id),
+                    "subject_type": g.subject_type,
+                    "subject_id": str(g.subject_id),
+                    "permission": g.permission,
+                    "created_by": user["user_id"],
+                }
+            )
+        if custom_rows:
+            supabase_admin.table("project_access_grants").insert(custom_rows).execute()
 
     return {"message": "Project access updated"}
 
@@ -567,12 +553,28 @@ def update_record(
         ctx = build_access_context(user, rec_tenant)
         current_record_data = existing.get("record_data", {}) or {}
         payload_data = dict(payload.record_data)
+        payload_data = sync_global_public_flags(payload_data, current_record_data)
+        collaborators_changed = (
+            "collaborators" in payload_data
+            and payload_data.get("collaborators")
+            != current_record_data.get("collaborators")
+        )
 
         needs_manage = patch_changes_manage_fields(payload_data, current_record_data)
         if needs_manage:
             assert_project_access(ctx, existing, Permission.MANAGE)
         else:
             assert_project_access(ctx, existing, Permission.EDIT)
+
+        if (
+            "owner_email" in payload_data
+            and str(payload_data.get("owner_email") or "").lower().strip()
+            != str(current_record_data.get("owner_email") or "").lower().strip()
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Project ownership cannot be changed through record updates.",
+            )
 
         if "collaborators" not in payload_data:
             payload_data["collaborators"] = current_record_data.get("collaborators", [])
@@ -677,12 +679,13 @@ def update_record(
                     dept_grants,
                     user["user_id"],
                 )
-            _sync_collaborator_grants(
-                rec_tenant,
-                str(record_id),
-                payload_data.get("collaborators", []),
-                user["user_id"],
-            )
+            if collaborators_changed:
+                _sync_collaborator_grants(
+                    rec_tenant,
+                    str(record_id),
+                    payload_data.get("collaborators", []),
+                    user["user_id"],
+                )
 
         return response.data[0]
     except HTTPException:

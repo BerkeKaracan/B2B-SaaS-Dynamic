@@ -117,6 +117,12 @@ async def sync_tasks(payload: SyncRequest, user=Depends(verify_user)):
         project = _load_project(payload.tenant_id, payload.project_id)
         assert_project_access(ctx, project, Permission.EDIT)
 
+        if any(task.project_id != payload.project_id for task in payload.tasks):
+            raise HTTPException(
+                status_code=400,
+                detail="Every synchronized task must belong to the authorized project.",
+            )
+
         supabase_admin.table("records").delete().eq("tenant_id", payload.tenant_id).eq(
             "module_name", "tasks"
         ).eq("record_data->>project_id", payload.project_id).execute()
@@ -126,7 +132,10 @@ async def sync_tasks(payload: SyncRequest, user=Depends(verify_user)):
                 {
                     "tenant_id": payload.tenant_id,
                     "module_name": "tasks",
-                    "record_data": t.model_dump(),
+                    "record_data": {
+                        **t.model_dump(),
+                        "project_id": payload.project_id,
+                    },
                 }
                 for t in payload.tasks
             ]

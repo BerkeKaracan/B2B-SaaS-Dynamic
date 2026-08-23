@@ -5,7 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, call, patch
 from uuid import UUID
 import pytest
-from fastapi import HTTPException
+from fastapi import BackgroundTasks, HTTPException
 
 from core.project_access import (
     AccessContext,
@@ -13,15 +13,19 @@ from core.project_access import (
     assert_project_access,
     filter_accessible_projects,
     has_project_permission,
+    patch_changes_manage_fields,
     resolve_visibility_mode,
+    sync_global_public_flags,
     sync_visibility_to_record_data,
     timeline_parent_project_id,
 )
 from api.routers.records import (
-    RECORD_PAGE_SIZE,
     _sync_collaborator_grants,
     get_records,
+    update_project_access,
+    update_record,
 )
+from models.record import ProjectAccessUpdate, RecordUpdate
 
 
 def _ctx(
@@ -246,6 +250,52 @@ class TestAssertProjectAccess:
             assert_project_access(ctx, rec, Permission.EDIT, grants=[])
         assert exc.value.status_code == 403
 
+    def test_owner_email_change_requires_manage_permission(self):
+        assert patch_changes_manage_fields(
+            {"owner_email": "attacker@example.com"},
+            {"owner_email": "owner@example.com"},
+        )
+
+    @patch("api.routers.records.assert_project_access")
+    @patch("api.routers.records.build_access_context")
+    @patch("api.routers.records._fetch_record")
+    def test_manager_cannot_change_owner_email(
+        self, mock_fetch, mock_build_context, mock_assert_access
+    ):
+        record_id = UUID("00000000-0000-0000-0000-000000000002")
+        mock_fetch.return_value = {
+            "id": str(record_id),
+            "tenant_id": "tenant-1",
+            "module_name": "projects",
+            "record_data": {
+                "name": "Private project",
+                "owner_email": "owner@example.com",
+                "collaborators": [],
+            },
+        }
+        mock_build_context.return_value = MagicMock()
+
+        with pytest.raises(HTTPException) as exc:
+            update_record(
+                record_id=record_id,
+                payload=RecordUpdate(
+                    record_data={
+                        "name": "Private project",
+                        "owner_email": "manager@example.com",
+                    }
+                ),
+                background_tasks=BackgroundTasks(),
+                user={
+                    "user_id": "manager-1",
+                    "email": "manager@example.com",
+                    "full_name": "Manager",
+                    "tenant_roles": {"tenant-1": "employee"},
+                },
+            )
+
+        assert exc.value.status_code == 403
+        mock_assert_access.assert_called_once()
+
 
 class TestFilterAccessibleProjects:
     @patch("core.project_access.load_grants_for_projects")
@@ -269,6 +319,14 @@ class TestSyncVisibility:
         out = sync_visibility_to_record_data({}, "open")
         assert out["visibility_mode"] == "open"
         assert out["visibility"] == "public"
+
+    def test_unpublish_synchronizes_modern_and_legacy_public_flags(self):
+        out = sync_global_public_flags(
+            {"is_global_shared": False, "is_global_public": True},
+            {"is_global_shared": True, "is_global_public": True},
+        )
+        assert out["is_global_shared"] is False
+        assert out["is_global_public"] is False
 
 
 class TestSyncCollaboratorGrants:
@@ -322,36 +380,149 @@ class TestSyncCollaboratorGrants:
             ]
         )
 
+    def test_visibility_update_omits_and_preserves_custom_role_grants(self):
+        record_id = UUID("00000000-0000-0000-0000-000000000003")
+        record = {
+            "id": str(record_id),
+            "tenant_id": "tenant-1",
+            "module_name": "projects",
+            "visibility_mode": "private",
+            "record_data": {"collaborators": []},
+        }
+        body = ProjectAccessUpdate(visibility_mode="open")
+        assert body.grants is None
+
+        with (
+            patch("api.routers.records.supabase_admin") as mock_admin,
+            patch("api.routers.records._fetch_record", return_value=record),
+            patch("api.routers.records.build_access_context", return_value=MagicMock()),
+            patch("api.routers.records.assert_project_access"),
+            patch("api.routers.records._sync_department_grants"),
+        ):
+            update_project_access(
+                record_id,
+                body,
+                user={
+                    "user_id": "owner-1",
+                    "tenant_roles": {"tenant-1": "owner"},
+                },
+            )
+
+        assert call("project_access_grants") not in mock_admin.table.call_args_list
+
+    def test_explicit_empty_grants_clears_custom_role_grants(self):
+        record_id = UUID("00000000-0000-0000-0000-000000000004")
+        record = {
+            "id": str(record_id),
+            "tenant_id": "tenant-1",
+            "module_name": "projects",
+            "visibility_mode": "private",
+            "record_data": {"collaborators": []},
+        }
+
+        with (
+            patch("api.routers.records.supabase_admin") as mock_admin,
+            patch("api.routers.records._fetch_record", return_value=record),
+            patch("api.routers.records.build_access_context", return_value=MagicMock()),
+            patch("api.routers.records.assert_project_access"),
+            patch("api.routers.records._sync_department_grants"),
+        ):
+            update_project_access(
+                record_id,
+                ProjectAccessUpdate(visibility_mode="open", grants=[]),
+                user={
+                    "user_id": "owner-1",
+                    "tenant_roles": {"tenant-1": "owner"},
+                },
+            )
+
+        assert call("project_access_grants") in mock_admin.table.call_args_list
+
+    @patch("api.routers.records._sync_collaborator_grants")
+    @patch("api.routers.records.assert_project_access")
+    @patch("api.routers.records.build_access_context")
+    @patch("api.routers.records._fetch_record")
+    @patch("api.routers.records.supabase_admin")
+    def test_content_patch_does_not_resync_unchanged_collaborators(
+        self,
+        mock_admin,
+        mock_fetch,
+        mock_build_context,
+        mock_assert_access,
+        mock_sync_collaborators,
+    ):
+        record_id = UUID("00000000-0000-0000-0000-000000000005")
+        collaborators = [{"email": "editor@example.com", "role": "editor"}]
+        existing = {
+            "id": str(record_id),
+            "tenant_id": "tenant-1",
+            "module_name": "projects",
+            "visibility_mode": "private",
+            "record_data": {
+                "name": "Before",
+                "owner_email": "owner@example.com",
+                "collaborators": collaborators,
+            },
+        }
+        mock_fetch.return_value = existing
+        mock_build_context.return_value = MagicMock()
+        update_result = MagicMock()
+        update_result.data = [{**existing, "record_data": {**existing["record_data"], "name": "After"}}]
+        (
+            mock_admin.table.return_value.update.return_value.eq.return_value.execute
+        ).return_value = update_result
+
+        update_record(
+            record_id=record_id,
+            payload=RecordUpdate(
+                record_data={
+                    "name": "After",
+                    "owner_email": "owner@example.com",
+                    "collaborators": collaborators,
+                }
+            ),
+            background_tasks=BackgroundTasks(),
+            user={
+                "user_id": "editor-1",
+                "email": "editor@example.com",
+                "full_name": "Editor",
+                "tenant_roles": {"tenant-1": "employee"},
+            },
+        )
+
+        mock_assert_access.assert_called_once()
+        mock_sync_collaborators.assert_not_called()
+
 
 class TestRecordPagination:
     @patch("api.routers.records.filter_accessible_projects")
     @patch("api.routers.records.build_access_context")
     @patch("api.routers.records.supabase_admin")
-    def test_scans_later_batches_until_accessible_page_is_filled(
+    def test_uses_authenticated_rls_query_before_database_pagination(
         self, mock_admin, mock_build_context, mock_filter
     ):
         tenant_id = UUID("00000000-0000-0000-0000-000000000001")
-        query = MagicMock()
-        ranged_query = query.select.return_value.eq.return_value.order.return_value.range
-        first_response = MagicMock()
-        first_response.data = [{"id": f"hidden-{i}"} for i in range(RECORD_PAGE_SIZE)]
-        second_response = MagicMock()
-        second_response.data = [{"id": "visible"}]
-        ranged_query.return_value.execute.side_effect = [
-            first_response,
-            second_response,
-        ]
-        mock_admin.table.return_value = query
+        auth_client = MagicMock()
+        ranged_query = (
+            auth_client.table.return_value.select.return_value.eq.return_value.order.return_value.range
+        )
+        response = MagicMock()
+        response.data = [{"id": "visible"}]
+        ranged_query.return_value.execute.return_value = response
         mock_build_context.return_value = MagicMock()
-        mock_filter.side_effect = [[], [{"id": "visible"}]]
+        mock_filter.return_value = [{"id": "visible"}]
 
         result = get_records(
             tenant_id=tenant_id,
             module_name=None,
-            limit=1,
-            offset=0,
-            user={"tenant_roles": {str(tenant_id): "employee"}},
+            limit=10,
+            offset=20,
+            user={
+                "tenant_roles": {str(tenant_id): "employee"},
+                "client": auth_client,
+            },
         )
 
         assert result == [{"id": "visible"}]
-        assert ranged_query.call_count == 2
+        ranged_query.assert_called_once_with(20, 29)
+        mock_admin.table.assert_not_called()
