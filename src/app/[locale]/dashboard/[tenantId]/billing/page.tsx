@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { fetchAPI } from '@/services/api';
 import { CreditCard, CheckCircle2, Receipt, AlertCircle } from 'lucide-react';
@@ -61,12 +61,15 @@ export default function BillingPage({
     process.env.NEXT_PUBLIC_ALLOW_DEMO_TIER_SWITCH === 'true' ||
     process.env.NEXT_PUBLIC_ALLOW_DEMO_TIER_SWITCH === '1';
 
-  const strictNoCacheHeaders = {
-    'x-tenant-id': tenantId,
-    'Cache-Control': 'no-cache, no-store, must-revalidate',
-    Pragma: 'no-cache',
-    Expires: '0',
-  };
+  const strictNoCacheHeaders = useMemo(
+    () => ({
+      'x-tenant-id': tenantId,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache',
+      Expires: '0',
+    }),
+    [tenantId]
+  );
 
   useEffect(() => {
     const loadBillingData = async () => {
@@ -133,8 +136,7 @@ export default function BillingPage({
     };
 
     loadBillingData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenantId]);
+  }, [strictNoCacheHeaders, tenantId, updateTenantState]);
 
   const formatUsdPrice = (amountUsd: number) =>
     formatMoney(convertFromUsd(amountUsd, currency, fxRates), currency);
@@ -371,7 +373,8 @@ export default function BillingPage({
           <div className="p-6 border-b border-zinc-100/80 flex items-center justify-between bg-zinc-50/50">
             <div>
               <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-zinc-500" /> {t('invoiceHistory')}
+                <Receipt className="w-4 h-4 text-zinc-500" />{' '}
+                {t('invoiceHistory')}
               </h3>
             </div>
           </div>

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import List, Optional
+import logging
 
 from core.database import supabase_admin, get_auth_client
 from core.project_access import (
@@ -12,6 +13,7 @@ from core.project_access import (
 
 router = APIRouter(prefix="/api/tasks", tags=["Tasks"])
 security = HTTPBearer()
+logger = logging.getLogger(__name__)
 
 
 def verify_user(creds: HTTPAuthorizationCredentials = Depends(security)):
@@ -102,7 +104,8 @@ async def get_my_tasks(tenant_id: str, user=Depends(verify_user)):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to load tasks for tenant %s", tenant_id)
+        raise HTTPException(status_code=500, detail="Failed to load tasks") from e
 
 
 @router.post("/sync")
@@ -114,6 +117,12 @@ async def sync_tasks(payload: SyncRequest, user=Depends(verify_user)):
         project = _load_project(payload.tenant_id, payload.project_id)
         assert_project_access(ctx, project, Permission.EDIT)
 
+        if any(task.project_id != payload.project_id for task in payload.tasks):
+            raise HTTPException(
+                status_code=400,
+                detail="Every synchronized task must belong to the authorized project.",
+            )
+
         supabase_admin.table("records").delete().eq("tenant_id", payload.tenant_id).eq(
             "module_name", "tasks"
         ).eq("record_data->>project_id", payload.project_id).execute()
@@ -123,7 +132,10 @@ async def sync_tasks(payload: SyncRequest, user=Depends(verify_user)):
                 {
                     "tenant_id": payload.tenant_id,
                     "module_name": "tasks",
-                    "record_data": t.model_dump(),
+                    "record_data": {
+                        **t.model_dump(),
+                        "project_id": payload.project_id,
+                    },
                 }
                 for t in payload.tasks
             ]
@@ -133,4 +145,11 @@ async def sync_tasks(payload: SyncRequest, user=Depends(verify_user)):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(
+            "Failed to synchronize tasks for tenant %s project %s",
+            payload.tenant_id,
+            payload.project_id,
+        )
+        raise HTTPException(
+            status_code=500, detail="Failed to synchronize tasks"
+        ) from e

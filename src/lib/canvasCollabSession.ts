@@ -42,17 +42,27 @@ type RoomSession = {
 
 const sessions = new Map<string, RoomSession>();
 
+function createSecureClientKey(): string {
+  if (typeof crypto.randomUUID === 'function') {
+    return `client-${crypto.randomUUID()}`;
+  }
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return `client-${Array.from(bytes, (byte) =>
+    byte.toString(16).padStart(2, '0')
+  ).join('')}`;
+}
+
 function tabKey(): string {
   try {
     const k = 'b2b-collab-tab-key';
     let v = sessionStorage.getItem(k);
     if (!v) {
-      v = `client-${crypto.randomUUID().slice(0, 12)}`;
+      v = createSecureClientKey();
       sessionStorage.setItem(k, v);
     }
     return v;
   } catch {
-    return `client-${Math.random().toString(36).slice(2, 10)}`;
+    return createSecureClientKey();
   }
 }
 
@@ -184,6 +194,8 @@ async function openSocket(s: RoomSession) {
   };
 
   ws.onclose = () => {
+    // Ignore a socket deliberately superseded by an identity refresh.
+    if (s.ws !== ws) return;
     s.ready = false;
     s.ws = null;
     if (s.refs <= 0) return;
@@ -216,6 +228,8 @@ export function acquireCanvasCollab(
   release: () => void;
 } {
   let s = sessions.get(roomId);
+  const identityChanged =
+    !!s && (s.user.name !== user.name || s.user.color !== user.color);
   if (!s) {
     s = {
       roomId,
@@ -240,6 +254,17 @@ export function acquireCanvasCollab(
   s.handlers.add(handlers);
   handlers.onStatus(s.status);
   handlers.onCursors({ ...s.cursors });
+
+  if (identityChanged && s.ws) {
+    const previousSocket = s.ws;
+    s.ws = null;
+    s.ready = false;
+    try {
+      previousSocket.close(1000, 'identity-change');
+    } catch {
+      /* ignore */
+    }
+  }
 
   if (!s.ws || s.ws.readyState === WebSocket.CLOSED) {
     void openSocket(s);

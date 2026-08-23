@@ -78,19 +78,31 @@ export function grantsFromAccessResponse(
 export function buildAccessPutBody(
   visibilityMode: string,
   departmentGrants: DepartmentGrant[],
-  customRoleGrants: CustomRoleGrant[]
+  customRoleGrants?: CustomRoleGrant[]
 ) {
-  return {
+  const body: {
+    visibility_mode: string;
+    department_ids: string[];
+    department_grants: DepartmentGrant[];
+    grants?: Array<{
+      subject_type: 'custom_role';
+      subject_id: string;
+      permission: GrantPermission;
+    }>;
+  } = {
     visibility_mode: visibilityMode,
     department_ids: departmentGrantsToIds(departmentGrants),
     department_grants: departmentGrants.map((g) => ({
       department_id: g.department_id,
       permission: g.permission,
     })),
-    grants: customRoleGrants.map((g) => ({
+  };
+  if (customRoleGrants !== undefined) {
+    body.grants = customRoleGrants.map((g) => ({
       subject_type: 'custom_role' as const,
       subject_id: g.custom_role_id,
       permission: g.permission,
-    })),
-  };
+    }));
+  }
+  return body;
 }

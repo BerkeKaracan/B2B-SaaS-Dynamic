@@ -122,11 +122,13 @@ export default function CanvasArea() {
   });
 
   useEffect(() => {
-    const randomNum = Math.floor(Math.random() * 1000);
     const fromAuth =
       (authUser?.full_name && authUser.full_name.trim()) ||
       (authUser?.email && authUser.email.split('@')[0]) ||
       null;
+    const randomBytes = new Uint32Array(1);
+    crypto.getRandomValues(randomBytes);
+    const randomNum = randomBytes[0] % 1000;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentUser({
       name: fromAuth || `User ${randomNum}`,

@@ -1,10 +1,5 @@
 'use client';
-import React, {
-  useCallback,
-  useEffect,
-  useState,
-  useMemo,
-} from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -30,6 +25,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { fetchAPI } from '@/services/api';
 import { LoadingSpinner } from '@/components/ui/loading';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 import {
   Search,
   Archive,
@@ -71,7 +67,8 @@ type ProjectRecord = {
   };
 };
 
-type VisibilityFilter = 'all' | 'private' | 'open' | 'admin_only' | 'department';
+type VisibilityFilter =
+  'all' | 'private' | 'open' | 'admin_only' | 'department';
 
 type SortOption = 'recent' | 'name_asc' | 'name_desc';
 function visibilityFilterLabel(
@@ -292,25 +289,28 @@ export default function ProjectCardsGrid({
     setMenuPosition(null);
   }, []);
 
-  const openProjectMenu = useCallback((projectId: string, button: HTMLButtonElement) => {
-    const rect = button.getBoundingClientRect();
-    const menuWidth = 224;
-    const gap = 4;
-    const left = Math.min(
-      Math.max(8, rect.right - menuWidth),
-      window.innerWidth - menuWidth - 8
-    );
-    const preferredTop = rect.bottom + gap;
-    const maxHeight = Math.min(320, window.innerHeight - preferredTop - 8);
-    // If almost no room below, flip above the button
-    if (maxHeight < 160) {
-      const top = Math.max(8, rect.top - Math.min(320, rect.top - 8) - gap);
-      setMenuPosition({ top, left });
-    } else {
-      setMenuPosition({ top: preferredTop, left });
-    }
-    setOpenMenuId(projectId);
-  }, []);
+  const openProjectMenu = useCallback(
+    (projectId: string, button: HTMLButtonElement) => {
+      const rect = button.getBoundingClientRect();
+      const menuWidth = 224;
+      const gap = 4;
+      const left = Math.min(
+        Math.max(8, rect.right - menuWidth),
+        window.innerWidth - menuWidth - 8
+      );
+      const preferredTop = rect.bottom + gap;
+      const maxHeight = Math.min(320, window.innerHeight - preferredTop - 8);
+      // If almost no room below, flip above the button
+      if (maxHeight < 160) {
+        const top = Math.max(8, rect.top - Math.min(320, rect.top - 8) - gap);
+        setMenuPosition({ top, left });
+      } else {
+        setMenuPosition({ top: preferredTop, left });
+      }
+      setOpenMenuId(projectId);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!openMenuId) return;
@@ -360,8 +360,7 @@ export default function ProjectCardsGrid({
         accent: 'text-rose-600 dark:text-rose-400',
         badgeClass:
           'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 text-rose-700 dark:text-rose-300',
-        iconBox:
-          'border-rose-200/80 dark:border-rose-500/30',
+        iconBox: 'border-rose-200/80 dark:border-rose-500/30',
       };
     }
     if (view === 'archive') {
@@ -373,8 +372,7 @@ export default function ProjectCardsGrid({
         accent: 'text-amber-600 dark:text-amber-400',
         badgeClass:
           'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20 text-amber-700 dark:text-amber-300',
-        iconBox:
-          'border-amber-200/80 dark:border-amber-500/30',
+        iconBox: 'border-amber-200/80 dark:border-amber-500/30',
       };
     }
     if (view === 'favorites') {
@@ -595,7 +593,7 @@ export default function ProjectCardsGrid({
     const res = await fetchAPI(`/api/records/${projectId}/access`, {
       method: 'PUT',
       body: JSON.stringify(
-        buildAccessPutBody(newVisibility, departmentGrants, [])
+        buildAccessPutBody(newVisibility, departmentGrants)
       ),
     });
     if (!res.ok) {
@@ -774,20 +772,40 @@ export default function ProjectCardsGrid({
           )
         );
         try {
-          await fetchAPI(`/api/records/${projectId}`, {
+          const res = await fetchAPI(`/api/records/${projectId}`, {
             method: 'PATCH',
             body: JSON.stringify({
-              record_data: { ...currentData, is_global_shared: newStatus },
+              record_data: {
+                ...currentData,
+                is_global_shared: newStatus,
+                is_global_public: newStatus,
+              },
             }),
           });
+          if (!res.ok) {
+            const body = (await res.json().catch(() => null)) as
+              | { detail?: string }
+              | null;
+            throw new Error(body?.detail || 'Failed to update hub visibility.');
+          }
           logActivity(
             tenantId,
             getUserDisplayName(user),
             newStatus === 'true' ? 'Published to Hub' : 'Removed from Hub',
             `Project: ${currentData.name}`
           );
-        } catch {
-          fetchProjects();
+        } catch (error) {
+          setProjects((prev) =>
+            prev.map((p) =>
+              p.id === projectId ? { ...p, record_data: currentData } : p
+            )
+          );
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : 'Failed to update hub visibility.'
+          );
+          void fetchProjects();
         }
       },
     });
@@ -997,7 +1015,6 @@ export default function ProjectCardsGrid({
     return { displayedProjects: filtered, hasActiveFilters: filtersActive };
   }, [
     projects,
-    isAdmin,
     searchQuery,
     view,
     currentFolder,
@@ -1046,9 +1063,7 @@ export default function ProjectCardsGrid({
               (() => {
                 const HeaderIcon = headerContent.Icon;
                 return (
-                  <HeaderIcon
-                    className={`w-7 h-7 ${headerContent.accent}`}
-                  />
+                  <HeaderIcon className={`w-7 h-7 ${headerContent.accent}`} />
                 );
               })()}
             {headerContent.title}
@@ -1382,7 +1397,9 @@ export default function ProjectCardsGrid({
 
             const cardContent = (
               <>
-                <div className={`absolute left-0 inset-y-0 w-1 ${railAccent} transition-colors`} />
+                <div
+                  className={`absolute left-0 inset-y-0 w-1 ${railAccent} transition-colors`}
+                />
                 <div
                   className={`relative h-28 border-b border-zinc-100 dark:border-zinc-800 overflow-hidden ${currentTemplate.headerBg}`}
                 >
@@ -1390,14 +1407,19 @@ export default function ProjectCardsGrid({
                     className="absolute inset-0 opacity-40 dark:opacity-25"
                     style={{ backgroundImage: currentTemplate.glow }}
                   />
-                  <div className="absolute inset-0 opacity-[0.35] dark:opacity-[0.2]" style={{
-                    backgroundImage:
-                      'linear-gradient(to right, rgba(24,24,27,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(24,24,27,0.06) 1px, transparent 1px)',
-                    backgroundSize: '20px 20px',
-                  }} />
+                  <div
+                    className="absolute inset-0 opacity-[0.35] dark:opacity-[0.2]"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(to right, rgba(24,24,27,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(24,24,27,0.06) 1px, transparent 1px)',
+                      backgroundSize: '20px 20px',
+                    }}
+                  />
                   <div className="absolute bottom-3 left-4 flex items-center gap-2">
                     <div className="w-9 h-9 rounded-xl bg-white/90 dark:bg-zinc-950/80 border border-zinc-200/80 dark:border-zinc-700 flex items-center justify-center shadow-sm">
-                      <TemplateIcon className={`w-4 h-4 ${currentTemplate.color}`} />
+                      <TemplateIcon
+                        className={`w-4 h-4 ${currentTemplate.color}`}
+                      />
                     </div>
                     <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
                       {currentTemplate.label}
@@ -1500,11 +1522,11 @@ export default function ProjectCardsGrid({
                       !isLocked &&
                       !isJustAdmin &&
                       !isGlobalShared && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md">
-                        <Lock className="w-3 h-3" />
-                        {t('access.private')}
-                      </span>
-                    )}
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-md">
+                          <Lock className="w-3 h-3" />
+                          {t('access.private')}
+                        </span>
+                      )}
                     {visibilityMode === 'department' && status === 'active' && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 px-1.5 py-0.5 rounded-md border border-sky-100/80 dark:border-sky-500/20">
                         <Users className="w-3 h-3" />
@@ -1617,11 +1639,7 @@ export default function ProjectCardsGrid({
                       <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
                       <button
                         onClick={(e) =>
-                          toggleGlobalShare(
-                            e,
-                            project.id,
-                            project.record_data
-                          )
+                          toggleGlobalShare(e, project.id, project.record_data)
                         }
                         className={`w-full px-3.5 py-2 text-xs font-medium flex items-center justify-between ${isGlobalShared ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20' : 'text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-900/20'}`}
                       >
@@ -1631,11 +1649,7 @@ export default function ProjectCardsGrid({
                       <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
                       <button
                         onClick={(e) =>
-                          toggleProjectLock(
-                            e,
-                            project.id,
-                            project.record_data
-                          )
+                          toggleProjectLock(e, project.id, project.record_data)
                         }
                         className={`w-full px-4 py-2 text-xs font-medium flex items-center justify-between ${isLocked ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
                       >
@@ -1699,11 +1713,7 @@ export default function ProjectCardsGrid({
                       <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-1" />
                       <button
                         onClick={(e) =>
-                          deletePermanently(
-                            e,
-                            project.id,
-                            project.record_data
-                          )
+                          deletePermanently(e, project.id, project.record_data)
                         }
                         className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                       >
@@ -1744,7 +1754,9 @@ export default function ProjectCardsGrid({
                 }}
               />
               {accessError && (
-                <p className="text-xs text-red-600 dark:text-red-400">{accessError}</p>
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  {accessError}
+                </p>
               )}
               <div className="flex gap-2 pt-1">
                 <button
@@ -1780,7 +1792,10 @@ export default function ProjectCardsGrid({
                 {t('createProject')}
               </h2>
             </div>
-            <form onSubmit={handleCreateSubmit} className="p-6 space-y-5 overflow-visible">
+            <form
+              onSubmit={handleCreateSubmit}
+              className="p-6 space-y-5 overflow-visible"
+            >
               <div className="space-y-1.5">
                 <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
                   Project Name

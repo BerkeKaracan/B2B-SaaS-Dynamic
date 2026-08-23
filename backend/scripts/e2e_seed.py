@@ -256,7 +256,7 @@ def main() -> int:
         invite_pool_id = _ensure_tenant(E2E_INVITE_POOL_SLUG, "E2E Invite Pool")
         _ensure_membership(invite_pool_id, invite_target_id, E2E_INVITE_TARGET_EMAIL, "employee")
         _remove_membership(tenant_id, E2E_INVITE_TARGET_EMAIL)
-        _log(f"Invite target ready ({E2E_INVITE_TARGET_EMAIL}) — not in main tenant")
+        _log(f"Invite target ready ({E2E_INVITE_TARGET_EMAIL}) - not in main tenant")
 
         for key, (email, role, _name) in USERS.items():
             _ensure_membership(tenant_id, user_ids[key], email, role)

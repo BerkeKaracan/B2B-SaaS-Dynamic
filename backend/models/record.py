@@ -37,4 +37,4 @@ class ProjectAccessUpdate(BaseModel):
     visibility_mode: Literal["private", "open", "admin_only", "department"] = "private"
     department_ids: List[UUID] = Field(default_factory=list)
     department_grants: List[DepartmentGrantInput] = Field(default_factory=list)
-    grants: List[AccessGrantInput] = Field(default_factory=list)
+    grants: Optional[List[AccessGrantInput]] = None

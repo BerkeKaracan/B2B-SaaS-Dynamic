@@ -31,6 +31,7 @@ export function useCanvasCollaboration(
   options: CanvasCollaborationOptions = {}
 ) {
   const enableDocSync = Boolean(options.enableDocSync);
+  const { name: userName, color: userColor } = user;
   const [doc, setDoc] = useState<Y.Doc | null>(null);
   const [isSynced, setIsSynced] = useState(false);
   const [cursors, setCursors] = useState<Record<string, CursorState>>({});
@@ -163,7 +164,7 @@ export function useCanvasCollaboration(
 
     const { selfKey: key, publishCursor, send, release } = acquireCanvasCollab(
       roomId,
-      user,
+      { name: userName, color: userColor },
       {
         onStatus: (st) => {
           queueMicrotask(() => {
@@ -187,9 +188,7 @@ export function useCanvasCollaboration(
       detachYjs();
       release();
     };
-    // user identity updates via session user object; reconnect only on room change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, attachYjs, detachYjs]);
+  }, [roomId, userName, userColor, attachYjs, detachYjs]);
 
   useEffect(() => {
     if (connectionStatus !== 'subscribed') return;
