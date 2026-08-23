@@ -1,4 +1,11 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: b2b-redis
+    restart: unless-stopped
+    networks:
+      - b2b-network
+
   backend:
     build:
       context: ./backend
@@ -14,6 +21,10 @@ services:
       # Local: canvas WS works without JWT secret / GoTrue round-trips
       - ALLOW_INSECURE_CANVAS_WS=true
       - ENVIRONMENT=development
+      # backend/.env often points at localhost:6379 (host). Inside Compose use the redis service.
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
     healthcheck:
       test:
         [

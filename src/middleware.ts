@@ -107,9 +107,9 @@ export async function middleware(request: NextRequest) {
 
     const verified = await verifySupabaseAccessToken(token);
     if (!verified) {
-      const redirect = loginRedirect(request, localeMatch);
-      redirect.cookies.delete('token');
-      return redirect;
+      // Do not delete the session cookie here. GoTrue timeouts / missing
+      // JWT secret in local Docker would wipe a valid cookie and force logout.
+      return loginRedirect(request, localeMatch);
     }
 
     const dashboardTenantId = extractDashboardTenantId(basePath);

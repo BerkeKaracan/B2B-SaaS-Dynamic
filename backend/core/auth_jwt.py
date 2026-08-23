@@ -66,8 +66,10 @@ def is_token_blacklisted(token: str) -> bool:
     try:
         return bool(redis_client.get(_blacklist_key(token)))
     except Exception as exc:
-        logger.error("Redis blacklist read error: %s", exc)
-        raise HTTPException(status_code=503, detail="Auth store unavailable") from exc
+        # Local Docker often has no Redis. Fail-open so a cache outage
+        # cannot log everyone out (middleware + /auth/me would 503 → login).
+        logger.error("Redis blacklist read error (fail-open): %s", exc)
+        return False
 
 
 def blacklist_auth_token(token: str | None) -> None:

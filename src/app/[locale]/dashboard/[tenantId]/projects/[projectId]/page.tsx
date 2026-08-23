@@ -185,6 +185,9 @@ export default function ProjectDesignPage() {
         }
       } else if (accessRes.status === 403) {
         setCanManageAccess(false);
+      } else {
+        setCanManageAccess(isAdmin);
+        setAccessError(t('access.permissionDenied'));
       }
 
       if (deptRes.ok) {

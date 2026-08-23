@@ -274,6 +274,18 @@ export default function ProjectCardsGrid({
   } | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
+  const [accessEditor, setAccessEditor] = useState<{
+    projectId: string;
+    name: string;
+  } | null>(null);
+  const [accessDepartments, setAccessDepartments] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [accessDeptGrants, setAccessDeptGrants] = useState<DepartmentGrant[]>(
+    []
+  );
+  const [accessSaving, setAccessSaving] = useState(false);
+  const [accessError, setAccessError] = useState<string | null>(null);
 
   const closeProjectMenu = useCallback(() => {
     setOpenMenuId(null);
@@ -560,15 +572,13 @@ export default function ProjectCardsGrid({
     }
   };
 
-  const changeVisibility = async (
-    e: React.MouseEvent,
+  const applyVisibility = async (
     projectId: string,
     currentData: RecordData,
-    newVisibility: string
+    newVisibility: string,
+    departmentGrants: DepartmentGrant[] = []
   ) => {
-    e.preventDefault();
-    e.stopPropagation();
-    closeProjectMenu();
+    const previous = projects.find((p) => p.id === projectId)?.record_data;
     setProjects((prev) =>
       prev.map((p) =>
         p.id === projectId
@@ -582,21 +592,111 @@ export default function ProjectCardsGrid({
           : p
       )
     );
+    const res = await fetchAPI(`/api/records/${projectId}/access`, {
+      method: 'PUT',
+      body: JSON.stringify(
+        buildAccessPutBody(newVisibility, departmentGrants, [])
+      ),
+    });
+    if (!res.ok) {
+      if (previous) {
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === projectId ? { ...p, record_data: previous } : p
+          )
+        );
+      }
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || t('access.permissionDenied'));
+    }
+    logActivity(
+      tenantId,
+      getUserDisplayName(user),
+      'Changed Visibility',
+      `Project: ${currentData.name} is now ${newVisibility}`
+    );
+  };
+
+  const openDepartmentEditor = async (
+    projectId: string,
+    currentData: RecordData
+  ) => {
+    setAccessEditor({
+      projectId,
+      name: String(currentData.name || 'Project'),
+    });
+    setAccessError(null);
+    const rawGrants = currentData.department_grants;
+    const rawIds = currentData.department_ids;
+    setAccessDeptGrants(
+      Array.isArray(rawGrants)
+        ? (rawGrants as DepartmentGrant[])
+        : (Array.isArray(rawIds) ? rawIds : []).map((id) => ({
+            department_id: String(id),
+            permission: 'view' as const,
+          }))
+    );
     try {
-      await fetchAPI(`/api/records/${projectId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          record_data: visibilityToRecordPayload({ ...currentData }, newVisibility),
-        }),
-      });
-      logActivity(
-        tenantId,
-        getUserDisplayName(user),
-        'Changed Visibility',
-        `Project: ${currentData.name} is now ${newVisibility}`
-      );
-    } catch {
+      const [deptRes, accessRes] = await Promise.all([
+        fetchAPI(`/api/tenants/${tenantId}/departments`),
+        fetchAPI(`/api/records/${projectId}/access`),
+      ]);
+      if (deptRes.ok) {
+        const data = await deptRes.json();
+        setAccessDepartments(Array.isArray(data) ? data : data.items || []);
+      }
+      if (accessRes.ok) {
+        const access = await accessRes.json();
+        if (access.department_grants?.length) {
+          setAccessDeptGrants(access.department_grants);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const changeVisibility = async (
+    e: React.MouseEvent,
+    projectId: string,
+    currentData: RecordData,
+    newVisibility: string
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeProjectMenu();
+    if (newVisibility === 'department') {
+      await openDepartmentEditor(projectId, currentData);
+      return;
+    }
+    try {
+      await applyVisibility(projectId, currentData, newVisibility);
+    } catch (err) {
+      console.error(err);
       fetchProjects();
+    }
+  };
+
+  const saveDepartmentAccess = async () => {
+    if (!accessEditor) return;
+    const project = projects.find((p) => p.id === accessEditor.projectId);
+    if (!project) return;
+    setAccessSaving(true);
+    setAccessError(null);
+    try {
+      await applyVisibility(
+        accessEditor.projectId,
+        project.record_data,
+        'department',
+        accessDeptGrants
+      );
+      setAccessEditor(null);
+    } catch (err) {
+      setAccessError(
+        err instanceof Error ? err.message : t('access.permissionDenied')
+      );
+    } finally {
+      setAccessSaving(false);
     }
   };
 
@@ -1405,13 +1505,10 @@ export default function ProjectCardsGrid({
                         {t('access.private')}
                       </span>
                     )}
-                    {status === 'active' &&
-                      !isLocked &&
-                      !isJustAdmin &&
-                      !isGlobalShared &&
-                      visibilityMode !== 'private' && (
+                    {visibilityMode === 'department' && status === 'active' && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 px-1.5 py-0.5 rounded-md border border-sky-100/80 dark:border-sky-500/20">
-                        Open canvas
+                        <Users className="w-3 h-3" />
+                        {t('access.department')}
                       </span>
                     )}
                   </div>
@@ -1620,6 +1717,56 @@ export default function ProjectCardsGrid({
           </>,
           document.body
         )}
+
+      {accessEditor && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-4 bg-zinc-950/30 backdrop-blur-sm">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)] w-full max-w-md border border-zinc-200 dark:border-zinc-800">
+            <div className="p-5 border-b border-zinc-100 dark:border-zinc-800">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-400 mb-1">
+                {t('access.department')}
+              </p>
+              <h2 className="text-base font-semibold text-zinc-950 dark:text-white">
+                {accessEditor.name}
+              </h2>
+            </div>
+            <div className="p-5 space-y-4">
+              <DepartmentGrantEditor
+                departments={accessDepartments}
+                grants={accessDeptGrants}
+                onChange={setAccessDeptGrants}
+                disabled={accessSaving}
+                labels={{
+                  title: t('access.departmentsTitle'),
+                  desc: t('access.departmentsDesc'),
+                  empty: t('access.noDepartments'),
+                  view: t('access.permissionView'),
+                  edit: t('access.permissionEdit'),
+                }}
+              />
+              {accessError && (
+                <p className="text-xs text-red-600 dark:text-red-400">{accessError}</p>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setAccessEditor(null)}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold border border-zinc-200 dark:border-zinc-700"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="button"
+                  onClick={saveDepartmentAccess}
+                  disabled={accessSaving}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-zinc-950 dark:bg-white dark:text-zinc-950 disabled:opacity-50"
+                >
+                  {t('access.saveAccess')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-zinc-950/30 backdrop-blur-sm animate-in fade-in duration-200">
