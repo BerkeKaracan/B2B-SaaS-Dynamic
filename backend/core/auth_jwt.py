@@ -7,7 +7,6 @@ never dies on a bad Cloud Run env value.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 import time
@@ -33,10 +32,6 @@ _logged_local_jwt_fallback = False
 
 def _blacklist_key(token: str) -> str:
     return f"{TOKEN_BLACKLIST_PREFIX}{token}"
-
-
-def token_fingerprint(token: str) -> str:
-    return hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
 
 
 def remaining_token_ttl_seconds(token: str, fallback: int = 3600) -> int:

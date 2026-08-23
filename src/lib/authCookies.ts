@@ -19,11 +19,6 @@ export function tenantCookieOptions(domain?: string): Cookies.CookieAttributes {
   };
 }
 
-/** @deprecated Use establishClientSession — tokens must not be JS-readable. */
-export function authCookieOptions(domain?: string): Cookies.CookieAttributes {
-  return tenantCookieOptions(domain);
-}
-
 /** Establish HttpOnly session cookie via same-origin BFF. */
 export async function establishClientSession(
   accessToken: string,
@@ -68,14 +63,6 @@ export async function clearClientSession(): Promise<void> {
   } catch {
     /* ignore */
   }
-}
-
-/**
- * @deprecated Prefer establishClientSession. Kept as async-compatible no-op
- * wrapper name used by older call sites during migration.
- */
-export function setClientAuthToken(token: string, domain?: string) {
-  void establishClientSession(token, domain);
 }
 
 export function setClientTenantId(tenantId: string, domain?: string) {

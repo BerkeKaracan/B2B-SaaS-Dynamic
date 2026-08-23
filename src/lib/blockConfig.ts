@@ -45,11 +45,6 @@ export function getBlockDefaultHeight(type: string): number {
   );
 }
 
-/** Y advance to place the next block under this one. */
-export function getBlockStackStep(type: string): number {
-  return getBlockDefaultHeight(type) + BLOCK_STACK_GAP;
-}
-
 /**
  * Resolve a usable height for layout math.
  * AI often invents huge `height` values — clamp to a sane range.

@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, NamedTuple
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi import status as http_status
@@ -74,6 +74,7 @@ class Peer:
     user: str
     color: str
     cursor: dict[str, float] | None = None
+    can_edit: bool = False
 
 
 @dataclass
@@ -157,8 +158,13 @@ def _safe_str(value: Any, *, max_len: int = 80) -> str:
     return value.strip()[:max_len]
 
 
-def _validate_room_project_access(room_id: str, user_id: str, email: str) -> bool:
-    """Tenant membership + project-level VIEW for live canvas rooms."""
+class RoomAccess(NamedTuple):
+    allowed: bool
+    can_edit: bool = False
+
+
+def _resolve_room_access(room_id: str, user_id: str, email: str) -> RoomAccess:
+    """VIEW to join (cursors + CRDT sync request); EDIT to send y-update."""
     try:
         record_res = (
             supabase_admin.table("custom_records")
@@ -168,16 +174,19 @@ def _validate_room_project_access(room_id: str, user_id: str, email: str) -> boo
         )
         if not record_res.data:
             logger.warning("Room %s not found in custom_records", room_id)
-            return False
+            return RoomAccess(False)
 
         record = record_res.data[0]
         tenant_id = record.get("tenant_id")
         if not tenant_id:
             logger.warning("Room %s has no tenant_id", room_id)
-            return False
+            return RoomAccess(False)
 
         ctx = build_access_context_for_user(user_id, email, str(tenant_id))
-        return has_project_permission(ctx, record, Permission.VIEW)
+        if not has_project_permission(ctx, record, Permission.VIEW):
+            return RoomAccess(False)
+        can_edit = has_project_permission(ctx, record, Permission.EDIT)
+        return RoomAccess(True, can_edit)
     except Exception as exc:
         logger.error(
             "Error validating room project access for room %s, user %s: %s",
@@ -185,7 +194,12 @@ def _validate_room_project_access(room_id: str, user_id: str, email: str) -> boo
             user_id,
             exc,
         )
-        return False
+        return RoomAccess(False)
+
+
+def _validate_room_project_access(room_id: str, user_id: str, email: str) -> bool:
+    """Tenant membership + project-level VIEW for live canvas rooms."""
+    return _resolve_room_access(room_id, user_id, email).allowed
 
 
 def _validate_room_tenant_access(room_id: str, user_id: str) -> bool:
@@ -218,7 +232,9 @@ async def canvas_collab_ws(websocket: WebSocket, room_id: str):
             await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
             return
 
+        can_edit = False
         if _allow_insecure_canvas_ws():
+            can_edit = True
             logger.info(
                 "canvas ws insecure join room=%s peer=%s (ALLOW_INSECURE_CANVAS_WS / development)",
                 room_id,
@@ -233,7 +249,8 @@ async def canvas_collab_ws(websocket: WebSocket, room_id: str):
                 user_id = identity.get("user_id")
                 user_email = identity.get("email") or ""
 
-                if not _validate_room_project_access(room_id, user_id, user_email):
+                access = _resolve_room_access(room_id, user_id, user_email)
+                if not access.allowed:
                     logger.warning(
                         "canvas ws room-tenant access denied room=%s user=%s",
                         room_id,
@@ -241,6 +258,7 @@ async def canvas_collab_ws(websocket: WebSocket, room_id: str):
                     )
                     await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION)
                     return
+                can_edit = access.can_edit
                     
             except Exception as exc:
                 logger.warning(
@@ -252,7 +270,13 @@ async def canvas_collab_ws(websocket: WebSocket, room_id: str):
                 return
             logger.info("canvas ws authenticated room=%s peer=%s", room_id, self_key)
 
-        peer = Peer(ws=websocket, self_key=self_key, user=user, color=color)
+        peer = Peer(
+            ws=websocket,
+            self_key=self_key,
+            user=user,
+            color=color,
+            can_edit=can_edit,
+        )
         try:
             others = await hub.join(room_id, peer)
         except RuntimeError as exc:
@@ -303,6 +327,8 @@ async def canvas_collab_ws(websocket: WebSocket, room_id: str):
                     exclude=self_key,
                 )
             elif kind == "y-update":
+                if not can_edit:
+                    continue
                 # Relay CRDT bytes to peers (size-capped)
                 update = payload.get("update")
                 from_key = _safe_str(payload.get("from"), max_len=64) or self_key

@@ -5,7 +5,6 @@ import { uploadImageViaPresignedUrl } from '@/lib/s3Upload';
 import {
   clearClientAuthStorage,
   clearClientSession,
-  establishClientSession,
 } from '@/lib/authCookies';
 import { agentDebugLog } from '@/lib/agentDebugLog';
 
@@ -213,6 +212,3 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 }));
-
-// Re-export for callers that need to set session after password/MFA flows
-export { establishClientSession };

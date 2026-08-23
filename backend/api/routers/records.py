@@ -19,6 +19,7 @@ from core.project_access import (
     patch_changes_manage_fields,
     resolve_visibility_mode,
     sync_visibility_to_record_data,
+    timeline_parent_project_id,
 )
 from models.record import (
     RecordCreate,
@@ -185,32 +186,6 @@ def _resolve_department_grants(body: ProjectAccessUpdate) -> list[dict]:
     ]
 
 
-def _apply_grant_rows(
-    tenant_id: str,
-    project_id: str,
-    grants: list,
-    created_by: str,
-) -> None:
-    supabase_admin.table("project_access_grants").delete().eq(
-        "project_id", project_id
-    ).execute()
-    if not grants:
-        return
-    rows = []
-    for g in grants:
-        rows.append(
-            {
-                "tenant_id": tenant_id,
-                "project_id": project_id,
-                "subject_type": g.subject_type,
-                "subject_id": str(g.subject_id),
-                "permission": g.permission,
-                "created_by": created_by,
-            }
-        )
-    supabase_admin.table("project_access_grants").insert(rows).execute()
-
-
 def _sync_collaborator_grants(
     tenant_id: str,
     project_id: str,
@@ -265,6 +240,17 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
                 status_code=403,
                 detail="You do not have permission to create records in this workspace.",
             )
+
+        ctx = build_access_context(user, req_tenant)
+        parent_id = timeline_parent_project_id(req_module)
+        if parent_id:
+            parent = _fetch_record(parent_id)
+            if str(parent.get("tenant_id")) != req_tenant:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You do not have permission to access this project.",
+                )
+            assert_project_access(ctx, parent, Permission.EDIT)
 
         if not is_system_module(req_module):
             tenant_res = (
@@ -399,9 +385,6 @@ def get_records(
 
         response = query.order("created_at", desc=True).limit(500).execute()
         records = response.data or []
-
-        if is_system_module(module_name or ""):
-            return records[offset : offset + limit]
 
         filtered = filter_accessible_projects(ctx, records, Permission.VIEW)
         return filtered[offset : offset + limit]

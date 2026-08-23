@@ -14,6 +14,7 @@ from core.project_access import (
     has_project_permission,
     resolve_visibility_mode,
     sync_visibility_to_record_data,
+    timeline_parent_project_id,
 )
 
 
@@ -158,6 +159,77 @@ class TestHasProjectPermission:
         grants = [{"subject_type": "user", "subject_id": "user-a", "permission": "manage"}]
         rec = _project(owner_user_id="user-b")
         assert has_project_permission(ctx, rec, Permission.MANAGE, grants)
+
+
+class TestSystemAndTimelineModules:
+    def test_timeline_parent_id_extracted(self):
+        assert timeline_parent_project_id("timeline_data_proj-1") == "proj-1"
+        assert timeline_parent_project_id("projects") is None
+
+    def test_employee_views_workspace_modules_but_cannot_edit(self):
+        ctx = _ctx(tenant_role="employee")
+        rec = {
+            "id": "cfg-1",
+            "tenant_id": "tenant-1",
+            "module_name": "workspace_modules",
+            "visibility_mode": "private",
+            "owner_user_id": "user-b",
+            "record_data": {},
+        }
+        assert has_project_permission(ctx, rec, Permission.VIEW, grants=[])
+        assert not has_project_permission(ctx, rec, Permission.EDIT, grants=[])
+        assert not has_project_permission(ctx, rec, Permission.DELETE, grants=[])
+
+    def test_admin_can_edit_activity_logs(self):
+        ctx = _ctx(tenant_role="admin")
+        rec = {
+            "id": "log-1",
+            "tenant_id": "tenant-1",
+            "module_name": "activity_logs",
+            "visibility_mode": "private",
+            "owner_user_id": "user-b",
+            "record_data": {},
+        }
+        assert has_project_permission(ctx, rec, Permission.DELETE, grants=[])
+
+    @patch("core.project_access.load_grants_for_projects")
+    @patch("core.project_access._load_projects_by_ids")
+    def test_timeline_inherits_parent_view_not_edit(self, mock_load, mock_grants):
+        parent = _project(
+            project_id="proj-1",
+            visibility_mode="open",
+            owner_user_id="user-b",
+        )
+        mock_load.return_value = {"proj-1": parent}
+        mock_grants.return_value = {"proj-1": []}
+        ctx = _ctx()
+        timeline = {
+            "id": "tl-1",
+            "tenant_id": "tenant-1",
+            "module_name": "timeline_data_proj-1",
+            "visibility_mode": "private",
+            "owner_user_id": "user-b",
+            "record_data": {},
+        }
+        assert has_project_permission(ctx, timeline, Permission.VIEW, grants=[])
+        assert not has_project_permission(ctx, timeline, Permission.EDIT, grants=[])
+
+    @patch("core.project_access.load_grants_for_projects")
+    @patch("core.project_access._load_projects_by_ids")
+    def test_timeline_private_parent_denied(self, mock_load, mock_grants):
+        parent = _project(project_id="proj-1", owner_user_id="user-b")
+        mock_load.return_value = {"proj-1": parent}
+        mock_grants.return_value = {"proj-1": []}
+        ctx = _ctx(user_id="user-a")
+        timeline = {
+            "id": "tl-1",
+            "tenant_id": "tenant-1",
+            "module_name": "timeline_data_proj-1",
+            "visibility_mode": "private",
+            "owner_user_id": "user-b",
+            "record_data": {},
+        }
+        assert not has_project_permission(ctx, timeline, Permission.VIEW, grants=[])
 
 
 class TestAssertProjectAccess:

@@ -26,10 +26,6 @@ export function normalizeTier(raw?: string | null): string {
   return tier === 'free' ? 'basic' : tier;
 }
 
-export function hasLocalTierEntitlement(key: string): boolean {
-  return Boolean(LOCAL_TIER_FLAGS[key]);
-}
-
 /** Local check — used when remote FF is unset or unreachable. */
 export function isFeatureEnabledLocal(
   key: string,

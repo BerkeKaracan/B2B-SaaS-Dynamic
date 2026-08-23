@@ -7,9 +7,11 @@ import pytest
 
 from api.routers.canvas_collab import (
     _allow_insecure_canvas_ws,
+    _resolve_room_access,
     _validate_room_project_access,
     _validate_room_tenant_access,
 )
+from core.project_access import Permission
 
 
 class TestAllowInsecureCanvasWs:
@@ -85,7 +87,7 @@ class TestValidateRoomProjectAccess:
         mock_has_perm.return_value = True
 
         assert _validate_room_project_access("room-1", "user-1", "u@example.com") is True
-        mock_has_perm.assert_called_once()
+        assert mock_has_perm.call_count >= 1
 
     @patch("api.routers.canvas_collab.has_project_permission")
     @patch("api.routers.canvas_collab.supabase_admin")
@@ -101,6 +103,23 @@ class TestValidateRoomProjectAccess:
     def test_room_not_found(self, mock_supabase):
         mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = []
         assert _validate_room_project_access("missing", "user-1", "u@example.com") is False
+
+
+    @patch("api.routers.canvas_collab.build_access_context_for_user")
+    @patch("api.routers.canvas_collab.has_project_permission")
+    @patch("api.routers.canvas_collab.supabase_admin")
+    def test_view_only_cannot_edit(
+        self, mock_supabase, mock_has_perm, mock_build_ctx
+    ):
+        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
+            {"id": "room-1", "tenant_id": "tenant-123", "module_name": "projects"}
+        ]
+        mock_build_ctx.return_value = MagicMock()
+        mock_has_perm.side_effect = lambda _ctx, _rec, perm: perm == Permission.VIEW
+
+        access = _resolve_room_access("room-1", "user-1", "u@example.com")
+        assert access.allowed is True
+        assert access.can_edit is False
 
 
 class TestValidateRoomTenantAccess:

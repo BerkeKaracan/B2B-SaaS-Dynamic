@@ -5,16 +5,12 @@ import type { Database } from '@/types/supabase';
 import { fetchRealtimeAccessToken } from '@/lib/authCookies';
 
 const REALTIME_STORAGE_KEY = 'b2b-saas-realtime';
-const COLLAB_STORAGE_KEY = 'b2b-saas-canvas-collab';
 /** Refresh cached user token this many seconds before JWT exp. */
 const TOKEN_REFRESH_SKEW_SEC = 60;
 
 let sharedClient: SupabaseClient<Database> | null = null;
 let sharedToken: string | null = null;
 let inflight: Promise<SupabaseClient<Database> | null> | null = null;
-
-/** Anon-only client for public presence/broadcast (live cursors). Never setAuth. */
-let collabClient: SupabaseClient<Database> | null = null;
 
 function jwtExpUnix(token: string): number | null {
   try {
@@ -77,41 +73,6 @@ async function buildAuthedRealtimeClient(
   return client;
 }
 
-/**
- * Public Realtime client for canvas cursors / optional Yjs broadcast.
- * Anon key only — no user JWT, no setAuth, no /api/realtime-token.
- * Presence + public broadcast do not need a logged-in JWT; mixing JWT/setAuth
- * on this path was causing CHANNEL_ERROR and token spam on every reconnect.
- */
-export function getCanvasCollabClient(): SupabaseClient<Database> | null {
-  if (typeof window === 'undefined') return null;
-
-  if (collabClient) return collabClient;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-  if (!supabaseUrl || !anonKey) {
-    console.warn(
-      '[collab] NEXT_PUBLIC_SUPABASE_URL / ANON_KEY missing — Live disabled'
-    );
-    return null;
-  }
-
-  collabClient = createClient<Database>(supabaseUrl, anonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      storageKey: COLLAB_STORAGE_KEY,
-    },
-    realtime: {
-      params: { eventsPerSecond: 8 },
-    },
-  });
-
-  return collabClient;
-}
-
 /** Sync peek for authed client cleanup — never hits /api/realtime-token. */
 export function peekSharedRealtimeClient(): SupabaseClient<Database> | null {
   return sharedClient;
@@ -119,7 +80,7 @@ export function peekSharedRealtimeClient(): SupabaseClient<Database> | null {
 
 /**
  * Authed Realtime client for postgres_changes (chat, notifications).
- * Not used for canvas presence — see getCanvasCollabClient().
+ * Canvas live sync uses the FastAPI WebSocket, not this client.
  */
 export async function getSharedRealtimeClient(): Promise<SupabaseClient<Database> | null> {
   if (typeof window === 'undefined') return null;
@@ -162,46 +123,4 @@ export async function getSharedRealtimeClient(): Promise<SupabaseClient<Database
   } finally {
     inflight = null;
   }
-}
-
-/** Sync helper when a token is already in hand (same singleton semantics). */
-export function getOrCreateRealtimeClientWithToken(
-  accessToken: string
-): SupabaseClient<Database> | null {
-  if (typeof window === 'undefined') return null;
-  if (!accessToken) return null;
-
-  if (sharedClient && sharedToken === accessToken) {
-    return sharedClient;
-  }
-
-  sharedClient = null;
-  sharedToken = null;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-  if (!supabaseUrl || !anonKey) return null;
-
-  const client = createClient<Database>(supabaseUrl, anonKey, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      storageKey: REALTIME_STORAGE_KEY,
-    },
-    realtime: {
-      params: { eventsPerSecond: 10 },
-      accessToken: async () => sharedToken || accessToken,
-    },
-  });
-
-  void applyRealtimeAuth(client, accessToken);
-  sharedClient = client;
-  sharedToken = accessToken;
-  return client;
 }
