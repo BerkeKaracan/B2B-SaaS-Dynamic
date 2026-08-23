@@ -14,6 +14,17 @@ import {
   isMeaningfulProjectRecord,
 } from '@/lib/projectRecord';
 import { PROJECT_TEMPLATES } from '@/lib/templates';
+import {
+  buildAccessPutBody,
+  resolveVisibilityMode as projectVisibilityMode,
+  visibilityToRecordPayload,
+  type CustomRoleGrant,
+  type DepartmentGrant,
+} from '@/lib/projectAccess';
+import {
+  CustomRoleGrantEditor,
+  DepartmentGrantEditor,
+} from '@/components/workspace/ProjectAccessEditors';
 import { RecordData } from '@/types/record';
 import { useAuthStore } from '@/store/useAuthStore';
 import { fetchAPI } from '@/services/api';
@@ -62,31 +73,6 @@ type ProjectRecord = {
 
 type VisibilityFilter = 'all' | 'private' | 'open' | 'admin_only' | 'department';
 
-function projectVisibilityMode(
-  recordData?: { visibility?: string; visibility_mode?: string }
-): string {
-  const raw = recordData?.visibility_mode || recordData?.visibility || 'private';
-  if (raw === 'public') return 'open';
-  if (raw === 'just_admin') return 'admin_only';
-  return String(raw);
-}
-
-function visibilityToRecordPayload(
-  currentData: Record<string, unknown>,
-  mode: string
-): Record<string, unknown> {
-  const legacy = {
-    private: 'private',
-    open: 'public',
-    admin_only: 'just_admin',
-    department: 'department',
-  } as const;
-  return {
-    ...currentData,
-    visibility_mode: mode,
-    visibility: legacy[mode as keyof typeof legacy] ?? mode,
-  };
-}
 type SortOption = 'recent' | 'name_asc' | 'name_desc';
 function visibilityFilterLabel(
   filter: VisibilityFilter,
@@ -268,6 +254,18 @@ export default function ProjectCardsGrid({
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectFolder, setNewProjectFolder] = useState('');
   const [newProjectVisibility, setNewProjectVisibility] = useState('private');
+  const [createDepartmentGrants, setCreateDepartmentGrants] = useState<
+    DepartmentGrant[]
+  >([]);
+  const [createCustomRoleGrants, setCreateCustomRoleGrants] = useState<
+    CustomRoleGrant[]
+  >([]);
+  const [createDepartments, setCreateDepartments] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [createCustomRoles, setCreateCustomRoles] = useState<
+    { id: string; name: string }[]
+  >([]);
   const [selectedTemplate, setSelectedTemplate] = useState('blank');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{
@@ -417,6 +415,33 @@ export default function ProjectCardsGrid({
     if (tenantId) fetchProjects();
   }, [tenantId, fetchProjects]);
 
+  useEffect(() => {
+    if (!isModalOpen || !tenantId || !isAdmin) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [deptRes, rolesRes] = await Promise.all([
+          fetchAPI(`/api/tenants/${tenantId}/departments`),
+          fetchAPI(`/api/tenants/${tenantId}/roles`),
+        ]);
+        if (cancelled) return;
+        if (deptRes.ok) {
+          const data = await deptRes.json();
+          setCreateDepartments(Array.isArray(data) ? data : data.items || []);
+        }
+        if (rolesRes.ok) {
+          const data = await rolesRes.json();
+          setCreateCustomRoles(Array.isArray(data) ? data : data.items || []);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isModalOpen, tenantId, isAdmin]);
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim() || !isAdmin) return;
@@ -433,6 +458,11 @@ export default function ProjectCardsGrid({
             name: newProjectName,
             status: 'active',
             ...visibilityToRecordPayload({}, newProjectVisibility),
+            department_grants:
+              newProjectVisibility === 'department'
+                ? createDepartmentGrants
+                : undefined,
+            department_ids: createDepartmentGrants.map((g) => g.department_id),
             template: selectedTemplate,
             is_locked: 'false',
             folder: newProjectFolder.trim() || undefined,
@@ -443,6 +473,23 @@ export default function ProjectCardsGrid({
 
       if (res.ok) {
         const newRecord = await res.json();
+
+        const needsAccessPut =
+          newProjectVisibility !== 'private' ||
+          createDepartmentGrants.length > 0 ||
+          createCustomRoleGrants.length > 0;
+        if (needsAccessPut) {
+          await fetchAPI(`/api/records/${newRecord.id}/access`, {
+            method: 'PUT',
+            body: JSON.stringify(
+              buildAccessPutBody(
+                newProjectVisibility,
+                createDepartmentGrants,
+                createCustomRoleGrants
+              )
+            ),
+          });
+        }
 
         logActivity(
           tenantId,
@@ -455,6 +502,8 @@ export default function ProjectCardsGrid({
         setNewProjectName('');
         setNewProjectFolder('');
         setNewProjectVisibility('private');
+        setCreateDepartmentGrants([]);
+        setCreateCustomRoleGrants([]);
         setSelectedTemplate('blank');
         router.push(`/dashboard/${tenantId}/projects/${newRecord.id}`);
       } else {
@@ -1612,6 +1661,49 @@ export default function ProjectCardsGrid({
                   className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50"
                 />
               </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
+                  {t('access.visibilityTitle')}
+                </label>
+                <select
+                  value={newProjectVisibility}
+                  onChange={(e) => setNewProjectVisibility(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50"
+                >
+                  <option value="private">{t('access.private')}</option>
+                  <option value="open">{t('access.open')}</option>
+                  <option value="department">{t('access.department')}</option>
+                  <option value="admin_only">{t('access.adminOnly')}</option>
+                </select>
+              </div>
+              {newProjectVisibility === 'department' && (
+                <DepartmentGrantEditor
+                  departments={createDepartments}
+                  grants={createDepartmentGrants}
+                  onChange={setCreateDepartmentGrants}
+                  disabled={isCreating}
+                  labels={{
+                    title: t('access.departmentsTitle'),
+                    desc: t('access.departmentsDesc'),
+                    empty: t('access.noDepartments'),
+                    view: t('access.permissionView'),
+                    edit: t('access.permissionEdit'),
+                  }}
+                />
+              )}
+              <CustomRoleGrantEditor
+                roles={createCustomRoles}
+                grants={createCustomRoleGrants}
+                onChange={setCreateCustomRoleGrants}
+                disabled={isCreating}
+                labels={{
+                  title: t('access.customRolesTitle'),
+                  desc: t('access.customRolesDesc'),
+                  empty: t('access.noCustomRoles'),
+                  view: t('access.permissionView'),
+                  edit: t('access.permissionEdit'),
+                }}
+              />
               <div
                 className={`space-y-1.5 relative ${
                   isTemplateDropdownOpen ? 'z-50' : 'z-0'

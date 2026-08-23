@@ -146,28 +146,43 @@ def _fetch_record(record_id: str) -> dict:
 def _sync_department_grants(
     tenant_id: str,
     project_id: str,
-    department_ids: list[str],
+    department_grants: list[dict],
     created_by: str,
 ) -> None:
     supabase_admin.table("project_access_grants").delete().eq(
         "project_id", project_id
     ).eq("subject_type", "department").execute()
     rows = []
-    for dept_id in department_ids or []:
+    for item in department_grants or []:
+        dept_id = str(item.get("department_id") or item.get("subject_id") or "")
         if not dept_id:
             continue
+        perm = str(item.get("permission") or "view").lower()
+        if perm not in ("view", "edit"):
+            perm = "view"
         rows.append(
             {
                 "tenant_id": tenant_id,
                 "project_id": project_id,
                 "subject_type": "department",
-                "subject_id": str(dept_id),
-                "permission": "view",
+                "subject_id": dept_id,
+                "permission": perm,
                 "created_by": created_by,
             }
         )
     if rows:
         supabase_admin.table("project_access_grants").insert(rows).execute()
+
+
+def _resolve_department_grants(body: ProjectAccessUpdate) -> list[dict]:
+    if body.department_grants:
+        return [
+            {"department_id": str(g.department_id), "permission": g.permission}
+            for g in body.department_grants
+        ]
+    return [
+        {"department_id": str(d), "permission": "view"} for d in body.department_ids
+    ]
 
 
 def _apply_grant_rows(
@@ -294,7 +309,12 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
         visibility_mode = resolve_visibility_mode(
             {"record_data": data["record_data"], "visibility_mode": "private"}
         )
-        if not is_system_module(req_module):
+        if not is_system_module(req_module) and visibility_mode not in (
+            "private",
+            "open",
+            "admin_only",
+            "department",
+        ):
             visibility_mode = "private"
 
         data["record_data"] = sync_visibility_to_record_data(
@@ -322,6 +342,29 @@ def create_record(record: RecordCreate, user: dict = Depends(get_user_role)):
                 data["record_data"]["collaborators"],
                 user["user_id"],
             )
+            raw_dept_grants = data["record_data"].get("department_grants") or []
+            if visibility_mode == "department":
+                if raw_dept_grants:
+                    dept_grants = [
+                        {
+                            "department_id": str(g.get("department_id")),
+                            "permission": g.get("permission", "view"),
+                        }
+                        for g in raw_dept_grants
+                        if isinstance(g, dict) and g.get("department_id")
+                    ]
+                else:
+                    dept_ids = data["record_data"].get("department_ids") or []
+                    dept_grants = [
+                        {"department_id": str(d), "permission": "view"} for d in dept_ids
+                    ]
+                if dept_grants:
+                    _sync_department_grants(
+                        req_tenant,
+                        str(created["id"]),
+                        dept_grants,
+                        user["user_id"],
+                    )
         return created
     except HTTPException:
         raise
@@ -401,11 +444,31 @@ def get_project_access(record_id: UUID, user: dict = Depends(get_user_role)):
         .eq("project_id", str(record_id))
         .execute()
     )
+    grant_rows = grants.data or []
     record_data = record.get("record_data") or {}
+    department_grants = [
+        {
+            "department_id": str(g.get("subject_id")),
+            "permission": g.get("permission") or "view",
+        }
+        for g in grant_rows
+        if g.get("subject_type") == "department"
+    ]
+    custom_role_grants = [
+        {
+            "custom_role_id": str(g.get("subject_id")),
+            "permission": g.get("permission") or "view",
+        }
+        for g in grant_rows
+        if g.get("subject_type") == "custom_role"
+    ]
     return {
         "visibility_mode": resolve_visibility_mode(record),
-        "department_ids": record_data.get("department_ids") or [],
-        "grants": grants.data or [],
+        "department_ids": record_data.get("department_ids")
+        or [g["department_id"] for g in department_grants],
+        "department_grants": department_grants,
+        "custom_role_grants": custom_role_grants,
+        "grants": grant_rows,
         "collaborators": record_data.get("collaborators") or [],
     }
 
@@ -425,8 +488,10 @@ def update_project_access(
     assert_project_access(ctx, record, Permission.MANAGE)
 
     record_data = dict(record.get("record_data") or {})
+    dept_grants = _resolve_department_grants(body)
     record_data = sync_visibility_to_record_data(record_data, body.visibility_mode)
-    record_data["department_ids"] = [str(d) for d in body.department_ids]
+    record_data["department_ids"] = [g["department_id"] for g in dept_grants]
+    record_data["department_grants"] = dept_grants
 
     update_payload = {
         "visibility_mode": body.visibility_mode,
@@ -439,7 +504,7 @@ def update_project_access(
     _sync_department_grants(
         rec_tenant,
         str(record_id),
-        [str(d) for d in body.department_ids],
+        dept_grants,
         user["user_id"],
     )
     supabase_admin.table("project_access_grants").delete().eq(
@@ -574,12 +639,28 @@ def update_record(
             raise HTTPException(status_code=404, detail="Record not found")
 
         if not is_system_module(str(existing.get("module_name") or "")):
+            raw_dept_grants = payload_data.get("department_grants")
             dept_ids = payload_data.get("department_ids")
-            if dept_ids is not None:
+            if raw_dept_grants is not None or dept_ids is not None:
+                if isinstance(raw_dept_grants, list) and raw_dept_grants:
+                    dept_grants = [
+                        {
+                            "department_id": str(g.get("department_id")),
+                            "permission": g.get("permission", "view"),
+                        }
+                        for g in raw_dept_grants
+                        if isinstance(g, dict) and g.get("department_id")
+                    ]
+                elif isinstance(dept_ids, list):
+                    dept_grants = [
+                        {"department_id": str(d), "permission": "view"} for d in dept_ids
+                    ]
+                else:
+                    dept_grants = []
                 _sync_department_grants(
                     rec_tenant,
                     str(record_id),
-                    [str(d) for d in dept_ids] if isinstance(dept_ids, list) else [],
+                    dept_grants,
                     user["user_id"],
                 )
             _sync_collaborator_grants(

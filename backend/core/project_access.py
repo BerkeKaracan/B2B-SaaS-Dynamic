@@ -280,6 +280,7 @@ def patch_changes_manage_fields(payload_data: dict[str, Any], current_data: dict
         "visibility",
         "visibility_mode",
         "department_ids",
+        "department_grants",
         "is_global_shared",
         "is_global_public",
     }

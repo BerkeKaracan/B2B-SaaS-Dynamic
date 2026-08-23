@@ -18,18 +18,26 @@ import {
   normalizeProjectTemplate,
 } from '@/lib/templates';
 import { themeFromPageColor, isLightPageColor } from '@/lib/pageTheme';
-import { Check, Copy, Globe2, Lock, Share2, Users, X } from 'lucide-react';
+import { Check, Copy, Globe2, Lock, Share2, X } from 'lucide-react';
 import { LoadingMark, LoadingDots } from '@/components/ui/loading';
 import { useTranslations } from 'next-intl';
+import {
+  CustomRoleGrantEditor,
+  DepartmentGrantEditor,
+} from '@/components/workspace/ProjectAccessEditors';
+import {
+  buildAccessPutBody,
+  departmentGrantsToIds,
+  grantsFromAccessResponse,
+  resolveVisibilityMode,
+  visibilityToRecordPayload,
+  type CustomRoleGrant,
+  type DepartmentGrant,
+} from '@/lib/projectAccess';
 
 type Collaborator = {
   email: string;
   role: string;
-};
-
-type Department = {
-  id: string;
-  name: string;
 };
 
 type RecordDataProps = {
@@ -37,6 +45,7 @@ type RecordDataProps = {
   visibility?: string;
   visibility_mode?: string;
   department_ids?: string[];
+  department_grants?: DepartmentGrant[];
   is_global_public?: boolean | string;
   is_global_shared?: boolean | string;
   collaborators?: Collaborator[];
@@ -44,31 +53,6 @@ type RecordDataProps = {
   is_locked?: string;
   [key: string]: unknown;
 };
-
-function resolveVisibilityMode(data: RecordDataProps | null | undefined): string {
-  if (!data) return 'private';
-  const raw = data.visibility_mode || data.visibility || 'private';
-  if (raw === 'public') return 'open';
-  if (raw === 'just_admin') return 'admin_only';
-  return String(raw);
-}
-
-function visibilityToRecordPayload(
-  currentData: RecordDataProps,
-  mode: string
-): RecordDataProps {
-  const legacy = {
-    private: 'private',
-    open: 'public',
-    admin_only: 'just_admin',
-    department: 'department',
-  } as const;
-  return {
-    ...currentData,
-    visibility_mode: mode,
-    visibility: legacy[mode as keyof typeof legacy] ?? mode,
-  };
-}
 
 const isHubPublished = (data: RecordDataProps | null | undefined) => {
   if (!data) return false;
@@ -112,8 +96,10 @@ export default function ProjectDesignPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('viewer');
   const [visibilityMode, setVisibilityMode] = useState('private');
-  const [departmentIds, setDepartmentIds] = useState<string[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentGrants, setDepartmentGrants] = useState<DepartmentGrant[]>([]);
+  const [customRoleGrants, setCustomRoleGrants] = useState<CustomRoleGrant[]>([]);
+  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
+  const [customRoles, setCustomRoles] = useState<{ id: string; name: string }[]>([]);
   const [canManageAccess, setCanManageAccess] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
 
@@ -169,29 +155,34 @@ export default function ProjectDesignPage() {
     setIsLoadingRecord(true);
     setAccessError(null);
     try {
-      const [recordRes, accessRes, deptRes] = await Promise.all([
+      const [recordRes, accessRes, deptRes, rolesRes] = await Promise.all([
         fetchAPI(`/api/records/${projectId}`),
         fetchAPI(`/api/records/${projectId}/access`),
         fetchAPI(`/api/tenants/${tenantId}/departments`),
+        fetchAPI(`/api/tenants/${tenantId}/roles`),
       ]);
 
       if (recordRes.ok) {
         const data = await recordRes.json();
         setRecordData(data.record_data);
         setVisibilityMode(resolveVisibilityMode(data.record_data));
-        const deptIds = data.record_data?.department_ids;
-        setDepartmentIds(Array.isArray(deptIds) ? deptIds.map(String) : []);
       }
 
       if (accessRes.ok) {
         const access = await accessRes.json();
         setCanManageAccess(true);
         setVisibilityMode(access.visibility_mode || 'private');
-        setDepartmentIds(
-          Array.isArray(access.department_ids)
-            ? access.department_ids.map(String)
-            : []
-        );
+        const parsed = grantsFromAccessResponse(access.grants || []);
+        if (access.department_grants?.length) {
+          setDepartmentGrants(access.department_grants);
+        } else {
+          setDepartmentGrants(parsed.departmentGrants);
+        }
+        if (access.custom_role_grants?.length) {
+          setCustomRoleGrants(access.custom_role_grants);
+        } else {
+          setCustomRoleGrants(parsed.customRoleGrants);
+        }
       } else if (accessRes.status === 403) {
         setCanManageAccess(false);
       }
@@ -199,6 +190,11 @@ export default function ProjectDesignPage() {
       if (deptRes.ok) {
         const deptData = await deptRes.json();
         setDepartments(Array.isArray(deptData) ? deptData : deptData.items || []);
+      }
+
+      if (rolesRes.ok) {
+        const roleData = await rolesRes.json();
+        setCustomRoles(Array.isArray(roleData) ? roleData : roleData.items || []);
       }
     } catch (err) {
       console.error(err);
@@ -214,22 +210,21 @@ export default function ProjectDesignPage() {
     try {
       const res = await fetchAPI(`/api/records/${projectId}/access`, {
         method: 'PUT',
-        body: JSON.stringify({
-          visibility_mode: visibilityMode,
-          department_ids: departmentIds,
-          grants: [],
-        }),
+        body: JSON.stringify(
+          buildAccessPutBody(visibilityMode, departmentGrants, customRoleGrants)
+        ),
       });
       if (res.ok) {
-        const updated = {
-          ...visibilityToRecordPayload(recordData, visibilityMode),
-          department_ids: departmentIds,
-        };
+        const deptIds = departmentGrantsToIds(departmentGrants);
+        const updated = visibilityToRecordPayload(recordData, visibilityMode) as RecordDataProps;
+        updated.department_ids = deptIds;
+        updated.department_grants = departmentGrants;
         setRecordData(updated);
         updateMetadata({
           visibility_mode: visibilityMode,
           visibility: updated.visibility,
-          department_ids: departmentIds,
+          department_ids: deptIds,
+          department_grants: departmentGrants,
         });
       } else {
         const err = await res.json().catch(() => ({}));
@@ -243,12 +238,20 @@ export default function ProjectDesignPage() {
     }
   };
 
-  const toggleDepartment = (deptId: string) => {
-    setDepartmentIds((prev) =>
-      prev.includes(deptId)
-        ? prev.filter((id) => id !== deptId)
-        : [...prev, deptId]
-    );
+  const accessEditorLabels = {
+    title: t('access.departmentsTitle'),
+    desc: t('access.departmentsDesc'),
+    empty: t('access.noDepartments'),
+    view: t('access.permissionView'),
+    edit: t('access.permissionEdit'),
+  };
+
+  const roleEditorLabels = {
+    title: t('access.customRolesTitle'),
+    desc: t('access.customRolesDesc'),
+    empty: t('access.noCustomRoles'),
+    view: t('access.permissionView'),
+    edit: t('access.permissionEdit'),
   };
 
   const handleCopy = async () => {
@@ -580,44 +583,22 @@ export default function ProjectDesignPage() {
                     </div>
 
                     {visibilityMode === 'department' && (
-                      <div className="space-y-2 pt-1 border-t border-zinc-200/80 dark:border-zinc-800">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-zinc-500" />
-                          <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                            {t('access.departmentsTitle')}
-                          </p>
-                        </div>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                          {t('access.departmentsDesc')}
-                        </p>
-                        {departments.length === 0 ? (
-                          <p className="text-xs text-zinc-400 italic">
-                            No departments configured yet.
-                          </p>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {departments.map((dept) => {
-                              const selected = departmentIds.includes(dept.id);
-                              return (
-                                <button
-                                  key={dept.id}
-                                  type="button"
-                                  disabled={isUpdating}
-                                  onClick={() => toggleDepartment(dept.id)}
-                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-colors ${
-                                    selected
-                                      ? 'bg-sky-50 dark:bg-sky-500/10 border-sky-200 dark:border-sky-500/30 text-sky-800 dark:text-sky-300'
-                                      : 'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300'
-                                  }`}
-                                >
-                                  {dept.name}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
+                      <DepartmentGrantEditor
+                        departments={departments}
+                        grants={departmentGrants}
+                        onChange={setDepartmentGrants}
+                        disabled={isUpdating}
+                        labels={accessEditorLabels}
+                      />
                     )}
+
+                    <CustomRoleGrantEditor
+                      roles={customRoles}
+                      grants={customRoleGrants}
+                      onChange={setCustomRoleGrants}
+                      disabled={isUpdating}
+                      labels={roleEditorLabels}
+                    />
 
                     {accessError && (
                       <p className="text-xs text-red-600 dark:text-red-400">{accessError}</p>

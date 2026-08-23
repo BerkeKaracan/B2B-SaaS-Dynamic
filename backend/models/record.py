@@ -22,6 +22,11 @@ class RecordResponse(RecordCreate):
         from_attributes = True
 
 
+class DepartmentGrantInput(BaseModel):
+    department_id: UUID
+    permission: Literal["view", "edit"] = "view"
+
+
 class AccessGrantInput(BaseModel):
     subject_type: Literal["user", "department", "custom_role"]
     subject_id: UUID
@@ -31,4 +36,5 @@ class AccessGrantInput(BaseModel):
 class ProjectAccessUpdate(BaseModel):
     visibility_mode: Literal["private", "open", "admin_only", "department"] = "private"
     department_ids: List[UUID] = Field(default_factory=list)
+    department_grants: List[DepartmentGrantInput] = Field(default_factory=list)
     grants: List[AccessGrantInput] = Field(default_factory=list)
