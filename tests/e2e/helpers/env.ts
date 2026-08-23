@@ -21,7 +21,7 @@ export type E2EConfig = {
   collabCanvasProjectId: string;
   viewerDeniedProjectId?: string;
   publicShareProjectId: string;
-  inviteTargetEmail?: string;
+  inviteTargetEmail: string;
 };
 
 function cred(prefix: string): E2ECredentials | null {
@@ -81,10 +81,12 @@ export function loadPublicShareConfig(): Pick<E2EConfig, 'publicShareProjectId'>
   return { publicShareProjectId: process.env.E2E_PUBLIC_SHARE_PROJECT_ID! };
 }
 
-export function loadTeamInviteConfig(): Pick<
+export type TeamInviteE2EConfig = Pick<
   E2EConfig,
   'tenantId' | 'admin' | 'inviteTargetEmail'
-> | null {
+>;
+
+export function loadTeamInviteConfig(): TeamInviteE2EConfig | null {
   const missing = missingEnvVars([...TEAM_INVITE_ENV_KEYS]);
   if (missing.length) return null;
   const admin = cred('ADMIN');
