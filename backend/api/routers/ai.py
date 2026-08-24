@@ -22,6 +22,7 @@ logger = logging.getLogger("saas_engine")
 from core.ai_prompts import (
     get_magic_wand_prompt,
     get_canvas_system_prompt,
+    get_canvas_dialog_prompt,
     get_chat_prompt,
 )
 from core.canvas_generation import (
@@ -965,6 +966,23 @@ class GenerateCanvasRequest(BaseModel):
     tenant_id: str
 
 
+class CanvasDialogMessage(BaseModel):
+    role: str
+    content: str
+
+
+class CanvasDialogRequest(BaseModel):
+    message: str
+    tenant_id: str
+    history: List[CanvasDialogMessage] = []
+
+
+class CanvasDialogResponse(BaseModel):
+    action: str
+    message: str
+    prompt: str = ""
+
+
 # Groq on-demand TPM is 8000 for this org. That budget includes the
 # prompt, so completion max_tokens must leave room for the system+user text.
 GROQ_TPM_BUDGET = 8000
@@ -1147,6 +1165,88 @@ async def generate_canvas_from_model(
         parsed_json = parse_or_raise_canvas_json(result_text)
 
     return normalize_generated_pages(parsed_json, x=req.x, y=req.y)
+
+
+def _normalize_dialog_payload(raw: dict) -> dict:
+    action = str(raw.get("action") or "reply").strip().lower()
+    if action not in {"reply", "generate"}:
+        action = "reply"
+    message = str(raw.get("message") or "").strip()
+    prompt = str(raw.get("prompt") or "").strip()
+    if action == "generate" and not prompt:
+        prompt = message
+    if not message:
+        message = (
+            "I can build boards and forms on the canvas. "
+            "Tell me what you want — for example a sprint kanban or an intake form."
+        )
+    return {"action": action, "message": message, "prompt": prompt}
+
+
+async def canvas_dialog_from_model(
+    client: AsyncGroq, req: CanvasDialogRequest
+) -> dict:
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    system_prompt = get_canvas_dialog_prompt(current_date)
+    history = sanitize_chat_messages(req.history[-8:])
+    messages: List[Dict[str, Any]] = [
+        {"role": "system", "content": system_prompt},
+        *history,
+        {"role": "user", "content": req.message},
+    ]
+    # Dialog JSON is small — keep completion budget modest for TPM headroom.
+    result_text = await groq_canvas_completion(
+        client, messages, max_tokens=1200
+    )
+    try:
+        parsed = loads_canvas_payload(result_text)
+    except CanvasJsonError:
+        repair_messages = [
+            *messages,
+            {"role": "assistant", "content": result_text[:2000]},
+            {
+                "role": "user",
+                "content": (
+                    'Return ONLY JSON: '
+                    '{"action":"reply"|"generate","message":"...","prompt":"..."}'
+                ),
+            },
+        ]
+        result_text = await groq_canvas_completion(
+            client, repair_messages, max_tokens=800
+        )
+        parsed = parse_or_raise_canvas_json(result_text)
+    return _normalize_dialog_payload(parsed)
+
+
+@router.post("/canvas-dialog")
+@limiter.limit("20/minute", key_func=get_ai_rate_limit_key)
+async def canvas_dialog(
+    request: Request, req: CanvasDialogRequest, user=Depends(verify_user)
+):
+    from core.feature_gate import AI_CANVAS_GENERATOR, require_feature
+
+    require_feature(AI_CANVAS_GENERATOR, req.tenant_id, user.id)
+    assert_tenant_access(req.tenant_id, user.id)
+
+    if not (req.message or "").strip():
+        raise HTTPException(status_code=422, detail="Message is required.")
+
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing")
+
+    client = AsyncGroq(api_key=api_key)
+    try:
+        return await canvas_dialog_from_model(client, req)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Failed canvas dialog")
+        raise HTTPException(
+            status_code=500,
+            detail="An internal error occurred while planning the canvas.",
+        ) from e
 
 
 @router.post("/chat")

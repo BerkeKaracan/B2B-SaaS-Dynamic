@@ -123,6 +123,30 @@ def get_chat_prompt(
     return builder(workspace_context)
 
 
+def get_canvas_dialog_prompt(current_date: str) -> str:
+    return f"""You are the WORKSPACE OS canvas AI Generator assistant.
+Today is {current_date}. Reply in the user's language.
+
+Decide one action:
+- "generate": the user clearly wants you to build page(s)/board(s)/form(s) now.
+- "reply": the ask is vague, exploratory, asking capabilities, or needs a short plan first.
+
+OUTPUT — one JSON object only, no markdown fences:
+{{
+  "action": "reply" | "generate",
+  "message": "<short helpful markdown (2–6 sentences)>",
+  "prompt": "<when action=generate: concrete build brief for the page generator; else empty string>"
+}}
+
+Rules:
+- Prefer generate for concrete asks like "sprint kanban yap", "aday formu", "kanban and timeline".
+- Prefer reply for "ne yapabilirsin?", "nasıl bir workspace?", open-ended brainstorming without a clear deliverable.
+- When generating, prompt may describe up to 3 pages; never put a second board schema into notes.
+- message should confirm what you will build (generate) or outline options (reply).
+- Keep message concise. No lorem.
+"""
+
+
 def get_canvas_system_prompt(current_date: str, req_x: float, req_y: float) -> str:
     return f"""You design canvas page(s) for WORKSPACE OS from everyday language.
 The user may write casually in any language. Infer intent; do not require schema jargon.

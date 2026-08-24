@@ -12,6 +12,7 @@ from fastapi import HTTPException
 
 from groq import APIStatusError
 
+from core.ai_prompts import get_canvas_system_prompt, get_canvas_dialog_prompt
 from api.routers.ai import (
     CANVAS_CAPACITY_DETAIL,
     CANVAS_GENERATE_FALLBACK_TOKENS,
@@ -19,10 +20,12 @@ from api.routers.ai import (
     CANVAS_INVALID_JSON_DETAIL,
     GROQ_TPM_BUDGET,
     GenerateCanvasRequest,
+    CanvasDialogRequest,
+    _normalize_dialog_payload,
+    canvas_dialog_from_model,
     generate_canvas_from_model,
     groq_canvas_completion,
 )
-from core.ai_prompts import get_canvas_system_prompt
 from core.canvas_generation import (
     CanvasJsonError,
     board_metadata_skeleton,
@@ -152,6 +155,48 @@ def test_prompt_covers_human_intent_and_calendar():
     assert "half" in prompt
     assert "paste this next" in prompt
     assert "transparent" in prompt
+
+
+def test_dialog_prompt_and_normalize():
+    prompt = get_canvas_dialog_prompt("2026-08-24")
+    assert "generate" in prompt
+    assert "reply" in prompt
+    assert _normalize_dialog_payload(
+        {"action": "GENERATE", "message": "Building a board", "prompt": ""}
+    ) == {
+        "action": "generate",
+        "message": "Building a board",
+        "prompt": "Building a board",
+    }
+    reply = _normalize_dialog_payload({"action": "nope", "message": ""})
+    assert reply["action"] == "reply"
+    assert reply["message"]
+
+
+def test_canvas_dialog_returns_generate_action():
+    client = MagicMock()
+    client.chat.completions.create = AsyncMock(
+        return_value=_completion(
+            json.dumps(
+                {
+                    "action": "generate",
+                    "message": "I'll add a sprint kanban.",
+                    "prompt": "Q3 sprint kanban with 4 columns",
+                }
+            )
+        )
+    )
+    result = asyncio.run(
+        canvas_dialog_from_model(
+            client,
+            CanvasDialogRequest(
+                message="sprint board yap",
+                tenant_id="11111111-1111-1111-1111-111111111111",
+            ),
+        )
+    )
+    assert result["action"] == "generate"
+    assert "kanban" in result["prompt"].lower() or "sprint" in result["prompt"].lower()
 
 
 def _completion(text: str) -> SimpleNamespace:
