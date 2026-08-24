@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { BlockContent } from '@/types/record';
 import {
@@ -26,6 +26,7 @@ import {
   blockSettingsInput,
 } from './blockStyles';
 import { uploadImageViaPresignedUrl } from '@/lib/s3Upload';
+import { closeSettingsPanel, useCloseOnInactive } from '@/lib/focusHygiene';
 
 interface AssetStreamBlockProps {
   block: BlockContent;
@@ -47,10 +48,7 @@ export default function AssetStreamBlock({
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!isActive) setIsSettingsOpen(false);
-  }, [isActive]);
+  useCloseOnInactive(isActive, isSettingsOpen, setIsSettingsOpen);
 
   const label = (block.settings?.label as string) ?? 'Asset Stream';
   const jsonKey = (block.settings?.jsonKey as string) ?? 'custom_asset';
@@ -113,7 +111,7 @@ export default function AssetStreamBlock({
               Asset Setup
             </div>
             <button
-              onClick={() => setIsSettingsOpen(false)}
+              onClick={() => closeSettingsPanel(setIsSettingsOpen)}
               className={blockSettingsClose}
             >
               <X className="w-3.5 h-3.5" />

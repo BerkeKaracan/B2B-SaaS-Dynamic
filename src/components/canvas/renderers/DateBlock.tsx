@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { BlockContent } from "@/types/record";
 import * as Popover from "@radix-ui/react-popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -25,6 +25,7 @@ import {
   blockSettingsInput,
   blockPopover,
 } from "./blockStyles";
+import { closeSettingsPanel, useCloseOnInactive } from "@/lib/focusHygiene";
 
 interface DateBlockProps {
   block: BlockContent;
@@ -41,10 +42,7 @@ export default function DateBlock({
 }: DateBlockProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!isActive) setIsSettingsOpen(false);
-  }, [isActive]);
+  useCloseOnInactive(isActive, isSettingsOpen, setIsSettingsOpen);
 
   const label = (block.settings?.label as string) ?? "Date Field";
   const jsonKey = (block.settings?.jsonKey as string) ?? "custom_date";
@@ -82,7 +80,8 @@ export default function DateBlock({
               Date Setup
             </div>
             <button
-              onClick={() => setIsSettingsOpen(false)}
+              type="button"
+              onClick={() => closeSettingsPanel(setIsSettingsOpen)}
               className={blockSettingsClose}
             >
               <X className="w-3.5 h-3.5" />

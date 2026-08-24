@@ -18,6 +18,7 @@ import type {
   DraggableProvided,
   DraggableStateSnapshot,
 } from '@hello-pangea/dnd';
+import { MarkdownContent } from '@/components/ui/MarkdownContent';
 import type { TimelineEvent } from './types';
 import { PRIORITY_UI } from './timelineStyles';
 
@@ -115,9 +116,11 @@ function TimelineEventCard({
                 {event.title}
               </h4>
               {event.description ? (
-                <p className="text-[11px] mt-1 line-clamp-2 font-medium text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                  {event.description}
-                </p>
+                <div className="text-[11px] mt-1 line-clamp-3 font-medium text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                  <MarkdownContent variant="compact">
+                    {event.description}
+                  </MarkdownContent>
+                </div>
               ) : null}
             </div>
             <MenuButton

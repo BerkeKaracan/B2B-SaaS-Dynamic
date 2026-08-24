@@ -28,7 +28,8 @@ describe('blockTheme', () => {
 
   it('does not put transparent on the page palette', () => {
     expect(PAGE_THEME_COLORS).not.toContain('transparent');
-    expect(PAGE_THEME_COLORS).toHaveLength(10);
+    expect(PAGE_THEME_COLORS).toHaveLength(11);
+    expect(PAGE_THEME_COLORS).toContain('#fafafa');
   });
 
   it('uses clear chrome for transparent and a card for default', () => {

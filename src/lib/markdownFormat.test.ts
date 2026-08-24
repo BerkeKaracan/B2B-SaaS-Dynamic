@@ -22,4 +22,71 @@ describe('preprocessAiMarkdown', () => {
   it('exposes formatMarkdown alias', () => {
     expect(formatMarkdown('x<br>y')).toBe('x\ny');
   });
+
+  it('inserts blank lines around headings and lists', () => {
+    const raw = [
+      '- Hata ölçütleri',
+      '## Uygulama',
+      '- Gerçek dünya örnekleri',
+      '## Sonuç ve Kaynaklar',
+    ].join('\n');
+
+    expect(preprocessAiMarkdown(raw)).toBe(
+      [
+        '- Hata ölçütleri',
+        '',
+        '## Uygulama',
+        '',
+        '- Gerçek dünya örnekleri',
+        '',
+        '## Sonuç ve Kaynaklar',
+      ].join('\n')
+    );
+  });
+
+  it('formats standup-style bold fields and sections', () => {
+    const raw = [
+      '**Title:** *',
+      '**Date:** *',
+      '**Completed**',
+      '- *',
+      '**In Progress**',
+      '- *',
+      '**Blockers**',
+      '- *',
+      '**Next Steps**',
+      '- *',
+    ].join('\n');
+
+    expect(preprocessAiMarkdown(raw)).toBe(
+      [
+        '**Title:** *',
+        '',
+        '**Date:** *',
+        '',
+        '**Completed**',
+        '',
+        '- *',
+        '',
+        '**In Progress**',
+        '',
+        '- *',
+        '',
+        '**Blockers**',
+        '',
+        '- *',
+        '',
+        '**Next Steps**',
+        '',
+        '- *',
+      ].join('\n')
+    );
+  });
+
+  it('does not break consecutive list items or fenced code', () => {
+    const raw = '- a\n- b\n```\n# not a heading\n- still code\n```';
+    const out = preprocessAiMarkdown(raw);
+    expect(out).toContain('- a\n- b');
+    expect(out).toContain('```\n# not a heading\n- still code\n```');
+  });
 });

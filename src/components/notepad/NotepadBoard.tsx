@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useBoardPersistence } from '@/hooks/useBoardPersistence';
@@ -8,6 +8,8 @@ import {
   useHasProjectToolbarSlot,
   useProjectToolbarPortal,
 } from '@/components/workspace/ProjectToolbarSlot';
+import { MarkdownContent } from '@/components/ui/MarkdownContent';
+import { formatMarkdown } from '@/lib/markdownFormat';
 import { Clock, FileText } from 'lucide-react';
 import { SURFACE, FIELD } from './notepadStyles';
 import NotepadToolbar from './NotepadToolbar';
@@ -29,6 +31,8 @@ function NotepadBoard({ projectId }: { projectId: string }) {
   );
   const [isClient, setIsClient] = useState(false);
   const [isEditorFocused, setIsEditorFocused] = useState(false);
+  const [isBodyEditing, setIsBodyEditing] = useState(false);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -74,9 +78,34 @@ function NotepadBoard({ projectId }: { projectId: string }) {
     persist({ notepadContent: newContent, documentContent: newContent });
   };
 
+  const beginBodyEdit = () => {
+    if (isReadonly) return;
+    setIsBodyEditing(true);
+    setIsEditorFocused(true);
+    requestAnimationFrame(() => {
+      const el = bodyRef.current;
+      if (!el) return;
+      el.focus();
+      const len = el.value.length;
+      el.setSelectionRange(len, len);
+    });
+  };
+
+  const endBodyEdit = () => {
+    setIsBodyEditing(false);
+    setIsEditorFocused(false);
+    if (isReadonly) return;
+    const cleaned = formatMarkdown(content);
+    if (cleaned !== content) {
+      setContent(cleaned);
+      persist({ notepadContent: cleaned, documentContent: cleaned });
+    }
+  };
+
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
   const readingMinutes = Math.max(1, Math.ceil(wordCount / 200));
   const isEmpty = !title.trim() && !content.trim();
+  const showBodyPreview = !isBodyEditing && content.trim().length > 0;
   const hasToolbarSlot = useHasProjectToolbarSlot();
 
   const toolbarActions = (
@@ -188,17 +217,39 @@ function NotepadBoard({ projectId }: { projectId: string }) {
                 aria-hidden
               />
 
-              <textarea
-                value={content}
-                onChange={handleContentChange}
-                readOnly={isReadonly}
-                onFocus={() => setIsEditorFocused(true)}
-                onBlur={() => setIsEditorFocused(false)}
-                placeholder={t('contentPlaceholder')}
-                className={`${FIELD.body} ${FIELD.bodyFocus} ${
-                  isReadonly ? 'cursor-default' : ''
-                }`}
-              />
+              {showBodyPreview ? (
+                <div
+                  role={isReadonly ? undefined : 'button'}
+                  tabIndex={isReadonly ? undefined : 0}
+                  onClick={beginBodyEdit}
+                  onKeyDown={(e) => {
+                    if (isReadonly) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      beginBodyEdit();
+                    }
+                  }}
+                  className={`${FIELD.body} cursor-text min-h-[min(52vh,460px)]`}
+                >
+                  <MarkdownContent>{content}</MarkdownContent>
+                </div>
+              ) : (
+                <textarea
+                  ref={bodyRef}
+                  value={content}
+                  onChange={handleContentChange}
+                  readOnly={isReadonly}
+                  onFocus={() => {
+                    setIsBodyEditing(true);
+                    setIsEditorFocused(true);
+                  }}
+                  onBlur={endBodyEdit}
+                  placeholder={t('contentPlaceholder')}
+                  className={`${FIELD.body} ${FIELD.bodyFocus} ${
+                    isReadonly ? 'cursor-default' : ''
+                  }`}
+                />
+              )}
             </div>
 
             {/* Footer meta on paper */}

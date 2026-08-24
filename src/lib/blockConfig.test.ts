@@ -66,8 +66,39 @@ describe('layoutGeneratedBlocks', () => {
     expect(nextY).toBeGreaterThan(positioned[0].y + (positioned[0].height || 0));
   });
 
-  it('infers half for compact fields when layout is omitted', () => {
+  it('infers half for short forms and full for textareas', () => {
     expect(getGeneratedLayout({ type: 'date', settings: {} })).toBe('half');
-    expect(getGeneratedLayout({ type: 'form', settings: {} })).toBe('full');
+    expect(getGeneratedLayout({ type: 'form', settings: {} })).toBe('half');
+    expect(
+      getGeneratedLayout({
+        type: 'form',
+        settings: { inputType: 'textarea' },
+      })
+    ).toBe('full');
+  });
+
+  it('stretches an unpaired half field to full width', () => {
+    const pageWidth = 1000;
+    const { positioned } = layoutGeneratedBlocks(
+      [{ type: 'date', settings: { label: 'Start', layout: 'half' } }],
+      pageWidth
+    );
+    const usable = pageWidth - BLOCK_STACK_ORIGIN_X * 2;
+    expect(positioned[0].width).toBe(usable);
+  });
+
+  it('pairs two short forms on one row', () => {
+    const pageWidth = 1000;
+    const { positioned } = layoutGeneratedBlocks(
+      [
+        { type: 'form', settings: { label: 'Name' } },
+        { type: 'form', settings: { label: 'Email' } },
+      ],
+      pageWidth
+    );
+    expect(positioned[0].y).toBe(positioned[1].y);
+    expect(positioned[0].width).toBeLessThan(
+      pageWidth - BLOCK_STACK_ORIGIN_X * 2
+    );
   });
 });

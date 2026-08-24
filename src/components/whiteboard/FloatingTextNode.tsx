@@ -1,7 +1,9 @@
 'use client';
 
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import { useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { GripHorizontal, Trash2 } from 'lucide-react';
+import { MarkdownContent } from '@/components/ui/MarkdownContent';
+import { formatMarkdown } from '@/lib/markdownFormat';
 import type { ActiveTool, FloatingText } from './types';
 
 type FloatingTextNodeProps = {
@@ -34,6 +36,20 @@ export default function FloatingTextNode({
   onDelete,
 }: FloatingTextNodeProps) {
   const chromeVisible = activeTool === 'hand' || activeTool === 'text';
+  const [isEditing, setIsEditing] = useState(text.content === '');
+  const showPreview = !isEditing && text.content.trim().length > 0;
+
+  const textStyle = {
+    color: text.color,
+    fontSize: `${text.size}px`,
+    fontFamily: text.font,
+    lineHeight: '1.25',
+    minWidth: '120px',
+    minHeight: '44px',
+  } as const;
+
+  const surfaceClass =
+    'bg-white/88 dark:bg-zinc-900/88 border border-zinc-200/80 dark:border-zinc-700/80 hover:border-sky-300/70 dark:hover:border-sky-700/60 focus-within:border-sky-400 dark:focus-within:border-sky-600 focus-within:ring-2 focus-within:ring-sky-400/20 dark:focus-within:ring-sky-500/15 rounded-2xl outline-none pl-4 pr-3 py-3 transition-colors allow-text-select backdrop-blur-[2px]';
 
   return (
     <div
@@ -102,39 +118,61 @@ export default function FloatingTextNode({
           style={{ backgroundColor: text.color }}
           aria-hidden
         />
-        <textarea
-          value={text.content}
-          onChange={(e) => {
-            onChange(text.id, e.target.value);
-            e.target.style.height = 'auto';
-            e.target.style.height = `${e.target.scrollHeight}px`;
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Delete' && text.content === '') {
-              e.preventDefault();
-              if (!isReadonly) onDelete(text.id);
-            }
-            if (e.key === 'Escape') {
-              e.currentTarget.blur();
-            }
-          }}
-          autoFocus={text.content === ''}
-          onFocus={(e) => {
-            e.target.style.height = 'auto';
-            e.target.style.height = `${e.target.scrollHeight}px`;
-          }}
-          readOnly={isReadonly}
-          className="bg-white/88 dark:bg-zinc-900/88 border border-zinc-200/80 dark:border-zinc-700/80 hover:border-sky-300/70 dark:hover:border-sky-700/60 focus:border-sky-400 dark:focus:border-sky-600 focus:ring-2 focus:ring-sky-400/20 dark:focus:ring-sky-500/15 rounded-2xl outline-none resize-none overflow-hidden pl-4 pr-3 py-3 transition-colors allow-text-select backdrop-blur-[2px]"
-          style={{
-            color: text.color,
-            fontSize: `${text.size}px`,
-            fontFamily: text.font,
-            lineHeight: '1.25',
-            minWidth: '120px',
-            minHeight: '44px',
-          }}
-          placeholder={placeholder}
-        />
+        {showPreview ? (
+          <div
+            role={isReadonly ? undefined : 'button'}
+            tabIndex={isReadonly ? undefined : 0}
+            onClick={() => {
+              if (!isReadonly) setIsEditing(true);
+            }}
+            onKeyDown={(e) => {
+              if (isReadonly) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setIsEditing(true);
+              }
+            }}
+            className={`${surfaceClass} cursor-text max-w-sm`}
+            style={textStyle}
+          >
+            <MarkdownContent variant="compact">{text.content}</MarkdownContent>
+          </div>
+        ) : (
+          <textarea
+            value={text.content}
+            onChange={(e) => {
+              onChange(text.id, e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = `${e.target.scrollHeight}px`;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Delete' && text.content === '') {
+                e.preventDefault();
+                if (!isReadonly) onDelete(text.id);
+              }
+              if (e.key === 'Escape') {
+                e.currentTarget.blur();
+              }
+            }}
+            autoFocus={isEditing || text.content === ''}
+            onFocus={(e) => {
+              setIsEditing(true);
+              e.target.style.height = 'auto';
+              e.target.style.height = `${e.target.scrollHeight}px`;
+            }}
+            onBlur={(e) => {
+              setIsEditing(false);
+              const cleaned = formatMarkdown(e.target.value);
+              if (cleaned !== e.target.value) {
+                onChange(text.id, cleaned);
+              }
+            }}
+            readOnly={isReadonly}
+            className={`${surfaceClass} resize-none overflow-hidden focus:border-sky-400 dark:focus:border-sky-600 focus:ring-2 focus:ring-sky-400/20 dark:focus:ring-sky-500/15`}
+            style={textStyle}
+            placeholder={placeholder}
+          />
+        )}
       </div>
     </div>
   );

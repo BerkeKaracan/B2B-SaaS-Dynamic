@@ -20,6 +20,7 @@ import {
   GripVertical,
   X,
 } from 'lucide-react';
+import { MarkdownContent } from '@/components/ui/MarkdownContent';
 import { AI, RAIL, ROW, SECTION, SURFACE } from './itemSidebarStyles';
 
 /** Default top clears the project toolbar (~3.5rem) + padding. */
@@ -118,6 +119,10 @@ export default function ItemSidebar() {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [aiChat, setAiChat] = useState<
+    Array<{ role: 'user' | 'assistant'; content: string }>
+  >([]);
+  const aiChatEndRef = useRef<HTMLDivElement | null>(null);
 
   const [activeDrag, setActiveDrag] = useState<{
     itemType: string;
@@ -161,76 +166,138 @@ export default function ItemSidebar() {
     };
   }, [isCollapsed]);
 
-  const handleAiGenerate = async () => {
-    if (!aiPrompt.trim() || !canUseAiGenerator || !tenantId) return;
-    setIsAiGenerating(true);
+  useEffect(() => {
+    if (!isAiModalOpen) return;
+    aiChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [aiChat, isAiModalOpen, isAiGenerating]);
 
+  const placeGeneratedPages = async (buildPrompt: string) => {
     const state = useCanvasStore.getState();
-
     const canvasContainer = document.querySelector('.canvas-bg');
     const rect = canvasContainer
       ? canvasContainer.getBoundingClientRect()
       : { width: 1000, height: 800, left: 0, top: 0 };
-
     const currentZoom = (state.zoom ?? 100) / 100;
-
     const cx = (rect.width / 2 - (state.panX ?? 0)) / currentZoom - 500;
     const cy = (rect.height / 2 - (state.panY ?? 0)) / currentZoom - 400;
 
+    const res = await fetchAPI('/api/ai/generate-canvas', {
+      method: 'POST',
+      body: JSON.stringify({
+        prompt: buildPrompt,
+        x: cx,
+        y: cy,
+        tenant_id: tenantId,
+      }),
+    });
+
+    if (!res.ok) {
+      const errBody = (await res.json().catch(() => null)) as
+        | { detail?: string | Array<{ msg?: string }> }
+        | null;
+      const detail = Array.isArray(errBody?.detail)
+        ? errBody.detail[0]?.msg
+        : errBody?.detail;
+      throw new Error(detail || t('generateFailed'));
+    }
+
+    const data = await res.json();
+    const pagesPayload = Array.isArray(data?.pages)
+      ? data.pages
+      : data?.page
+        ? [data.page]
+        : data?.type
+          ? [data]
+          : [];
+
+    if (pagesPayload.length === 0) {
+      throw new Error(t('generateInvalid'));
+    }
+
+    const store = useCanvasStore.getState();
+    store.addGeneratedPages(pagesPayload, { x: cx, y: cy });
+    setTimeout(() => {
+      const ns = useCanvasStore.getState();
+      if (ns.pages.length > 0) {
+        ns.setActivePage(ns.pages[ns.pages.length - 1].id);
+      }
+    }, 50);
+    return pagesPayload.length;
+  };
+
+  const handleAiSend = async () => {
+    if (!aiPrompt.trim() || !canUseAiGenerator || !tenantId || isAiGenerating)
+      return;
+
+    const userText = aiPrompt.trim();
+    setAiPrompt('');
+    setAiChat((prev) => [...prev, { role: 'user', content: userText }]);
+    setIsAiGenerating(true);
+
     try {
-      const res = await fetchAPI('/api/ai/generate-canvas', {
+      const history = aiChat.slice(-8);
+      const dialogRes = await fetchAPI('/api/ai/canvas-dialog', {
         method: 'POST',
         body: JSON.stringify({
-          prompt: aiPrompt,
-          x: cx,
-          y: cy,
+          message: userText,
           tenant_id: tenantId,
+          history,
         }),
       });
 
-      if (!res.ok) {
-        const errBody = (await res.json().catch(() => null)) as
+      if (!dialogRes.ok) {
+        const errBody = (await dialogRes.json().catch(() => null)) as
           | { detail?: string | Array<{ msg?: string }> }
           | null;
         const detail = Array.isArray(errBody?.detail)
           ? errBody.detail[0]?.msg
           : errBody?.detail;
         toast.error(detail || t('generateFailed'));
+        setAiChat((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: detail || t('generateFailed'),
+          },
+        ]);
         return;
       }
 
-      const data = await res.json();
-      const finalData = data.page || data;
+      const dialog = (await dialogRes.json()) as {
+        action?: string;
+        message?: string;
+        prompt?: string;
+      };
+      const assistantMessage =
+        (dialog.message || '').trim() || t('generateInvalid');
+      setAiChat((prev) => [
+        ...prev,
+        { role: 'assistant', content: assistantMessage },
+      ]);
 
-      if (finalData && finalData.type) {
-        const store = useCanvasStore.getState();
-
-        if (store.addGeneratedPage) {
-          store.addGeneratedPage({
-            ...finalData,
-            x: cx,
-            y: cy,
-          });
-
-          setTimeout(() => {
-            const ns = useCanvasStore.getState();
-            if (ns.pages.length > 0) {
-              ns.setActivePage(ns.pages[ns.pages.length - 1].id);
-            }
-          }, 50);
-
-          setIsAiModalOpen(false);
-          setAiPrompt('');
-        }
-      } else {
-        toast.error(t('generateInvalid'));
+      if (dialog.action === 'generate') {
+        const buildPrompt = (dialog.prompt || userText).trim();
+        const count = await placeGeneratedPages(buildPrompt);
+        toast.success(
+          count > 1
+            ? t('generatedPages', { count })
+            : t('generatedPage')
+        );
       }
     } catch (e: unknown) {
       console.error('AI Canvas Generation Error:', e);
-      toast.error(t('generateFailed'));
+      const msg =
+        e instanceof Error && e.message ? e.message : t('generateFailed');
+      toast.error(msg);
+      setAiChat((prev) => [...prev, { role: 'assistant', content: msg }]);
     } finally {
       setIsAiGenerating(false);
     }
+  };
+
+  const closeAiModal = () => {
+    setIsAiModalOpen(false);
+    setAiPrompt('');
   };
 
   const menuItems: SidebarItem[] = [
@@ -1180,13 +1247,53 @@ export default function ItemSidebar() {
         </div>
       )}
 
-      {/* AI Modal */}
+      {/* AI Modal — chat: reply for vague asks, auto-generate for clear build intent */}
       {canUseAiGenerator && isAiModalOpen && (
         <div className="fixed inset-0 z-99999 flex items-center justify-center pointer-events-auto bg-black/50 dark:bg-black/70">
-          <div className="bg-white dark:bg-zinc-950 border border-indigo-200 dark:border-indigo-500/30 p-4 rounded-2xl shadow-2xl flex flex-col gap-3 w-96 animate-in zoom-in-95 fade-in">
-            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider px-1">
-              <Sparkles className="w-4 h-4" /> {t('aiGenerator')}
+          <div className="bg-white dark:bg-zinc-950 border border-indigo-200 dark:border-indigo-500/30 p-4 rounded-2xl shadow-2xl flex flex-col gap-3 w-[min(28rem,92vw)] max-h-[min(36rem,85vh)] animate-in zoom-in-95 fade-in select-none caret-transparent">
+            <div className="flex items-center justify-between gap-2 px-1">
+              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">
+                <Sparkles className="w-4 h-4" /> {t('aiGenerator')}
+              </div>
+              <button
+                type="button"
+                onClick={closeAiModal}
+                className="text-[10px] font-semibold text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 px-2 py-1 rounded-md"
+              >
+                {t('cancel') || 'Cancel'}
+              </button>
             </div>
+
+            <div className="flex-1 min-h-40 max-h-64 overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/60 p-3 flex flex-col gap-2.5">
+              {aiChat.length === 0 && (
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  {t('aiChatHint')}
+                </p>
+              )}
+              {aiChat.map((msg, idx) => (
+                <div
+                  key={`${msg.role}-${idx}`}
+                  className={`text-sm leading-relaxed rounded-xl px-3 py-2 max-w-[92%] ${
+                    msg.role === 'user'
+                      ? 'self-end bg-indigo-600 text-white'
+                      : 'self-start bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-100'
+                  }`}
+                >
+                  {msg.role === 'assistant' ? (
+                    <MarkdownContent variant="compact">{msg.content}</MarkdownContent>
+                  ) : (
+                    <span className="whitespace-pre-wrap">{msg.content}</span>
+                  )}
+                </div>
+              ))}
+              {isAiGenerating && (
+                <div className="self-start text-xs font-medium text-indigo-500 dark:text-indigo-400 px-1">
+                  {t('building') || 'Building...'}
+                </div>
+              )}
+              <div ref={aiChatEndRef} />
+            </div>
+
             <textarea
               autoFocus
               value={aiPrompt}
@@ -1194,37 +1301,30 @@ export default function ItemSidebar() {
               placeholder={
                 t('aiPlaceholder') || 'Describe what you want to build...'
               }
-              className="w-full bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-indigo-500/50 shadow-inner"
-              rows={4}
+              className="w-full bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-indigo-500/50 shadow-inner allow-text-select caret-auto select-text"
+              rows={3}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  handleAiGenerate();
+                  handleAiSend();
                 }
-                if (e.key === 'Escape') setIsAiModalOpen(false);
+                if (e.key === 'Escape') closeAiModal();
               }}
             />
-            <div className="flex justify-between items-center mt-1">
+            <div className="flex justify-between items-center">
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono pl-1">
-                {t('pressEnter') || 'Press Enter to generate'}
+                {t('pressEnter') || 'Press Enter to send'}
               </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setIsAiModalOpen(false)}
-                  className="text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white px-3 py-2 rounded-lg transition-colors"
-                >
-                  {t('cancel') || 'Cancel'}
-                </button>
-                <button
-                  onClick={handleAiGenerate}
-                  disabled={isAiGenerating || !aiPrompt.trim()}
-                  className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white text-xs font-bold py-2 px-5 rounded-lg transition-all shadow-lg flex items-center gap-2"
-                >
-                  {isAiGenerating
-                    ? t('building') || 'Building...'
-                    : t('generate') || 'Generate'}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleAiSend}
+                disabled={isAiGenerating || !aiPrompt.trim()}
+                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white text-xs font-bold py-2 px-5 rounded-lg transition-all shadow-lg flex items-center gap-2"
+              >
+                {isAiGenerating
+                  ? t('building') || 'Building...'
+                  : t('send') || 'Send'}
+              </button>
             </div>
           </div>
         </div>

@@ -21,6 +21,7 @@ interface TextBlockProps {
   block: BlockContent;
   onUpdate: (val: string) => void;
   onSettingsChange?: (settings: Record<string, unknown>) => void;
+  isActive?: boolean;
 }
 
 function autosize(el: HTMLTextAreaElement) {
@@ -28,7 +29,12 @@ function autosize(el: HTMLTextAreaElement) {
   el.style.height = `${el.scrollHeight}px`;
 }
 
-function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
+function TextBlock({
+  block,
+  onUpdate,
+  onSettingsChange,
+  isActive = false,
+}: TextBlockProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isEditingRef = useRef(false);
@@ -79,6 +85,34 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
       el.setSelectionRange(len, len);
     }
   }, [isEditing, fontSize]);
+
+  if (!isActive) {
+    if (isEditing) setIsEditing(false);
+    if (isToolbarOpen) setIsToolbarOpen(false);
+  }
+
+  useEffect(() => {
+    if (!isActive) {
+      isEditingRef.current = false;
+      textareaRef.current?.blur();
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    isEditingRef.current = isEditing;
+  }, [isEditing]);
+
+  const closeToolbar = () => {
+    setIsToolbarOpen(false);
+    const active = document.activeElement as HTMLElement | null;
+    if (
+      active &&
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName) &&
+      containerRef.current?.contains(active)
+    ) {
+      active.blur();
+    }
+  };
 
   const toggleSetting = (key: string, currentValue: unknown) => {
     if (onSettingsChange)
@@ -142,13 +176,14 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
       <div className="absolute -left-5 top-1 bottom-1 w-0.5 bg-zinc-400 rounded-full opacity-0 group-focus-within/block:opacity-100 transition-opacity duration-200 pointer-events-none" />
 
       {isToolbarOpen && onSettingsChange && (
-        <div className="absolute top-0 -right-4 translate-x-full w-60 bg-white border border-zinc-200 rounded-xl shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] p-3 flex flex-col gap-3.5 z-100 animate-in slide-in-from-left-2 fade-in duration-200 cursor-default">
+        <div className="absolute top-0 -right-4 translate-x-full w-60 bg-white border border-zinc-200 rounded-xl shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] p-3 flex flex-col gap-3.5 z-100 animate-in slide-in-from-left-2 fade-in duration-200 cursor-default select-none caret-transparent">
           <div className="flex justify-between items-center pb-2 border-b border-zinc-100">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
               Block Options
             </span>
             <button
-              onClick={() => setIsToolbarOpen(false)}
+              type="button"
+              onClick={closeToolbar}
               className="text-zinc-400 hover:text-zinc-800 transition-colors p-1 rounded-md hover:bg-zinc-100"
             >
               <X className="w-3.5 h-3.5" />
@@ -309,6 +344,7 @@ function TextBlock({ block, onUpdate, onSettingsChange }: TextBlockProps) {
 
 export default memo(TextBlock, (prevProps, nextProps) => {
   return (
+    prevProps.isActive === nextProps.isActive &&
     prevProps.block.value === nextProps.block.value &&
     prevProps.block.x === nextProps.block.x &&
     prevProps.block.y === nextProps.block.y &&

@@ -108,20 +108,24 @@ export function isGeneratedSectionLabel(block: LayoutBlock): boolean {
 
 /**
  * Resolve full vs half row. Explicit settings.layout wins;
- * otherwise headings/forms span the row and compact fields pair.
+ * otherwise headings/section labels/textareas/assets span the row and
+ * compact fields (including short forms) pair.
  */
 export function getGeneratedLayout(block: LayoutBlock): GeneratedLayout {
-  const hint = String(blockSettings(block).layout || '').toLowerCase();
+  const settings = blockSettings(block);
+  const hint = String(settings.layout || '').toLowerCase();
   if (hint === 'half' || hint === 'full') return hint;
   const type = block.type || 'form';
   if (isGeneratedHeading(block) || isGeneratedSectionLabel(block)) return 'full';
-  if (
-    type === 'form' ||
-    type === 'asset_stream' ||
-    type === 'container' ||
-    type === 'text'
-  ) {
+  if (type === 'asset_stream' || type === 'container' || type === 'text') {
     return 'full';
+  }
+  if (type === 'form') {
+    const inputType = String(
+      settings.inputType || settings.input_type || 'text'
+    ).toLowerCase();
+    if (inputType === 'textarea' || inputType === 'multiline') return 'full';
+    return 'half';
   }
   return 'half';
 }
@@ -149,10 +153,12 @@ function nextBlockId(existing: string | undefined, index: number): string {
 /**
  * Compose AI empty-page blocks: full-width headings, paired half fields,
  * packed height. Ignores model x/y/width noise.
+ * Unpaired half fields stretch to full usable width.
  */
 export function layoutGeneratedBlocks(
   blocks: Partial<BlockContent>[],
-  pageWidth = 1000
+  pageWidth = 1000,
+  startY = BLOCK_STACK_ORIGIN_Y
 ): { positioned: BlockContent[]; nextY: number } {
   const inset = BLOCK_STACK_ORIGIN_X;
   const usable = Math.max(pageWidth - inset * 2, 280);
@@ -160,7 +166,7 @@ export function layoutGeneratedBlocks(
   const leftX = inset;
   const rightX = inset + halfWidth + BLOCK_COLUMN_GAP;
 
-  let currentY = BLOCK_STACK_ORIGIN_Y;
+  let currentY = startY;
   const positioned: BlockContent[] = [];
   let index = 0;
 
@@ -213,7 +219,8 @@ export function layoutGeneratedBlocks(
       continue;
     }
 
-    const width = layout === 'half' ? halfWidth : usable;
+    // Orphan half: stretch full so the page does not look half-empty.
+    const width = usable;
     positioned.push(materialize(block, leftX, currentY, width, height));
     currentY += height + gapAfterBlock({ ...block, type });
     i += 1;

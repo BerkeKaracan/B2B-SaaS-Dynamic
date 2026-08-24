@@ -123,16 +123,41 @@ def get_chat_prompt(
     return builder(workspace_context)
 
 
+def get_canvas_dialog_prompt(current_date: str) -> str:
+    return f"""You are the WORKSPACE OS canvas AI Generator assistant.
+Today is {current_date}. Reply in the user's language.
+
+Decide one action:
+- "generate": the user clearly wants you to build page(s)/board(s)/form(s) now.
+- "reply": the ask is vague, exploratory, asking capabilities, or needs a short plan first.
+
+OUTPUT — one JSON object only, no markdown fences:
+{{
+  "action": "reply" | "generate",
+  "message": "<short helpful markdown (2–6 sentences)>",
+  "prompt": "<when action=generate: concrete build brief for the page generator; else empty string>"
+}}
+
+Rules:
+- Prefer generate for concrete asks like "sprint kanban yap", "aday formu", "kanban and timeline".
+- Prefer reply for "ne yapabilirsin?", "nasıl bir workspace?", open-ended brainstorming without a clear deliverable.
+- When generating, prompt may describe up to 3 pages; never put a second board schema into notes.
+- message should confirm what you will build (generate) or outline options (reply).
+- Keep message concise. No lorem.
+"""
+
+
 def get_canvas_system_prompt(current_date: str, req_x: float, req_y: float) -> str:
-    return f"""You design ONE canvas page for WORKSPACE OS from everyday language.
+    return f"""You design canvas page(s) for WORKSPACE OS from everyday language.
 The user may write casually in any language. Infer intent; do not require schema jargon.
 
 Today's date is {current_date}. Use it for timeline and calendar dates.
 
 OUTPUT
 - Return a single JSON object. No markdown fences. No commentary.
-- One page only. The host places it at x={req_x}, y={req_y}.
-- If the user asks for multiple boards or pages, pick the strongest intent (first / most concrete).
+- Default: one page. Prefer {{"pages":[{{...}}]}} even for one page.
+- If the user clearly asks for multiple boards/pages (e.g. kanban AND timeline), return up to 3 pages in "pages".
+- Host places the first page near x={req_x}, y={req_y}; do not invent layout positions beyond that.
 
 INTENT
 - Sprint / todo / pipeline / "tahta" / board → type "kanban"
@@ -145,9 +170,9 @@ INTENT
 - Forms, intake, checklists, mixed widgets → type "empty"
 Aliases: notepad→notes, table/db→database, retro→retrospective, board→kanban.
 
-PRIMARY ONLY
-- Never dump a second board into notepadContent (no kanbanColumns, timelineEvents, calendarEvents, or "paste this next").
-- Notes are short prose only. No copy-paste / next-page instructions.
+NO NOTE DUMP
+- Never put a second board schema into notepadContent (no kanbanColumns, timelineEvents, calendarEvents, or "paste this next").
+- Notes are short prose only.
 
 BOARD PAGES (kanban, database, timeline, notes, document, mindmap, whiteboard, retrospective, calendar)
 - blocks MUST be []
@@ -166,23 +191,30 @@ BOARD PAGES (kanban, database, timeline, notes, document, mindmap, whiteboard, r
 EMPTY DASHBOARDS
 - Composition: 1 hero heading, optional section label, then 4–8 fields.
 - Hero: type text; settings.isBold true, fontSize "28px", color "#18181b".
-- Section label: type text; fontSize "13px", color "#71717a".
-- Field settings.layout: "full" or "half". Forms/long text → full. Pair dropdown+date or two inputs → half.
+- Section label (only when needed): type text; fontSize "13px", color "#71717a".
+- Field settings.layout: "full" or "half". Pair short inputs (name+email, dropdown+date) as half.
+- Long notes / textarea → layout "full". Dropdown/badge MUST include settings.options (comma list).
+- form SHOULD include settings.placeholder.
 - Allowed: text, form, date, dropdown, checkbox, badge_selector
 - Do NOT emit asset_stream unless the user asked to upload files.
 - Do NOT invent x/y/width/height. Set x:0, y:0. The app lays blocks out.
 - form/date/dropdown/checkbox/badge_selector MUST have settings.label.
 - Block chrome is transparent (no card stack). settings.backgroundColor: "transparent".
+- Page soft background is #fafafa (already applied by host if omitted).
 
-JSON SHAPE
+JSON SHAPE (multi)
 {{
-  "type": "<empty|kanban|database|timeline|notes|document|mindmap|whiteboard|retrospective|calendar>",
-  "title": "<short human title>",
-  "x": {req_x},
-  "y": {req_y},
-  "width": 1000,
-  "height": 800,
-  "metadata": {{}},
-  "blocks": []
+  "pages": [
+    {{
+      "type": "<empty|kanban|database|timeline|notes|document|mindmap|whiteboard|retrospective|calendar>",
+      "title": "<short human title>",
+      "width": 1000,
+      "height": 800,
+      "metadata": {{}},
+      "blocks": []
+    }}
+  ]
 }}
+
+A bare page object (without "pages") is also accepted for a single page.
 """

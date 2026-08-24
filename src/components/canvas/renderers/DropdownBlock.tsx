@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { BlockContent } from "@/types/record";
 import * as Popover from "@radix-ui/react-popover";
 import {
@@ -27,6 +27,7 @@ import {
   blockPopover,
   blockMenuItem,
 } from "./blockStyles";
+import { closeSettingsPanel, useCloseOnInactive } from "@/lib/focusHygiene";
 
 interface DropdownBlockProps {
   block: BlockContent;
@@ -43,12 +44,7 @@ export default function DropdownBlock({
 }: DropdownBlockProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isActive) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsSettingsOpen(false);
-    }
-  }, [isActive]);
+  useCloseOnInactive(isActive, isSettingsOpen, setIsSettingsOpen);
 
   const label = (block.settings?.label as string) ?? "Select Option";
   const jsonKey = (block.settings?.jsonKey as string) ?? "custom_select";
@@ -95,7 +91,8 @@ export default function DropdownBlock({
               Field Setup
             </div>
             <button
-              onClick={() => setIsSettingsOpen(false)}
+              type="button"
+              onClick={() => closeSettingsPanel(setIsSettingsOpen)}
               className={blockSettingsClose}
             >
               <X className="w-3.5 h-3.5" />
