@@ -86,15 +86,21 @@ function TextBlock({
     }
   }, [isEditing, fontSize]);
 
+  if (!isActive) {
+    if (isEditing) setIsEditing(false);
+    if (isToolbarOpen) setIsToolbarOpen(false);
+  }
+
   useEffect(() => {
-    if (isActive) return;
-    /* Sync edit UI to canvas selection — same pattern as other block settings. */
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setEditing(false);
-    setIsToolbarOpen(false);
-    /* eslint-enable react-hooks/set-state-in-effect */
-    textareaRef.current?.blur();
+    if (!isActive) {
+      isEditingRef.current = false;
+      textareaRef.current?.blur();
+    }
   }, [isActive]);
+
+  useEffect(() => {
+    isEditingRef.current = isEditing;
+  }, [isEditing]);
 
   const closeToolbar = () => {
     setIsToolbarOpen(false);

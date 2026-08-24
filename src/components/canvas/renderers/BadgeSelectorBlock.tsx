@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { BlockContent } from "@/types/record";
 import * as Popover from "@radix-ui/react-popover";
 import {
@@ -25,7 +25,7 @@ import {
   blockSettingsTextarea,
   blockPopover,
 } from "./blockStyles";
-import { blurActiveEditable, closeSettingsPanel } from "@/lib/focusHygiene";
+import { closeSettingsPanel, useCloseOnInactive } from "@/lib/focusHygiene";
 
 interface BadgeSelectorBlockProps {
   block: BlockContent;
@@ -59,13 +59,7 @@ export default function BadgeSelectorBlock({
 }: BadgeSelectorBlockProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!isActive) {
-      setIsSettingsOpen(false);
-      blurActiveEditable();
-    }
-  }, [isActive]);
+  useCloseOnInactive(isActive, isSettingsOpen, setIsSettingsOpen);
 
   const label = (block.settings?.label as string) ?? "Status";
   const jsonKey = (block.settings?.jsonKey as string) ?? "status_key";

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { BlockContent } from "@/types/record";
 import { Settings2, X, Type, Database, Hash, AlignLeft } from "lucide-react";
 import {
@@ -16,7 +16,7 @@ import {
   blockSettingsInput,
   blockSettingsSelect,
 } from "./blockStyles";
-import { blurActiveEditable, closeSettingsPanel } from "@/lib/focusHygiene";
+import { closeSettingsPanel, useCloseOnInactive } from "@/lib/focusHygiene";
 
 interface FormBlockProps {
   block: BlockContent;
@@ -33,13 +33,7 @@ export default function FormBlock({
 }: FormBlockProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!isActive) {
-      setIsSettingsOpen(false);
-      blurActiveEditable();
-    }
-  }, [isActive]);
+  useCloseOnInactive(isActive, isSettingsOpen, setIsSettingsOpen);
 
   const label = (block.settings?.label as string) ?? "Field Label";
   const jsonKey = (block.settings?.jsonKey as string) ?? "field_key";

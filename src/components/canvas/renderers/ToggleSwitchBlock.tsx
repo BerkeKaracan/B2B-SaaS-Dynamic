@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { BlockContent } from "@/types/record";
 import { Settings2, X, Type, Database, ToggleRight } from "lucide-react";
 import {
@@ -14,7 +14,7 @@ import {
   blockSettingsInput,
   blockSettingsTextarea,
 } from "./blockStyles";
-import { blurActiveEditable, closeSettingsPanel } from "@/lib/focusHygiene";
+import { closeSettingsPanel, useCloseOnInactive } from "@/lib/focusHygiene";
 
 interface ToggleSwitchBlockProps {
   block: BlockContent;
@@ -31,13 +31,7 @@ export default function ToggleSwitchBlock({
 }: ToggleSwitchBlockProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!isActive) {
-      setIsSettingsOpen(false);
-      blurActiveEditable();
-    }
-  }, [isActive]);
+  useCloseOnInactive(isActive, isSettingsOpen, setIsSettingsOpen);
 
   const label = (block.settings?.label as string) ?? "Enable Feature";
   const jsonKey = (block.settings?.jsonKey as string) ?? "feature_enabled";
