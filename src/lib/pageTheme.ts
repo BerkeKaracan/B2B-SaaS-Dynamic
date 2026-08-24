@@ -1,6 +1,7 @@
 /** Shared frame / template page colors (canvas color picker). */
 export const PAGE_THEME_COLORS = [
   '#ffffff',
+  '#fafafa',
   '#f87171',
   '#fb923c',
   '#facc15',
@@ -23,7 +24,12 @@ export function normalizePageColor(raw?: string | null): string {
 
 export function isLightPageColor(hex: string): boolean {
   const color = normalizePageColor(hex);
-  return color === '#ffffff' || color === '#facc15' || color === '#4ade80';
+  return (
+    color === '#ffffff' ||
+    color === '#fafafa' ||
+    color === '#facc15' ||
+    color === '#4ade80'
+  );
 }
 
 export type PageTheme = {
@@ -36,7 +42,7 @@ export type PageTheme = {
 
 export function themeFromPageColor(raw?: string | null): PageTheme {
   const color = normalizePageColor(raw);
-  if (color === '#ffffff') {
+  if (color === '#ffffff' || color === '#fafafa') {
     return {
       color,
       stage: '#f4f4f5',

@@ -4,10 +4,8 @@ import { WORKSPACE_MODULE } from '@/lib/workspace';
 import { fetchAPI } from '@/services/api';
 import {
   BLOCK_STACK_GAP,
-  BLOCK_STACK_ORIGIN_X,
   BLOCK_STACK_ORIGIN_Y,
   BLOCK_STACK_PAGE_PAD,
-  getBlockDefaultWidth,
   layoutGeneratedBlocks,
   resolveBlockHeight,
 } from '@/lib/blockConfig';
@@ -48,31 +46,53 @@ const normalizeGeneratedPageType = (raw: unknown): PageContent['type'] => {
   return 'empty';
 };
 
-/** Pack AI blocks into a tight vertical stack; ignore AI x/y/height noise. */
-const layoutBlocksVertically = (
-  blocks: Partial<BlockContent>[],
-  startY: number
-): { positioned: BlockContent[]; nextY: number } => {
-  let currentY = startY;
-  const positioned = blocks.map((b) => {
-    const type = (b.type || 'form') as BlockType;
-    const height = getEstimatedHeight(type, b.height);
-    const width = b.width && b.width > 0 ? b.width : getBlockDefaultWidth(type);
-    const positionedBlock = {
-      ...b,
-      id: crypto.randomUUID(),
-      type,
-      value: b.value ?? '',
-      settings: b.settings || {},
-      x: BLOCK_STACK_ORIGIN_X,
-      y: currentY,
-      width,
-      height,
-    } as BlockContent;
-    currentY += height + BLOCK_STACK_GAP;
-    return positionedBlock;
-  });
-  return { positioned, nextY: currentY };
+const PAGE_PLACE_GAP = 80;
+
+type GeneratedPageInput = Omit<PageContent, 'id' | 'blocks'> & {
+  blocks?: Partial<BlockContent>[];
+  metadata?: Record<string, unknown>;
+};
+
+const buildGeneratedPage = (
+  pageData: GeneratedPageInput,
+  x: number,
+  y: number
+): PageWithSettings => {
+  const pageId = crypto.randomUUID();
+  const pageType = normalizeGeneratedPageType(pageData.type);
+  const isTemplate = TEMPLATE_PAGE_TYPES.has(pageType);
+  const isAutoLayout = !isTemplate;
+
+  let finalHeight = pageData.height || 800;
+  let processedBlocks: BlockContent[] = [];
+
+  if (isAutoLayout && pageData.blocks && pageData.blocks.length > 0) {
+    const pageWidth = pageData.width || 1000;
+    const laidOut = layoutGeneratedBlocks(pageData.blocks, pageWidth);
+    processedBlocks = laidOut.positioned;
+    finalHeight = Math.max(480, laidOut.nextY + BLOCK_STACK_PAGE_PAD);
+  } else if (isTemplate) {
+    processedBlocks = [];
+    finalHeight = Math.max(pageData.height || 800, 720);
+  }
+
+  const frameDefaults = getPageFrameDefaults(pageType);
+  return {
+    id: pageId,
+    type: pageType,
+    title: pageData.title || 'AI Generated Workspace',
+    x,
+    y,
+    width: pageData.width || 1000,
+    height: finalHeight,
+    blocks: processedBlocks,
+    settings: {
+      backgroundColor: isAutoLayout
+        ? '#fafafa'
+        : frameDefaults.backgroundColor,
+      ...(pageData.metadata || {}),
+    },
+  };
 };
 
 interface CanvasState {
@@ -194,6 +214,15 @@ interface CanvasState {
       blocks?: Partial<BlockContent>[];
       metadata?: Record<string, unknown>;
     }
+  ) => void;
+  addGeneratedPages: (
+    pagesData: Array<
+      Omit<PageContent, 'id' | 'blocks'> & {
+        blocks?: Partial<BlockContent>[];
+        metadata?: Record<string, unknown>;
+      }
+    >,
+    origin?: { x: number; y: number }
   ) => void;
   mode: 'design' | 'readonly';
   setMode: (mode: 'design' | 'readonly') => void;
@@ -416,7 +445,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
                 )
               ) + BLOCK_STACK_GAP;
           }
-          const laidOut = layoutBlocksVertically(newBlocks, startY);
+          const laidOut = layoutGeneratedBlocks(
+            newBlocks,
+            p.width || 1000,
+            startY
+          );
           blocksWithIds = laidOut.positioned;
           stackBottom = laidOut.nextY;
         } else {
@@ -467,49 +500,47 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   addGeneratedPage: (pageData) => {
     get().saveHistory();
     set((state) => {
-      const pageId = crypto.randomUUID();
-      const pageType = normalizeGeneratedPageType(pageData.type);
-      const isTemplate = TEMPLATE_PAGE_TYPES.has(pageType);
-      // Only freeform "empty" pages use vertical block stacking.
-      // Templates (kanban, database, notes, …) must keep their type + metadata.
-      const isAutoLayout = !isTemplate;
-
-      let finalHeight = pageData.height || 800;
-      let processedBlocks: BlockContent[] = [];
-
-      if (isAutoLayout && pageData.blocks && pageData.blocks.length > 0) {
-        const pageWidth = pageData.width || 1000;
-        const laidOut = layoutGeneratedBlocks(pageData.blocks, pageWidth);
-        processedBlocks = laidOut.positioned;
-        // Prefer packed height — AI often returns height: 1000+ with huge empty space.
-        finalHeight = Math.max(480, laidOut.nextY + BLOCK_STACK_PAGE_PAD);
-      } else if (isTemplate) {
-        // Board components read from settings/metadata; drop junk blocks the model often emits.
-        processedBlocks = [];
-        finalHeight = Math.max(pageData.height || 800, 720);
-      }
-
-      const frameDefaults = getPageFrameDefaults(pageType);
-      const newPage: PageWithSettings = {
-        id: pageId,
-        type: pageType,
-        title: pageData.title || 'AI Generated Workspace',
-        x: pageData.x || 100,
-        y: pageData.y || 100,
-        width: pageData.width || 1000,
-        height: finalHeight,
-        blocks: processedBlocks,
-        settings: {
-          backgroundColor: isAutoLayout
-            ? '#fafafa'
-            : frameDefaults.backgroundColor,
-          ...(pageData.metadata || {}),
-        },
-      };
-
+      const newPage = buildGeneratedPage(
+        pageData,
+        pageData.x || 100,
+        pageData.y || 100
+      );
       return {
         pages: [...state.pages, newPage],
-        activePageId: pageId,
+        activePageId: newPage.id,
+        selectedBlocks: [],
+      };
+    });
+  },
+
+  addGeneratedPages: (pagesData, origin) => {
+    if (!pagesData.length) return;
+    get().saveHistory();
+    set((state) => {
+      const startX = origin?.x ?? pagesData[0]?.x ?? 100;
+      const startY = origin?.y ?? pagesData[0]?.y ?? 100;
+      let cursorX = startX;
+      let cursorY = startY;
+      let rowMaxHeight = 0;
+      const created: PageWithSettings[] = [];
+
+      pagesData.forEach((pageData, index) => {
+        if (index > 0 && index % 2 === 0) {
+          cursorX = startX;
+          cursorY += rowMaxHeight + PAGE_PLACE_GAP;
+          rowMaxHeight = 0;
+        } else if (index > 0) {
+          cursorX += (created[index - 1]?.width || 1000) + PAGE_PLACE_GAP;
+        }
+
+        const page = buildGeneratedPage(pageData, cursorX, cursorY);
+        rowMaxHeight = Math.max(rowMaxHeight, page.height || 800);
+        created.push(page);
+      });
+
+      return {
+        pages: [...state.pages, ...created],
+        activePageId: created[created.length - 1]?.id ?? state.activePageId,
         selectedBlocks: [],
       };
     });

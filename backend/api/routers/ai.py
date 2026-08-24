@@ -27,7 +27,7 @@ from core.ai_prompts import (
 from core.canvas_generation import (
     CanvasJsonError,
     loads_canvas_payload,
-    normalize_generated_page,
+    normalize_generated_pages,
 )
 
 router = APIRouter(prefix="/api/ai", tags=["AI Support"])
@@ -1138,14 +1138,15 @@ async def generate_canvas_from_model(
                 "role": "user",
                 "content": (
                     "The previous output was not valid JSON. "
-                    "Return ONLY one valid JSON object for a single canvas page."
+                    "Return ONLY one valid JSON object with a pages array "
+                    "(1–3 canvas pages)."
                 ),
             },
         ]
         result_text = await groq_canvas_completion(client, repair_messages)
         parsed_json = parse_or_raise_canvas_json(result_text)
 
-    return normalize_generated_page(parsed_json, x=req.x, y=req.y)
+    return normalize_generated_pages(parsed_json, x=req.x, y=req.y)
 
 
 @router.post("/chat")

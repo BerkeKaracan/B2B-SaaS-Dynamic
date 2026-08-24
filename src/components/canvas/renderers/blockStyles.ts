@@ -62,7 +62,7 @@ export function blockSettingsButton(
 }
 
 export const blockSettingsPanel =
-  'absolute top-0 -right-4 translate-x-full w-[260px] bg-white border border-zinc-200 rounded-xl shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] p-4 flex flex-col gap-3.5 z-[100] animate-in slide-in-from-left-2 fade-in duration-200 cursor-default';
+  'absolute top-0 -right-4 translate-x-full w-[260px] bg-white border border-zinc-200 rounded-xl shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] p-4 flex flex-col gap-3.5 z-[100] animate-in slide-in-from-left-2 fade-in duration-200 cursor-default select-none caret-transparent';
 
 export const blockSettingsHeader =
   'flex justify-between items-center pb-2 border-b border-zinc-100';
@@ -71,7 +71,7 @@ export const blockSettingsTitle =
   'text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5';
 
 export const blockSettingsClose =
-  'text-zinc-400 hover:text-zinc-800 transition-colors p-1 rounded-md hover:bg-zinc-100';
+  'text-zinc-400 hover:text-zinc-800 transition-colors p-1 rounded-md hover:bg-zinc-100 select-none caret-transparent';
 
 export const blockSettingsFieldLabel =
   'text-[10px] font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5';

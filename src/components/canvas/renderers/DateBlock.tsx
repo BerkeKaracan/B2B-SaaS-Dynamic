@@ -25,6 +25,7 @@ import {
   blockSettingsInput,
   blockPopover,
 } from "./blockStyles";
+import { blurActiveEditable, closeSettingsPanel } from "@/lib/focusHygiene";
 
 interface DateBlockProps {
   block: BlockContent;
@@ -43,7 +44,10 @@ export default function DateBlock({
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!isActive) setIsSettingsOpen(false);
+    if (!isActive) {
+      setIsSettingsOpen(false);
+      blurActiveEditable();
+    }
   }, [isActive]);
 
   const label = (block.settings?.label as string) ?? "Date Field";
@@ -82,7 +86,8 @@ export default function DateBlock({
               Date Setup
             </div>
             <button
-              onClick={() => setIsSettingsOpen(false)}
+              type="button"
+              onClick={() => closeSettingsPanel(setIsSettingsOpen)}
               className={blockSettingsClose}
             >
               <X className="w-3.5 h-3.5" />

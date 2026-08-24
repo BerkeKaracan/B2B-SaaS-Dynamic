@@ -26,6 +26,7 @@ import {
   blockSettingsInput,
 } from './blockStyles';
 import { uploadImageViaPresignedUrl } from '@/lib/s3Upload';
+import { blurActiveEditable, closeSettingsPanel } from '@/lib/focusHygiene';
 
 interface AssetStreamBlockProps {
   block: BlockContent;
@@ -49,7 +50,10 @@ export default function AssetStreamBlock({
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!isActive) setIsSettingsOpen(false);
+    if (!isActive) {
+      setIsSettingsOpen(false);
+      blurActiveEditable();
+    }
   }, [isActive]);
 
   const label = (block.settings?.label as string) ?? 'Asset Stream';
@@ -113,7 +117,7 @@ export default function AssetStreamBlock({
               Asset Setup
             </div>
             <button
-              onClick={() => setIsSettingsOpen(false)}
+              onClick={() => closeSettingsPanel(setIsSettingsOpen)}
               className={blockSettingsClose}
             >
               <X className="w-3.5 h-3.5" />

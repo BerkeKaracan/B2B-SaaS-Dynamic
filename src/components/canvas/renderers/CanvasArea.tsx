@@ -12,6 +12,7 @@ import { useParams } from 'next/navigation';
 import { useCanvasStore, PageWithSettings } from '@/store/useCanvasStore';
 import { BlockContent, BlockType, PageContent } from '@/types/record';
 import { getBlockDefaultHeight } from '@/lib/blockConfig';
+import { blurActiveEditable } from '@/lib/focusHygiene';
 import { ConnectionLayer, ConnectionPreviewLayer } from './ConnectionLayer';
 import { CanvasPassiveLayers } from './CanvasPassiveLayers';
 import {
@@ -300,6 +301,19 @@ export default function CanvasArea() {
         activeElement &&
         ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName);
 
+      if (e.key === 'Escape') {
+        if (isInputActive) {
+          e.preventDefault();
+          blurActiveEditable();
+          return;
+        }
+        blurActiveEditable();
+        setConnectingFrom(null);
+        setActiveBlock(null);
+        setSelectedBlocks([]);
+        return;
+      }
+
       if (!isInputActive) {
         if (e.code === 'Space' && !e.repeat) {
           e.preventDefault();
@@ -357,10 +371,6 @@ export default function CanvasArea() {
             else if (pId && !bId) removePage(pId);
           }
         }
-
-        if (e.key === 'Escape') {
-          setConnectingFrom(null);
-        }
       }
     };
 
@@ -385,6 +395,8 @@ export default function CanvasArea() {
     removeSelectedBlocks,
     clipboardBlock,
     duplicateBlock,
+    setActiveBlock,
+    setSelectedBlocks,
   ]);
 
   useEffect(() => {
@@ -757,7 +769,7 @@ export default function CanvasArea() {
       activeEl &&
       ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName)
     ) {
-      if (!activeEl.contains(target)) activeEl.blur();
+      if (!activeEl.contains(target)) blurActiveEditable();
     }
 
     if (activePointers.current.size === 2) {
@@ -772,6 +784,7 @@ export default function CanvasArea() {
         setIsSpacePanning(true);
         lastSpaceClientRef.current = { x: e.clientX, y: e.clientY };
         pendingSpaceDeltaRef.current = { x: 0, y: 0 };
+        blurActiveEditable();
         setActivePage(null);
         setActiveBlock(null);
         setSelectedBlocks([]);
@@ -790,6 +803,7 @@ export default function CanvasArea() {
 
         setLassoStart({ x: mouseCanvasX, y: mouseCanvasY });
         setLassoEnd({ x: mouseCanvasX, y: mouseCanvasY });
+        blurActiveEditable();
         setActivePage(null);
         setActiveBlock(null);
         setSelectedBlocks([]);
@@ -987,6 +1001,7 @@ export default function CanvasArea() {
             {block.type === 'text' && (
               <TextBlock
                 block={block}
+                isActive={isActive}
                 onUpdate={(val) => {
                   if (mode !== 'readonly')
                     updateBlockValue(pageId, block.id, val);

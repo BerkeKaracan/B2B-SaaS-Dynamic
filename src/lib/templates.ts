@@ -198,7 +198,7 @@ const PAGE_DEFAULTS: Record<PageTypeId, PageFrameDefaults> = {
     width: 800,
     height: 1131,
     title: 'New Frame',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fafafa',
   },
   kanban: {
     width: 1200,

@@ -16,6 +16,7 @@ import {
   blockSettingsInput,
   blockSettingsSelect,
 } from "./blockStyles";
+import { blurActiveEditable, closeSettingsPanel } from "@/lib/focusHygiene";
 
 interface FormBlockProps {
   block: BlockContent;
@@ -34,7 +35,10 @@ export default function FormBlock({
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!isActive) setIsSettingsOpen(false);
+    if (!isActive) {
+      setIsSettingsOpen(false);
+      blurActiveEditable();
+    }
   }, [isActive]);
 
   const label = (block.settings?.label as string) ?? "Field Label";
@@ -71,7 +75,8 @@ export default function FormBlock({
               Input Setup
             </div>
             <button
-              onClick={() => setIsSettingsOpen(false)}
+              type="button"
+              onClick={() => closeSettingsPanel(setIsSettingsOpen)}
               className={blockSettingsClose}
             >
               <X className="w-3.5 h-3.5" />

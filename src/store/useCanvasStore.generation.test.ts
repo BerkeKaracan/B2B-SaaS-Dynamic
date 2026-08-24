@@ -109,4 +109,38 @@ describe('addGeneratedPage', () => {
     expect(page.blocks[0].width ?? 0).toBeGreaterThan(left.width ?? 0);
     expect(page.height).toBeLessThanOrEqual(800);
   });
+
+  it('places multiple generated pages with horizontal offset', () => {
+    useCanvasStore.getState().addGeneratedPages(
+      [
+        {
+          type: 'kanban',
+          title: 'Sprint',
+          x: 0,
+          y: 0,
+          width: 1000,
+          height: 800,
+          metadata: { kanbanColumns: [{ id: 'TO DO', title: 'TO DO' }] },
+        },
+        {
+          type: 'timeline',
+          title: 'Roadmap',
+          x: 0,
+          y: 0,
+          width: 1000,
+          height: 720,
+          metadata: { timelineEvents: [] },
+        },
+      ],
+      { x: 40, y: 60 }
+    );
+
+    const pages = useCanvasStore.getState().pages;
+    expect(pages).toHaveLength(2);
+    expect(pages[0].x).toBe(40);
+    expect(pages[0].y).toBe(60);
+    expect(pages[1].x).toBeGreaterThan(pages[0].x);
+    expect(pages[1].y).toBe(60);
+    expect(useCanvasStore.getState().activePageId).toBe(pages[1].id);
+  });
 });

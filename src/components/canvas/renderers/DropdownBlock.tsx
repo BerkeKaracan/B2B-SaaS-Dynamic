@@ -27,6 +27,7 @@ import {
   blockPopover,
   blockMenuItem,
 } from "./blockStyles";
+import { blurActiveEditable, closeSettingsPanel } from "@/lib/focusHygiene";
 
 interface DropdownBlockProps {
   block: BlockContent;
@@ -47,6 +48,7 @@ export default function DropdownBlock({
     if (!isActive) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsSettingsOpen(false);
+      blurActiveEditable();
     }
   }, [isActive]);
 
@@ -95,7 +97,8 @@ export default function DropdownBlock({
               Field Setup
             </div>
             <button
-              onClick={() => setIsSettingsOpen(false)}
+              type="button"
+              onClick={() => closeSettingsPanel(setIsSettingsOpen)}
               className={blockSettingsClose}
             >
               <X className="w-3.5 h-3.5" />

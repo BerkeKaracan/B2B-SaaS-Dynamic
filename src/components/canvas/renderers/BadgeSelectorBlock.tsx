@@ -25,6 +25,7 @@ import {
   blockSettingsTextarea,
   blockPopover,
 } from "./blockStyles";
+import { blurActiveEditable, closeSettingsPanel } from "@/lib/focusHygiene";
 
 interface BadgeSelectorBlockProps {
   block: BlockContent;
@@ -60,7 +61,10 @@ export default function BadgeSelectorBlock({
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!isActive) setIsSettingsOpen(false);
+    if (!isActive) {
+      setIsSettingsOpen(false);
+      blurActiveEditable();
+    }
   }, [isActive]);
 
   const label = (block.settings?.label as string) ?? "Status";
@@ -110,7 +114,7 @@ export default function BadgeSelectorBlock({
               Badge Setup
             </div>
             <button
-              onClick={() => setIsSettingsOpen(false)}
+              onClick={() => closeSettingsPanel(setIsSettingsOpen)}
               className={blockSettingsClose}
             >
               <X className="w-3.5 h-3.5" />

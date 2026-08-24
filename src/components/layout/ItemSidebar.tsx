@@ -200,28 +200,27 @@ export default function ItemSidebar() {
       }
 
       const data = await res.json();
-      const finalData = data.page || data;
+      const pagesPayload = Array.isArray(data?.pages)
+        ? data.pages
+        : data?.page
+          ? [data.page]
+          : data?.type
+            ? [data]
+            : [];
 
-      if (finalData && finalData.type) {
+      if (pagesPayload.length > 0) {
         const store = useCanvasStore.getState();
+        store.addGeneratedPages(pagesPayload, { x: cx, y: cy });
 
-        if (store.addGeneratedPage) {
-          store.addGeneratedPage({
-            ...finalData,
-            x: cx,
-            y: cy,
-          });
+        setTimeout(() => {
+          const ns = useCanvasStore.getState();
+          if (ns.pages.length > 0) {
+            ns.setActivePage(ns.pages[ns.pages.length - 1].id);
+          }
+        }, 50);
 
-          setTimeout(() => {
-            const ns = useCanvasStore.getState();
-            if (ns.pages.length > 0) {
-              ns.setActivePage(ns.pages[ns.pages.length - 1].id);
-            }
-          }, 50);
-
-          setIsAiModalOpen(false);
-          setAiPrompt('');
-        }
+        setIsAiModalOpen(false);
+        setAiPrompt('');
       } else {
         toast.error(t('generateInvalid'));
       }

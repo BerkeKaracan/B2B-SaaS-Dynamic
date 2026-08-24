@@ -86,14 +86,18 @@ DEFAULT_KANBAN_COLUMNS = (
 CALENDAR_COLORS = ("zinc", "red", "amber", "emerald", "violet", "rose")
 RETRO_COLUMNS = frozenset({"glad", "sad", "mad"})
 LAYOUT_WHITELIST = frozenset({"full", "half"})
-HALF_LAYOUT_BLOCKS = frozenset({"date", "dropdown", "checkbox", "badge_selector"})
-FULL_LAYOUT_BLOCKS = frozenset({"form", "asset_stream", "container"})
+# Short inputs pair side-by-side; textarea/asset stay full-width.
+HALF_LAYOUT_BLOCKS = frozenset(
+    {"date", "dropdown", "checkbox", "badge_selector", "form"}
+)
+FULL_LAYOUT_BLOCKS = frozenset({"asset_stream", "container"})
 HEADING_COLOR = "#18181b"
 SECTION_COLOR = "#71717a"
 HEADING_FONT = "28px"
 SECTION_FONT = "13px"
 EVENT_SPREAD_DAYS = (1, 3, 7)
 MAX_EMPTY_BLOCKS = 12
+MAX_GENERATED_PAGES = 3
 DEFAULT_PAGE_WIDTH = 1000
 MIN_PAGE_HEIGHT = 480
 MAX_PAGE_HEIGHT = 2400
@@ -103,6 +107,7 @@ BLOCK_THEME_COLORS = frozenset(
     {
         "transparent",
         "#ffffff",
+        "#fafafa",
         "#f87171",
         "#fb923c",
         "#facc15",
@@ -245,6 +250,10 @@ def _apply_layout_hint(settings: dict[str, Any], block_type: str) -> None:
         settings["layout"] = layout
         return
     settings.pop("layout", None)
+    input_type = str(settings.get("inputType") or settings.get("input_type") or "").lower()
+    if block_type == "form" and input_type in {"textarea", "multiline", "long"}:
+        settings["layout"] = "full"
+        return
     if block_type in HALF_LAYOUT_BLOCKS:
         settings["layout"] = "half"
     elif block_type in FULL_LAYOUT_BLOCKS:
@@ -264,16 +273,52 @@ def _apply_text_design(settings: dict[str, Any], *, heading: bool) -> None:
     settings["layout"] = "full"
 
 
-def _looks_like_section(settings: dict[str, Any], value: Any, *, first_text: bool) -> bool:
-    if first_text:
-        return False
-    if settings.get("isBold") or str(settings.get("fontSize") or "") == HEADING_FONT:
-        return False
-    if str(settings.get("fontSize") or "") == SECTION_FONT:
-        return True
-    if str(settings.get("color") or "").lower() == SECTION_COLOR:
-        return True
-    return len(str(value or "").strip()) < 40
+def _is_explicit_section(settings: dict[str, Any]) -> bool:
+    font_size = str(settings.get("fontSize") or "")
+    color = str(settings.get("color") or "").lower()
+    role = str(settings.get("role") or settings.get("textRole") or "").lower()
+    return (
+        font_size == SECTION_FONT
+        or color == SECTION_COLOR
+        or role in {"section", "label", "caption"}
+    )
+
+
+def _is_explicit_heading(settings: dict[str, Any]) -> bool:
+    font_size = str(settings.get("fontSize") or "")
+    role = str(settings.get("role") or settings.get("textRole") or "").lower()
+    return bool(settings.get("isBold")) or font_size == HEADING_FONT or role in {
+        "heading",
+        "hero",
+        "title",
+    }
+
+
+def _ensure_field_copy(settings: dict[str, Any], block_type: str) -> None:
+    label = str(settings.get("label") or block_type.replace("_", " ").title()).strip()
+    if block_type == "form" and not str(settings.get("placeholder") or "").strip():
+        settings["placeholder"] = f"Enter {label.lower()}"
+
+    if block_type not in {"dropdown", "badge_selector"}:
+        return
+    raw = settings.get("options")
+    if isinstance(raw, list) and any(str(item).strip() for item in raw):
+        return
+    if isinstance(raw, str) and raw.strip():
+        return
+
+    key = label.lower()
+    if any(token in key for token in ("role", "title", "position")):
+        options = "Engineer, Designer, Product, Ops"
+    elif any(token in key for token in ("status", "state", "stage")):
+        options = "Not started, In progress, Done"
+    elif any(token in key for token in ("priority", "urgency")):
+        options = "High, Medium, Low"
+    elif any(token in key for token in ("type", "category", "kind")):
+        options = "Bug, Feature, Chore"
+    else:
+        options = f"{label} A, {label} B, {label} C"
+    settings["options"] = options
 
 
 def notes_content_is_leaked(content: str) -> bool:
@@ -312,19 +357,19 @@ def _normalize_empty_blocks(raw_blocks: Any) -> list[dict[str, Any]]:
         if value is None:
             value = ""
         if block_type == "text":
-            first_text = not saw_heading
-            marked_heading = bool(settings.get("isBold")) or str(
-                settings.get("fontSize") or ""
-            ) == HEADING_FONT
-            if first_text or marked_heading:
+            if not saw_heading:
                 _apply_text_design(settings, heading=True)
-            elif _looks_like_section(settings, value, first_text=False):
+                saw_heading = True
+            elif _is_explicit_heading(settings):
+                _apply_text_design(settings, heading=True)
+            elif _is_explicit_section(settings):
                 _apply_text_design(settings, heading=False)
             else:
-                settings["layout"] = "full"
+                settings.setdefault("layout", "full")
             saw_heading = True
         else:
             _apply_layout_hint(settings, block_type)
+            _ensure_field_copy(settings, block_type)
         settings["backgroundColor"] = _block_background(
             settings.get("backgroundColor")
         )
@@ -722,3 +767,43 @@ def normalize_generated_page(
         "blocks": blocks,
         "metadata": metadata,
     }
+
+
+def _page_candidates(payload: Any) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        # Bare lists are treated as empty-page blocks (legacy model output).
+        return [{"type": "empty", "title": "AI Generated Workspace", "blocks": payload}]
+
+    if not isinstance(payload, dict):
+        raise CanvasJsonError("Model output must be a JSON object.")
+
+    if "page" in payload and isinstance(payload["page"], dict) and "pages" not in payload:
+        payload = payload["page"]
+
+    raw_pages = payload.get("pages")
+    if isinstance(raw_pages, list):
+        pages = [item for item in raw_pages if isinstance(item, dict)]
+        if pages:
+            return pages
+
+    # Single page object
+    return [payload]
+
+
+def normalize_generated_pages(
+    payload: Any,
+    *,
+    x: float,
+    y: float,
+) -> dict[str, Any]:
+    """Normalize one or many generated pages. Caps at MAX_GENERATED_PAGES."""
+    candidates = _page_candidates(payload)
+    if not candidates:
+        candidates = [{"type": "empty", "title": "AI Generated Workspace", "blocks": []}]
+
+    pages: list[dict[str, Any]] = []
+    for item in candidates[:MAX_GENERATED_PAGES]:
+        # Placement offsets are applied on the client; keep host origin here.
+        pages.append(normalize_generated_page(item, x=x, y=y))
+
+    return {"pages": pages}
