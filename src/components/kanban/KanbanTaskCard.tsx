@@ -14,6 +14,7 @@ import {
   User,
 } from 'lucide-react';
 import type { DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd';
+import { MarkdownContent } from '@/components/ui/MarkdownContent';
 import type { Task } from './types';
 import { PRIORITY_UI } from './kanbanStyles';
 
@@ -86,9 +87,9 @@ function KanbanTaskCard({
               {task.title}
             </h4>
             {task.description ? (
-              <p className="text-[11px] mt-1 line-clamp-2 font-medium text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                {task.description}
-              </p>
+              <div className="text-[11px] mt-1 line-clamp-3 font-medium text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                <MarkdownContent variant="compact">{task.description}</MarkdownContent>
+              </div>
             ) : null}
           </div>
 

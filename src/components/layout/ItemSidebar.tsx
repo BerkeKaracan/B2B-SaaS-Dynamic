@@ -20,6 +20,7 @@ import {
   GripVertical,
   X,
 } from 'lucide-react';
+import { MarkdownContent } from '@/components/ui/MarkdownContent';
 import { AI, RAIL, ROW, SECTION, SURFACE } from './itemSidebarStyles';
 
 /** Default top clears the project toolbar (~3.5rem) + padding. */
@@ -1272,13 +1273,17 @@ export default function ItemSidebar() {
               {aiChat.map((msg, idx) => (
                 <div
                   key={`${msg.role}-${idx}`}
-                  className={`text-sm leading-relaxed rounded-xl px-3 py-2 max-w-[92%] whitespace-pre-wrap ${
+                  className={`text-sm leading-relaxed rounded-xl px-3 py-2 max-w-[92%] ${
                     msg.role === 'user'
                       ? 'self-end bg-indigo-600 text-white'
                       : 'self-start bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-100'
                   }`}
                 >
-                  {msg.content}
+                  {msg.role === 'assistant' ? (
+                    <MarkdownContent variant="compact">{msg.content}</MarkdownContent>
+                  ) : (
+                    <span className="whitespace-pre-wrap">{msg.content}</span>
+                  )}
                 </div>
               ))}
               {isAiGenerating && (

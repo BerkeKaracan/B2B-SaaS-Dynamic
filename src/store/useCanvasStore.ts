@@ -10,6 +10,7 @@ import {
   resolveBlockHeight,
 } from '@/lib/blockConfig';
 import { getPageFrameDefaults, isBoardPageType, BOARD_PAGE_TYPES } from '@/lib/templates';
+import { formatMarkdown } from '@/lib/markdownFormat';
 
 export type PageWithSettings = PageContent & {
   settings?: Record<string, unknown>;
@@ -48,6 +49,63 @@ const normalizeGeneratedPageType = (raw: unknown): PageContent['type'] => {
 
 const PAGE_PLACE_GAP = 80;
 
+/** Normalize AI markdown fields embedded in generated page metadata / blocks. */
+function formatGeneratedMetadata(
+  metadata: Record<string, unknown> | undefined
+): Record<string, unknown> {
+  if (!metadata) return {};
+  const next = { ...metadata };
+  for (const key of ['notepadContent', 'documentContent'] as const) {
+    if (typeof next[key] === 'string') {
+      next[key] = formatMarkdown(next[key] as string);
+    }
+  }
+  if (Array.isArray(next.whiteboardTexts)) {
+    next.whiteboardTexts = next.whiteboardTexts.map((item) => {
+      if (!item || typeof item !== 'object') return item;
+      const row = { ...(item as Record<string, unknown>) };
+      if (typeof row.content === 'string') {
+        row.content = formatMarkdown(row.content);
+      }
+      if (typeof row.text === 'string') {
+        row.text = formatMarkdown(row.text);
+      }
+      return row;
+    });
+  }
+  if (Array.isArray(next.retrospectiveCards)) {
+    next.retrospectiveCards = next.retrospectiveCards.map((item) => {
+      if (!item || typeof item !== 'object') return item;
+      const row = { ...(item as Record<string, unknown>) };
+      if (typeof row.content === 'string') {
+        row.content = formatMarkdown(row.content);
+      }
+      return row;
+    });
+  }
+  for (const key of ['kanbanTasks', 'tasks', 'timelineEvents'] as const) {
+    if (!Array.isArray(next[key])) continue;
+    next[key] = (next[key] as unknown[]).map((item) => {
+      if (!item || typeof item !== 'object') return item;
+      const row = { ...(item as Record<string, unknown>) };
+      if (typeof row.description === 'string') {
+        row.description = formatMarkdown(row.description);
+      }
+      return row;
+    });
+  }
+  return next;
+}
+
+function formatGeneratedBlocks(
+  blocks: BlockContent[]
+): BlockContent[] {
+  return blocks.map((block) => {
+    if (block.type !== 'text' || typeof block.value !== 'string') return block;
+    return { ...block, value: formatMarkdown(block.value) };
+  });
+}
+
 type GeneratedPageInput = Omit<PageContent, 'id' | 'blocks'> & {
   blocks?: Partial<BlockContent>[];
   metadata?: Record<string, unknown>;
@@ -69,7 +127,7 @@ const buildGeneratedPage = (
   if (isAutoLayout && pageData.blocks && pageData.blocks.length > 0) {
     const pageWidth = pageData.width || 1000;
     const laidOut = layoutGeneratedBlocks(pageData.blocks, pageWidth);
-    processedBlocks = laidOut.positioned;
+    processedBlocks = formatGeneratedBlocks(laidOut.positioned);
     finalHeight = Math.max(480, laidOut.nextY + BLOCK_STACK_PAGE_PAD);
   } else if (isTemplate) {
     processedBlocks = [];
@@ -90,7 +148,7 @@ const buildGeneratedPage = (
       backgroundColor: isAutoLayout
         ? '#fafafa'
         : frameDefaults.backgroundColor,
-      ...(pageData.metadata || {}),
+      ...formatGeneratedMetadata(pageData.metadata),
     },
   };
 };
@@ -351,10 +409,12 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           settings.notepadContent || settings.documentContent || ''
         );
         if (content != null) {
+          const formatted = formatMarkdown(content);
           settings.notepadContent =
             mode === 'append'
-              ? `${existing.trim()}\n\n${content}`.trim()
-              : content;
+              ? `${existing.trim()}\n\n${formatted}`.trim()
+              : formatted;
+          settings.documentContent = settings.notepadContent;
         }
         if (title) settings.notepadTitle = title;
         return {
@@ -367,10 +427,11 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       const metadata = { ...state.metadata };
       if (content != null) {
         const existing = String(metadata.notepadContent || '');
+        const formatted = formatMarkdown(content);
         metadata.notepadContent =
           mode === 'append'
-            ? `${existing.trim()}\n\n${content}`.trim()
-            : content;
+            ? `${existing.trim()}\n\n${formatted}`.trim()
+            : formatted;
       }
       if (title) metadata.notepadTitle = title;
 
@@ -381,16 +442,16 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     set((state) => {
       const targetId = moduleId || state.activePageId || state.recordId;
       const hasExactPage = state.pages.some((x) => x.id === targetId);
+      const rawContent = String(
+        (note.content as string | undefined) ||
+          (note.text as string | undefined) ||
+          ''
+      );
+      const formattedContent = formatMarkdown(rawContent);
       const normalized: Record<string, unknown> = {
         ...note,
-        content:
-          (note.content as string | undefined) ||
-          (note.text as string | undefined) ||
-          '',
-        text:
-          (note.text as string | undefined) ||
-          (note.content as string | undefined) ||
-          '',
+        content: formattedContent,
+        text: formattedContent,
       };
 
       const pages = state.pages.map((p) => {

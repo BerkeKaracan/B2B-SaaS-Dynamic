@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ThumbsUp, Trash2, User } from 'lucide-react';
+import { MarkdownContent } from '@/components/ui/MarkdownContent';
 import type { RetroCard, RetroColumnId } from './types';
 import { COLUMN_UI } from './retrospectiveStyles';
 
@@ -45,9 +46,9 @@ function RetroCardItem({
       />
 
       <div className="relative pl-3.5 pr-3 pt-3 pb-2.5 flex flex-col gap-2.5">
-        <p className="text-[13.5px] font-semibold leading-relaxed tracking-tight text-zinc-950 dark:text-zinc-50 whitespace-pre-wrap pr-1">
-          {card.content}
-        </p>
+        <div className="text-[13.5px] font-semibold leading-relaxed tracking-tight text-zinc-950 dark:text-zinc-50 pr-1">
+          <MarkdownContent variant="compact">{card.content}</MarkdownContent>
+        </div>
 
         <div
           className={`flex items-center justify-between gap-2 pt-2 border-t ${ui.divider}`}
