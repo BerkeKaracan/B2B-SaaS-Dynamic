@@ -37,6 +37,8 @@ import { Minus, Plus, Maximize, MousePointer2 } from 'lucide-react';
 
 import { BoardFromPageType } from '@/components/workspace/BoardRenderer';
 import PageColorPicker from '@/components/workspace/PageColorPicker';
+import BlockColorPicker from '@/components/workspace/BlockColorPicker';
+import { getBlockChrome } from '@/lib/blockTheme';
 import { isBoardPageType } from '@/lib/templates';
 
 import { useCanvasCollaboration } from '@/hooks/useCanvasCollaboration';
@@ -1401,6 +1403,18 @@ export default function CanvasArea() {
                   return null;
                 }
 
+                const chrome = getBlockChrome(
+                  block.settings?.backgroundColor as string | undefined,
+                  {
+                    isActive: isBlockActive,
+                    connectHover: Boolean(
+                      connectingFrom &&
+                        connectingFrom.blockId !== block.id &&
+                        mode !== 'readonly'
+                    ),
+                  }
+                );
+
                 return (
                   <div
                     key={block.id}
@@ -1446,17 +1460,14 @@ export default function CanvasArea() {
                         setConnectingFrom(null);
                       }
                     }}
-                    className={`absolute bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-5 pt-10 sm:pt-8 cursor-default select-none group ${
-                      isBlockActive
-                        ? 'ring-2 ring-indigo-500 shadow-lg z-50'
-                        : 'shadow-sm z-10'
-                    } ${connectingFrom && connectingFrom.blockId !== block.id && mode !== 'readonly' ? 'hover:ring-2 hover:ring-indigo-400' : ''}`}
+                    className={chrome.className}
                     data-block-id={block.id}
                     style={{
                       left: `${bx}px`,
                       top: `${by}px`,
                       width: `${bw}px`,
                       minHeight: `${bh}px`,
+                      ...chrome.style,
                     }}
                   >
                     {isBlockActive && mode !== 'readonly' && (
@@ -1492,6 +1503,18 @@ export default function CanvasArea() {
 
                     {activeBlockId === block.id && mode !== 'readonly' && (
                       <div className="absolute -top-4 -right-4 sm:-top-3 sm:-right-3 flex gap-1.5 sm:gap-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                        <BlockColorPicker
+                          value={
+                            (block.settings?.backgroundColor as
+                              | string
+                              | undefined) ?? null
+                          }
+                          onChange={(color) =>
+                            updateBlockSettings(page.id, block.id, {
+                              backgroundColor: color,
+                            })
+                          }
+                        />
                         <button
                           type="button"
                           onClick={(e) => {
@@ -1596,6 +1619,7 @@ export default function CanvasArea() {
     renderBlock,
     updatePageTitle,
     updatePageSettings,
+    updateBlockSettings,
     removePage,
     addConnection,
     removeBlockFromPage,

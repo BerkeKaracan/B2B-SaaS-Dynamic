@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from groq import AsyncGroq
+from groq import APIStatusError, AsyncGroq
 from datetime import datetime
 
 from core.database import supabase, supabase_admin
@@ -23,6 +23,11 @@ from core.ai_prompts import (
     get_magic_wand_prompt,
     get_canvas_system_prompt,
     get_chat_prompt,
+)
+from core.canvas_generation import (
+    CanvasJsonError,
+    loads_canvas_payload,
+    normalize_generated_page,
 )
 
 router = APIRouter(prefix="/api/ai", tags=["AI Support"])
@@ -960,6 +965,79 @@ class GenerateCanvasRequest(BaseModel):
     tenant_id: str
 
 
+# Groq on-demand TPM is 8000 for this org. That budget includes the
+# prompt, so completion max_tokens must leave room for the system+user text.
+GROQ_TPM_BUDGET = 8000
+CANVAS_PROMPT_RESERVE = 1200
+CANVAS_GENERATE_MAX_TOKENS = GROQ_TPM_BUDGET - CANVAS_PROMPT_RESERVE
+CANVAS_GENERATE_FALLBACK_TOKENS = 4000
+CANVAS_GENERATE_MODEL = "openai/gpt-oss-120b"
+CANVAS_INVALID_JSON_DETAIL = (
+    "The AI did not return a usable page. Try again with a shorter sentence."
+)
+CANVAS_CAPACITY_DETAIL = (
+    "The AI service is at capacity. Wait a few seconds or use a shorter prompt."
+)
+
+
+def raise_if_groq_capacity(exc: APIStatusError) -> None:
+    if exc.status_code in (413, 429):
+        raise HTTPException(status_code=429, detail=CANVAS_CAPACITY_DETAIL) from exc
+
+
+async def groq_canvas_completion(
+    client: AsyncGroq,
+    messages: List[Dict[str, Any]],
+    *,
+    use_json_object: bool = True,
+    max_tokens: int = CANVAS_GENERATE_MAX_TOKENS,
+) -> str:
+    kwargs: Dict[str, Any] = {
+        "messages": messages,
+        "model": CANVAS_GENERATE_MODEL,
+        "temperature": 0.5,
+        "max_tokens": max_tokens,
+    }
+    if use_json_object:
+        kwargs["response_format"] = {"type": "json_object"}
+    try:
+        completion = await client.chat.completions.create(**kwargs)
+    except APIStatusError as exc:
+        if exc.status_code == 413 and max_tokens > CANVAS_GENERATE_FALLBACK_TOKENS:
+            return await groq_canvas_completion(
+                client,
+                messages,
+                use_json_object=use_json_object,
+                max_tokens=CANVAS_GENERATE_FALLBACK_TOKENS,
+            )
+        raise_if_groq_capacity(exc)
+        if use_json_object:
+            kwargs.pop("response_format", None)
+            try:
+                completion = await client.chat.completions.create(**kwargs)
+            except APIStatusError as retry_exc:
+                raise_if_groq_capacity(retry_exc)
+                raise
+        else:
+            raise
+    except Exception:
+        if not use_json_object:
+            raise
+        kwargs.pop("response_format", None)
+        completion = await client.chat.completions.create(**kwargs)
+    return (completion.choices[0].message.content or "").strip()
+
+
+def parse_or_raise_canvas_json(result_text: str) -> dict:
+    try:
+        return loads_canvas_payload(result_text)
+    except CanvasJsonError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=CANVAS_INVALID_JSON_DETAIL,
+        ) from exc
+
+
 class ChatMessage(BaseModel):
     role: str
     content: str
@@ -1027,50 +1105,47 @@ async def generate_canvas(
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is missing")
 
     client = AsyncGroq(api_key=api_key)
+    try:
+        return await generate_canvas_from_model(client, req)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Failed to generate canvas page")
+        raise HTTPException(
+            status_code=500,
+            detail="An internal error occurred while generating the canvas.",
+        ) from e
+
+
+async def generate_canvas_from_model(
+    client: AsyncGroq, req: GenerateCanvasRequest
+) -> dict:
     current_date = datetime.now().strftime("%Y-%m-%d")
     system_prompt = get_canvas_system_prompt(current_date, req.x, req.y)
+    messages: List[Dict[str, Any]] = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": req.prompt},
+    ]
 
+    result_text = await groq_canvas_completion(client, messages)
     try:
-        chat_completion = await client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": req.prompt},
-            ],
-            model="openai/gpt-oss-120b",
-            temperature=0.5,
-            max_tokens=2500,
-        )
+        parsed_json = loads_canvas_payload(result_text)
+    except CanvasJsonError:
+        repair_messages = [
+            *messages,
+            {"role": "assistant", "content": result_text[:4000]},
+            {
+                "role": "user",
+                "content": (
+                    "The previous output was not valid JSON. "
+                    "Return ONLY one valid JSON object for a single canvas page."
+                ),
+            },
+        ]
+        result_text = await groq_canvas_completion(client, repair_messages)
+        parsed_json = parse_or_raise_canvas_json(result_text)
 
-        result_text = chat_completion.choices[0].message.content.strip()
-        result_text = re.sub(r"^`{3}(?:json)?|`{3}$", "", result_text, flags=re.IGNORECASE).strip()
-
-        start_idx, end_idx = -1, -1
-        for i, char in enumerate(result_text):
-            if char in ["{", "["]:
-                start_idx = i
-                break
-        for i in range(len(result_text) - 1, -1, -1):
-            if result_text[i] in ["}", "]"]:
-                end_idx = i
-                break
-        if start_idx != -1 and end_idx != -1:
-            result_text = result_text[start_idx : end_idx + 1]
-
-        try:
-            parsed_json = json.loads(result_text)
-        except json.JSONDecodeError:
-            parsed_json = {"type": "empty", "title": "AI Error Recovery", "blocks": []}
-
-        if isinstance(parsed_json, list):
-            parsed_json = {"type": "empty", "title": "AI Generated Workspace", "blocks": parsed_json}
-        if "blocks" not in parsed_json:
-            parsed_json["blocks"] = []
-        if "type" not in parsed_json:
-            parsed_json["type"] = "empty"
-        return parsed_json
-    except Exception as e:
-        print(f"--- AI FATAL ERROR ---\n{str(e)}\n-------------------------")
-        raise HTTPException(status_code=500, detail="An internal error occurred while generating the canvas.")
+    return normalize_generated_page(parsed_json, x=req.x, y=req.y)
 
 
 @router.post("/chat")

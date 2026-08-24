@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { BlockType, PageContent } from '@/types/record';
 import { fetchAPI } from '@/services/api';
+import { toast } from 'sonner';
 import { useFeatureFlag } from '@/hooks/useFeatureFlag';
 import { AI_CANVAS_GENERATOR } from '@/lib/featureGate';
 import { FRAME_PAGE_TYPES } from '@/lib/templates';
@@ -188,17 +189,17 @@ export default function ItemSidebar() {
       });
 
       if (!res.ok) {
-        const errBody = await res.json().catch(() => null);
-        const detail =
-          (errBody && (errBody.detail as string)) ||
-          `AI request failed (${res.status})`;
-        alert(detail);
+        const errBody = (await res.json().catch(() => null)) as
+          | { detail?: string | Array<{ msg?: string }> }
+          | null;
+        const detail = Array.isArray(errBody?.detail)
+          ? errBody.detail[0]?.msg
+          : errBody?.detail;
+        toast.error(detail || t('generateFailed'));
         return;
       }
 
       const data = await res.json();
-      console.log('AI Output:', data);
-
       const finalData = data.page || data;
 
       if (finalData && finalData.type) {
@@ -222,15 +223,11 @@ export default function ItemSidebar() {
           setAiPrompt('');
         }
       } else {
-        alert(
-          'The AI was unable to generate a valid template. Please rephrase your request using different words.'
-        );
+        toast.error(t('generateInvalid'));
       }
     } catch (e: unknown) {
       console.error('AI Canvas Generation Error:', e);
-      alert(
-        'Communication with the AI ​engine could not be established. Check the backend logs in the terminal.'
-      );
+      toast.error(t('generateFailed'));
     } finally {
       setIsAiGenerating(false);
     }

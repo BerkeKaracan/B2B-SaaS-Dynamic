@@ -8,6 +8,7 @@ import {
   BLOCK_STACK_ORIGIN_Y,
   BLOCK_STACK_PAGE_PAD,
   getBlockDefaultWidth,
+  layoutGeneratedBlocks,
   resolveBlockHeight,
 } from '@/lib/blockConfig';
 import { getPageFrameDefaults, isBoardPageType, BOARD_PAGE_TYPES } from '@/lib/templates';
@@ -190,7 +191,7 @@ interface CanvasState {
   ) => void;
   addGeneratedPage: (
     pageData: Omit<PageContent, 'id' | 'blocks'> & {
-      blocks?: Omit<BlockContent, 'id'>[];
+      blocks?: Partial<BlockContent>[];
       metadata?: Record<string, unknown>;
     }
   ) => void;
@@ -477,10 +478,8 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
       let processedBlocks: BlockContent[] = [];
 
       if (isAutoLayout && pageData.blocks && pageData.blocks.length > 0) {
-        const laidOut = layoutBlocksVertically(
-          pageData.blocks,
-          BLOCK_STACK_ORIGIN_Y
-        );
+        const pageWidth = pageData.width || 1000;
+        const laidOut = layoutGeneratedBlocks(pageData.blocks, pageWidth);
         processedBlocks = laidOut.positioned;
         // Prefer packed height — AI often returns height: 1000+ with huge empty space.
         finalHeight = Math.max(480, laidOut.nextY + BLOCK_STACK_PAGE_PAD);
@@ -490,6 +489,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         finalHeight = Math.max(pageData.height || 800, 720);
       }
 
+      const frameDefaults = getPageFrameDefaults(pageType);
       const newPage: PageWithSettings = {
         id: pageId,
         type: pageType,
@@ -500,7 +500,9 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         height: finalHeight,
         blocks: processedBlocks,
         settings: {
-          backgroundColor: isAutoLayout ? '#ffffff' : '#f4f4f5',
+          backgroundColor: isAutoLayout
+            ? '#fafafa'
+            : frameDefaults.backgroundColor,
           ...(pageData.metadata || {}),
         },
       };
