@@ -1249,6 +1249,7 @@ async def canvas_dialog(
         ) from e
 
 
+
 @router.post("/chat")
 @limiter.limit("10/minute", key_func=get_ai_rate_limit_key)
 async def chat_with_canvas(
