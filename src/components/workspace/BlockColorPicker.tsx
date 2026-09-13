@@ -45,13 +45,16 @@ export default function BlockColorPicker({
         style={
           triggerIsClear
             ? CHECKER
-            : { backgroundColor: current === BLOCK_BACKGROUND_DEFAULT ? '#ffffff' : current }
+            : {
+                backgroundColor:
+                  current === BLOCK_BACKGROUND_DEFAULT ? '#ffffff' : current,
+              }
         }
         title={current === BLOCK_BACKGROUND_DEFAULT ? 'Block color' : current}
       />
 
       {!disabled && (
-        <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-50">
+        <div className="absolute bottom-full right-0 pb-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 z-50">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-2 grid grid-cols-6 gap-1.5 w-max">
             {BLOCK_THEME_COLORS.map((color) => {
               const selected = current === color;
